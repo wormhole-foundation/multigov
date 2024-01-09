@@ -2,48 +2,26 @@
 pragma solidity ^0.8.23;
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 
 /// @notice Handles sending proposal metadata such as proposal id, start date and end date from L1
 /// to L2.
-contract WormholeProposalMetadataSender  {
+contract WormholeProposalMetadataSender {
   /// @notice The governor where proposals are fetched and bridged.
   IGovernor public immutable GOVERNOR;
 
   IWormhole public immutable WORMHOLE_CORE;
 
-  /// @notice Indicates whether the contract has been initialized with the L2 governor metadata. It
-  /// can only be called once.
-  bool public INITIALIZED = false;
-
-
   /// @notice The proposal id is an invalid proposal id.
   error InvalidProposalId();
 
-  /// @dev Contract is already initialized with an L2 token.
-  error AlreadyInitialized();
+  event ProposalMetadataBridged(uint256 indexed proposalId, uint256 voteStart, uint256 voteEnd, bool isCanceled);
 
-  event ProposalMetadataBridged(
-    uint16 indexed targetChain,
-    address indexed targetGovernor,
-    uint256 indexed proposalId,
-    uint256 voteStart,
-    uint256 voteEnd,
-    bool isCanceled
-  );
-
-  /// @param _governor The address of the L1 governor contract.
-  /// @param _relayer The address of the L1 Wormhole relayer contract.
-  /// @param _sourceChain The chain id sending the wormhole messages.
-  /// @param _targetChain The chain id receiving the wormhole messages.
-  constructor(address _governor, address _core, uint16 _sourceChain, uint16 _targetChain) {
+  /// @param _governor The address of the hub chain governor.
+  /// @param _core The wormhole core contract.
+  constructor(address _governor, address _core) {
     GOVERNOR = IGovernor(_governor);
-    WORMHOLE_CORE = IWormhole(_core)
-  }
-
-  /// @param l2GovernorMetadata The address of the L2 governor metadata contract.
-  function initialize(address l2GovernorMetadata) public {
-    if (INITIALIZED) revert AlreadyInitialized();
-    INITIALIZED = true;
+    WORMHOLE_CORE = IWormhole(_core);
   }
 
   /// @notice Publishes a messages with the proposal id, start block and end block
@@ -61,10 +39,10 @@ contract WormholeProposalMetadataSender  {
 
     // TODO How are relayer fees handled? Initial impl assumes all cost borne on the relayer
     sequence = WORMHOLE_CORE.publishMessage(
-        0,
-        proposalCalldata,
-        201 // TODO should this be finalized
+      0, // TODO nonce: needed?
+      proposalCalldata, // payload
+      201 // TODO consistency level: where should we set it?
     );
-    emit ProposalMetadataBridged(TARGET_CHAIN, L2_GOVERNOR_ADDRESS, proposalId, voteStart, voteEnd, isCanceled);
+    emit ProposalMetadataBridged(proposalId, voteStart, voteEnd, isCanceled);
   }
 }
