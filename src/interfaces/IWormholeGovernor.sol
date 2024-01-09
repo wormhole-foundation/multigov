@@ -42,11 +42,14 @@ interface IWormholeGovernor {
   );
   event ProposalExecuted(uint256 proposalId);
   event ProposalQueued(uint256 proposalId, uint256 etaSeconds);
+  event ProposalThresholdSet(uint256 oldProposalThreshold, uint256 newProposalThreshold);
   event TimelockChange(address oldTimelock, address newTimelock);
   event VoteCast(address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason);
   event VoteCastWithParams(
     address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason, bytes params
   );
+  event VotingDelaySet(uint256 oldVotingDelay, uint256 newVotingDelay);
+  event VotingPeriodSet(uint256 oldVotingPeriod, uint256 newVotingPeriod);
 
   receive() external payable;
 
@@ -127,12 +130,15 @@ interface IWormholeGovernor {
     returns (uint256);
   function quorum(uint256) external pure returns (uint256);
   function relay(address target, uint256 value, bytes memory data) external payable;
+  function setProposalThreshold(uint256 newProposalThreshold) external;
+  function setVotingDelay(uint48 newVotingDelay) external;
+  function setVotingPeriod(uint32 newVotingPeriod) external;
   function state(uint256 proposalId) external view returns (ProposalState);
   function supportsInterface(bytes4 interfaceId) external view returns (bool);
   function timelock() external view returns (address);
   function token() external view returns (address);
   function updateTimelock(address newTimelock) external;
   function version() external view returns (string memory);
-  function votingDelay() external pure returns (uint256);
-  function votingPeriod() external pure returns (uint256);
+  function votingDelay() external view returns (uint256);
+  function votingPeriod() external view returns (uint256);
 }

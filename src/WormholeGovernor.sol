@@ -7,22 +7,29 @@ import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/Gover
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 
 // TODO: Add switch in Flexible Voting
-contract WormholeGovernor is Governor, GovernorCountingSimple, GovernorVotes, GovernorTimelockControl {
-  constructor(string memory _name, IVotes _token, TimelockController _timelock)
+contract WormholeGovernor is
+  Governor,
+  GovernorSettings,
+  GovernorCountingSimple,
+  GovernorVotes,
+  GovernorTimelockControl
+{
+  constructor(
+    string memory _name,
+    IVotes _token,
+    TimelockController _timelock,
+    uint48 _initialVotingDelay,
+    uint32 _initialVotingPeriod,
+    uint256 _initialProposalThreshold
+  )
     Governor(_name)
+    GovernorSettings(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold)
     GovernorVotes(_token)
     GovernorTimelockControl(_timelock)
   {}
-
-  function votingPeriod() public pure override returns (uint256) {
-    return 17_280; // 3 days
-  }
-
-  function votingDelay() public pure override returns (uint256) {
-    return 1;
-  }
 
   function quorum(uint256) public pure override returns (uint256) {
     return 1;
@@ -79,5 +86,9 @@ contract WormholeGovernor is Governor, GovernorCountingSimple, GovernorVotes, Go
     returns (ProposalState)
   {
     return GovernorTimelockControl.state(proposalId);
+  }
+
+  function proposalThreshold() public view virtual override(Governor, GovernorSettings) returns (uint256) {
+    return GovernorSettings.proposalThreshold();
   }
 }
