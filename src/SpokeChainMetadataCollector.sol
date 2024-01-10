@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.23;
+
+import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+
+contract SpokeChainMetadataCollector {
+  IWormhole public immutable WORMHOLE_CORE;
+  uint16 public immutable HUB_CHAIN_ID;
+  bytes32 public immutable HUB_PROPOSAL_METADATA_SENDER;
+
+  struct Proposal {
+    uint256 voteStart;
+    uint256 voteEnd;
+    bool isCanceled;
+  }
+
+  mapping(uint256 proposalId => Proposal) proposals;
+
+  error InvalidWormholeMessage(string);
+  error UnknownMessageEmitter();
+
+  event ProposalCreated(uint256 proposalId, uint256 startBlock, uint256 endBlock);
+
+  event ProposalCanceled(uint256 proposalId);
+
+  constructor(address _core, uint16 _hubChainId, bytes32 _hubProposalMetadataSender) {
+    WORMHOLE_CORE = IWormhole(_core);
+    HUB_CHAIN_ID = _hubChainId;
+    HUB_PROPOSAL_METADATA_SENDER = _hubProposalMetadataSender;
+  }
+
+  function receiveMessage(bytes memory _encodedMessage) public {
+    // call the Wormhole core contract to parse and verify the encodedMessage
+    (IWormhole.VM memory wormholeMessage, bool valid, string memory reason) =
+      WORMHOLE_CORE.parseAndVerifyVM(_encodedMessage);
+
+    if (!valid) revert InvalidWormholeMessage(reason);
+
+    // TODO: Assumes we only receive metadata from a single hub ProposalMetadataSender
+    if (
+      wormholeMessage.emitterChainId != HUB_CHAIN_ID || wormholeMessage.emitterAddress != HUB_PROPOSAL_METADATA_SENDER
+    ) revert UnknownMessageEmitter();
+    (uint256 proposalId, uint256 voteStart, uint256 voteEnd, bool isCanceled) =
+      abi.decode(wormholeMessage.payload, (uint256, uint256, uint256, bool));
+
+    _addProposal(proposalId, voteStart, voteEnd, isCanceled);
+  }
+
+  function _addProposal(uint256 proposalId, uint256 voteStart, uint256 voteEnd, bool isCanceled) internal {
+    proposals[proposalId] = Proposal(voteStart, voteEnd, isCanceled);
+    if (isCanceled) emit ProposalCanceled(proposalId);
+    else emit ProposalCreated(proposalId, voteStart, voteEnd);
+  }
+}
