@@ -15,12 +15,7 @@ contract HubChainVotePool {
   error InvalidProposalVote();
 
   event SpokeVoteCast(
-    address indexed voter,
-    uint16 indexed emitterChainId,
-    uint256 proposalId,
-    uint256 voteAgainst,
-    uint256 voteFor,
-    uint256 voteAbstain
+    uint16 indexed emitterChainId, uint256 proposalId, uint256 voteAgainst, uint256 voteFor, uint256 voteAbstain
   );
 
   /// @dev Contains the distribution of a proposal vote.
@@ -29,11 +24,11 @@ contract HubChainVotePool {
     uint128 forVotes;
     uint128 abstainVotes;
   }
-  //   mapping(uint256 => ProposalVote proposalVotes) totalSpokeVotes;
 
   mapping(uint16 emitterChain => bytes32 emitterAddress) spokeRegistry;
+
   // Instead of nested mapping create encoding for the key
-  mapping(uint16 emitterChain => mapping(uint256 proposalId => ProposalVote proposalVotes)) spokeVotes;
+  mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) spokeProposalVotes;
 
   constructor(address _core, address _hubGovernor) {
     WORMHOLE_CORE = IWormhole(_core);
@@ -41,11 +36,8 @@ contract HubChainVotePool {
     // TODO: delegate
     // ERC20Votes(IFractionalGovernor(address(HUB_GOVERNOR)).token()).delegate(address(this));
   }
-  // TODO: Make sure invalid spoke chains error
-  // TODO: Make sure vote came from an authorized sender. Does it need to be both caller and sender?
-  // TODO: Must be able to call Governor to vote
-  // TODO: Make sure votes are not double counted
 
+  // TODO: Make sure vote came from an authorized sender. Does it need to be both caller and sender?
   function receiveMessage(bytes memory _encodedMessage) public {
     // call the Wormhole core contract to parse and verify the encodedMessage
     (IWormhole.VM memory wormholeMessage, bool valid, string memory reason) =
@@ -57,14 +49,16 @@ contract HubChainVotePool {
     (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
       abi.decode(wormholeMessage.payload, (uint256, uint128, uint128, uint128));
 
-    ProposalVote memory existingSpokeVote = spokeVotes[wormholeMessage.emitterChainId][proposalId];
+    // TODO: does encode vs encodePacked matter here
+    bytes32 _spokeProposalId = keccak256(abi.encode(wormholeMessage.emitterChainId, proposalId));
+    ProposalVote memory existingSpokeVote = spokeProposalVotes[_spokeProposalId];
     if (
       existingSpokeVote.againstVotes > againstVotes || existingSpokeVote.forVotes > forVotes
         || existingSpokeVote.abstainVotes > abstainVotes
     ) revert InvalidProposalVote();
 
     // Save proposal vote
-    spokeVotes[wormholeMessage.emitterChainId] = ProposalVote(againstVotes, forVotes, abstainVotes);
+    spokeProposalVotes[_spokeProposalId] = ProposalVote(againstVotes, forVotes, abstainVotes);
 
     _castVote(
       proposalId,
@@ -84,6 +78,6 @@ contract HubChainVotePool {
       proposalId, UNUSED_SUPPORT_PARAM, "rolled-up vote from governance L2 token holders", votes
     );
 
-    emit SpokeVoteCast(msg.sender, emitterChainId, proposalId, vote.againstVotes, vote.forVotes, vote.abstainVotes);
+    emit SpokeVoteCast(emitterChainId, proposalId, vote.againstVotes, vote.forVotes, vote.abstainVotes);
   }
 }
