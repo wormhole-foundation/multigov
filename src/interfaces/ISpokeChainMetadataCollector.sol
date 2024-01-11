@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-interface ISpokeChainMetadataCollector {
+interface Interface {
   error InvalidWormholeMessage(string);
   error UnknownMessageEmitter();
 

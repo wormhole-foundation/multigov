@@ -29,6 +29,10 @@ contract SpokeChainMetadataCollector {
     HUB_PROPOSAL_METADATA_SENDER = _hubProposalMetadataSender;
   }
 
+  function getProposal(uint256 proposalId) public view returns (Proposal memory) {
+    return proposals[proposalId];
+  }
+
   function receiveMessage(bytes memory _encodedMessage) public {
     // call the Wormhole core contract to parse and verify the encodedMessage
     (IWormhole.VM memory wormholeMessage, bool valid, string memory reason) =
