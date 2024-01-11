@@ -25,10 +25,10 @@ contract HubVotePool {
     uint128 abstainVotes;
   }
 
-  mapping(uint16 emitterChain => bytes32 emitterAddress) spokeRegistry;
+  mapping(uint16 emitterChain => bytes32 emitterAddress) public spokeRegistry;
 
   // Instead of nested mapping create encoding for the key
-  mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) spokeProposalVotes;
+  mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
   constructor(address _core, address _hubGovernor) {
     WORMHOLE_CORE = IWormhole(_core);

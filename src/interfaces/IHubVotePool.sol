@@ -13,4 +13,9 @@ interface IHubVotePool {
   function HUB_GOVERNOR() external view returns (address);
   function WORMHOLE_CORE() external view returns (address);
   function receiveMessage(bytes memory _encodedMessage) external;
+  function spokeProposalVotes(bytes32 spokeProposalId)
+    external
+    view
+    returns (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes);
+  function spokeRegistry(uint16 emitterChain) external view returns (bytes32 emitterAddress);
 }

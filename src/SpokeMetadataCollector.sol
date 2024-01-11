@@ -14,7 +14,7 @@ contract SpokeMetadataCollector {
     bool isCanceled;
   }
 
-  mapping(uint256 proposalId => Proposal) proposals;
+  mapping(uint256 proposalId => Proposal) internal proposals;
 
   error InvalidWormholeMessage(string);
   error UnknownMessageEmitter();
