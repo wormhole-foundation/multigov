@@ -5,7 +5,7 @@ import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-contract HubChainVotePool {
+contract HubVotePool {
   IWormhole public immutable WORMHOLE_CORE;
   IGovernor public immutable HUB_GOVERNOR;
   uint8 constant UNUSED_SUPPORT_PARAM = 1;

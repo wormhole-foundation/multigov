@@ -6,7 +6,7 @@ import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 
 /// @notice Handles sending proposal metadata such as proposal id, start date and end date from L1
 /// to L2.
-contract WormholeProposalMetadataSender {
+contract HubProposalMetadataSender {
   /// @notice The governor where proposals are fetched and bridged.
   IGovernor public immutable GOVERNOR;
 

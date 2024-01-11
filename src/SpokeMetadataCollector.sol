@@ -3,7 +3,7 @@ pragma solidity ^0.8.23;
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 
-contract SpokeChainMetadataCollector {
+contract SpokeMetadataCollector {
   IWormhole public immutable WORMHOLE_CORE;
   uint16 public immutable HUB_CHAIN_ID;
   bytes32 public immutable HUB_PROPOSAL_METADATA_SENDER;

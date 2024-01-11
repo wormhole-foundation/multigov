@@ -10,13 +10,7 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 
 // TODO: Add switch in Flexible Voting
-contract WormholeGovernor is
-  Governor,
-  GovernorSettings,
-  GovernorCountingSimple,
-  GovernorVotes,
-  GovernorTimelockControl
-{
+contract HubGovernor is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorTimelockControl {
   constructor(
     string memory _name,
     IVotes _token,
@@ -41,7 +35,7 @@ contract WormholeGovernor is
     override(Governor, GovernorTimelockControl)
     returns (uint256)
   {
-    GovernorTimelockControl._cancel(targets, values, calldatas, descriptionHash);
+    return GovernorTimelockControl._cancel(targets, values, calldatas, descriptionHash);
   }
 
   function _executeOperations(

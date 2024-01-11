@@ -7,7 +7,7 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {SpokeChainMetadataCollector} from "src/SpokeChainMetadataCollector.sol";
+import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 
 // TODO valid spoke chain token holders must be able to cast their vote on proposals
 // TODO must be a method for votes on spoke chain to be bridged to hub
@@ -17,7 +17,7 @@ import {SpokeChainMetadataCollector} from "src/SpokeChainMetadataCollector.sol";
 // TODO revert if voter has no vote weight
 // TODO Compatible with Flexible voting on the L2
 // TODO Message can only be bridged during the cast vote window period (Is this what we want)
-contract SpokeVoteAggregator is EIP712, Nonces, SpokeChainMetadataCollector {
+contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
   bytes32 public constant BALLOT_TYPEHASH =
     keccak256("Ballot(uint256 proposalId,uint8 support,address voter,uint256 nonce)");
 
@@ -65,14 +65,14 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeChainMetadataCollector {
   )
     // TODO: name, version
     EIP712("SpokeVoteAggregator", "1")
-    SpokeChainMetadataCollector(_core, _hubChainId, _hubProposalMetadataSender)
+    SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadataSender)
   {
     VOTING_TOKEN = ERC20Votes(_votingToken);
     CAST_VOTE_WINDOW = _castVoteWindow;
   }
 
   function state(uint256 proposalId) external view virtual returns (ProposalState) {
-    SpokeChainMetadataCollector.Proposal memory proposal = getProposal(proposalId);
+    SpokeMetadataCollector.Proposal memory proposal = getProposal(proposalId);
     if (VOTING_TOKEN.clock() < proposal.voteStart) return ProposalState.Pending;
     else if (voteActiveInternal(proposalId)) return ProposalState.Active;
     else if (proposal.isCanceled) return ProposalState.Canceled;
@@ -115,7 +115,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeChainMetadataCollector {
   }
 
   function internalVotingPeriodEnd(uint256 _proposalId) public view returns (uint256 _lastVotingBlock) {
-    SpokeChainMetadataCollector.Proposal memory proposal = getProposal(_proposalId);
+    SpokeMetadataCollector.Proposal memory proposal = getProposal(_proposalId);
     _lastVotingBlock = proposal.voteEnd - CAST_VOTE_WINDOW;
   }
 
@@ -126,7 +126,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeChainMetadataCollector {
   {
     if (!voteActiveInternal(_proposalId)) revert ProposalInactive();
 
-    SpokeChainMetadataCollector.Proposal memory proposal = getProposal(_proposalId);
+    SpokeMetadataCollector.Proposal memory proposal = getProposal(_proposalId);
     uint256 weight = VOTING_TOKEN.getPastVotes(_voter, proposal.voteStart);
     if (weight == 0) revert NoWeight();
 
@@ -139,14 +139,14 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeChainMetadataCollector {
   }
 
   function voteActiveHub(uint256 proposalId) public view returns (bool active) {
-    SpokeChainMetadataCollector.Proposal memory proposal = getProposal(proposalId);
+    SpokeMetadataCollector.Proposal memory proposal = getProposal(proposalId);
     // TODO: do we need to use voting token clock or can we replace w more efficient block.timestamp
     uint256 _time = VOTING_TOKEN.clock();
     return _time <= proposal.voteEnd && _time >= proposal.voteStart && !proposal.isCanceled;
   }
 
   function voteActiveInternal(uint256 proposalId) public view returns (bool active) {
-    SpokeChainMetadataCollector.Proposal memory proposal = getProposal(proposalId);
+    SpokeMetadataCollector.Proposal memory proposal = getProposal(proposalId);
     // TODO: do we need to use voting token clock or can we replace w more efficient block.timestamp
     uint256 _time = VOTING_TOKEN.clock();
     return _time <= internalVotingPeriodEnd(proposalId) && _time >= proposal.voteStart && !proposal.isCanceled;

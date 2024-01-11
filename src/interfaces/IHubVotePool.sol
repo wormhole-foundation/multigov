@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-interface IHubChainVotePool {
+interface IHubVotePool {
   error InvalidProposalVote();
   error InvalidWormholeMessage(string);
   error UnknownMessageEmitter();

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-interface IWormholeGovernor {
+interface IHubGovernor {
   type ProposalState is uint8;
 
   error FailedInnerCall();
