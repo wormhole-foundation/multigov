@@ -37,7 +37,6 @@ contract HubVotePool {
     // ERC20Votes(IFractionalGovernor(address(HUB_GOVERNOR)).token()).delegate(address(this));
   }
 
-  // TODO: Make sure vote came from an authorized sender. Does it need to be both caller and sender?
   function receiveMessage(bytes memory _encodedMessage) public {
     // call the Wormhole core contract to parse and verify the encodedMessage
     (IWormhole.VM memory wormholeMessage, bool valid, string memory reason) =
