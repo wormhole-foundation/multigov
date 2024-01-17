@@ -59,11 +59,12 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
     uint16 _hubChainId,
     bytes32 _hubProposalMetadataSender,
     address _votingToken,
-    uint32 _castVoteWindow
+    uint32 _castVoteWindow,
+    address _owner
   )
     // TODO: name, version
     EIP712("SpokeVoteAggregator", "1")
-    SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadataSender)
+    SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadataSender, _owner)
   {
     VOTING_TOKEN = ERC20Votes(_votingToken);
     CAST_VOTE_WINDOW = _castVoteWindow;
