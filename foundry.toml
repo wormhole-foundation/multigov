@@ -29,3 +29,9 @@
   single_line_statement_blocks = "single"
   tab_width = 2
   wrap_comments = true
+
+[rpc_endpoints]
+  avalanche_fuji = "${FUJI_RPC_URL}"
+  mainnet = "${ETHEREUM_RPC_URL}"
+  optimism = "${OPTIMISM_RPC_URL}"
+  polygon_mumbai = "${MUMBAI_RPC_URL}"

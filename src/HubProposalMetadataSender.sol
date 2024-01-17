@@ -12,6 +12,8 @@ contract HubProposalMetadataSender {
 
   IWormhole public immutable WORMHOLE_CORE;
 
+  error InvalidMsgFee();
+
   /// @notice The proposal id is an invalid proposal id.
   error InvalidProposalId();
 
@@ -33,12 +35,14 @@ contract HubProposalMetadataSender {
     uint256 voteEnd = GOVERNOR.proposalDeadline(proposalId);
 
     bool isCanceled = GOVERNOR.state(proposalId) == IGovernor.ProposalState.Canceled;
+    uint256 wormholeFee = WORMHOLE_CORE.messageFee();
+    if (wormholeFee != msg.value) revert InvalidMsgFee();
 
     // TODO Use encodePacked in the future
     bytes memory proposalCalldata = abi.encode(proposalId, voteStart, voteEnd, isCanceled);
 
     // TODO How are relayer fees handled? Initial impl assumes all cost borne on the relayer
-    sequence = WORMHOLE_CORE.publishMessage(
+    sequence = WORMHOLE_CORE.publishMessage{value: msg.value}(
       0, // TODO nonce: needed?
       proposalCalldata, // payload
       201 // TODO consistency level: where should we set it?
