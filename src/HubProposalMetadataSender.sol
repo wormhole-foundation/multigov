@@ -8,7 +8,7 @@ import {WormholePublisher} from "src/WormholePublisher.sol";
 
 /// @notice Handles sending proposal metadata such as proposal id, start date and end date from L1
 /// to L2.
-contract HubProposalMetadataSender is WormholePublisher{
+contract HubProposalMetadataSender is WormholePublisher {
   /// @notice The governor where proposals are fetched and bridged.
   IGovernor public immutable GOVERNOR;
 
@@ -19,7 +19,9 @@ contract HubProposalMetadataSender is WormholePublisher{
 
   /// @param _governor The address of the hub chain governor.
   /// @param _core The wormhole core contract.
-  constructor(address _governor, address _core, uint8 _publishConsistencyLevel) WormholePublisher(_core, _publishConsistencyLevel){
+  constructor(address _governor, address _core, uint8 _publishConsistencyLevel)
+    WormholePublisher(_core, _publishConsistencyLevel)
+  {
     GOVERNOR = IGovernor(_governor);
   }
 
@@ -35,11 +37,7 @@ contract HubProposalMetadataSender is WormholePublisher{
     bytes memory proposalCalldata = abi.encode(proposalId, voteStart, voteEnd);
 
     // TODO How are relayer fees handled? Initial impl assumes all cost borne on the relayer
-    sequence = wormholeCore.publishMessage{value: msg.value}(
-      0,
-      proposalCalldata,
-      publishConsistencyLevel
-    );
+    sequence = wormholeCore.publishMessage{value: msg.value}(0, proposalCalldata, publishConsistencyLevel);
     emit ProposalMetadataBridged(proposalId, voteStart, voteEnd);
   }
 }

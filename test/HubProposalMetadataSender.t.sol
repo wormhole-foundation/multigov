@@ -30,7 +30,8 @@ contract HubProposalMetadataSenderTest is Test, TestConstants {
     vm.createSelectFork(vm.rpcUrl("mainnet"));
     hubGovernorToken = new ERC20VotesFake();
     governor = new GovernorVoteFake("Test Governor", hubGovernorToken);
-    hubProposalMetadataSender = new HubProposalMetadataSender(address(governor), WORMHOLE_MAINNET_CORE_RELAYER, TEST_PUBLISH_CONSISTENCY_LEVEL);
+    hubProposalMetadataSender =
+      new HubProposalMetadataSender(address(governor), WORMHOLE_MAINNET_CORE_RELAYER, TEST_PUBLISH_CONSISTENCY_LEVEL);
     wormhole = IWormhole(WORMHOLE_MAINNET_CORE_RELAYER);
   }
 
@@ -63,10 +64,15 @@ contract HubProposalMetadataSenderTest is Test, TestConstants {
 
 contract Constructor is Test {
   function test_Correctly_set_args(address _governor, address _wormholeCore, uint8 _publishConsistencyLevel) public {
-    HubProposalMetadataSender hubProposalMetadataSender = new HubProposalMetadataSender(_governor, _wormholeCore, _publishConsistencyLevel);
+    HubProposalMetadataSender hubProposalMetadataSender =
+      new HubProposalMetadataSender(_governor, _wormholeCore, _publishConsistencyLevel);
     assertEq(address(hubProposalMetadataSender.GOVERNOR()), _governor, "Governor is not set correctly");
     assertEq(address(hubProposalMetadataSender.wormholeCore()), _wormholeCore, "Wormhole core is not set correctly");
-    assertEq(hubProposalMetadataSender.publishConsistencyLevel(), _publishConsistencyLevel, "Wormhole publish consistency is not set correctly");
+    assertEq(
+      hubProposalMetadataSender.publishConsistencyLevel(),
+      _publishConsistencyLevel,
+      "Wormhole publish consistency is not set correctly"
+    );
   }
 }
 

@@ -26,4 +26,3 @@ contract WormholePublisher {
     wormholeCore = IWormhole(_core);
   }
 }
-

@@ -15,7 +15,9 @@ contract HubMessageDispatcher is WormholePublisher {
   event MessageDispatched(bytes payload);
   event TimelockUpdated(address oldTimelock, address newTimelock);
 
-  constructor(address _timelock, address _core, uint8 _publishConsistencyLevel) WormholePublisher(_core, _publishConsistencyLevel) {
+  constructor(address _timelock, address _core, uint8 _publishConsistencyLevel)
+    WormholePublisher(_core, _publishConsistencyLevel)
+  {
     timelock = _timelock;
   }
 
@@ -32,12 +34,12 @@ contract HubMessageDispatcher is WormholePublisher {
 
   function setPublishConsistencyLevel(uint8 _consistencyLevel) external {
     _onlyTimelock();
-	_setPublishConsistencyLevel(_consistencyLevel);
+    _setPublishConsistencyLevel(_consistencyLevel);
   }
 
   function setWormholeCore(address _core) external {
     _onlyTimelock();
-	_setWormholeCore(_core);
+    _setWormholeCore(_core);
   }
 
   function setTimelock(address _timelock) external {
