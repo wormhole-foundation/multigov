@@ -35,8 +35,6 @@ contract HubProposalMetadataSender {
     uint256 voteEnd = GOVERNOR.proposalDeadline(proposalId);
 
     bool isCanceled = GOVERNOR.state(proposalId) == IGovernor.ProposalState.Canceled;
-    uint256 wormholeFee = WORMHOLE_CORE.messageFee();
-    if (wormholeFee != msg.value) revert InvalidMsgFee();
 
     // TODO Use encodePacked in the future
     bytes memory proposalCalldata = abi.encode(proposalId, voteStart, voteEnd, isCanceled);
