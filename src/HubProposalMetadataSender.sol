@@ -12,8 +12,6 @@ contract HubProposalMetadataSender is WormholePublisher{
   /// @notice The governor where proposals are fetched and bridged.
   IGovernor public immutable GOVERNOR;
 
-  error InvalidMsgFee();
-
   /// @notice The proposal id is an invalid proposal id.
   error InvalidProposalId();
 
