@@ -2,12 +2,12 @@
   evm_version = "paris"
   optimizer = true
   optimizer_runs = 10_000_000
+  remappings = [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "wormhole/=lib/wormhole/ethereum/contracts",
+  ]
   solc_version = "0.8.23"
   verbosity = 3
-  remappings = [
-    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/", 
-    "wormhole/=lib/wormhole/ethereum/contracts"
-  ]
 
 [profile.ci]
   fuzz = { runs = 5000 }
