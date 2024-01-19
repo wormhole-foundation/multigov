@@ -11,7 +11,6 @@ contract SpokeMetadataCollector {
   struct Proposal {
     uint256 voteStart;
     uint256 voteEnd;
-    bool isCanceled;
   }
 
   mapping(uint256 proposalId => Proposal) internal proposals;
@@ -20,8 +19,6 @@ contract SpokeMetadataCollector {
   error UnknownMessageEmitter();
 
   event ProposalCreated(uint256 proposalId, uint256 startBlock, uint256 endBlock);
-
-  event ProposalCanceled(uint256 proposalId);
 
   constructor(address _core, uint16 _hubChainId, bytes32 _hubProposalMetadataSender) {
     WORMHOLE_CORE = IWormhole(_core);
@@ -44,15 +41,14 @@ contract SpokeMetadataCollector {
     if (
       wormholeMessage.emitterChainId != HUB_CHAIN_ID || wormholeMessage.emitterAddress != HUB_PROPOSAL_METADATA_SENDER
     ) revert UnknownMessageEmitter();
-    (uint256 proposalId, uint256 voteStart, uint256 voteEnd, bool isCanceled) =
-      abi.decode(wormholeMessage.payload, (uint256, uint256, uint256, bool));
+    (uint256 proposalId, uint256 voteStart, uint256 voteEnd) =
+      abi.decode(wormholeMessage.payload, (uint256, uint256, uint256));
 
-    _addProposal(proposalId, voteStart, voteEnd, isCanceled);
+    _addProposal(proposalId, voteStart, voteEnd);
   }
 
-  function _addProposal(uint256 proposalId, uint256 voteStart, uint256 voteEnd, bool isCanceled) internal {
-    proposals[proposalId] = Proposal(voteStart, voteEnd, isCanceled);
-    if (isCanceled) emit ProposalCanceled(proposalId);
-    else emit ProposalCreated(proposalId, voteStart, voteEnd);
+  function _addProposal(uint256 proposalId, uint256 voteStart, uint256 voteEnd) internal {
+    proposals[proposalId] = Proposal(voteStart, voteEnd);
+    emit ProposalCreated(proposalId, voteStart, voteEnd);
   }
 }
