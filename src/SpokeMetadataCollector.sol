@@ -2,9 +2,9 @@
 pragma solidity ^0.8.23;
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-import {WormholeReceiver} from "src/WormholeReceiver.sol";
+import {SingleSenderWormholeReceiver} from "src/SingleSenderWormholeReceiver.sol";
 
-contract SpokeMetadataCollector is WormholeReceiver {
+contract SpokeMetadataCollector is SingleSenderWormholeReceiver {
   struct Proposal {
     uint256 voteStart;
     uint256 voteEnd;
@@ -18,17 +18,15 @@ contract SpokeMetadataCollector is WormholeReceiver {
 
   // TODO should we revert if the hubChainId or the proposal metadata sender are zero values
   constructor(address _core, uint16 _hubChainId, bytes32 _hubProposalMetadataSender, address _owner)
-    WormholeReceiver(_core, _owner)
-  {
-    _setRegisteredSender(_hubChainId, _hubProposalMetadataSender);
-  }
+    SingleSenderWormholeReceiver(_core, _owner, _hubChainId, _hubProposalMetadataSender)
+  {}
 
   function getProposal(uint256 proposalId) public view returns (Proposal memory) {
     return proposals[proposalId];
   }
 
   function receiveMessage(bytes memory _encodedMessage) public override {
-    (IWormhole.VM memory wormholeMessage,,) = _validMessage(_encodedMessage);
+    (IWormhole.VM memory wormholeMessage,,) = _validateMessage(_encodedMessage);
 
     // TODO: Assumes we only receive metadata from a single hub ProposalMetadataSender
     _onlyValidSender(wormholeMessage.emitterChainId, wormholeMessage.emitterAddress);

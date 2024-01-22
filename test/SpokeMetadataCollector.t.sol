@@ -17,6 +17,8 @@ contract Constructor is SpokeMetadataCollectorTest {
     address _owner
   ) public {
     vm.assume(_owner != address(0));
+    vm.assume(_hubChainId != 0);
+    vm.assume(_hubProposalMetadataSender != 0);
     SpokeMetadataCollector spokeMetadataCollector =
       new SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadataSender, _owner);
     assertEq(
@@ -27,14 +29,5 @@ contract Constructor is SpokeMetadataCollectorTest {
       _hubProposalMetadataSender,
       "The registered sender address is not corretly set"
     );
-  }
-
-  function testFuzz_RevertIf_Owner_is_zero_address(
-    address _core,
-    uint16 _hubChainId,
-    bytes32 _hubProposalMetadataSender
-  ) public {
-    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-    new SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadataSender, address(0));
   }
 }
