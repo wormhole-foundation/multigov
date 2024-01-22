@@ -3,7 +3,6 @@ pragma solidity ^0.8.23;
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
-import {HubGovernor} from "src/HubGovernor.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
 /// @notice Handles sending proposal metadata such as proposal id, start date and end date from L1
@@ -19,8 +18,8 @@ contract HubProposalMetadataSender is WormholeDispatcher {
 
   /// @param _governor The address of the hub chain governor.
   /// @param _core The wormhole core contract.
-  constructor(address _governor, address _core, uint8 _publishConsistencyLevel)
-    WormholeDispatcher(GovernorTimelockControl(payable(_governor)).timelock(), _core, _publishConsistencyLevel)
+  constructor(address _governor, address _core, uint8 _dispatchConsistencyLevel)
+    WormholeDispatcher(GovernorTimelockControl(payable(_governor)).timelock(), _core, _dispatchConsistencyLevel)
   {
     GOVERNOR = IGovernor(_governor);
   }
