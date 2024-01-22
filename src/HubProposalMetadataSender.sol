@@ -2,26 +2,26 @@
 pragma solidity ^0.8.23;
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
+import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
 /// @notice Handles sending proposal metadata such as proposal id, start date and end date from L1
 /// to L2.
-contract HubProposalMetadataSender {
+contract HubProposalMetadataSender is WormholeDispatcher {
   /// @notice The governor where proposals are fetched and bridged.
   IGovernor public immutable GOVERNOR;
-
-  IWormhole public immutable WORMHOLE_CORE;
 
   /// @notice The proposal id is an invalid proposal id.
   error InvalidProposalId();
 
-  event ProposalMetadataBridged(uint256 indexed proposalId, uint256 voteStart, uint256 voteEnd, bool isCanceled);
+  event ProposalMetadataBridged(uint256 indexed proposalId, uint256 voteStart, uint256 voteEnd);
 
   /// @param _governor The address of the hub chain governor.
   /// @param _core The wormhole core contract.
-  constructor(address _governor, address _core) {
+  constructor(address _governor, address _core, uint8 _dispatchConsistencyLevel)
+    WormholeDispatcher(GovernorTimelockControl(payable(_governor)).timelock(), _core, _dispatchConsistencyLevel)
+  {
     GOVERNOR = IGovernor(_governor);
-    WORMHOLE_CORE = IWormhole(_core);
   }
 
   /// @notice Publishes a messages with the proposal id, start block and end block
@@ -32,17 +32,11 @@ contract HubProposalMetadataSender {
     if (voteStart == 0) revert InvalidProposalId();
     uint256 voteEnd = GOVERNOR.proposalDeadline(proposalId);
 
-    bool isCanceled = GOVERNOR.state(proposalId) == IGovernor.ProposalState.Canceled;
-
     // TODO Use encodePacked in the future
-    bytes memory proposalCalldata = abi.encode(proposalId, voteStart, voteEnd, isCanceled);
+    bytes memory proposalCalldata = abi.encode(proposalId, voteStart, voteEnd);
 
     // TODO How are relayer fees handled? Initial impl assumes all cost borne on the relayer
-    sequence = WORMHOLE_CORE.publishMessage(
-      0, // TODO nonce: needed?
-      proposalCalldata, // payload
-      201 // TODO consistency level: where should we set it?
-    );
-    emit ProposalMetadataBridged(proposalId, voteStart, voteEnd, isCanceled);
+    sequence = _publishMessage(proposalCalldata);
+    emit ProposalMetadataBridged(proposalId, voteStart, voteEnd);
   }
 }
