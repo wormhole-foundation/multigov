@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
@@ -24,7 +23,6 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
   enum ProposalState {
     Pending,
     Active,
-    Canceled,
     Expired
   }
 
@@ -75,7 +73,6 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
     SpokeMetadataCollector.Proposal memory proposal = getProposal(proposalId);
     if (VOTING_TOKEN.clock() < proposal.voteStart) return ProposalState.Pending;
     else if (voteActiveInternal(proposalId)) return ProposalState.Active;
-    else if (proposal.isCanceled) return ProposalState.Canceled;
     else return ProposalState.Expired;
   }
 
@@ -142,14 +139,14 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
     SpokeMetadataCollector.Proposal memory proposal = getProposal(proposalId);
     // TODO: do we need to use voting token clock or can we replace w more efficient block.timestamp
     uint256 _time = VOTING_TOKEN.clock();
-    return _time <= proposal.voteEnd && _time >= proposal.voteStart && !proposal.isCanceled;
+    return _time <= proposal.voteEnd && _time >= proposal.voteStart;
   }
 
   function voteActiveInternal(uint256 proposalId) public view returns (bool active) {
     SpokeMetadataCollector.Proposal memory proposal = getProposal(proposalId);
     // TODO: do we need to use voting token clock or can we replace w more efficient block.timestamp
     uint256 _time = VOTING_TOKEN.clock();
-    return _time <= internalVotingPeriodEnd(proposalId) && _time >= proposal.voteStart && !proposal.isCanceled;
+    return _time <= internalVotingPeriodEnd(proposalId) && _time >= proposal.voteStart;
   }
 
   function _bridgeVote(bytes memory proposalCalldata) internal {
