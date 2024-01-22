@@ -2,13 +2,13 @@
 pragma solidity ^0.8.23;
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-
-import {WormholePublisher} from "src/WormholePublisher.sol";
+import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
+import {HubGovernor} from "src/HubGovernor.sol";
+import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
 /// @notice Handles sending proposal metadata such as proposal id, start date and end date from L1
 /// to L2.
-contract HubProposalMetadataSender is WormholePublisher {
+contract HubProposalMetadataSender is WormholeDispatcher {
   /// @notice The governor where proposals are fetched and bridged.
   IGovernor public immutable GOVERNOR;
 
@@ -20,7 +20,7 @@ contract HubProposalMetadataSender is WormholePublisher {
   /// @param _governor The address of the hub chain governor.
   /// @param _core The wormhole core contract.
   constructor(address _governor, address _core, uint8 _publishConsistencyLevel)
-    WormholePublisher(_core, _publishConsistencyLevel)
+    WormholeDispatcher(GovernorTimelockControl(payable(_governor)).timelock(), _core, _publishConsistencyLevel)
   {
     GOVERNOR = IGovernor(_governor);
   }
@@ -37,7 +37,7 @@ contract HubProposalMetadataSender is WormholePublisher {
     bytes memory proposalCalldata = abi.encode(proposalId, voteStart, voteEnd);
 
     // TODO How are relayer fees handled? Initial impl assumes all cost borne on the relayer
-    sequence = wormholeCore.publishMessage{value: msg.value}(0, proposalCalldata, publishConsistencyLevel);
+    sequence = _publishMessage(proposalCalldata);
     emit ProposalMetadataBridged(proposalId, voteStart, voteEnd);
   }
 }

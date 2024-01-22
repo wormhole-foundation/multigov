@@ -9,7 +9,9 @@ import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {HubProposalMetadataSender} from "src/HubProposalMetadataSender.sol";
 
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {GovernorVoteFake} from "test/fakes/GovernorVoteFake.sol";
 import {TestConstants} from "test/TestConstants.sol";
 
@@ -19,6 +21,7 @@ contract HubProposalMetadataSenderTest is Test, TestConstants {
   ERC20VotesFake hubGovernorToken;
   IGovernor governor;
   IWormhole wormhole;
+  TimelockController timelock;
   uint8 immutable TEST_PUBLISH_CONSISTENCY_LEVEL = 201;
 
   event LogMessagePublished(
@@ -29,7 +32,8 @@ contract HubProposalMetadataSenderTest is Test, TestConstants {
   function setUp() public {
     vm.createSelectFork(vm.rpcUrl("mainnet"));
     hubGovernorToken = new ERC20VotesFake();
-    governor = new GovernorVoteFake("Test Governor", hubGovernorToken);
+    timelock = new TimelockControllerFake(msg.sender);
+    governor = new GovernorVoteFake("Test Governor", hubGovernorToken, timelock);
     hubProposalMetadataSender =
       new HubProposalMetadataSender(address(governor), WORMHOLE_MAINNET_CORE_RELAYER, TEST_PUBLISH_CONSISTENCY_LEVEL);
     wormhole = IWormhole(WORMHOLE_MAINNET_CORE_RELAYER);
@@ -62,14 +66,14 @@ contract HubProposalMetadataSenderTest is Test, TestConstants {
   }
 }
 
-contract Constructor is Test {
-  function test_Correctly_set_args(address _governor, address _wormholeCore, uint8 _publishConsistencyLevel) public {
+contract Constructor is HubProposalMetadataSenderTest {
+  function testFuzz_Correctly_set_args(address _wormholeCore, uint8 _publishConsistencyLevel) public {
     HubProposalMetadataSender hubProposalMetadataSender =
-      new HubProposalMetadataSender(_governor, _wormholeCore, _publishConsistencyLevel);
-    assertEq(address(hubProposalMetadataSender.GOVERNOR()), _governor, "Governor is not set correctly");
+      new HubProposalMetadataSender(address(governor), _wormholeCore, _publishConsistencyLevel);
+    assertEq(address(hubProposalMetadataSender.GOVERNOR()), address(governor), "Governor is not set correctly");
     assertEq(address(hubProposalMetadataSender.wormholeCore()), _wormholeCore, "Wormhole core is not set correctly");
     assertEq(
-      hubProposalMetadataSender.publishConsistencyLevel(),
+      hubProposalMetadataSender.consistencyLevel(),
       _publishConsistencyLevel,
       "Wormhole publish consistency is not set correctly"
     );
