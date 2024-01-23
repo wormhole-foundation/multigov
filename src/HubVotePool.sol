@@ -68,9 +68,7 @@ contract HubVotePool is MultiSenderWormholeReceiver {
   function _castVote(uint256 proposalId, ProposalVote memory vote, uint16 emitterChainId) internal {
     bytes memory votes = abi.encodePacked(vote.againstVotes, vote.forVotes, vote.abstainVotes);
 
-    HUB_GOVERNOR.castVoteWithReasonAndParams(
-      proposalId, UNUSED_SUPPORT_PARAM, "rolled-up vote from governance L2 token holders", votes
-    );
+    HUB_GOVERNOR.castVoteWithReasonAndParams(proposalId, UNUSED_SUPPORT_PARAM, "aggregated cross-chain votes", votes);
 
     emit SpokeVoteCast(emitterChainId, proposalId, vote.againstVotes, vote.forVotes, vote.abstainVotes);
   }
