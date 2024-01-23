@@ -4,13 +4,12 @@ pragma solidity ^0.8.23;
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {MultiSenderWormholeReceiver} from "src/MultiSenderWormholeReceiver.sol";
 
-contract HubVotePool {
-  IWormhole public immutable WORMHOLE_CORE;
+contract HubVotePool is MultiSenderWormholeReceiver {
   IGovernor public immutable HUB_GOVERNOR;
   uint8 constant UNUSED_SUPPORT_PARAM = 1;
 
-  error InvalidWormholeMessage(string);
   error UnknownMessageEmitter();
   error InvalidProposalVote();
 
@@ -25,24 +24,20 @@ contract HubVotePool {
     uint128 abstainVotes;
   }
 
-  mapping(uint16 emitterChain => bytes32 emitterAddress) public spokeRegistry;
-
   // Instead of nested mapping create encoding for the key
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
-  constructor(address _core, address _hubGovernor) {
-    WORMHOLE_CORE = IWormhole(_core);
+  constructor(address _core, address _hubGovernor, address _hubTimelock)
+    MultiSenderWormholeReceiver(_core, _hubTimelock)
+  {
     HUB_GOVERNOR = IGovernor(_hubGovernor);
     // TODO: delegate
     // ERC20Votes(IFractionalGovernor(address(HUB_GOVERNOR)).token()).delegate(address(this));
   }
 
-  function receiveMessage(bytes memory _encodedMessage) public {
+  function receiveMessage(bytes memory _encodedMessage) public override {
     // call the Wormhole core contract to parse and verify the encodedMessage
-    (IWormhole.VM memory wormholeMessage, bool valid, string memory reason) =
-      WORMHOLE_CORE.parseAndVerifyVM(_encodedMessage);
-
-    if (!valid) revert InvalidWormholeMessage(reason);
+    (IWormhole.VM memory wormholeMessage,,) = _validateMessage(_encodedMessage);
     if (wormholeMessage.emitterAddress != spokeRegistry[wormholeMessage.emitterChainId]) revert UnknownMessageEmitter();
 
     (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
