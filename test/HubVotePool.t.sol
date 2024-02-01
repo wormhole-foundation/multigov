@@ -124,7 +124,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
     assertEq(governor.support(), 1);
     assertEq(governor.reason(), "rolled-up vote from governance L2 token holders");
     assertEq(governor.params(), abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes)));
-    assertEq(governor.params(), abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes)));
     assertEq(againstVotes, _againstVotes);
     assertEq(forVotes, _forVotes);
     assertEq(abstainVotes, _abstainVotes);
