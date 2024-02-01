@@ -148,6 +148,7 @@ contract DisableTrustedVotingAddress is HubGovernorTest, ProposalTest {
   function testFuzz_SetHubVotePool(address _trustedAddress) public {
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
+
     governor.exposed_enableTrustedAddress(_trustedAddress);
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
 
@@ -222,8 +223,9 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     uint32 _againstVotes,
     uint32 _abstainVotes
   ) public {
+    vm.assume(uint128(_againstVotes) + _forVotes + _abstainVotes != 0);
     _support = uint8(bound(_support, 0, 2));
-    vm.assume(uint128(_forVotes) + _againstVotes + _abstainVotes != 0);
+
     (ProposalBuilder builder, address delegate) = _createProposal();
     address[] memory delegates = new address[](1);
     delegates[0] = delegate;
@@ -240,6 +242,7 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     governor.exposed_countVote(
       _proposalId, address(hubVotePool), _support, uint256(_forVotes) + _againstVotes + _abstainVotes, voteData
     );
+
     uint256 votingWeight = token.getVotes(address(hubVotePool));
 
     (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);

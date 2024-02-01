@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 contract HubProposalMetadata {
-  IGovernor immutable GOVERNOR;
+  IGovernor public immutable GOVERNOR;
 
   constructor(address _governor) {
     GOVERNOR = IGovernor(_governor);

@@ -13,7 +13,7 @@ import {
 
 contract HubVotePool is QueryResponse, Ownable {
   IWormhole public immutable WORMHOLE_CORE;
-  IGovernor public immutable HUB_GOVERNOR;
+  IGovernor public hubGovernor;
   uint8 constant UNUSED_SUPPORT_PARAM = 1;
 
   error InvalidWormholeMessage(string);
@@ -50,7 +50,7 @@ contract HubVotePool is QueryResponse, Ownable {
     Ownable(_hubGovernor)
   {
     WORMHOLE_CORE = IWormhole(_core);
-    HUB_GOVERNOR = IGovernor(_hubGovernor);
+    hubGovernor = IGovernor(_hubGovernor);
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
       SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
       spokeRegistry[aggregator.wormholeChainId] = bytes32(uint256(uint160(aggregator.addr)));
@@ -64,6 +64,12 @@ contract HubVotePool is QueryResponse, Ownable {
     emit SpokeRegistered(_targetChain, _spokeVoteAddress);
   }
 
+  function setGovernor(address _newGovernor) external {
+    _checkOwner();
+    hubGovernor = IGovernor(_newGovernor);
+  }
+
+  // TODO we will need a Solana
   // TODO we will need a Solana method as well
   function crossChainEVMVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     // Validate the query response signatures
@@ -110,7 +116,7 @@ contract HubVotePool is QueryResponse, Ownable {
   function _castVote(uint256 proposalId, ProposalVote memory vote, uint16 emitterChainId) internal {
     bytes memory votes = abi.encodePacked(vote.againstVotes, vote.forVotes, vote.abstainVotes);
 
-    HUB_GOVERNOR.castVoteWithReasonAndParams(
+    hubGovernor.castVoteWithReasonAndParams(
       proposalId, UNUSED_SUPPORT_PARAM, "rolled-up vote from governance L2 token holders", votes
     );
 
