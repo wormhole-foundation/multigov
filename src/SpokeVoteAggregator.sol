@@ -7,6 +7,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
+import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 
 // TODO valid spoke chain token holders must be able to cast their vote on proposals
 // TODO must be a method for votes on spoke chain to be bridged to hub
@@ -16,7 +17,7 @@ import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 // TODO revert if voter has no vote weight
 // TODO Compatible with Flexible voting on the L2
 // TODO Message can only be bridged during the cast vote window period (Is this what we want)
-contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
+contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector, SpokeCountingFractional {
   bytes32 public constant BALLOT_TYPEHASH =
     keccak256("Ballot(uint256 proposalId,uint8 support,address voter,uint256 nonce)");
 
@@ -27,46 +28,46 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
   }
 
   ERC20Votes public immutable VOTING_TOKEN;
-  // TODO: Add a setter if we plan to keep this
-  uint32 public CAST_VOTE_WINDOW;
+  uint32 public safeWindow;
+  address public owner;
 
   error InvalidSignature(address voter);
   error ProposalInactive();
   error InvalidVoteType();
   error NoWeight();
-
-  struct ProposalVote {
-    uint128 againstVotes;
-    uint128 forVotes;
-    uint128 abstainVotes;
-  }
-
-  enum VoteType {
-    Against,
-    For,
-    Abstain
-  }
-
-  /// @notice A mapping of proposal id to proposal vote totals.
-  mapping(uint256 proposalId => ProposalVote) public proposalVotes;
-
-  event VoteBridged(uint256 indexed proposalId, uint256 voteAgainst, uint256 voteFor, uint256 voteAbstain);
+  error OwnerUnauthorizedAccount(address account);
+  error OwnerIsZeroAddress();
 
   event VoteCast(address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason);
+  event VoteCastWithParams(
+    address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason, bytes params
+  );
 
   constructor(
     address _core,
     uint16 _hubChainId,
     address _hubProposalMetadata,
     address _votingToken,
-    uint32 _castVoteWindow
+    uint32 _safeWindow,
+    address _owner
   )
     // TODO: name, version
     EIP712("SpokeVoteAggregator", "1")
     SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadata)
   {
     VOTING_TOKEN = ERC20Votes(_votingToken);
-    CAST_VOTE_WINDOW = _castVoteWindow;
+    _setSafeWindow(_safeWindow);
+    _setOwner(_owner);
+  }
+
+  function setSafeWindow(uint32 _safeWindow) external {
+    _checkOwner();
+    _setSafeWindow(_safeWindow);
+  }
+
+  function isVotingSafe(uint256 _proposalId) external view returns (bool) {
+    SpokeMetadataCollector.Proposal memory proposal = getProposal(_proposalId);
+    return (proposal.voteEnd - safeWindow) >= block.timestamp;
   }
 
   function state(uint256 proposalId) external view virtual returns (ProposalState) {
@@ -82,6 +83,14 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
 
   function castVoteWithReason(uint256 proposalId, uint8 support, string calldata reason) public returns (uint256) {
     return _castVote(proposalId, msg.sender, support, reason);
+  }
+
+  function castVoteWithReasonAndParams(uint256 proposalId, uint8 support, string calldata reason, bytes memory params)
+    public
+    virtual
+    returns (uint256)
+  {
+    return _castVote(proposalId, msg.sender, support, reason, params);
   }
 
   function castVoteBySig(uint256 proposalId, uint8 support, address voter, bytes memory signature)
@@ -100,24 +109,20 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
     return _castVote(proposalId, voter, support, "");
   }
 
-  function bridgeVote(uint256 _proposalId) external payable {
-    // TODO: Do we need this check? What are the implications of removing.
-    if (!voteActiveHub(_proposalId)) revert ProposalInactive();
-
-    ProposalVote memory vote = proposalVotes[_proposalId];
-
-    bytes memory proposalCalldata = abi.encode(_proposalId, vote.againstVotes, vote.forVotes, vote.abstainVotes);
-    _bridgeVote(proposalCalldata);
-    emit VoteBridged(_proposalId, vote.againstVotes, vote.forVotes, vote.abstainVotes);
+  function setOwner(address newOwner) public {
+    _checkOwner();
+    owner = newOwner;
   }
 
-  function internalVotingPeriodEnd(uint256 _proposalId) public view returns (uint256 _lastVotingBlock) {
-    SpokeMetadataCollector.Proposal memory proposal = getProposal(_proposalId);
-    _lastVotingBlock = proposal.voteEnd - CAST_VOTE_WINDOW;
+  function _castVote(uint256 _proposalId, address _voter, uint8 _support, string memory _reason)
+    internal
+    returns (uint256)
+  {
+    return _castVote(_proposalId, _voter, _support, _reason, "");
   }
 
   // TODO Update for flexible voting, this will change with Flexible voting
-  function _castVote(uint256 _proposalId, address _voter, uint8 _support, string memory _reason)
+  function _castVote(uint256 _proposalId, address _voter, uint8 _support, string memory _reason, bytes memory _params)
     internal
     returns (uint256)
   {
@@ -126,34 +131,29 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
     SpokeMetadataCollector.Proposal memory proposal = getProposal(_proposalId);
     uint256 weight = VOTING_TOKEN.getPastVotes(_voter, proposal.voteStart);
     if (weight == 0) revert NoWeight();
+    _countVote(_proposalId, _voter, _support, weight, _params);
 
-    if (_support == uint8(VoteType.Against)) proposalVotes[_proposalId].againstVotes += SafeCast.toUint128(weight);
-    else if (_support == uint8(VoteType.For)) proposalVotes[_proposalId].forVotes += SafeCast.toUint128(weight);
-    else if (_support == uint8(VoteType.Abstain)) proposalVotes[_proposalId].abstainVotes += SafeCast.toUint128(weight);
-    else revert InvalidVoteType();
-    emit VoteCast(_voter, _proposalId, _support, weight, _reason);
+    if (_params.length == 0) emit VoteCast(_voter, _proposalId, _support, weight, _reason);
+    else emit VoteCastWithParams(_voter, _proposalId, _support, weight, _reason, _params);
     return weight;
   }
 
-  function voteActiveHub(uint256 proposalId) public view returns (bool active) {
-    SpokeMetadataCollector.Proposal memory proposal = getProposal(proposalId);
-    // TODO: do we need to use voting token clock or can we replace w more efficient block.timestamp
-    uint256 _time = VOTING_TOKEN.clock();
-    return _time <= proposal.voteEnd && _time >= proposal.voteStart;
+  function _checkOwner() internal view {
+    if (msg.sender != owner) revert OwnerUnauthorizedAccount(msg.sender);
+  }
+
+  function _setSafeWindow(uint32 _safeWindow) internal {
+    safeWindow = _safeWindow;
+  }
+
+  function _setOwner(address _newOwner) internal {
+    owner = _newOwner;
   }
 
   function voteActiveInternal(uint256 proposalId) public view returns (bool active) {
     SpokeMetadataCollector.Proposal memory proposal = getProposal(proposalId);
     // TODO: do we need to use voting token clock or can we replace w more efficient block.timestamp
     uint256 _time = VOTING_TOKEN.clock();
-    return _time <= internalVotingPeriodEnd(proposalId) && _time >= proposal.voteStart;
-  }
-
-  function _bridgeVote(bytes memory proposalCalldata) internal {
-    WORMHOLE_CORE.publishMessage(
-      0, // TODO nonce: needed?
-      proposalCalldata, // payload
-      201 // TODO consistency level: where should we set it?
-    );
+    return _time <= proposal.voteEnd && _time >= proposal.voteStart;
   }
 }

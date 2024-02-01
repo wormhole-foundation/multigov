@@ -19,6 +19,7 @@ contract SpokeMetadataCollector is QueryResponse {
     uint256 voteEnd;
   }
 
+  // TODO: Add underscore here
   mapping(uint256 proposalId => Proposal) internal proposals;
 
   error ProposalAlreadyExists();

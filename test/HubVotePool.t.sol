@@ -7,6 +7,7 @@ import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 
 import {HubVotePool} from "src/HubVotePool.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
+import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 
 import {GovernorMock} from "test/mocks/GovernorMock.sol";
@@ -61,7 +62,7 @@ contract HubVotePoolTest is WormholeEthQueryTest {
       QueryTest.buildEthCallResultBytes(
         abi.encode(
           _voteParams.proposalId,
-          SpokeVoteAggregator.ProposalVote({
+          SpokeCountingFractional.ProposalVote({
             againstVotes: uint128(_voteParams.againstVotes),
             forVotes: uint128(_voteParams.forVotes),
             abstainVotes: uint128(_voteParams.abstainVotes)
@@ -239,7 +240,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
       QueryTest.buildEthCallResultBytes(
         abi.encode(
           _proposalId,
-          SpokeVoteAggregator.ProposalVote({
+          SpokeCountingFractional.ProposalVote({
             againstVotes: uint128(_againstVotes),
             forVotes: uint128(_forVotes),
             abstainVotes: uint128(_abstainVotes)
