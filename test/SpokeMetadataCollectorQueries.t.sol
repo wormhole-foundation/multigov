@@ -8,6 +8,12 @@ import {Implementation} from "wormhole/Implementation.sol";
 import {Wormhole} from "wormhole/Wormhole.sol";
 
 contract SpokeMetadataCollectorQueriesTest is Test {
+  address public DEVNET_GUARDIAN = makeAddr("devnet guardian");
+  uint256 constant TEST_CHAIN_ID = 2;
+  uint256 constant GOVERNANCE_CHAIN_ID = 2;
+  address GOVERNANCE_CONTRACT = makeAddr("governance contract");
+  Wormhole public wormhole;
+
   function setUp() public {
     _setupWormhole();
   }
@@ -37,11 +43,17 @@ contract SpokeMetadataCollectorQueriesTest is Test {
         block.chainid // evm chain id
       )
     );
-
-    return wormhole;
   }
 }
 
 contract AddProposal is SpokeMetadataCollectorQueriesTest {
-  function test_addsProposal() public {}
+  function test_addsProposal() public {
+    // QueryTest.buildOffChainQueryRequestBytes
+    // QueryTest.buildPerChainRequestBytes
+    // QueryTest.buildEthCallRequestBytes
+
+    // QueryTest.buildQueryResponseBytes
+    // QueryTest.buildPerChainResponseBytes
+    // QueryTest.buildEthCallResponseBytes
+  }
 }
