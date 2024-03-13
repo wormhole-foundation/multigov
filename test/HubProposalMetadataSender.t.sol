@@ -2,15 +2,15 @@
 pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/Governor.sol";
+import {ERC20Votes} from "@openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {IGovernor} from "@openzeppelin-contracts/governance/Governor.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {HubProposalMetadataSender} from "src/HubProposalMetadataSender.sol";
 
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {TimelockController} from "@openzeppelin-contracts/governance/TimelockController.sol";
+import {ERC20Mock} from "@openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {GovernorVoteFake} from "test/fakes/GovernorVoteFake.sol";
 import {TestConstants} from "test/TestConstants.sol";

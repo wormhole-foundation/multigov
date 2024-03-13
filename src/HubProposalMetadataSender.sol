@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {IGovernor} from "@openzeppelin-contracts/governance/IGovernor.sol";
 import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
-import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {GovernorTimelockControl} from "@openzeppelin-contracts/governance/extensions/GovernorTimelockControl.sol";
 
 /// @notice Handles sending proposal metadata such as proposal id, start date and end date from L1
 /// to L2.
