@@ -6,7 +6,7 @@
     "@openzeppelin/contracts/=lib/openzeppelin-contracts-4/contracts",
     "@openzeppelin-contracts/=lib/openzeppelin-contracts/contracts",
     "wormhole/=lib/wormhole/ethereum/contracts",
-    "wormhole-forge-test/=lib/wormhole/ethereum/forge-test",
+    "wormhole-sdk/=lib/wormhole-solidity-sdk/src",
 
   ]
   solc_version = "0.8.23"

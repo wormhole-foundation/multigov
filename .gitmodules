@@ -10,3 +10,6 @@
 [submodule "lib/openzeppelin-contracts-4"]
 	path = lib/openzeppelin-contracts-4
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lib/wormhole-solidity-sdk"]
+	path = lib/wormhole-solidity-sdk
+	url = https://github.com/wormhole-foundation/wormhole-solidity-sdk
