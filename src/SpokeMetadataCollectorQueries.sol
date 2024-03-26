@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import {console2} from "forge-std/console2.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryResponse, ParsedQueryResponse, EthCallQueryResponse} from "wormhole/query/QueryResponse.sol";
 
@@ -37,9 +36,6 @@ contract SpokeMetadataCollector is QueryResponse {
   function addProposal(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) public {
     // Validate the query response signatures
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
-	console2.logUint(_queryResponse.senderChainId);
-	console2.logUint(_queryResponse.responses.length);
-	console2.logUint(_queryResponse.responses.length);
     // Validate that the query response is from hub
     // if (_queryResponse.senderChainId != HUB_CHAIN_ID) revert SenderChainMismatch();
 
@@ -47,19 +43,12 @@ contract SpokeMetadataCollector is QueryResponse {
     uint256 numResponses = _queryResponse.responses.length;
     if (numResponses != 1) revert TooManyQueryResponses(numResponses);
 
-	console2.logUint(_queryResponse.responses.length + 1);
     EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_queryResponse.responses[0]);
-	console2.logUint(_queryResponse.responses.length + 2);
     if (_ethCalls.result[0].contractAddress != HUB_GOVERNOR) revert InvalidWormholeMessage("Invalid contract address");
-	console2.logUint(_queryResponse.responses.length + 3);
-	console2.logBytes(_ethCalls.result[0].result);
-    (uint256 voteStart) =
-      abi.decode(_ethCalls.result[0].result, (uint256));
-	console2.logUint(5);
-	console2.logUint(voteStart);
+    (uint256 proposalId, uint256 voteStart, uint256 voteEnd) = abi.decode(_ethCalls.result[0].result, (uint256,uint256,uint256));
     // If the proposal exists we can revert (prevent overwriting existing proposals with old zeroes)
-    // if (proposals[proposalId].voteStart == 0) revert ProposalAlreadyExists();
-    // _addProposal(proposalId, voteStart, voteEnd);
+    if (proposals[proposalId].voteStart != 0) revert ProposalAlreadyExists();
+    _addProposal(proposalId, voteStart, voteEnd);
   }
 
   function _addProposal(uint256 proposalId, uint256 voteStart, uint256 voteEnd) internal {
