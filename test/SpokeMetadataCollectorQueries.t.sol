@@ -22,7 +22,6 @@ contract SpokeMetadataCollectorQueriesTest is Test {
   SpokeMetadataCollector spokeMetadataCollector;
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl("mainnet"), 19491891);
     _setupWormhole();
     spokeMetadataCollector = new SpokeMetadataCollector(address(wormhole), uint16(TEST_CHAIN_ID), GOVERNANCE_CONTRACT);
   }
@@ -64,6 +63,7 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
   // TODO; Add rpc fork
   function test_addsProposal() public {
     console2.log(block.number);
+	vm.roll(19491891);
     // version and nonce are arbitrary
     bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
       1, // version
