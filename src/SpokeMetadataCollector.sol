@@ -2,7 +2,12 @@
 pragma solidity ^0.8.23;
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-import {QueryResponse, ParsedQueryResponse, ParsedPerChainQueryResponse, EthCallQueryResponse} from "wormhole/query/QueryResponse.sol";
+import {
+  QueryResponse,
+  ParsedQueryResponse,
+  ParsedPerChainQueryResponse,
+  EthCallQueryResponse
+} from "wormhole/query/QueryResponse.sol";
 
 contract SpokeMetadataCollector is QueryResponse {
   IWormhole public immutable WORMHOLE_CORE;
@@ -37,7 +42,7 @@ contract SpokeMetadataCollector is QueryResponse {
     // Validate the query response signatures
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     // Validate that the query response is from hub
-	ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[0];
+    ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[0];
     if (perChainResp.chainId != HUB_CHAIN_ID) revert SenderChainMismatch();
 
     // TODO: Are we only expecting one response here?
@@ -45,7 +50,9 @@ contract SpokeMetadataCollector is QueryResponse {
     if (numResponses != 1) revert TooManyQueryResponses(numResponses);
 
     EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_queryResponse.responses[0]);
-    if (_ethCalls.result[0].contractAddress != HUB_PROPOSAL_METADATA) revert InvalidWormholeMessage("Invalid contract address");
+    if (_ethCalls.result[0].contractAddress != HUB_PROPOSAL_METADATA) {
+      revert InvalidWormholeMessage("Invalid contract address");
+    }
     (uint256 proposalId, uint256 voteStart, uint256 voteEnd) =
       abi.decode(_ethCalls.result[0].result, (uint256, uint256, uint256));
     // If the proposal exists we can revert (prevent overwriting existing proposals with old zeroes)
