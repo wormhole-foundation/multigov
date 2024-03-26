@@ -41,11 +41,11 @@ contract SpokeMetadataCollector is QueryResponse {
   function addProposal(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) public {
     // Validate the query response signatures
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
+
     // Validate that the query response is from hub
     ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[0];
     if (perChainResp.chainId != HUB_CHAIN_ID) revert SenderChainMismatch();
 
-    // TODO: Are we only expecting one response here?
     uint256 numResponses = _queryResponse.responses.length;
     if (numResponses != 1) revert TooManyQueryResponses(numResponses);
 
@@ -55,6 +55,7 @@ contract SpokeMetadataCollector is QueryResponse {
     }
     (uint256 proposalId, uint256 voteStart, uint256 voteEnd) =
       abi.decode(_ethCalls.result[0].result, (uint256, uint256, uint256));
+
     // If the proposal exists we can revert (prevent overwriting existing proposals with old zeroes)
     if (proposals[proposalId].voteStart != 0) revert ProposalAlreadyExists();
     _addProposal(proposalId, voteStart, voteEnd);
