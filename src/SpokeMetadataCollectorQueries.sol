@@ -45,7 +45,8 @@ contract SpokeMetadataCollector is QueryResponse {
 
     EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_queryResponse.responses[0]);
     if (_ethCalls.result[0].contractAddress != HUB_GOVERNOR) revert InvalidWormholeMessage("Invalid contract address");
-    (uint256 proposalId, uint256 voteStart, uint256 voteEnd) = abi.decode(_ethCalls.result[0].result, (uint256,uint256,uint256));
+    (uint256 proposalId, uint256 voteStart, uint256 voteEnd) =
+      abi.decode(_ethCalls.result[0].result, (uint256, uint256, uint256));
     // If the proposal exists we can revert (prevent overwriting existing proposals with old zeroes)
     if (proposals[proposalId].voteStart != 0) revert ProposalAlreadyExists();
     _addProposal(proposalId, voteStart, voteEnd);

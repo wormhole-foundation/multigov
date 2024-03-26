@@ -66,7 +66,7 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
   // TODO; Add rpc fork
   function test_addsProposal(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd) public {
     vm.assume(_proposalId != 0);
-	vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
+    vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
     _voteEnd = bound(_voteEnd, _voteStart + 1, type(uint256).max);
     console2.log(block.number);
     vm.roll(19_491_891);
@@ -74,7 +74,8 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
       bytes("0x1296c33"), // blockId
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
-        GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", _proposalId, _voteStart, _voteEnd)
+        GOVERNANCE_CONTRACT,
+        abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", _proposalId, _voteStart, _voteEnd)
       )
     );
 
