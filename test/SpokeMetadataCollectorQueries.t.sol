@@ -9,6 +9,7 @@ import {Wormhole} from "wormhole/Wormhole.sol";
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollectorQueries.sol";
+import {SpokeMetadataCollectorQueriesHarness} from "test/harnesses/SpokeMetadataCollectorQueriesHarness.sol";
 
 contract SpokeMetadataCollectorQueriesTest is Test {
   address constant DEVNET_GUARDIAN = 0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe;
@@ -23,12 +24,12 @@ contract SpokeMetadataCollectorQueriesTest is Test {
     hex"ff0c222dc9e3655ec38e212e9792bf1860356d1277462b6bf747db865caca6fc08e6317b64ee3245264e371146b1d315d38c867fe1f69614368dc4430bb560f200";
   address GOVERNANCE_CONTRACT = 0x8a907De47E00830a2b742db65e938a3ea1070A2E; // Pooltogether governor
   Wormhole public wormhole;
-  SpokeMetadataCollector spokeMetadataCollector;
+  SpokeMetadataCollectorQueriesHarness spokeMetadataCollector;
 
   function setUp() public {
     _setupWormhole();
     spokeMetadataCollector =
-      new SpokeMetadataCollector(address(wormhole), uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
+      new SpokeMetadataCollectorQueriesHarness(address(wormhole), uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
   }
 
   function _setupWormhole() internal {
@@ -63,18 +64,13 @@ contract SpokeMetadataCollectorQueriesTest is Test {
 }
 
 contract AddProposal is SpokeMetadataCollectorQueriesTest {
-  // TODO; Add rpc fork
-  function test_addsProposal(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd) public {
-    vm.assume(_proposalId != 0);
-    vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
-    _voteEnd = bound(_voteEnd, _voteStart + 1, type(uint256).max);
-    console2.log(block.number);
-    vm.roll(19_491_891);
+
+  function _buildAddProposalQuery(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd, uint16 _responseChainId, address _governance) internal view returns (bytes memory) {
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
       bytes("0x1296c33"), // blockId
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
-        GOVERNANCE_CONTRACT,
+        _governance,
         abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", _proposalId, _voteStart, _voteEnd)
       )
     );
@@ -84,8 +80,8 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
       0, // nonce
       1, // num per chain requests
       QueryTest.buildPerChainRequestBytes(
-        2, // chainId: (Ethereum mainnet)
-        1, // spokeMetahataCollector.QT_ETH_CALL()
+        _responseChainId, // chainId: (Ethereum mainnet)
+        spokeMetadataCollector.QT_ETH_CALL(),
         ethCall
       )
     );
@@ -106,16 +102,79 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
       _queryRequestBytes, // query request
       1, // num per chain responses
       QueryTest.buildPerChainResponseBytes(
-        uint16(MAINNET_CHAIN_ID), // eth mainnet
-        1, //spokeMetadataCollector.QT_ETH_CALL(),
+        _responseChainId, // eth mainnet
+        spokeMetadataCollector.QT_ETH_CALL(),
         ethCallResp
       )
     );
+	return _resp;
+  }
+  
+  function testFuzz_SuccessfullyAddProposal(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd) public {
+    vm.assume(_proposalId != 0);
+    vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
+    _voteEnd = bound(_voteEnd, _voteStart + 1, type(uint256).max);
 
+	bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, _voteEnd, uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
     // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
     spokeMetadataCollector.addProposal(_resp, signatures);
+	SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.exposed_proposals(_proposalId);
+
+	assertEq(proposal.voteStart, _voteStart);
+	assertEq(proposal.voteEnd, _voteEnd);
   }
+
+  function testFuzz_RevertIf_SenderChainIsNotTheHubChain(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd, uint16 _responseChainId) public {
+    vm.assume(_proposalId != 0);
+    vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
+	vm.assume(_responseChainId != uint16(MAINNET_CHAIN_ID));
+    _voteEnd = bound(_voteEnd, _voteStart + 1, type(uint256).max);
+
+	bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, _voteEnd, _responseChainId, GOVERNANCE_CONTRACT);
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
+    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
+    // sigGuardian index is currently 0
+    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+	vm.expectRevert(SpokeMetadataCollector.SenderChainMismatch.selector);
+    spokeMetadataCollector.addProposal(_resp, signatures);
+  }
+
+  function testFuzz_RevertIf_ContractIsNotHubProposalMetadata(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd, address _callingAddress) public {
+    vm.assume(_proposalId != 0);
+    vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
+	vm.assume(_callingAddress != GOVERNANCE_CONTRACT);
+    _voteEnd = bound(_voteEnd, _voteStart + 1, type(uint256).max);
+
+	bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, _voteEnd, uint16(MAINNET_CHAIN_ID), _callingAddress);
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
+    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
+    // sigGuardian index is currently 0
+    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+	vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.InvalidWormholeMessage.selector, bytes("Invalid contract address")));
+    spokeMetadataCollector.addProposal(_resp, signatures);
+  }
+
+ function testFuzz_RevertIf_ProposalAlreadExists(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd) public {
+    vm.assume(_proposalId != 0);
+    vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
+    _voteEnd = bound(_voteEnd, _voteStart + 1, type(uint256).max);
+
+	bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, _voteEnd, uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
+    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
+    // sigGuardian index is currently 0
+    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+    spokeMetadataCollector.addProposal(_resp, signatures);
+
+	vm.expectRevert(SpokeMetadataCollector.ProposalAlreadyExists.selector);
+    spokeMetadataCollector.addProposal(_resp, signatures);
+  }
+
+  // TODO: TooManyQueryResponses still needs to be tested
 }
