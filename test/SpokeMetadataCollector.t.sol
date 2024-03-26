@@ -8,8 +8,8 @@ import {Implementation} from "wormhole/Implementation.sol";
 import {Wormhole} from "wormhole/Wormhole.sol";
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-import {SpokeMetadataCollector} from "src/SpokeMetadataCollectorQueries.sol";
-import {SpokeMetadataCollectorQueriesHarness} from "test/harnesses/SpokeMetadataCollectorQueriesHarness.sol";
+import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
+import {SpokeMetadataCollectorQueriesHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 
 contract SpokeMetadataCollectorQueriesTest is Test {
   address constant DEVNET_GUARDIAN = 0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe;

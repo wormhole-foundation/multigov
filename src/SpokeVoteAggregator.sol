@@ -57,7 +57,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
   constructor(
     address _core,
     uint16 _hubChainId,
-    bytes32 _hubProposalMetadataSender,
+    address _hubProposalMetadataSender,
     address _votingToken,
     uint32 _castVoteWindow
   )
