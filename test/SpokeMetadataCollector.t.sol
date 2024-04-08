@@ -55,7 +55,7 @@ contract AddProposal is WormholeEthQueryTest {
     bytes memory _resp = QueryTest.buildQueryResponseBytes(
       VERSION, // version
       OFF_CHAIN_SENDER, // sender chain id
-      OFF_CHAIN_SIGNATURE, // signature 
+      OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
       QueryTest.buildPerChainResponseBytes(
