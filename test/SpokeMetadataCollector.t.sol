@@ -121,7 +121,6 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
       _buildAddProposalQuery(_proposalId, _voteStart, _voteEnd, uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
     spokeMetadataCollector.addProposal(_resp, signatures);
     SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.exposed_proposals(_proposalId);
@@ -145,7 +144,6 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
       _buildAddProposalQuery(_proposalId, _voteStart, _voteEnd, _responseChainId, GOVERNANCE_CONTRACT);
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     vm.expectRevert(SpokeMetadataCollector.SenderChainMismatch.selector);
@@ -167,7 +165,6 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
       _buildAddProposalQuery(_proposalId, _voteStart, _voteEnd, uint16(MAINNET_CHAIN_ID), _callingAddress);
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     vm.expectRevert(
@@ -185,7 +182,6 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
       _buildAddProposalQuery(_proposalId, _voteStart, _voteEnd, uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     spokeMetadataCollector.addProposal(_resp, signatures);
@@ -194,7 +190,6 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
-  // 1. multiple responses
   function test_RevertIf_TooManyResponse() public {
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
       bytes("0x1296c33"), // blockId
@@ -234,7 +229,7 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     bytes memory _resp = QueryTest.buildQueryResponseBytes(
       VERSION, // version
       OFF_CHAIN_SENDER, // sender chain id
-      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       2, // num per chain responses
       abi.encodePacked(
@@ -252,14 +247,12 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     );
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyQueryResponses.selector, 2));
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
-  // 2. multiple calls
   function test_RevertIf_TooManyCalls() public {
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
       bytes("0x1296c33"), // blockId
@@ -299,7 +292,7 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     bytes memory _resp = QueryTest.buildQueryResponseBytes(
       VERSION, // version
       OFF_CHAIN_SENDER, // sender chain id
-      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
       QueryTest.buildPerChainResponseBytes(
@@ -310,7 +303,6 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     );
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyEthCallResults.selector, 2));
