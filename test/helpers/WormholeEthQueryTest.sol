@@ -49,7 +49,7 @@ contract WormholeEthQueryTest is Test {
     );
   }
 
-  function getSignature(bytes memory response, address _getSig) internal view returns (uint8 v, bytes32 r, bytes32 s) {
+  function getSignature(bytes memory response, address _getSig) internal pure returns (uint8 v, bytes32 r, bytes32 s) {
     bytes32 responseDigest = QueryResponse(_getSig).getResponseDigest(response);
     (v, r, s) = vm.sign(DEVNET_GUARDIAN_PRIVATE_KEY, responseDigest);
   }

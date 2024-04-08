@@ -20,6 +20,8 @@ contract HubVotePool is QueryResponse, Ownable {
   error InvalidWormholeMessage(string);
   error UnknownMessageEmitter();
   error InvalidProposalVote();
+  error TooManyEthCallResults(uint256);
+  error TooManyQueryResponses(uint256);
 
   event SpokeVoteCast(
     uint16 indexed emitterChainId, uint256 proposalId, uint256 voteAgainst, uint256 voteFor, uint256 voteAbstain
@@ -32,20 +34,28 @@ contract HubVotePool is QueryResponse, Ownable {
     uint128 abstainVotes;
   }
 
+  struct SpokeVoteAggregator {
+    uint16 wormholeChainId;
+    address addr;
+  }
+
   mapping(uint16 emitterChain => bytes32 emitterAddress) public spokeRegistry;
 
   // Instead of nested mapping create encoding for the key
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
-  error TooManyQueryResponses(uint256);
-
   // TODO: I imagine we want to deploy this with the initial mappings
-  constructor(address _core, address _hubGovernor) QueryResponse(_core) Ownable() {
+  constructor(address _core, address _hubGovernor, SpokeVoteAggregator[] memory _initialSpokeRegistry)
+    QueryResponse(_core)
+    Ownable()
+  {
     WORMHOLE_CORE = IWormhole(_core);
     HUB_GOVERNOR = IGovernor(_hubGovernor);
     transferOwnership(_hubGovernor);
-    // TODO: delegate
-    // ERC20Votes(IFractionalGovernor(address(HUB_GOVERNOR)).token()).delegate(address(this));
+    for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
+      SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
+      spokeRegistry[aggregator.wormholeChainId] = bytes32(uint256(uint160(aggregator.addr)));
+    }
   }
 
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
@@ -67,10 +77,10 @@ contract HubVotePool is QueryResponse, Ownable {
     EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
 
     // verify contract and chain is correct
-    // mapping(uint16 emitterChain => bytes32 emitterAddress) public spokeRegistry;
-    // spokeVoteAggregator
     bytes32 addr = spokeRegistry[perChainResp.chainId];
     if (addr != bytes32(uint256(uint160(_ethCalls.result[0].contractAddress)))) revert UnknownMessageEmitter();
+
+    if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
     (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
       abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));

@@ -31,11 +31,8 @@ contract HubVotePoolTest is WormholeEthQueryTest {
 
   function setUp() public {
     _setupWormhole();
-    // TimelockControllerFake timelock = new TimelockControllerFake(address(0));
-    // ERC20VotesFake token = new ERC20VotesFake();
     governor = new GovernorMock();
-    // Stopped here TODO Governor needs to be governor to cast vote
-    hubVotePool = new HubVotePool(address(wormhole), address(governor));
+    hubVotePool = new HubVotePool(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
   }
 
   function _buildAddVoteQuery(VoteParams memory _voteParams, uint16 _responseChainId, address _governance)
@@ -44,7 +41,7 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     returns (bytes memory)
   {
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
-      bytes("0x1296c33"), // blockId
+      bytes("0x1296c33"), // random blockId: a hash of the block number
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         _governance, abi.encodeWithSignature("proposalVotes(uint256)", _voteParams.proposalId)
@@ -94,7 +91,9 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     );
     return _resp;
   }
+}
 
+contract CrossChainEVMVote is HubVotePoolTest {
   // hubvote pool test
   // 5. sucessfully cast vote
   function testFuzz_CorrectlyAddNewVote(
@@ -122,7 +121,6 @@ contract HubVotePoolTest is WormholeEthQueryTest {
 
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
@@ -133,7 +131,6 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     assertEq(governor.params(), abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes)));
   }
 
-  // 4 Invalid vote
   function testFuzz_RevertIf_InvalidProposalVoteQuery(
     uint256 _proposalId,
     uint64 _againstVotes,
@@ -159,7 +156,6 @@ contract HubVotePoolTest is WormholeEthQueryTest {
 
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
@@ -174,14 +170,12 @@ contract HubVotePoolTest is WormholeEthQueryTest {
       GOVERNANCE_CONTRACT
     );
     (uint8 invalidSigV, bytes32 invalidSigR, bytes32 invalidSigS) = getSignature(_invalidResp, address(hubVotePool));
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: invalidSigR, s: invalidSigS, v: invalidSigV, guardianIndex: 0});
 
     vm.expectRevert(HubVotePool.InvalidProposalVote.selector);
     hubVotePool.crossChainEVMVote(_invalidResp, signatures);
   }
 
-  // 2. unknown message emitter
   function testFuzz_RevertIf_UnknownMessageEmitter(
     uint256 _proposalId,
     uint64 _againstVotes,
@@ -201,13 +195,144 @@ contract HubVotePoolTest is WormholeEthQueryTest {
 
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
     hubVotePool.crossChainEVMVote(_resp, signatures);
   }
 
-  // 1. too many responses
-  // 3. Too many results
+  function test_RevertIf_TooManyResponse(
+    uint256 _proposalId,
+    uint128 _againstVotes,
+    uint128 _forVotes,
+    uint128 _abstainVotes
+  ) public {
+    vm.prank(address(governor));
+    hubVotePool.registerSpoke(2, bytes32(uint256(uint160(GOVERNANCE_CONTRACT))));
+    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+      bytes("0x1296c33"), // blockId
+      1, // numCallData
+      QueryTest.buildEthCallDataBytes(address(governor), abi.encodeWithSignature("proposalVotes(uint256)", _proposalId))
+    );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      2, // num per chain requests
+      abi.encodePacked(
+        QueryTest.buildPerChainRequestBytes(
+          2, // chainId: (Ethereum mainnet)
+          hubVotePool.QT_ETH_CALL(),
+          ethCall
+        ),
+        QueryTest.buildPerChainRequestBytes(
+          2, // chainId: (Ethereum mainnet)
+          hubVotePool.QT_ETH_CALL(),
+          ethCall
+        )
+      )
+    );
+
+    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      1, // numResults
+      QueryTest.buildEthCallResultBytes(
+        abi.encode(
+          _proposalId,
+          SpokeVoteAggregator.ProposalVote({
+            againstVotes: uint128(_againstVotes),
+            forVotes: uint128(_forVotes),
+            abstainVotes: uint128(_abstainVotes)
+          })
+        )
+      )
+    );
+
+    // version and nonce are arbitrary
+    bytes memory _resp = QueryTest.buildQueryResponseBytes(
+      VERSION, // version
+      OFF_CHAIN_SENDER, // sender chain id
+      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      _queryRequestBytes, // query request
+      2, // num per chain responses
+      abi.encodePacked(
+        QueryTest.buildPerChainResponseBytes(
+          2, // eth mainnet
+          hubVotePool.QT_ETH_CALL(),
+          ethCallResp
+        ),
+        QueryTest.buildPerChainResponseBytes(
+          2, // eth mainnet
+          hubVotePool.QT_ETH_CALL(),
+          ethCallResp
+        )
+      )
+    );
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
+    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
+    // sigGuardian index is currently 0
+    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+    vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyQueryResponses.selector, 2));
+    hubVotePool.crossChainEVMVote(_resp, signatures);
+  }
+
+  function test_RevertIf_TooManyCalls() public {
+    vm.prank(address(governor));
+    hubVotePool.registerSpoke(2, bytes32(uint256(uint160(GOVERNANCE_CONTRACT))));
+    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+      bytes("0x1296c33"), // blockId
+      2, // numCallData
+      abi.encodePacked(
+        QueryTest.buildEthCallDataBytes(
+          GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
+        ),
+        QueryTest.buildEthCallDataBytes(GOVERNANCE_CONTRACT, abi.encodeWithSignature("proposalVotes(uint256)", 1))
+      )
+    );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      1, // num per chain requests
+      QueryTest.buildPerChainRequestBytes(
+        2, // chainId: (Ethereum mainnet)
+        hubVotePool.QT_ETH_CALL(),
+        ethCall
+      )
+    );
+
+    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      2, // numResults
+      abi.encodePacked(
+        QueryTest.buildEthCallResultBytes(abi.encode(1, 2, 3)), QueryTest.buildEthCallResultBytes(abi.encode(1, 2, 3))
+      ) // results
+    );
+
+    // version and nonce are arbitrary
+    bytes memory _resp = QueryTest.buildQueryResponseBytes(
+      VERSION, // version
+      OFF_CHAIN_SENDER, // sender chain id
+      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      _queryRequestBytes, // query request
+      1, // num per chain responses
+      QueryTest.buildPerChainResponseBytes(
+        2, // eth mainnet
+        hubVotePool.QT_ETH_CALL(),
+        ethCallResp
+      )
+    );
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
+    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
+    // sigGuardian index is currently 0
+    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+    vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyEthCallResults.selector, 2));
+    hubVotePool.crossChainEVMVote(_resp, signatures);
+  }
 }
