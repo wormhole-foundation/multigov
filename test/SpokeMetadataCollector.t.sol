@@ -69,7 +69,7 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     address _governance
   ) internal view returns (bytes memory) {
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
-      bytes("0x1296c33"), // blockId
+      bytes("0x1296c33"), // random blockId: a hash of the block number
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         _governance,
