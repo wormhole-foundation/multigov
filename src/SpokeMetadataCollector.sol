@@ -25,6 +25,7 @@ contract SpokeMetadataCollector is QueryResponse {
   error InvalidWormholeMessage(string);
   error TooManyQueryResponses(uint256);
   error SenderChainMismatch();
+  error TooManyEthCallResults(uint256);
 
   event ProposalCreated(uint256 proposalId, uint256 startBlock, uint256 endBlock);
 
@@ -50,6 +51,7 @@ contract SpokeMetadataCollector is QueryResponse {
     if (numResponses != 1) revert TooManyQueryResponses(numResponses);
 
     EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_queryResponse.responses[0]);
+    if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
     if (_ethCalls.result[0].contractAddress != HUB_PROPOSAL_METADATA) {
       revert InvalidWormholeMessage("Invalid contract address");
     }

@@ -19,10 +19,7 @@ contract SpokeMetadataCollectorQueriesTest is Test {
   uint8 constant OFF_CHAIN_SENDER = 0;
   bytes constant OFF_CHAIN_SIGNATURE =
     hex"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-  uint256 constant GOVERNANCE_CHAIN_ID = 2;
-  bytes signature =
-    hex"ff0c222dc9e3655ec38e212e9792bf1860356d1277462b6bf747db865caca6fc08e6317b64ee3245264e371146b1d315d38c867fe1f69614368dc4430bb560f200";
-  address GOVERNANCE_CONTRACT = 0x8a907De47E00830a2b742db65e938a3ea1070A2E; // Pooltogether governor
+  address GOVERNANCE_CONTRACT = makeAddr("governance");
   Wormhole public wormhole;
   SpokeMetadataCollectorQueriesHarness spokeMetadataCollector;
 
@@ -50,7 +47,7 @@ contract SpokeMetadataCollectorQueriesTest is Test {
         address(implementation),
         guardians,
         MAINNET_CHAIN_ID,
-        GOVERNANCE_CHAIN_ID,
+        MAINNET_CHAIN_ID,
         GOVERNANCE_CONTRACT,
         block.chainid // evm chain id
       )
@@ -197,5 +194,126 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
-  // TODO: TooManyQueryResponses still needs to be tested
+  // 1. multiple responses
+  function test_RevertIf_TooManyResponse() public {
+    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+      bytes("0x1296c33"), // blockId
+      1, // numCallData
+      QueryTest.buildEthCallDataBytes(
+        GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
+      )
+    );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      2, // num per chain requests
+      abi.encodePacked(
+        QueryTest.buildPerChainRequestBytes(
+          2, // chainId: (Ethereum mainnet)
+          spokeMetadataCollector.QT_ETH_CALL(),
+          ethCall
+        ),
+        QueryTest.buildPerChainRequestBytes(
+          2, // chainId: (Ethereum mainnet)
+          spokeMetadataCollector.QT_ETH_CALL(),
+          ethCall
+        )
+      )
+    );
+
+    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      1, // numResults
+      QueryTest.buildEthCallResultBytes(abi.encode(1, 2, 3)) // results
+    );
+
+    // version and nonce are arbitrary
+    bytes memory _resp = QueryTest.buildQueryResponseBytes(
+      VERSION, // version
+      OFF_CHAIN_SENDER, // sender chain id
+      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      _queryRequestBytes, // query request
+      2, // num per chain responses
+      abi.encodePacked(
+        QueryTest.buildPerChainResponseBytes(
+          2, // eth mainnet
+          spokeMetadataCollector.QT_ETH_CALL(),
+          ethCallResp
+        ),
+        QueryTest.buildPerChainResponseBytes(
+          2, // eth mainnet
+          spokeMetadataCollector.QT_ETH_CALL(),
+          ethCallResp
+        )
+      )
+    );
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
+    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
+    // sigGuardian index is currently 0
+    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyQueryResponses.selector, 2));
+    spokeMetadataCollector.addProposal(_resp, signatures);
+  }
+
+  // 2. multiple calls
+  function test_RevertIf_TooManyCalls() public {
+    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+      bytes("0x1296c33"), // blockId
+      2, // numCallData
+      abi.encodePacked(
+        QueryTest.buildEthCallDataBytes(
+          GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
+        ),
+        QueryTest.buildEthCallDataBytes(
+          GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
+        )
+      )
+    );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      1, // num per chain requests
+      QueryTest.buildPerChainRequestBytes(
+        2, // chainId: (Ethereum mainnet)
+        spokeMetadataCollector.QT_ETH_CALL(),
+        ethCall
+      )
+    );
+
+    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      2, // numResults
+      abi.encodePacked(
+        QueryTest.buildEthCallResultBytes(abi.encode(1, 2, 3)), QueryTest.buildEthCallResultBytes(abi.encode(1, 2, 3))
+      ) // results
+    );
+
+    // version and nonce are arbitrary
+    bytes memory _resp = QueryTest.buildQueryResponseBytes(
+      VERSION, // version
+      OFF_CHAIN_SENDER, // sender chain id
+      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      _queryRequestBytes, // query request
+      1, // num per chain responses
+      QueryTest.buildPerChainResponseBytes(
+        2, // eth mainnet
+        spokeMetadataCollector.QT_ETH_CALL(),
+        ethCallResp
+      )
+    );
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp);
+    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
+    // sigGuardian index is currently 0
+    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyEthCallResults.selector, 2));
+    spokeMetadataCollector.addProposal(_resp, signatures);
+  }
 }
