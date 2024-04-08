@@ -73,7 +73,7 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     bytes memory _resp = QueryTest.buildQueryResponseBytes(
       VERSION, // version
       OFF_CHAIN_SENDER, // sender chain id
-      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
       QueryTest.buildPerChainResponseBytes(
@@ -87,8 +87,6 @@ contract HubVotePoolTest is WormholeEthQueryTest {
 }
 
 contract CrossChainEVMVote is HubVotePoolTest {
-  // hubvote pool test
-  // 5. sucessfully cast vote
   function testFuzz_CorrectlyAddNewVote(
     uint256 _proposalId,
     uint64 _againstVotes,
@@ -247,7 +245,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     bytes memory _resp = QueryTest.buildQueryResponseBytes(
       VERSION, // version
       OFF_CHAIN_SENDER, // sender chain id
-      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       2, // num per chain responses
       abi.encodePacked(
@@ -265,7 +263,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
     );
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyQueryResponses.selector, 2));
@@ -311,7 +308,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     bytes memory _resp = QueryTest.buildQueryResponseBytes(
       VERSION, // version
       OFF_CHAIN_SENDER, // sender chain id
-      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
       QueryTest.buildPerChainResponseBytes(
@@ -322,7 +319,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
     );
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    // sigGuardian index is currently 0
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyEthCallResults.selector, 2));
