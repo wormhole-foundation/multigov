@@ -8,14 +8,7 @@ import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
-import {QueryResponse} from "wormhole/query/QueryResponse.sol";
-import {GovernorVoteFake} from "test/fakes/GovernorVoteFake.sol";
-import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
-import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 
-import {ERC20Votes} from "@openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {TimelockController} from "@openzeppelin-contracts/governance/TimelockController.sol";
-import {SpokeMetadataCollectorQueriesHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 import {GovernorMock} from "test/mocks/GovernorMock.sol";
 
 contract HubVotePoolTest is WormholeEthQueryTest {

@@ -44,7 +44,6 @@ contract HubVotePool is QueryResponse, Ownable {
   // Instead of nested mapping create encoding for the key
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
-  // TODO: I imagine we want to deploy this with the initial mappings
   constructor(address _core, address _hubGovernor, SpokeVoteAggregator[] memory _initialSpokeRegistry)
     QueryResponse(_core)
     Ownable()
@@ -85,7 +84,7 @@ contract HubVotePool is QueryResponse, Ownable {
     (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
       abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));
 
-    // // TODO: does encode vs encodePacked matter here
+    // TODO: does encode vs encodePacked matter here
     bytes32 _spokeProposalId = keccak256(abi.encode(perChainResp.chainId, proposalId));
     ProposalVote memory existingSpokeVote = spokeProposalVotes[_spokeProposalId];
     if (
