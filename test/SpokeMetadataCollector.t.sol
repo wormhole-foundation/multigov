@@ -3,9 +3,6 @@ pragma solidity ^0.8.23;
 
 import {console2} from "forge-std/Test.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
-import {Setup} from "wormhole/Setup.sol";
-import {Implementation} from "wormhole/Implementation.sol";
-import {Wormhole} from "wormhole/Wormhole.sol";
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
@@ -58,7 +55,7 @@ contract AddProposal is WormholeEthQueryTest {
     bytes memory _resp = QueryTest.buildQueryResponseBytes(
       VERSION, // version
       OFF_CHAIN_SENDER, // sender chain id
-      OFF_CHAIN_SIGNATURE, // signature // TODO: figure this out
+      OFF_CHAIN_SIGNATURE, // signature 
       _queryRequestBytes, // query request
       1, // num per chain responses
       QueryTest.buildPerChainResponseBytes(
