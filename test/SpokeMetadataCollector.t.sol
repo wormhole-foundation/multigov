@@ -168,7 +168,10 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
 
     vm.expectRevert(
-      abi.encodeWithSelector(SpokeMetadataCollector.InvalidWormholeMessage.selector, bytes("Query data must be from hub proposal metadata contract"))
+      abi.encodeWithSelector(
+        SpokeMetadataCollector.InvalidWormholeMessage.selector,
+        bytes("Query data must be from hub proposal metadata contract")
+      )
     );
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
