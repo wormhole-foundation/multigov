@@ -53,7 +53,7 @@ contract SpokeMetadataCollector is QueryResponse {
     EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_queryResponse.responses[0]);
     if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
     if (_ethCalls.result[0].contractAddress != HUB_PROPOSAL_METADATA) {
-      revert InvalidWormholeMessage("Invalid contract address");
+      revert InvalidWormholeMessage("Query data must be from hub proposal metadata contract");
     }
     (uint256 proposalId, uint256 voteStart, uint256 voteEnd) =
       abi.decode(_ethCalls.result[0].result, (uint256, uint256, uint256));
