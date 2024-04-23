@@ -190,7 +190,7 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
-  function test_RevertIf_TooManyResponse() public {
+  function test_RevertIf_TooManyResponsesPassedInResponseBytes() public {
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
       bytes("0x1296c33"), // blockId
       1, // numCallData
