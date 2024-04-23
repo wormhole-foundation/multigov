@@ -173,7 +173,7 @@ contract AddProposal is SpokeMetadataCollectorQueriesTest {
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
-  function testFuzz_RevertIf_ProposalAlreadExists(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd) public {
+  function testFuzz_RevertIf_ProposalAlreadyExists(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd) public {
     vm.assume(_proposalId != 0);
     vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
     _voteEnd = bound(_voteEnd, _voteStart + 1, type(uint256).max);
