@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.0;
 
-import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
-import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import {GovernorVoteMocks} from "@openzeppelin/contracts/mocks/governance/GovernorVoteMock.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {Governor} from "@openzeppelin-contracts/governance/Governor.sol";
+import {GovernorVotes} from "@openzeppelin-contracts/governance/extensions/GovernorVotes.sol";
+import {GovernorVoteMocks} from "@openzeppelin-contracts/mocks/governance/GovernorVoteMock.sol";
+import {ERC20Votes} from "@openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {GovernorTimelockControl} from "@openzeppelin-contracts/governance/extensions/GovernorTimelockControl.sol";
+import {TimelockController} from "@openzeppelin-contracts/governance/TimelockController.sol";
 
 contract GovernorVoteFake is GovernorVoteMocks, GovernorTimelockControl {
   constructor(string memory _name, ERC20Votes _token, TimelockController _timelock)

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.23;
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "@openzeppelin-contracts/access/Ownable.sol";
 
 contract WormholeDispatcher is Ownable {
   uint8 public consistencyLevel;
