@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
-import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
-import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
-import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
+import {Governor} from "@openzeppelin-contracts/governance/Governor.sol";
+import {GovernorCountingSimple} from "@openzeppelin-contracts/governance/extensions/GovernorCountingSimple.sol";
+import {GovernorVotes} from "@openzeppelin-contracts/governance/extensions/GovernorVotes.sol";
+import {IVotes} from "@openzeppelin-contracts/governance/utils/IVotes.sol";
+import {GovernorTimelockControl} from "@openzeppelin-contracts/governance/extensions/GovernorTimelockControl.sol";
+import {TimelockController} from "@openzeppelin-contracts/governance/TimelockController.sol";
+import {GovernorSettings} from "@openzeppelin-contracts/governance/extensions/GovernorSettings.sol";
 
 // TODO: Add switch in Flexible Voting
 contract HubGovernor is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorTimelockControl {

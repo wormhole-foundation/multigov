@@ -2,8 +2,8 @@
 pragma solidity ^0.8.23;
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {IGovernor} from "@openzeppelin-contracts/governance/IGovernor.sol";
+import {ERC20Votes} from "@openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract HubVotePool {
   IWormhole public immutable WORMHOLE_CORE;

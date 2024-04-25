@@ -9,6 +9,7 @@ on:
 
 env:
   FOUNDRY_PROFILE: ci
+  ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
 
 jobs:
   build:

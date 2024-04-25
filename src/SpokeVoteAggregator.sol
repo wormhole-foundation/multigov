@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {ERC20Votes} from "@openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {EIP712} from "@openzeppelin-contracts/utils/cryptography/EIP712.sol";
+import {SignatureChecker} from "@openzeppelin-contracts/utils/cryptography/SignatureChecker.sol";
+import {Nonces} from "@openzeppelin-contracts/utils/Nonces.sol";
+import {SafeCast} from "@openzeppelin-contracts/utils/math/SafeCast.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 
 // TODO valid spoke chain token holders must be able to cast their vote on proposals
@@ -57,13 +57,13 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector {
   constructor(
     address _core,
     uint16 _hubChainId,
-    bytes32 _hubProposalMetadataSender,
+    address _hubProposalMetadata,
     address _votingToken,
     uint32 _castVoteWindow
   )
     // TODO: name, version
     EIP712("SpokeVoteAggregator", "1")
-    SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadataSender)
+    SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadata)
   {
     VOTING_TOKEN = ERC20Votes(_votingToken);
     CAST_VOTE_WINDOW = _castVoteWindow;
