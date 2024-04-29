@@ -27,6 +27,8 @@ contract HubVotePool is QueryResponse, Ownable {
     uint16 indexed emitterChainId, uint256 proposalId, uint256 voteAgainst, uint256 voteFor, uint256 voteAbstain
   );
 
+  event SpokeRegistered(uint16 indexed targetChain, bytes32 spokeVoteAddress);
+
   /// @dev Contains the distribution of a proposal vote.
   struct ProposalVote {
     uint128 againstVotes;
@@ -54,15 +56,17 @@ contract HubVotePool is QueryResponse, Ownable {
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
       SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
       spokeRegistry[aggregator.wormholeChainId] = bytes32(uint256(uint160(aggregator.addr)));
+      emit SpokeRegistered(aggregator.wormholeChainId, bytes32(uint256(uint160(aggregator.addr))));
     }
   }
 
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
     _checkOwner();
     spokeRegistry[_targetChain] = _spokeVoteAddress;
+    emit SpokeRegistered(_targetChain, _spokeVoteAddress);
   }
 
-  // TODO we will need a Solana
+  // TODO we will need a Solana method as well
   function crossChainEVMVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     // Validate the query response signatures
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);

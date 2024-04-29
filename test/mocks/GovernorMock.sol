@@ -17,6 +17,6 @@ contract GovernorMock {
     support = _support;
     reason = _reason;
     params = _params;
-    return 1;
+    return _proposalId;
   }
 }

@@ -14,6 +14,7 @@ import {GovernorMock} from "test/mocks/GovernorMock.sol";
 contract HubVotePoolTest is WormholeEthQueryTest {
   HubVotePool hubVotePool;
   GovernorMock governor;
+  uint16 QUERY_CHAIN_ID = 2;
 
   struct VoteParams {
     uint256 proposalId;
@@ -106,7 +107,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
       }),
-      uint16(2),
+      QUERY_CHAIN_ID,
       GOVERNANCE_CONTRACT
     );
 
@@ -116,13 +117,20 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
 
+    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(2, _proposalId)));
+
     assertEq(governor.proposalId(), _proposalId);
     assertEq(governor.support(), 1);
     assertEq(governor.reason(), "rolled-up vote from governance L2 token holders");
     assertEq(governor.params(), abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes)));
+    assertEq(governor.params(), abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes)));
+    assertEq(againstVotes, _againstVotes);
+    assertEq(forVotes, _forVotes);
+    assertEq(abstainVotes, _abstainVotes);
   }
 
-  function testFuzz_RevertIf_InvalidProposalVoteQuery(
+  function testFuzz_RevertIf_QueriedVotesAreLessThanOnHubVotePoolForSpoke(
     uint256 _proposalId,
     uint64 _againstVotes,
     uint64 _forVotes,
@@ -141,7 +149,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
       }),
-      uint16(2),
+      QUERY_CHAIN_ID,
       GOVERNANCE_CONTRACT
     );
 
@@ -157,7 +165,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
       }),
-      uint16(2),
+      QUERY_CHAIN_ID,
       GOVERNANCE_CONTRACT
     );
     (uint8 invalidSigV, bytes32 invalidSigR, bytes32 invalidSigS) = getSignature(_invalidResp, address(hubVotePool));
@@ -167,7 +175,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     hubVotePool.crossChainEVMVote(_invalidResp, signatures);
   }
 
-  function testFuzz_RevertIf_UnknownMessageEmitter(
+  function testFuzz_RevertIf_SpokeIsNotRegistered(
     uint256 _proposalId,
     uint64 _againstVotes,
     uint64 _forVotes,
@@ -180,7 +188,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
       }),
-      uint16(2),
+      QUERY_CHAIN_ID,
       GOVERNANCE_CONTRACT
     );
 
@@ -192,7 +200,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     hubVotePool.crossChainEVMVote(_resp, signatures);
   }
 
-  function test_RevertIf_TooManyResponse(
+  function test_RevertIf_TooManyResponseItemsInResponseBytes(
     uint256 _proposalId,
     uint128 _againstVotes,
     uint128 _forVotes,
