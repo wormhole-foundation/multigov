@@ -12,10 +12,20 @@ contract HubMessageDispatcher is WormholeDispatcher {
     WormholeDispatcher(_timelock, _core, _dispatchConsistencyLevel)
   {}
 
-  // TODO: There may be opportunities for space optimization
   function dispatch(bytes calldata _payload) external {
     _checkOwner();
-    _publishMessage(_payload);
-    emit MessageDispatched(_payload);
+
+    (
+      uint16 wormholeChainId,
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      bytes32 descriptionHash
+    ) = abi.decode(_payload, (uint16, address[], uint256[], bytes[], bytes32));
+    uint256 proposalId = uint256(keccak256(abi.encode(targets, values, calldatas, descriptionHash)));
+
+    bytes memory payload = abi.encode(proposalId, wormholeChainId, targets, values, calldatas);
+    _publishMessage(payload);
+    emit MessageDispatched(payload);
   }
 }
