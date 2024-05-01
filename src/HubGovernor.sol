@@ -10,14 +10,13 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import {GovernorCountingFractional} from "flexible-voting/GovernorCountingFractional.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
-contract HubGovernor is GovernorCountingFractional, GovernorSettings, GovernorVotes, GovernorTimelockControl {
-  using Checkpoints for Checkpoints.Trace208;
+import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
+
+contract HubGovernor is GovernorCountingFractional, GovernorSettings, GovernorVotes, GovernorTimelockControl, GovernorSettableFixedQuorum {
 
   mapping(address votingAddress => bool enabled) public trustedVotingAddresses;
 
-  Checkpoints.Trace208 internal _quorumCheckpoints;
 
   constructor(
     string memory _name,
@@ -33,9 +32,9 @@ contract HubGovernor is GovernorCountingFractional, GovernorSettings, GovernorVo
     GovernorSettings(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold)
     GovernorVotes(_token)
     GovernorTimelockControl(_timelock)
+	GovernorSettableFixedQuorum(_initialQuorum)
   {
     _enableTrustedVotingAddress(_trustedVotingAddress);
-    _setQuorum(_initialQuorum);
   }
 
   function enableTrustedVotingAddress(address _trustedAddress) external {
@@ -46,19 +45,6 @@ contract HubGovernor is GovernorCountingFractional, GovernorSettings, GovernorVo
   function disableTrustedVotingAddress(address _trustedAddress) external {
     _checkGovernance();
     _disableTrustedVotingAddress(_trustedAddress);
-  }
-
-  function quorum(uint256 _voteStart) public view override returns (uint256) {
-    return _quorumCheckpoints.upperLookup(SafeCast.toUint48(_voteStart));
-  }
-
-  function setQuorum(uint208 _amount) external {
-    _checkGovernance();
-    _setQuorum(_amount);
-  }
-
-  function _setQuorum(uint208 _amount) internal {
-    _quorumCheckpoints.push(SafeCast.toUint48(block.timestamp), _amount);
   }
 
   function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
