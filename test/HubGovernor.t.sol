@@ -172,6 +172,8 @@ contract DisableTrustedVotingAddress is HubGovernorTest, ProposalTest {
 
   function testFuzz_RevertIf_CallerIsNotAuthorized(address _trustedAddress, address _caller) public {
     vm.assume(_trustedAddress != address(0));
+    vm.assume(_trustedAddress != address(timelock));
+    vm.assume(_caller != address(timelock));
 
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
