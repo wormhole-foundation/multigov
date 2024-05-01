@@ -15,8 +15,6 @@ import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol
 contract HubGovernor is GovernorCountingFractional, GovernorSettings, GovernorVotes, GovernorTimelockControl {
   using Checkpoints for Checkpoints.Trace208;
 
-  address public hubVotePool;
-
   mapping(address votingAddress => bool enabled) public trustedVotingAddresses;
 
   Checkpoints.Trace208 internal _quorumCheckpoints;
@@ -40,9 +38,9 @@ contract HubGovernor is GovernorCountingFractional, GovernorSettings, GovernorVo
     _setQuorum(_initialQuorum);
   }
 
-  function enableTrustedVotingAddress(address _hubVotePool) external {
+  function enableTrustedVotingAddress(address _trustedAddress) external {
     _checkGovernance();
-    _enableTrustedVotingAddress(_hubVotePool);
+    _enableTrustedVotingAddress(_trustedAddress);
   }
 
   function disableTrustedVotingAddress(address _trustedAddress) external {
@@ -133,7 +131,7 @@ contract HubGovernor is GovernorCountingFractional, GovernorSettings, GovernorVo
     virtual
     override(Governor, GovernorCountingFractional)
   {
-    if (account != hubVotePool) {
+    if (!trustedVotingAddresses[account]) {
       require(totalWeight > 0, "GovernorCountingFractional: no weight");
       if (voteWeightCast(proposalId, account) >= totalWeight) revert("GovernorCountingFractional: all weight cast");
     }
