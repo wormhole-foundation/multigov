@@ -13,10 +13,14 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 
-contract HubGovernor is GovernorCountingFractional, GovernorSettings, GovernorVotes, GovernorTimelockControl, GovernorSettableFixedQuorum {
-
+contract HubGovernor is
+  GovernorCountingFractional,
+  GovernorSettings,
+  GovernorVotes,
+  GovernorTimelockControl,
+  GovernorSettableFixedQuorum
+{
   mapping(address votingAddress => bool enabled) public trustedVotingAddresses;
-
 
   constructor(
     string memory _name,
@@ -32,7 +36,7 @@ contract HubGovernor is GovernorCountingFractional, GovernorSettings, GovernorVo
     GovernorSettings(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold)
     GovernorVotes(_token)
     GovernorTimelockControl(_timelock)
-	GovernorSettableFixedQuorum(_initialQuorum)
+    GovernorSettableFixedQuorum(_initialQuorum)
   {
     _enableTrustedVotingAddress(_trustedVotingAddress);
   }

@@ -189,8 +189,6 @@ contract Quorum is HubGovernorTest {
   }
 }
 
-// Correctly set checkpoint
-// Revert if not governance process
 contract SetQuorum is HubGovernorTest, ProposalTest {
   function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum) public {
     address delegate = makeAddr("delegate");
@@ -219,7 +217,6 @@ contract SetQuorum is HubGovernorTest, ProposalTest {
   }
 }
 
-// Make sure whitelisted addresses are ignored
 contract _CountVote is HubGovernorTest, ProposalTest {
   function testFuzz_WhitelistedAddressCanVote(
     uint8 _support,
@@ -240,13 +237,13 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     vm.stopPrank();
 
     _jumpToActiveProposal(_proposalId);
-    // build vote fractional bytes
+
     bytes memory voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
     governor.exposed_countVote(
       _proposalId, address(hubVotePool), _support, uint256(_forVotes) + _againstVotes + _abstainVotes, voteData
     );
-    // hubVote pool should have 0 votes
     uint256 votingWeight = token.getVotes(address(hubVotePool));
+
     (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
     assertEq(votingWeight, 0);
     assertEq(againstVotes, _againstVotes);
