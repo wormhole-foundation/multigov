@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.23;
 
-import {Address} from "@openzeppelin-contracts/utils/Address.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
 
 contract HubMessageDispatcher is WormholeDispatcher {

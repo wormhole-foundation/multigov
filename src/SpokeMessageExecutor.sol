@@ -3,7 +3,7 @@
 pragma solidity ^0.8.23;
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-import {Address} from "@openzeppelin-contracts/utils/Address.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {SpokeAirlock} from "src/SpokeAirlock.sol";
 
 contract SpokeMessageExecutor {

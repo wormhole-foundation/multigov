@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-import {IGovernor} from "@openzeppelin-contracts/governance/IGovernor.sol";
-import {ERC20Votes} from "@openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {
   QueryResponse,
@@ -48,11 +47,10 @@ contract HubVotePool is QueryResponse, Ownable {
 
   constructor(address _core, address _hubGovernor, SpokeVoteAggregator[] memory _initialSpokeRegistry)
     QueryResponse(_core)
-    Ownable()
+    Ownable(_hubGovernor)
   {
     WORMHOLE_CORE = IWormhole(_core);
     HUB_GOVERNOR = IGovernor(_hubGovernor);
-    transferOwnership(_hubGovernor);
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
       SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
       spokeRegistry[aggregator.wormholeChainId] = bytes32(uint256(uint160(aggregator.addr)));

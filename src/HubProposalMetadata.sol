@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {IGovernor} from "@openzeppelin-contracts/governance/IGovernor.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 contract HubProposalMetadata {
   IGovernor immutable GOVERNOR;
