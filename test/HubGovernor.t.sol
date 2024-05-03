@@ -44,7 +44,6 @@ contract HubGovernorTest is Test {
   // Create a proposal that can be voted on
   function _createProposal() public returns (ProposalBuilder, address) {
     address delegate = makeAddr("delegate");
-    console2.logUint(governor.proposalThreshold());
     token.mint(delegate, governor.proposalThreshold());
     vm.prank(delegate);
     token.delegate(delegate);
@@ -91,7 +90,7 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.trustedVotingAddresses(_hubVotePool), true);
   }
 
-  function testFuzz_ReverIf_VotingPeriodIsZero(
+  function testFuzz_RevertIf_VotingPeriodIsZero(
     string memory _name,
     address _token,
     address payable _timelock,
