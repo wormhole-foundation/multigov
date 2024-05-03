@@ -118,7 +118,6 @@ contract EnableTrustedVotingAddress is HubGovernorTest, ProposalTest {
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
     address delegate = makeAddr("delegate");
-    console2.logUint(governor.proposalThreshold());
     token.mint(delegate, governor.proposalThreshold());
     vm.prank(delegate);
     token.delegate(delegate);
