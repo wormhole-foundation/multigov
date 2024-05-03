@@ -11,7 +11,8 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 
 abstract contract DeployHubContractsBaseImpl is Script {
-  // This should not be used for a production deploy the correct address will be set as an environment variable.
+  // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
+  // should be set.
   uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
     uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
 
@@ -34,8 +35,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
 
     Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
-    Vm.Wallet memory defaultWallet = vm.createWallet(DEFAULT_DEPLOYER_PRIVATE_KEY);
-    if (defaultWallet.addr == wallet.addr) revert InvalidAddressConfiguration();
+    if (deployerPrivateKey == DEFAULT_DEPLOYER_PRIVATE_KEY) revert InvalidAddressConfiguration();
     return wallet;
   }
 

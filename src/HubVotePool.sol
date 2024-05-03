@@ -69,7 +69,6 @@ contract HubVotePool is QueryResponse, Ownable {
     hubGovernor = IGovernor(_newGovernor);
   }
 
-  // TODO we will need a Solana
   // TODO we will need a Solana method as well
   function crossChainEVMVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     // Validate the query response signatures

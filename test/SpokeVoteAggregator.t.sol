@@ -89,24 +89,22 @@ contract CastVote is SpokeVoteAggregatorTest {
   function testFuzz_CorrectlyCastVoteAgainst(
     uint128 _amount,
     uint256 _proposalId,
-    uint32 _voteStart,
-    uint16 _voteEnd,
+    uint48 _voteStart,
+    uint48 _voteEnd,
     address _caller
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
-    vm.assume(_voteEnd != 0);
+    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
 
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
-
-    _voteStart = uint32(bound(_voteStart, block.timestamp, type(uint32).max));
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, uint48(_voteStart) + _voteEnd);
+    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
 
     vm.startPrank(_caller);
-    vm.warp(uint48(_voteStart) + 1);
+    vm.warp(_voteStart + 1);
     spokeVoteAggregator.castVote(_proposalId, uint8(SpokeCountingFractional.VoteType.Against));
 
     (uint256 against,,) = spokeVoteAggregator.proposalVotes(_proposalId);
