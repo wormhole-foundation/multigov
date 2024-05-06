@@ -12,13 +12,6 @@ import {WormholeCoreMock} from "test/mocks/WormholeCoreMock.sol";
 import {TestConstants} from "test/TestConstants.sol";
 
 contract HubMessageDispatcherTest is Test, TestConstants {
-  // Setup dispatcher
-  // test dispatch
-  // 1. Test data is encoded properly
-  // 2. Test that the payload emits the appropriate event
-  // 3. Test the message payload is sent by wormhole core
-  // 4. Test the proposal id matches the id of the proposal
-
   HubMessageDispatcher dispatcher;
   WormholeCoreMock wormholeCoreMock;
   GovernorVoteFake governor;
@@ -74,9 +67,8 @@ contract Dispatch is HubMessageDispatcherTest {
     bytes memory payload = abi.encode(_wormholeChainId, _targets, _values, _calldatas, keccak256(bytes(_description)));
     bytes memory emittedPayload = abi.encode(proposalId, _wormholeChainId, _targets, _values, _calldatas);
 
-	vm.expectEmit();
-	emit HubMessageDispatcher.MessageDispatched(proposalId, emittedPayload);
+    vm.expectEmit();
+    emit HubMessageDispatcher.MessageDispatched(proposalId, emittedPayload);
     dispatcher.dispatch(payload);
   }
-
 }
