@@ -101,11 +101,10 @@ contract CastVote is SpokeVoteAggregatorTest {
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
-
     spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
 
     vm.startPrank(_caller);
-    vm.warp(uint48(_voteStart) + 1);
+    vm.warp(_voteStart + 1);
     spokeVoteAggregator.castVote(_proposalId, uint8(SpokeCountingFractional.VoteType.Against));
 
     (uint256 against,,) = spokeVoteAggregator.proposalVotes(_proposalId);
@@ -156,7 +155,6 @@ contract CastVote is SpokeVoteAggregatorTest {
     token.delegate(_caller);
 
     spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
-
     vm.startPrank(_caller);
     vm.warp(uint48(_voteStart) + 1);
     spokeVoteAggregator.castVote(_proposalId, uint8(SpokeCountingFractional.VoteType.Abstain));
@@ -247,7 +245,6 @@ contract IsVotingSafe is SpokeVoteAggregatorTest {
     _voteEnd = uint48(bound(_voteEnd, _voteStart + _safeWindow, type(uint48).max));
     spokeVoteAggregator.exposed_setSafeWindow(_safeWindow);
     spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
-
     vm.warp(_voteStart);
     bool isSafe = spokeVoteAggregator.isVotingSafe(_proposalId);
     assertEq(isSafe, true);
