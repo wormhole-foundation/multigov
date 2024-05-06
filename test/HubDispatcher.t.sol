@@ -5,6 +5,7 @@ import {Test, console2} from "forge-std/Test.sol";
 
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
+import {WormholeCoreMock} from "test/mocks/WormholeCoreMock.sol";
 import {TestConstants} from "test/TestConstants.sol";
 
 contract HubMessageDispatcherTest is Test, TestConstants {
@@ -15,9 +16,11 @@ contract HubMessageDispatcherTest is Test, TestConstants {
   // 3. Test the message payload is sent by wormhole core
   // 4. Test the proposal id matches the id of the proposal
 
+  HubMessageDispatcher dispatcher;
   function setUp() public {
+    WormholeCoreMock _wormholeCore = WormholeCoreMock();
     TimelockControllerFake _timelock = TimelockControllerFake(payable(address(this)));
-    new HubMessageDispatcher(address(_timelock), WORMHOLE_MAINNET_CORE_RELAYER, 0);
+    new HubMessageDispatcher(address(_timelock), address(_wormholeCore), 0);
   }
 }
 
@@ -37,6 +40,6 @@ contract Constructor is HubMessageDispatcherTest {
 
 // contract Dispatch is HubMessageDispatcher {
 // 		function testFuzz_CorrectlyEncodeProposalPayload() public {
-// 				//
+// 				dispatcher.dispatch();
 // 		}
 // }
