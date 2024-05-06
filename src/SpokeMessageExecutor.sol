@@ -35,7 +35,7 @@ contract SpokeMessageExecutor {
   }
 
   // TODO: Double opt in necessary? (propose/accept)
-  function setAirlock(address _newAirlock) external {
+  function setAirlock(address payable _newAirlock) external {
     _onlyAirlock();
     airlock = SpokeAirlock(_newAirlock);
   }
