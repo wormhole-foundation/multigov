@@ -4,7 +4,10 @@ pragma solidity ^0.8.23;
 import {Test, console2} from "forge-std/Test.sol";
 
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
+import {GovernorVoteFake} from "test/fakes/GovernorVoteFake.sol";
+import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
+import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 import {WormholeCoreMock} from "test/mocks/WormholeCoreMock.sol";
 import {TestConstants} from "test/TestConstants.sol";
 
@@ -17,10 +20,15 @@ contract HubMessageDispatcherTest is Test, TestConstants {
   // 4. Test the proposal id matches the id of the proposal
 
   HubMessageDispatcher dispatcher;
+  WormholeCoreMock wormholeCoreMock;
+  GovernorVoteFake governor;
+
   function setUp() public {
-    WormholeCoreMock _wormholeCore = new WormholeCoreMock();
-    TimelockControllerFake _timelock = TimelockControllerFake(payable(address(this)));
-    new HubMessageDispatcher(address(_timelock), address(_wormholeCore), 0);
+    wormholeCoreMock = new WormholeCoreMock();
+    ERC20VotesFake token = new ERC20VotesFake();
+    TimelockControllerFake timelock = TimelockControllerFake(payable(address(this)));
+    governor = new GovernorVoteFake("Example", token, timelock);
+    dispatcher = new HubMessageDispatcher(address(timelock), address(wormholeCoreMock), 0);
   }
 }
 
@@ -38,8 +46,37 @@ contract Constructor is HubMessageDispatcherTest {
   }
 }
 
-// contract Dispatch is HubMessageDispatcher {
-// 		function testFuzz_CorrectlyEncodeProposalPayload() public {
-// 				dispatcher.dispatch();
-// 		}
-// }
+contract Dispatch is HubMessageDispatcherTest {
+  function testFuzz_CorrectlyEncodeProposalPayload(
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
+    string memory _description,
+    uint16 _wormholeChainId
+  ) public {
+    uint256 proposalId = governor.hashProposal(_targets, _values, _calldatas, keccak256(bytes(_description)));
+    bytes memory payload = abi.encode(_wormholeChainId, _targets, _values, _calldatas, keccak256(bytes(_description)));
+    dispatcher.dispatch(payload);
+    assertEq(
+      wormholeCoreMock.ghostPublishMessagePayload(),
+      abi.encode(proposalId, _wormholeChainId, _targets, _values, _calldatas)
+    );
+  }
+
+  function testFuzz_DispatchingProposalEmitsAMessageDispatchedEvent(
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
+    string memory _description,
+    uint16 _wormholeChainId
+  ) public {
+    uint256 proposalId = governor.hashProposal(_targets, _values, _calldatas, keccak256(bytes(_description)));
+    bytes memory payload = abi.encode(_wormholeChainId, _targets, _values, _calldatas, keccak256(bytes(_description)));
+    bytes memory emittedPayload = abi.encode(proposalId, _wormholeChainId, _targets, _values, _calldatas);
+
+	vm.expectEmit();
+	emit HubMessageDispatcher.MessageDispatched(proposalId, emittedPayload);
+    dispatcher.dispatch(payload);
+  }
+
+}

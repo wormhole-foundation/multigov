@@ -6,9 +6,10 @@ contract WormholeCoreMock {
   bytes public ghostPublishMessagePayload;
   uint8 public ghostPublishMessageConsistencyLevel;
 
-  function publishMessage(uint32 _nonce, bytes memory _payload, uint8 _consistencyLevel) public {
+  function publishMessage(uint32 _nonce, bytes memory _payload, uint8 _consistencyLevel) public returns (uint256) {
     ghostPublishMessageNonce = _nonce;
     ghostPublishMessagePayload = _payload;
     ghostPublishMessageConsistencyLevel = _consistencyLevel;
+    return 1;
   }
 }

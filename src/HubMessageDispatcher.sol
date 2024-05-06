@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
 
 contract HubMessageDispatcher is WormholeDispatcher {
-  event MessageDispatched(bytes payload);
+  event MessageDispatched(uint256 indexed proposalId, bytes payload);
 
   constructor(address _timelock, address _core, uint8 _dispatchConsistencyLevel)
     WormholeDispatcher(_timelock, _core, _dispatchConsistencyLevel)
@@ -24,6 +24,6 @@ contract HubMessageDispatcher is WormholeDispatcher {
 
     bytes memory payload = abi.encode(proposalId, wormholeChainId, targets, values, calldatas);
     _publishMessage(payload);
-    emit MessageDispatched(payload);
+    emit MessageDispatched(proposalId, payload);
   }
 }
