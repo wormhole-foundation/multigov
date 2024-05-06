@@ -18,7 +18,7 @@ contract HubMessageDispatcherTest is Test, TestConstants {
 
   HubMessageDispatcher dispatcher;
   function setUp() public {
-    WormholeCoreMock _wormholeCore = WormholeCoreMock();
+    WormholeCoreMock _wormholeCore = new WormholeCoreMock();
     TimelockControllerFake _timelock = TimelockControllerFake(payable(address(this)));
     new HubMessageDispatcher(address(_timelock), address(_wormholeCore), 0);
   }
