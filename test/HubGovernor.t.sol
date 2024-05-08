@@ -251,4 +251,61 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     assertEq(forVotes, _forVotes);
     assertEq(abstainVotes, _abstainVotes);
   }
+
+  function testFuzz_NonWhitelistedAddressCanVote(
+    uint8 _support,
+    uint32 _forVotes,
+    uint32 _againstVotes,
+    uint32 _abstainVotes,
+    address _nonWhitelistedAddress
+
+  ) public {
+uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
+vm.assume(_totalWeight != 0);
+
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(makeAddr('bob'), 1, bytes(''));
+
+// make sure we are non-whitelisted address
+    _setGovernor(governor);
+vm.assume(_nonWhitelistedAddress != address(hubVotePool));
+_support = uint8(bound(_support, 0, 2));
+
+// mint some tokens to the non-whitelisted address
+// assume it's not the zero address
+vm.assume(_nonWhitelistedAddress != address(0));
+token.mint(_nonWhitelistedAddress, governor.proposalThreshold());
+// delegate the tokens to the non whitelisted address
+vm.prank(_nonWhitelistedAddress);
+token.delegate(_nonWhitelistedAddress);
+
+// make sure to delegate and propose in diff blocks
+vm.warp(block.timestamp + 1);
+
+
+
+// submit the proposal to the governor
+vm.startPrank(_nonWhitelistedAddress);
+
+uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "niceeeee");
+vm.stopPrank();
+// proposal is pending, so need to make sure it is active
+// make sure the proposal is active: ie fast forward in time to the vote start time
+_jumpToActiveProposal(_proposalId);
+
+
+bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
+// cast the vote
+governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, _support, _totalWeight, _voteData);
+
+// check that the vote data we casted is correct by calling governor `proposalVotes` func
+(uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
+
+assertEq(againstVotes, _againstVotes);
+assertEq(forVotes, _forVotes);
+assertEq(abstainVotes, _abstainVotes);
+
+  }
 }
+
+
