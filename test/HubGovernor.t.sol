@@ -261,29 +261,15 @@ contract _CountVote is HubGovernorTest, ProposalTest {
   ) public {
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
     vm.assume(_totalWeight != 0);
-
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(makeAddr("bob"), 1, bytes(""));
-
-    // make sure we are non-whitelisted address
-    _setGovernor(governor);
     vm.assume(_nonWhitelistedAddress != address(hubVotePool));
     _support = uint8(bound(_support, 0, 2));
+    
+    _setGovernor(governor);
 
-    // mint some tokens to the non-whitelisted address
-    // assume it's not the zero address
-    vm.assume(_nonWhitelistedAddress != address(0));
-    token.mint(_nonWhitelistedAddress, governor.proposalThreshold());
-    // delegate the tokens to the non whitelisted address
-    vm.prank(_nonWhitelistedAddress);
-    token.delegate(_nonWhitelistedAddress);
-
-    // make sure to delegate and propose in diff blocks
-    vm.warp(block.timestamp + 1);
+    (ProposalBuilder builder, address delegate) = _createProposal();
 
     // submit the proposal to the governor
-    vm.startPrank(_nonWhitelistedAddress);
-
+    vm.startPrank(delegate);
     uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "niceeeee");
     vm.stopPrank();
     // proposal is pending, so need to make sure it is active
@@ -308,19 +294,9 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     vm.assume(_nonWhitelistedAddress != address(0));
     _setGovernor(governor);
 
-    token.mint(_nonWhitelistedAddress, governor.proposalThreshold());
-    // delegate the tokens to the non whitelisted address
-    vm.prank(_nonWhitelistedAddress);
-    token.delegate(_nonWhitelistedAddress);
+    (ProposalBuilder builder, address delegate) = _createProposal();
 
-    vm.warp(block.timestamp + 1);
-
-    // build up the proposal
-    ProposalBuilder builder = new ProposalBuilder();
-
-    builder.push(makeAddr("bob"), 1, bytes(""));
-
-    vm.startPrank(_nonWhitelistedAddress);
+    vm.startPrank(delegate);
     uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "niceeeee");
     vm.stopPrank();
 
