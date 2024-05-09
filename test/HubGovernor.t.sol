@@ -41,12 +41,17 @@ contract HubGovernorTest is Test {
     hubVotePool.transferOwnership(address(governor));
   }
 
-  // Create a proposal that can be voted on
-  function _createProposal() public returns (ProposalBuilder, address) {
+  function _mintAndDelegate() public returns (address) {
     address delegate = makeAddr("delegate");
     token.mint(delegate, governor.proposalThreshold());
     vm.prank(delegate);
     token.delegate(delegate);
+    return delegate;
+  }
+
+  // Create a proposal that can be voted on
+  function _createProposal() public returns (ProposalBuilder, address) {
+    address delegate = _mintAndDelegate();
 
     vm.warp(block.timestamp + 7 days);
     address[] memory delegates = new address[](1);
@@ -114,20 +119,27 @@ contract Constructor is HubGovernorTest {
 }
 
 contract EnableTrustedVotingAddress is HubGovernorTest, ProposalTest {
+  function _createProposal(address _trustedAddress) public returns (ProposalBuilder, address) {
+    address delegate = _mintAndDelegate();
+
+    vm.warp(block.timestamp + 7 days);
+    address[] memory delegates = new address[](1);
+    delegates[0] = delegate;
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("enableTrustedVotingAddress(address)", _trustedAddress));
+    return (builder, delegate);
+  }
+
   function testFuzz_SetANewTrustedVoteAddress(address _trustedAddress) public {
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
-    address delegate = makeAddr("delegate");
-    token.mint(delegate, governor.proposalThreshold());
-    vm.prank(delegate);
-    token.delegate(delegate);
+    (ProposalBuilder builder, address delegate) = _createProposal(_trustedAddress);
 
     vm.warp(block.timestamp + 7 days);
     address[] memory delegates = new address[](1);
     delegates[0] = delegate;
     _setGovernor(governor);
     _setDelegates(delegates);
-    ProposalBuilder builder = new ProposalBuilder();
     builder.push(address(governor), 0, abi.encodeWithSignature("enableTrustedVotingAddress(address)", _trustedAddress));
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi", 1);
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
@@ -141,6 +153,26 @@ contract EnableTrustedVotingAddress is HubGovernorTest, ProposalTest {
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
     governor.enableTrustedVotingAddress(_trustedAddress);
+  }
+
+  function testFuzz_SetMultipleTrustedVoteAddresses(address _firstTrustedAddress, address _secondTrustedAddress) public {
+    vm.assume(_firstTrustedAddress != address(0) && _secondTrustedAddress != address(0));
+    vm.assume(_firstTrustedAddress != address(timelock) && _secondTrustedAddress != address(timelock));
+    (ProposalBuilder firstBuilder, address delegate) = _createProposal(_firstTrustedAddress);
+    (ProposalBuilder secondBuilder,) = _createProposal(_secondTrustedAddress);
+
+    vm.warp(block.timestamp + 7 days);
+    address[] memory delegates = new address[](1);
+    delegates[0] = delegate;
+    _setGovernor(governor);
+    _setDelegates(delegates);
+    _queueAndVoteAndExecuteProposal(firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), "Hi", 1);
+    _queueAndVoteAndExecuteProposal(
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Hi 2", 1
+    );
+
+    assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), true);
+    assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), true);
   }
 }
 
