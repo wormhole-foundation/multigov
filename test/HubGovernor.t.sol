@@ -255,7 +255,8 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     uint32 _againstVotes,
     uint32 _abstainVotes
   ) public {
-    vm.assume(uint128(_againstVotes) + _forVotes + _abstainVotes != 0);
+    uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
+    vm.assume(_totalWeight != 0);
     _support = uint8(bound(_support, 0, 2));
 
     (ProposalBuilder builder, address delegate) = _createProposal();
@@ -271,9 +272,7 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     _jumpToActiveProposal(_proposalId);
 
     bytes memory voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    governor.exposed_countVote(
-      _proposalId, address(hubVotePool), _support, uint256(_forVotes) + _againstVotes + _abstainVotes, voteData
-    );
+    governor.exposed_countVote(_proposalId, address(hubVotePool), _support, _totalWeight, voteData);
 
     uint256 votingWeight = token.getVotes(address(hubVotePool));
 
@@ -285,34 +284,29 @@ contract _CountVote is HubGovernorTest, ProposalTest {
   }
 
   function testFuzz_NonWhitelistedAddressCanVote(
+    address _nonWhitelistedAddress,
     uint8 _support,
     uint32 _forVotes,
     uint32 _againstVotes,
-    uint32 _abstainVotes,
-    address _nonWhitelistedAddress
+    uint32 _abstainVotes
   ) public {
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
     vm.assume(_totalWeight != 0);
     vm.assume(_nonWhitelistedAddress != address(hubVotePool));
     _support = uint8(bound(_support, 0, 2));
 
+    (ProposalBuilder builder, address delegate) = _createProposal();
     _setGovernor(governor);
 
-    (ProposalBuilder builder, address delegate) = _createProposal();
-
-    // submit the proposal to the governor
     vm.startPrank(delegate);
-    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "niceeeee");
+    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
     vm.stopPrank();
-    // proposal is pending, so need to make sure it is active
-    // make sure the proposal is active: ie fast forward in time to the vote start time
+
     _jumpToActiveProposal(_proposalId);
 
     bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    // cast the vote
     governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, _support, _totalWeight, _voteData);
 
-    // check that the vote data we casted is correct by calling governor `proposalVotes` func
     (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
 
     assertEq(againstVotes, _againstVotes);
@@ -320,25 +314,26 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     assertEq(abstainVotes, _abstainVotes);
   }
 
-  function test_RevertIf_NonWhitelistedAddressTotalWeightIsZero(uint8 support, address _nonWhitelistedAddress) public {
-    // make sure we are non whitelisted address
-    // mint some tokens to the non whitelisted address
+  function test_RevertIf_NonWhitelistedAddressTotalWeightIsZero(
+    address _nonWhitelistedAddress,
+    uint8 support,
+    uint32 _forVotes,
+    uint32 _againstVotes,
+    uint32 _abstainVotes
+  ) public {
     vm.assume(_nonWhitelistedAddress != address(0));
     _setGovernor(governor);
-
     (ProposalBuilder builder, address delegate) = _createProposal();
 
     vm.startPrank(delegate);
-    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "niceeeee");
+    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
     vm.stopPrank();
 
-    // jump to active proposal state
     _jumpToActiveProposal(_proposalId);
 
-    // cast the vote with total weight of 0 and expect the revert
-    bytes memory voteData = abi.encodePacked(uint128(0), uint128(0), uint128(0));
+    bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
     vm.expectRevert("GovernorCountingFractional: no weight");
-    governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, support, 0, voteData);
+    governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, support, 0, _voteData);
   }
 
   function testFuzz_RevertIf_NonWhitelistedAddressHasAlreadyVotedWithItsWeight(
@@ -358,28 +353,26 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     _secondCallTotalWeight = bound(_secondCallTotalWeight, 1, _totalWeight);
     bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
 
-    _setGovernor(governor);
-
     token.mint(_nonWhitelistedAddress, _totalWeight);
     vm.prank(_nonWhitelistedAddress);
     token.delegate(_nonWhitelistedAddress);
 
+    _setGovernor(governor);
     (ProposalBuilder builder, address delegate) = _createProposal();
 
     vm.startPrank(delegate);
-    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "niceeeee");
+    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
     vm.stopPrank();
 
     _jumpToActiveProposal(_proposalId);
 
-    vm.startPrank(_nonWhitelistedAddress);
     governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, _support, _totalWeight, _voteData);
 
-    // cast another vote where total weight does not change from the previous vote
+    // Cast another vote where the second call to _countVote uses a total weight that is less than or equal to the total
+    // weight from the first call to _countVote
     vm.expectRevert("GovernorCountingFractional: all weight cast");
     governor.exposed_countVote(
       _proposalId, _nonWhitelistedAddress, _support, _secondCallTotalWeight, _secondCallVoteData
     );
-    vm.stopPrank();
   }
 }
