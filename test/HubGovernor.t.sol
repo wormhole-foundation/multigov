@@ -309,18 +309,28 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, support, 0, voteData);
   }
 
-  function testFuzz_RevertIf_NonWhitelistedAddressHasAlreadyVotedWithItsWeight(address _nonWhitelistedAddress, bytes memory _voteData, uint256 _totalWeight, uint256 _additionalVote, uint8 _support, address _caller) public {
+  function testFuzz_RevertIf_NonWhitelistedAddressHasAlreadyVotedWithItsWeight(
+    address _nonWhitelistedAddress,
+    uint8 _support,
+    uint32 _forVotes,
+    uint32 _againstVotes,
+    uint32 _abstainVotes,
+    bytes memory _secondCallVoteData,
+    uint256 _secondCallTotalWeight
+  ) public {
     vm.assume(_nonWhitelistedAddress != address(0));
-    vm.assume(_caller != address(0));
     vm.assume(_nonWhitelistedAddress != address(hubVotePool));
-    vm.assume(_totalWeight != 0);
-    vm.assume(_additionalVote != 0);
     _support = uint8(bound(_support, 0, 2));
 
+    uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
+    _secondCallTotalWeight = bound(_secondCallTotalWeight, 1, _totalWeight);
+    bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
+
     _setGovernor(governor);
-    token.mint(_caller, _totalWeight);
-    vm.prank(_caller);
-    token.delegate(_caller);
+
+    token.mint(_nonWhitelistedAddress, _totalWeight);
+    vm.prank(_nonWhitelistedAddress);
+    token.delegate(_nonWhitelistedAddress);
 
     (ProposalBuilder builder, address delegate) = _createProposal();
 
@@ -328,14 +338,16 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "niceeeee");
     vm.stopPrank();
 
-    // jump to active proposal state
     _jumpToActiveProposal(_proposalId);
-    vm.prank(_caller);
-    governor.exposed_countVote(_proposalId, _caller, _support, _totalWeight, _voteData);
 
-    vm.startPrank(_caller);
+    vm.startPrank(_nonWhitelistedAddress);
+    governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, _support, _totalWeight, _voteData);
+
+    // cast another vote where total weight does not change from the previous vote
     vm.expectRevert("GovernorCountingFractional: all weight cast");
-    governor.exposed_countVote(_proposalId, _caller, _support, _additionalVote, _voteData);
+    governor.exposed_countVote(
+      _proposalId, _nonWhitelistedAddress, _support, _secondCallTotalWeight, _secondCallVoteData
+    );
     vm.stopPrank();
   }
 }
