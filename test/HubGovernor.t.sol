@@ -423,6 +423,7 @@ contract _CountVote is HubGovernorTest {
     _support = uint8(bound(_support, 0, 2));
 
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
+    vm.assume(_totalWeight != 0);
     _secondCallTotalWeight = bound(_secondCallTotalWeight, 1, _totalWeight);
     bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
 
