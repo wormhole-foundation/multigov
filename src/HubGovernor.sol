@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {Test, console2} from "forge-std/Test.sol";
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
@@ -12,6 +14,8 @@ import {GovernorCountingFractional} from "flexible-voting/GovernorCountingFracti
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
 contract HubGovernor is
   GovernorCountingFractional,
@@ -24,7 +28,7 @@ contract HubGovernor is
 
   constructor(
     string memory _name,
-    IVotes _token,
+    IVotes _token, // May make sense to change to erc20 votes
     TimelockController _timelock,
     uint48 _initialVotingDelay,
     uint32 _initialVotingPeriod,
@@ -130,5 +134,47 @@ contract HubGovernor is
 
     if (voteData.length == 0) _countVoteNominal(proposalId, account, safeTotalWeight, support);
     else _countVoteFractional(proposalId, account, safeTotalWeight, voteData);
+  }
+
+  // Override _getVotes
+  // 1. Get the start position using a similar binary search
+  // 2. Then iterate through until we are past the end time and take the min
+
+  /// Reimplement binary search and also fetch position, do the same for the endpoint then iterate through each position
+  /// Lets do one lookup, then we get the first position then we interate until we hit the second position.
+  function getMinVotesInWindow(uint256 _windowStart, address _account) public returns (uint256) {
+    uint256 windowEnd = _windowStart + 9;
+    uint256 numCheckpoints = ERC20Votes(address(token())).numCheckpoints(_account);
+    uint256 startPos = _upperBinaryLookupPosition(_account, uint32(_windowStart), 0, numCheckpoints);
+    if (startPos == 0) return 0;
+    uint208 votes = type(uint208).max;
+    for (uint256 i = startPos - 1; i < numCheckpoints; i++) {
+      Checkpoints.Checkpoint208 memory nextCheckpoint = ERC20Votes(address(token())).checkpoints(_account, uint32(i));
+      uint48 key = nextCheckpoint._key;
+      if (key > windowEnd) break;
+      uint208 amount = nextCheckpoint._value;
+      if (amount < votes) votes = amount;
+    }
+    return votes;
+  }
+
+  function _upperBinaryLookupPosition(address _account, uint32 key, uint256 low, uint256 len)
+    internal
+    view
+    returns (uint256)
+  {
+    uint256 high = len;
+
+    if (len > 5) {
+      uint256 mid = len - Math.sqrt(len);
+      if (key < ERC20Votes(address(token())).checkpoints(_account, uint32(mid))._key) high = mid;
+      else low = mid + 1;
+    }
+    while (low < high) {
+      uint256 mid = Math.average(low, high);
+      if (ERC20Votes(address(token())).checkpoints(_account, uint32(mid))._key > key) high = mid;
+      else low = mid + 1;
+    }
+    return high;
   }
 }

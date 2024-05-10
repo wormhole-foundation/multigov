@@ -252,3 +252,38 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     assertEq(abstainVotes, _abstainVotes);
   }
 }
+
+contract GetMinVotesInWindow is HubGovernorTest {
+  address attacker = makeAddr("Attacker");
+
+  function _createCheckpointArray() public {
+    vm.prank(attacker);
+    token.delegate(attacker);
+    vm.warp(1);
+    for (uint256 i = 0; i < 1000; i++) {
+      vm.warp(block.timestamp + 1);
+      token.mint(attacker, uint256(100));
+    }
+  }
+
+  function testFuzz_GetMinVotesInWindowX(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+}
