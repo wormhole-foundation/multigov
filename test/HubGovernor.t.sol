@@ -174,6 +174,37 @@ contract EnableTrustedVotingAddress is HubGovernorTest, ProposalTest {
     assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), true);
     assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), true);
   }
+
+  function testFuzz_EnableThenDisableTrustedAddress(address _trustedAddress) public {
+    // 1. Enable the trusted address
+    // 2. Disable the trusted address
+    // 3. Enable the trusted address
+
+    vm.assume(_trustedAddress != address(0));
+    vm.assume(_trustedAddress != address(timelock));
+
+    (ProposalBuilder firstBuilder, address delegate) = _createProposal(_trustedAddress);
+
+    address[] memory delegates = new address[](1);
+    delegates[0] = delegate;
+    _setGovernor(governor);
+    _setDelegates(delegates);
+
+    _queueAndVoteAndExecuteProposal(firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), "Hi", 1);
+
+    (ProposalBuilder secondBuilder,) = _createProposal(_trustedAddress);
+    _queueAndVoteAndExecuteProposal(
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Hi 2", 1
+    );
+
+    ProposalBuilder thirdBuilder = new ProposalBuilder();
+    thirdBuilder.push(
+      address(governor), 0, abi.encodeWithSignature("disableTrustedVotingAddress(address)", _trustedAddress)
+    );
+    _queueAndVoteAndExecuteProposal(thirdBuilder.targets(), thirdBuilder.values(), thirdBuilder.calldatas(), "Hi 3", 1);
+
+    assertEq(governor.trustedVotingAddresses(_trustedAddress), false);
+  }
 }
 
 contract DisableTrustedVotingAddress is HubGovernorTest, ProposalTest {
