@@ -210,6 +210,39 @@ contract DisableTrustedVotingAddress is HubGovernorTest, ProposalTest {
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
     governor.disableTrustedVotingAddress(_trustedAddress);
   }
+
+  function testFuzz_DisableMultipleAddresses(address _firstTrustedAddress, address _secondTrustedAddress) public {
+    vm.assume(_firstTrustedAddress != address(0) && _secondTrustedAddress != address(0));
+
+    governor.exposed_enableTrustedAddress(_firstTrustedAddress);
+    governor.exposed_enableTrustedAddress(_secondTrustedAddress);
+    assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), true);
+    assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), true);
+
+    address delegate = _mintAndDelegate();
+
+    vm.warp(block.timestamp + 7 days);
+    address[] memory delegates = new address[](1);
+    delegates[0] = delegate;
+
+    _setGovernor(governor);
+    _setDelegates(delegates);
+
+    ProposalBuilder firstBuilder = new ProposalBuilder();
+    firstBuilder.push(
+      address(governor), 0, abi.encodeWithSignature("disableTrustedVotingAddress(address)", _firstTrustedAddress)
+    );
+    _queueAndVoteAndExecuteProposal(firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), "Hi", 1);
+
+    ProposalBuilder secondBuilder = new ProposalBuilder();
+    secondBuilder.push(
+      address(governor), 0, abi.encodeWithSignature("disableTrustedVotingAddress(address)", _secondTrustedAddress)
+    );
+    _queueAndVoteAndExecuteProposal(secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Hi", 1);
+
+    assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), false);
+    assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), false);
+  }
 }
 
 contract Quorum is HubGovernorTest {
