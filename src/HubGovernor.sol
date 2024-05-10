@@ -143,7 +143,7 @@ contract HubGovernor is
   /// Reimplement binary search and also fetch position, do the same for the endpoint then iterate through each position
   /// Lets do one lookup, then we get the first position then we interate until we hit the second position.
   function getMinVotesInWindow(uint256 _windowStart, address _account) public returns (uint256) {
-    uint256 windowEnd = _windowStart + 9;
+    uint256 windowEnd = _windowStart + 10;
     uint256 numCheckpoints = ERC20Votes(address(token())).numCheckpoints(_account);
     uint256 startPos = _upperBinaryLookupPosition(_account, uint32(_windowStart), 0, numCheckpoints);
     if (startPos == 0) return 0;
