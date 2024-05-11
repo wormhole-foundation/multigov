@@ -62,16 +62,19 @@ contract HubGovernorTest is Test, ProposalTest {
     return (governor, delegates);
   }
 
-  // Create a proposal that can be voted on
-  function _createProposal() public returns (ProposalBuilder, address) {
-    address delegate = _mintAndDelegate();
-
+  // Creates a proposal using the currently set governor (HubGovernorHarness) as the target
+  // Use the builder to then create a proposal
+  function _createProposal(bytes memory _callData) public returns (ProposalBuilder) {
+    // Warp to ensure we don't overlap with any minting and delegation
     vm.warp(block.timestamp + 7 days);
-    address[] memory delegates = new address[](1);
-    delegates[0] = delegate;
     ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setQuorum(uint208)", 100));
-    return (builder, delegate);
+    builder.push(address(governor), 0, _callData);
+    return builder;
+  }
+
+  // Create a proposal with arbitrary data
+  function _createArbitraryProposal() public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", 100));
   }
 }
 
@@ -306,11 +309,14 @@ contract Quorum is HubGovernorTest {
 }
 
 contract SetQuorum is HubGovernorTest {
+  function _createSetQuromProposal(uint208 _quorum) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", _quorum));
+  }
+
   function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum) public {
     _setGovernorAndDelegates();
     vm.warp(block.timestamp + 7 days);
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setQuorum(uint208)", _quorum));
+    ProposalBuilder builder = _createSetQuromProposal(_quorum);
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi", 1);
     assertEq(governor.quorum(block.timestamp), _quorum);
   }
@@ -335,10 +341,10 @@ contract _CountVote is HubGovernorTest {
     vm.assume(_totalWeight != 0);
     _support = uint8(bound(_support, 0, 2));
 
-    (ProposalBuilder builder, address delegate) = _createProposal();
-    _setGovernorAndDelegates();
+    (, delegates) = _setGovernorAndDelegates();
+    (ProposalBuilder builder) = _createArbitraryProposal();
 
-    vm.startPrank(delegate);
+    vm.startPrank(delegates[0]);
     uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
     vm.stopPrank();
 
@@ -368,10 +374,10 @@ contract _CountVote is HubGovernorTest {
     vm.assume(_nonWhitelistedAddress != address(hubVotePool));
     _support = uint8(bound(_support, 0, 2));
 
-    (ProposalBuilder builder, address delegate) = _createProposal();
-    _setGovernor(governor);
+    (, delegates) = _setGovernorAndDelegates();
+    (ProposalBuilder builder) = _createArbitraryProposal();
 
-    vm.startPrank(delegate);
+    vm.startPrank(delegates[0]);
     uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
     vm.stopPrank();
 
@@ -395,10 +401,10 @@ contract _CountVote is HubGovernorTest {
     uint32 _abstainVotes
   ) public {
     vm.assume(_nonWhitelistedAddress != address(0));
-    _setGovernor(governor);
-    (ProposalBuilder builder, address delegate) = _createProposal();
+    (, delegates) = _setGovernorAndDelegates();
+    (ProposalBuilder builder) = _createArbitraryProposal();
 
-    vm.startPrank(delegate);
+    vm.startPrank(delegates[0]);
     uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
     vm.stopPrank();
 
@@ -427,14 +433,14 @@ contract _CountVote is HubGovernorTest {
     _secondCallTotalWeight = bound(_secondCallTotalWeight, 1, _totalWeight);
     bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
 
-    token.mint(_nonWhitelistedAddress, _totalWeight);
+    token.mint(_nonWhitelistedAddress, governor.proposalThreshold());
     vm.prank(_nonWhitelistedAddress);
     token.delegate(_nonWhitelistedAddress);
 
     _setGovernor(governor);
-    (ProposalBuilder builder, address delegate) = _createProposal();
+    (ProposalBuilder builder) = _createArbitraryProposal();
 
-    vm.startPrank(delegate);
+    vm.startPrank(_nonWhitelistedAddress);
     uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
     vm.stopPrank();
 
