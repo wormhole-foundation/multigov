@@ -309,14 +309,14 @@ contract Quorum is HubGovernorTest {
 }
 
 contract SetQuorum is HubGovernorTest {
-  function _createSetQuromProposal(uint208 _quorum) public returns (ProposalBuilder) {
+  function _createSetQuorumProposal(uint208 _quorum) public returns (ProposalBuilder) {
     return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", _quorum));
   }
 
   function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum) public {
     _setGovernorAndDelegates();
     vm.warp(block.timestamp + 7 days);
-    ProposalBuilder builder = _createSetQuromProposal(_quorum);
+    ProposalBuilder builder = _createSetQuorumProposal(_quorum);
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi", 1);
     assertEq(governor.quorum(block.timestamp), _quorum);
   }
@@ -327,6 +327,26 @@ contract SetQuorum is HubGovernorTest {
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
     governor.setQuorum(_quorum);
+  }
+
+  function testFuzz_SetMultipleQuorumValues(uint208 _firstQuorum, uint208 _secondQuorum) public {
+    // Bound the quorum values to ensure they are within the applicable range
+    _firstQuorum = uint208(bound(_firstQuorum, 1, 100e18));
+    _secondQuorum = uint208(bound(_secondQuorum, 1, 100e18));
+
+    _setGovernorAndDelegates();
+
+    ProposalBuilder firstBuilder = _createSetQuorumProposal(_firstQuorum);
+    _queueAndVoteAndExecuteProposal(
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), "Setting first quorum value", 1
+    );
+    assertEq(governor.quorum(block.timestamp), _firstQuorum);
+
+    ProposalBuilder secondBuilder = _createSetQuorumProposal(_secondQuorum);
+    _queueAndVoteAndExecuteProposal(
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Setting second quorum value", 1
+    );
+    assertEq(governor.quorum(block.timestamp), _secondQuorum);
   }
 }
 
