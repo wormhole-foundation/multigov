@@ -16,6 +16,8 @@ import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 
 contract HubGovernorTest is Test, ProposalTest {
+  event QuorumUpdated(uint256 oldQuorum, uint256 newQuorum);
+
   HubGovernorHarness public governor;
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
@@ -347,6 +349,34 @@ contract SetQuorum is HubGovernorTest {
       secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Setting second quorum value", 1
     );
     assertEq(governor.quorum(block.timestamp), _secondQuorum);
+  }
+
+  function testFuzz_EmitsQuorumUpdatedEvent(uint208 _quorum) public {
+    vm.assume(_quorum != 0);
+
+    _setGovernorAndDelegates();
+
+    ProposalBuilder builder = _createSetQuorumProposal(_quorum);
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    string memory description = "Setting quorum";
+
+    vm.prank(delegates[0]);
+    uint256 _proposalId = governor.propose(targets, values, calldatas, description);
+
+    _jumpToActiveProposal(_proposalId);
+
+    _delegatesVote(_proposalId, 1);
+    _jumpPastVoteComplete(_proposalId);
+
+    governor.queue(targets, values, calldatas, keccak256(bytes(description)));
+
+    _jumpPastProposalEta(_proposalId);
+
+    vm.expectEmit();
+    emit QuorumUpdated(governor.quorum(block.timestamp), _quorum);
+    governor.execute(targets, values, calldatas, keccak256(bytes(description)));
   }
 }
 
