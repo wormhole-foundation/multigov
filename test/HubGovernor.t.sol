@@ -449,6 +449,8 @@ contract _CountVote is HubGovernorTest {
     uint32 _againstVotes,
     uint32 _abstainVotes
   ) public {
+    uint256 ZERO_TOTAL_WEIGHT = 0;
+
     vm.assume(_nonWhitelistedAddress != address(0));
     (, delegates) = _setGovernorAndDelegates();
     ProposalBuilder builder = _createArbitraryProposal();
@@ -461,7 +463,7 @@ contract _CountVote is HubGovernorTest {
 
     bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
     vm.expectRevert("GovernorCountingFractional: no weight");
-    governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, support, 0, _voteData);
+    governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, support, ZERO_TOTAL_WEIGHT, _voteData);
   }
 
   function testFuzz_RevertIf_NonWhitelistedAddressHasAlreadyVotedWithItsWeight(
