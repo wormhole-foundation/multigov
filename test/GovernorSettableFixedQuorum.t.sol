@@ -37,9 +37,8 @@ contract SetQuorum is HubGovernorTest {
   }
 
   function testFuzz_SetMultipleQuorumValues(uint208 _firstQuorum, uint208 _secondQuorum) public {
-    // Bound the quorum values to ensure they are within the applicable range
-    _firstQuorum = uint208(bound(_firstQuorum, 1, 100e18));
-    _secondQuorum = uint208(bound(_secondQuorum, 1, 100e18));
+    // Quorum values must be uint128 because of the way _countVotes is implemented to handle overflow
+    vm.assume(_firstQuorum < type(uint128).max - 1 && _secondQuorum < type(uint128).max - 1);
 
     _setGovernorAndDelegates();
 
@@ -50,6 +49,9 @@ contract SetQuorum is HubGovernorTest {
     assertEq(governor.quorum(block.timestamp), _firstQuorum);
 
     ProposalBuilder secondBuilder = _createSetQuorumProposal(_secondQuorum);
+
+    // Mint and delegate to the first delegate an amount to pass the first quorum
+    _mintAndDelegate(_firstQuorum);
     _queueAndVoteAndExecuteProposal(
       secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Setting second quorum value", 1
     );
