@@ -51,7 +51,7 @@ contract SetQuorum is HubGovernorTest {
     ProposalBuilder secondBuilder = _createSetQuorumProposal(_secondQuorum);
 
     // Mint and delegate to the first delegate an amount to pass the first quorum
-    _mintAndDelegate(_firstQuorum);
+    _mintAndDelegate(delegates[0], _firstQuorum);
     _queueAndVoteAndExecuteProposal(
       secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Setting second quorum value", 1
     );

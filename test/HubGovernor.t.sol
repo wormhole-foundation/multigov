@@ -43,17 +43,17 @@ contract HubGovernorTest is Test, ProposalTest {
     hubVotePool.transferOwnership(address(governor));
   }
 
-  function _mintAndDelegate(uint256 _amount) public returns (address) {
-    address delegate = makeAddr("delegate");
-    token.mint(delegate, _amount);
-    vm.prank(delegate);
-    token.delegate(delegate);
-    return delegate;
+  function _mintAndDelegate(address user, uint256 _amount) public returns (address) {
+    token.mint(user, _amount);
+    vm.prank(user);
+    token.delegate(user);
+    return user;
   }
 
   function _setupDelegates() public returns (address[] memory) {
+    address delegate = makeAddr("delegate");
     address[] memory delegates = new address[](1);
-    delegates[0] = _mintAndDelegate(governor.proposalThreshold());
+    delegates[0] = _mintAndDelegate(delegate, governor.proposalThreshold());
     return delegates;
   }
 
@@ -345,7 +345,7 @@ contract SetQuorum is HubGovernorTest {
     ProposalBuilder secondBuilder = _createSetQuorumProposal(_secondQuorum);
 
     // Mint and delegate to the first delegate an amount to pass the first quorum
-    _mintAndDelegate(_firstQuorum);
+    _mintAndDelegate(delegates[0], _firstQuorum);
     _queueAndVoteAndExecuteProposal(
       secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Setting second quorum value", 1
     );
