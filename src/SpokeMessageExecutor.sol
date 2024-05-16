@@ -35,6 +35,7 @@ contract SpokeMessageExecutor {
   function initialize(address payable _airlock) external {
     if (initialized) revert AlreadyInitialized();
     airlock = SpokeAirlock(_airlock);
+    initialized = true;
   }
 
   function _onlyAirlock() internal view {

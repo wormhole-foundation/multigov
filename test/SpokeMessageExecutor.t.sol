@@ -20,9 +20,9 @@ contract SpokeMessageExecutorTest is Test {
   uint16 WORMHOLE_HUB_CHAIN = 2; // Mainnet
   uint16 WORMHOLE_SPOKE_CHAIN = 24; // Optimism
   address hubDispatcher = makeAddr("Hub dispatcher");
+  WormholeCoreMock wormholeCoreMock = new WormholeCoreMock();
 
   function setUp() public {
-    WormholeCoreMock wormholeCoreMock = new WormholeCoreMock();
     token = new ERC20VotesFake();
     executor = new SpokeMessageExecutor(
       bytes32(uint256(uint160(hubDispatcher))),
@@ -58,6 +58,47 @@ contract Constructor is SpokeMessageExecutorTest {
   }
 }
 
+contract Initialize is SpokeMessageExecutorTest {
+  function testFuzz_CorrectlyInitializeAirlock(address payable _initializeAirlock) public {
+    SpokeMessageExecutor spokeExecutor = new SpokeMessageExecutor(
+      bytes32(uint256(uint160(hubDispatcher))),
+      WORMHOLE_HUB_CHAIN,
+      IWormhole(address(wormholeCoreMock)),
+      WORMHOLE_SPOKE_CHAIN
+    );
+    spokeExecutor.initialize(_initializeAirlock);
+    assertEq(_initializeAirlock, payable(spokeExecutor.airlock()));
+  }
+
+  function testFuzz_RevertIf_CalledTwice(address payable _updatedAirlock) public {
+    SpokeMessageExecutor spokeExecutor = new SpokeMessageExecutor(
+      bytes32(uint256(uint160(hubDispatcher))),
+      WORMHOLE_HUB_CHAIN,
+      IWormhole(address(wormholeCoreMock)),
+      WORMHOLE_SPOKE_CHAIN
+    );
+    spokeExecutor.initialize(payable(airlock));
+
+    vm.expectRevert(SpokeMessageExecutor.AlreadyInitialized.selector);
+    spokeExecutor.initialize(_updatedAirlock);
+  }
+}
+
+contract SetAirlock is SpokeMessageExecutorTest {
+  function testFuzz_AirlockCanBeSetByTheAirlock(address payable _newAirlock) public {
+    vm.prank(address(airlock));
+    executor.setAirlock(_newAirlock);
+    assertEq(payable(executor.airlock()), _newAirlock);
+  }
+
+  function testFuzz_RevertIf_NotCalledByAirlock(address payable _newAirlock, address _caller) public {
+    vm.assume(_caller != address(airlock));
+    vm.prank(address(airlock));
+    executor.setAirlock(_newAirlock);
+    assertEq(payable(executor.airlock()), _newAirlock);
+  }
+}
+
 contract ReceiveMessage is SpokeMessageExecutorTest {
   function _buildVm(
     uint32 _timestamp,
@@ -67,7 +108,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     uint64 _sequence,
     uint8 _consistencyLevel,
     bytes memory _payload
-  ) pure public returns (bytes memory, bytes32) {
+  ) public pure returns (bytes memory, bytes32) {
     Structs.Signature[] memory sigs = new Structs.Signature[](1);
     sigs[0] = Structs.Signature("", "", 0, 0);
     bytes32 hash = keccak256(
@@ -233,8 +274,11 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
       _payload
     );
 
-    vm.expectRevert(abi.encodeWithSelector(SpokeMessageExecutor.InvalidWormholeMessage.selector, "Message is not meant for this chain."));
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        SpokeMessageExecutor.InvalidWormholeMessage.selector, "Message is not meant for this chain."
+      )
+    );
     executor.receiveMessage(vaa);
   }
-
 }

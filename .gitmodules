@@ -12,7 +12,8 @@
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
 [submodule "lib/wormhole-solidity-sdk"]
 	path = lib/wormhole-solidity-sdk
-	url = https://github.com/wormhole-foundation/wormhole-solidity-sdk
+	url = https://github.com/alexkeating/wormhole-solidity-sdk
+	branch = main
 [submodule "lib/flexible-voting"]
 	path = lib/flexible-voting
 	url = https://github.com/ScopeLift/flexible-voting
