@@ -12,9 +12,11 @@ contract SpokeMessageExecutor {
   uint16 public immutable HUB_CHAIN_ID;
   IWormhole public immutable WORMHOLE_CORE;
   uint16 public immutable SPOKE_CHAIN_ID;
+  bool initialized = false;
   SpokeAirlock public airlock;
 
   error AlreadyProcessedMessage();
+  error AlreadyInitialized();
   error InvalidCaller();
   error InvalidWormholeMessage(string);
   error UnknownMessageEmitter();
@@ -30,6 +32,11 @@ contract SpokeMessageExecutor {
     SPOKE_CHAIN_ID = _spokeChainId;
   }
 
+  function initialize(address payable _airlock) external {
+    if (initialized) revert AlreadyInitialized();
+    airlock = SpokeAirlock(_airlock);
+  }
+
   function _onlyAirlock() internal view {
     if (msg.sender != address(airlock)) revert InvalidCaller();
   }
@@ -41,7 +48,7 @@ contract SpokeMessageExecutor {
   }
 
   function _validateChainId(uint16 _messageChainId) internal view {
-    if (SPOKE_CHAIN_ID == _messageChainId) revert InvalidWormholeMessage("Message is not meant for this chain.");
+    if (SPOKE_CHAIN_ID != _messageChainId) revert InvalidWormholeMessage("Message is not meant for this chain.");
   }
 
   function receiveMessage(bytes memory _encodedMessage) external payable {
