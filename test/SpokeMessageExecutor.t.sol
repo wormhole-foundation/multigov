@@ -30,14 +30,14 @@ contract SpokeMessageExecutorTest is Test {
       IWormhole(address(wormholeCoreMock)),
       WORMHOLE_SPOKE_CHAIN
     );
-	airlock = new SpokeAirlock(address(executor));
-	executor.initialize(payable(airlock));
+    airlock = new SpokeAirlock(address(executor));
+    executor.initialize(payable(airlock));
   }
 
   // Create a proposal that can be voted on
-  function _createMintProposal(address _account) public returns (ProposalBuilder) {
+  function _createMintProposal(address _account, uint208 _amount) public returns (ProposalBuilder) {
     ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(token), 0, abi.encodeWithSignature("mint(address,uint208)", _account, 100));
+    builder.push(address(token), 0, abi.encodeWithSignature("mint(address,uint208)", _account, _amount));
     return builder;
   }
 }
@@ -67,7 +67,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     uint64 _sequence,
     uint8 _consistencyLevel,
     bytes memory _payload
-  ) public returns (bytes memory) {
+  ) pure public returns (bytes memory, bytes32) {
     Structs.Signature[] memory sigs = new Structs.Signature[](1);
     sigs[0] = Structs.Signature("", "", 0, 0);
     bytes32 hash = keccak256(
@@ -90,29 +90,23 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
       signatures: sigs,
       hash: hash
     });
-    return abi.encode(vm);
+    return (abi.encode(vm), hash);
   }
-  // 1. Test parsing and verifying
-  // 2. Test If message has already been processed
-  // 3. Test hub dispatcher is not the set hub dispatcher
-  // 4. Test the message came from a different chain
-  // 5. Test message is not meant for this chain
-  // 6. Test execute executes calldata, and message is processed
-  // 7. Test event is emitted
 
-  function testFuzz_basic(
+  function testFuzz_ReceiveMessageWithCorrectData(
     uint32 _timestamp,
     uint32 _nonce,
     uint64 _sequence,
     uint8 _consistencyLevel,
-    uint256 _proposalId
+    uint256 _proposalId,
+    uint208 _amount
   ) public {
     // build simple proposal
     address account = makeAddr("Token holder");
-    ProposalBuilder builder = _createMintProposal(account);
+    ProposalBuilder builder = _createMintProposal(account, _amount);
     bytes memory _payload =
       abi.encode(_proposalId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
-    bytes memory vaa = _buildVm(
+    (bytes memory vaa, bytes32 hash) = _buildVm(
       _timestamp,
       _nonce,
       WORMHOLE_HUB_CHAIN,
@@ -122,5 +116,125 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
       _payload
     );
     executor.receiveMessage(vaa);
+    bool messageReceived = executor.messageReceived(hash);
+    uint256 balance = token.balanceOf(account);
+    assertTrue(messageReceived);
+    assertEq(balance, _amount);
   }
+
+  function testFuzz_ReceiveMessageEmitsProposalExecutedEvent(
+    uint32 _timestamp,
+    uint32 _nonce,
+    uint64 _sequence,
+    uint8 _consistencyLevel,
+    uint256 _proposalId,
+    uint208 _amount
+  ) public {
+    // build simple proposal
+    address account = makeAddr("Token holder");
+    ProposalBuilder builder = _createMintProposal(account, _amount);
+    bytes memory _payload =
+      abi.encode(_proposalId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
+    (bytes memory vaa,) = _buildVm(
+      _timestamp,
+      _nonce,
+      WORMHOLE_HUB_CHAIN,
+      bytes32(uint256(uint160(hubDispatcher))),
+      _sequence,
+      _consistencyLevel,
+      _payload
+    );
+    vm.expectEmit();
+    emit SpokeMessageExecutor.ProposalExecuted(_proposalId);
+
+    executor.receiveMessage(vaa);
+  }
+
+  function testFuzz_RevertIf_EmitterIsNotTheHubDispatcher(
+    uint32 _timestamp,
+    uint32 _nonce,
+    uint64 _sequence,
+    uint8 _consistencyLevel,
+    uint256 _proposalId,
+    uint208 _amount,
+    address _dispatcher
+  ) public {
+    vm.assume(_dispatcher != hubDispatcher);
+    // build simple proposal
+    address account = makeAddr("Token holder");
+    ProposalBuilder builder = _createMintProposal(account, _amount);
+    bytes memory _payload =
+      abi.encode(_proposalId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
+    (bytes memory vaa,) = _buildVm(
+      _timestamp,
+      _nonce,
+      WORMHOLE_HUB_CHAIN,
+      bytes32(uint256(uint160(_dispatcher))),
+      _sequence,
+      _consistencyLevel,
+      _payload
+    );
+
+    vm.expectRevert(SpokeMessageExecutor.UnknownMessageEmitter.selector);
+    executor.receiveMessage(vaa);
+  }
+
+  function testFuzz_RevertIf_EmitterIsNotTheHubDispatcherChain(
+    uint32 _timestamp,
+    uint32 _nonce,
+    uint64 _sequence,
+    uint8 _consistencyLevel,
+    uint256 _proposalId,
+    uint208 _amount,
+    uint16 _dispatcherChainId
+  ) public {
+    vm.assume(_dispatcherChainId != WORMHOLE_HUB_CHAIN);
+    // build simple proposal
+    address account = makeAddr("Token holder");
+    ProposalBuilder builder = _createMintProposal(account, _amount);
+    bytes memory _payload =
+      abi.encode(_proposalId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
+    (bytes memory vaa,) = _buildVm(
+      _timestamp,
+      _nonce,
+      _dispatcherChainId,
+      bytes32(uint256(uint160(hubDispatcher))),
+      _sequence,
+      _consistencyLevel,
+      _payload
+    );
+
+    vm.expectRevert(SpokeMessageExecutor.UnknownMessageEmitter.selector);
+    executor.receiveMessage(vaa);
+  }
+
+  function testFuzz_RevertIf_MessageMeantForADifferentSpokeChain(
+    uint32 _timestamp,
+    uint32 _nonce,
+    uint64 _sequence,
+    uint8 _consistencyLevel,
+    uint256 _proposalId,
+    uint208 _amount,
+    uint16 _targetChainId
+  ) public {
+    vm.assume(_targetChainId != WORMHOLE_SPOKE_CHAIN);
+    // build simple proposal
+    address account = makeAddr("Token holder");
+    ProposalBuilder builder = _createMintProposal(account, _amount);
+    bytes memory _payload =
+      abi.encode(_proposalId, _targetChainId, builder.targets(), builder.values(), builder.calldatas());
+    (bytes memory vaa,) = _buildVm(
+      _timestamp,
+      _nonce,
+      WORMHOLE_HUB_CHAIN,
+      bytes32(uint256(uint160(hubDispatcher))),
+      _sequence,
+      _consistencyLevel,
+      _payload
+    );
+
+    vm.expectRevert(abi.encodeWithSelector(SpokeMessageExecutor.InvalidWormholeMessage.selector, "Message is not meant for this chain."));
+    executor.receiveMessage(vaa);
+  }
+
 }
