@@ -307,6 +307,194 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
   }
 }
 
+contract Propose is HubGovernorTest {
+  function testFuzz_TrustedProposerCanProposeWithoutMeetingProposalThreshold(
+    address _trustedProposer,
+    address _proposer
+  ) public {
+    vm.assume(_trustedProposer != address(0));
+    vm.warp(block.timestamp + 7 days);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+
+    governor.exposed_setTrustedProposer(_trustedProposer);
+
+    vm.startPrank(_trustedProposer);
+    uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    vm.stopPrank();
+
+    uint256 voteStart = governor.proposalSnapshot(proposalId);
+    assertEq(voteStart, block.timestamp + governor.votingDelay());
+  }
+
+  function testFuzz_UntrustedProposerCanProposeWhenMeetingProposalThreshold(address _trustedProposer, address _proposer)
+    public
+  {
+    vm.assume(_trustedProposer != address(0));
+    vm.assume(_proposer != address(0));
+
+    token.mint(_proposer, governor.proposalThreshold());
+    vm.prank(_proposer);
+    token.delegate(_proposer);
+
+    vm.warp(block.timestamp + 7 days);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+
+    governor.exposed_setTrustedProposer(_trustedProposer);
+
+    vm.startPrank(_proposer);
+    uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    vm.stopPrank();
+
+    uint256 voteStart = governor.proposalSnapshot(proposalId);
+    assertEq(voteStart, block.timestamp + governor.votingDelay());
+  }
+
+  function testFuzz_RevertIf_UntrustedProposerCannotProposeWithoutMeetingProposalThreshold(
+    address _trustedProposer,
+    address _proposer
+  ) public {
+    vm.assume(_trustedProposer != address(0));
+    vm.assume(_trustedProposer != _proposer);
+    vm.warp(block.timestamp + 7 days);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+
+    governor.exposed_setTrustedProposer(_trustedProposer);
+
+    vm.startPrank(_proposer);
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        IGovernor.GovernorInsufficientProposerVotes.selector, _proposer, 0, governor.proposalThreshold()
+      )
+    );
+    governor.propose(targets, values, calldatas, "Hi");
+    vm.stopPrank();
+  }
+
+  function testFuzz_RevertIf_AProposalHasAnInvalidDesciption(address _proposer, address _incorrectProposer) public {
+    vm.assume(_proposer != _incorrectProposer);
+    vm.assume(_proposer != address(0));
+    token.mint(_proposer, governor.proposalThreshold());
+    vm.prank(_proposer);
+    token.delegate(_proposer);
+
+    vm.warp(block.timestamp + 7 days);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+
+    vm.startPrank(_proposer);
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorRestrictedProposer.selector, _proposer));
+    governor.propose(targets, values, calldatas, string.concat("#proposer=", vm.toString(_incorrectProposer)));
+    vm.stopPrank();
+  }
+}
+
+contract Quorum is HubGovernorTest {
+  function testFuzz_SuccessfullyGetLatestQuorumCheckpoint(uint208 _quorum) public {
+    governor.exposed_setQuorum(_quorum);
+    uint256 quorum = governor.quorum(block.timestamp);
+    assertEq(quorum, _quorum);
+  }
+}
+
+contract SetTrustedProposer is HubGovernorTest {
+  function testFuzz_CorrectlySetNewTrustedProposer(address _proposer) public {
+    address delegate = makeAddr("delegate");
+    token.mint(delegate, governor.proposalThreshold());
+    vm.prank(delegate);
+    token.delegate(delegate);
+
+    vm.warp(block.timestamp + 7 days);
+    address[] memory delegates = new address[](1);
+    delegates[0] = delegate;
+    _setGovernor(governor);
+    _setDelegates(delegates);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    assertEq(governor.trustedProposer(), _proposer);
+  }
+
+  function testFuzz_SetNewTrustedProposerEmitsTrustedProposerUpdated(address _proposer) public {
+    address delegate = makeAddr("delegate");
+    token.mint(delegate, governor.proposalThreshold());
+    vm.prank(delegate);
+    token.delegate(delegate);
+
+    vm.warp(block.timestamp + 7 days);
+    address[] memory delegates = new address[](1);
+    delegates[0] = delegate;
+    _setGovernor(governor);
+    _setDelegates(delegates);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    vm.prank(delegate);
+    uint256 _proposalId = governor.propose(targets, values, calldatas, "Hi");
+
+    IGovernor.ProposalState _state = governor.state(_proposalId);
+    assertEq(uint8(_state), uint8(IGovernor.ProposalState.Pending));
+
+    _jumpToActiveProposal(_proposalId);
+
+    _delegatesVote(_proposalId, 1);
+    _jumpPastVoteComplete(_proposalId);
+
+    governor.queue(targets, values, calldatas, keccak256(bytes("Hi")));
+
+    _jumpPastProposalEta(_proposalId);
+
+    vm.expectEmit();
+    emit HubGovernor.TrustedProposerUpdated(governor.trustedProposer(), _proposer);
+    governor.execute(targets, values, calldatas, keccak256(bytes("Hi")));
+  }
+
+  function testFuzz_RevertIf_CallerIsNotAuthorized(address _proposer, address _caller) public {
+    vm.assume(_caller != address(timelock));
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
+    governor.setTrustedProposer(_proposer);
+  }
+}
+
+contract SetQuorum is HubGovernorTest {
+  function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum) public {
+    address delegate = makeAddr("delegate");
+    console2.logUint(governor.proposalThreshold());
+    token.mint(delegate, governor.proposalThreshold());
+    vm.prank(delegate);
+    token.delegate(delegate);
+
+    vm.warp(block.timestamp + 7 days);
+    address[] memory delegates = new address[](1);
+    delegates[0] = delegate;
+    _setGovernor(governor);
+    _setDelegates(delegates);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("setQuorum(uint208)", _quorum));
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    assertEq(governor.quorum(block.timestamp), _quorum);
+  }
+
+  function testFuzz_RevertIf_CallerIsNotAuthorized(uint208 _quorum, address _caller) public {
+    // Timelock will trigger a different error
+    vm.assume(_caller != address(timelock));
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
+    governor.setQuorum(_quorum);
+  }
+}
+
 contract _CountVote is HubGovernorTest {
   function testFuzz_WhitelistedAddressCanVote(
     uint8 _support,
