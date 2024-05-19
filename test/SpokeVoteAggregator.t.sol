@@ -19,6 +19,7 @@ contract SpokeVoteAggregatorTest is Test {
   WormholeMock public wormhole;
   uint16 immutable HUB_CHAIN_ID = 2;
   address owner = makeAddr("Spoke Vote Aggregator Owner");
+  uint48 initialSafeWindow = 1 days;
 
   function setUp() public {
     address _hubProposalMetadataSender = makeAddr("Hub proposal metadata");
@@ -33,6 +34,12 @@ contract SpokeVoteAggregatorTest is Test {
     _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - 2));
     _voteEnd = uint48(bound(_voteEnd, _voteStart, type(uint48).max - 1));
     return (_voteStart, _voteEnd);
+  }
+
+  function _boundProposalSafeWindow(uint48 _voteStart, uint48 _safeWindow) internal pure returns (uint48, uint48) {
+    _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - 3));
+    _safeWindow = uint48(bound(_safeWindow, 1, type(uint48).max - _voteStart - 2));
+    return (_voteStart, _safeWindow);
   }
 }
 
@@ -73,10 +80,13 @@ contract State is SpokeVoteAggregatorTest {
     assertEq(uint8(state), uint8(SpokeVoteAggregator.ProposalState.Active));
   }
 
+  // TODO Expired status not needed?
   function testFuzz_CorrectlyGetStateOfExpiredProposal(uint256 _proposalId, uint48 _voteStart, uint48 _voteEnd) public {
     vm.assume(_proposalId != 0);
     (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
-    vm.warp(_voteEnd + 1);
+    vm.assume(_voteStart != _voteEnd);
+    spokeVoteAggregator.exposed_setSafeWindow(uint48(_voteEnd - _voteStart) - 1);
+    vm.warp(_voteStart + (_voteEnd - _voteStart));
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
     SpokeVoteAggregator.ProposalState state = spokeVoteAggregator.state(_proposalId);
@@ -216,13 +226,13 @@ contract CastVote is SpokeVoteAggregatorTest {
 }
 
 contract SetSafeWindow is SpokeVoteAggregatorTest {
-  function testFuzz_CorrectlySetSafeWindow(uint32 _safeWindow) public {
+  function testFuzz_CorrectlySetSafeWindow(uint48 _safeWindow) public {
     vm.prank(owner);
     spokeVoteAggregator.setSafeWindow(_safeWindow);
     assertEq(spokeVoteAggregator.safeWindow(), _safeWindow);
   }
 
-  function testFuzz_RevertIf_NotCalledByOwner(uint32 _safeWindow, address _caller) public {
+  function testFuzz_RevertIf_NotCalledByOwner(uint48 _safeWindow, address _caller) public {
     vm.assume(owner != _caller);
 
     vm.prank(_caller);
@@ -249,20 +259,16 @@ contract IsVotingSafe is SpokeVoteAggregatorTest {
     assertEq(isSafe, true);
   }
 
-  function testFuzz_GetIsProposalSafeForUnsafeProposal(
-    uint16 _safeWindow,
-    uint256 _proposalId,
-    uint48 _voteStart,
-    uint48 _voteEnd
-  ) public {
+  function testFuzz_GetIsProposalSafeForUnsafeProposal(uint48 _safeWindow, uint256 _proposalId, uint48 _voteStart)
+    public
+  {
     vm.assume(_safeWindow != 0);
     vm.assume(_proposalId != 0);
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
-    _voteEnd = uint16(bound(_voteEnd, _safeWindow, type(uint16).max));
+    (_voteStart, _safeWindow) = _boundProposalSafeWindow(_voteStart, _safeWindow);
     spokeVoteAggregator.exposed_setSafeWindow(_safeWindow);
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteStart + _safeWindow + 1);
 
-    vm.warp(_voteEnd - _safeWindow + 1);
+    vm.warp(_voteStart + _safeWindow + 1);
     bool isSafe = spokeVoteAggregator.isVotingSafe(_proposalId);
     assertEq(isSafe, false);
   }

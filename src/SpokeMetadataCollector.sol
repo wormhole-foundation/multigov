@@ -16,7 +16,6 @@ contract SpokeMetadataCollector is QueryResponse {
 
   struct Proposal {
     uint256 voteStart;
-    uint256 voteEnd;
   }
 
   // TODO: Add underscore here
@@ -65,7 +64,7 @@ contract SpokeMetadataCollector is QueryResponse {
   }
 
   function _addProposal(uint256 proposalId, uint256 voteStart, uint256 voteEnd) internal {
-    proposals[proposalId] = Proposal(voteStart, voteEnd);
+    proposals[proposalId] = Proposal(voteStart);
     emit ProposalCreated(proposalId, voteStart, voteEnd);
   }
 }
