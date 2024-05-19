@@ -38,6 +38,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector, SpokeCou
   error OwnerUnauthorizedAccount(address account);
   error OwnerIsZeroAddress();
 
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
   event VoteCast(address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason);
   event VoteCastWithParams(
     address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason, bytes params
@@ -70,10 +71,10 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector, SpokeCou
     return (proposal.voteEnd - safeWindow) >= block.timestamp;
   }
 
-  function state(uint256 proposalId) external view virtual returns (ProposalState) {
-    SpokeMetadataCollector.Proposal memory proposal = getProposal(proposalId);
+  function state(uint256 _proposalId) external view virtual returns (ProposalState) {
+    SpokeMetadataCollector.Proposal memory proposal = getProposal(_proposalId);
     if (VOTING_TOKEN.clock() < proposal.voteStart) return ProposalState.Pending;
-    else if (voteActiveInternal(proposalId)) return ProposalState.Active;
+    else if (voteActiveInternal(_proposalId)) return ProposalState.Active;
     else return ProposalState.Expired;
   }
 
@@ -81,37 +82,39 @@ contract SpokeVoteAggregator is EIP712, Nonces, SpokeMetadataCollector, SpokeCou
     return _castVote(proposalId, msg.sender, support, "");
   }
 
-  function castVoteWithReason(uint256 proposalId, uint8 support, string calldata reason) public returns (uint256) {
-    return _castVote(proposalId, msg.sender, support, reason);
+  function castVoteWithReason(uint256 _proposalId, uint8 _support, string calldata _reason) public returns (uint256) {
+    return _castVote(_proposalId, msg.sender, _support, _reason);
   }
 
-  function castVoteWithReasonAndParams(uint256 proposalId, uint8 support, string calldata reason, bytes memory params)
-    public
-    virtual
-    returns (uint256)
-  {
-    return _castVote(proposalId, msg.sender, support, reason, params);
+  function castVoteWithReasonAndParams(
+    uint256 _proposalId,
+    uint8 _support,
+    string calldata _reason,
+    bytes memory _params
+  ) public virtual returns (uint256) {
+    return _castVote(_proposalId, msg.sender, _support, _reason, _params);
   }
 
-  function castVoteBySig(uint256 proposalId, uint8 support, address voter, bytes memory signature)
+  function castVoteBySig(uint256 _proposalId, uint8 _support, address _voter, bytes memory _signature)
     public
     returns (uint256)
   {
     // TODO: remove nonce pending a double-check that votes can't replay (think we're casting full weight vote)
     bool valid = SignatureChecker.isValidSignatureNow(
-      voter,
-      _hashTypedDataV4(keccak256(abi.encode(BALLOT_TYPEHASH, proposalId, support, voter, _useNonce(voter)))),
-      signature
+      _voter,
+      _hashTypedDataV4(keccak256(abi.encode(BALLOT_TYPEHASH, _proposalId, _support, _voter, _useNonce(_voter)))),
+      _signature
     );
 
-    if (!valid) revert InvalidSignature(voter);
+    if (!valid) revert InvalidSignature(_voter);
 
-    return _castVote(proposalId, voter, support, "");
+    return _castVote(_proposalId, _voter, _support, "");
   }
 
-  function setOwner(address newOwner) public {
+  function setOwner(address _newOwner) public {
     _checkOwner();
-    owner = newOwner;
+    emit OwnershipTransferred(owner, _newOwner);
+    owner = _newOwner;
   }
 
   function _castVote(uint256 _proposalId, address _voter, uint8 _support, string memory _reason)

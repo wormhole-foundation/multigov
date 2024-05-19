@@ -2,13 +2,14 @@
 pragma solidity ^0.8.23;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 import {Test, console2} from "forge-std/Test.sol";
 
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {SpokeVoteAggregatorHarness} from "test/harnesses/SpokeVoteAggregatorHarness.sol";
+import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
-import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 
 contract SpokeVoteAggregatorTest is Test {
   SpokeVoteAggregatorHarness public spokeVoteAggregator;
@@ -213,6 +214,15 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.expectRevert("SpokeCountingFractional: all weight cast");
     spokeVoteAggregator.castVote(_proposalId, _support);
     vm.stopPrank();
+  }
+}
+
+contract SetOwner is SpokeVoteAggregatorTest {
+  function testFuzz_SetOwnerEmitsOwnershipTransferredEvent(address _setOwner) public {
+    vm.prank(owner);
+    vm.expectEmit();
+    emit SpokeVoteAggregator.OwnershipTransferred(owner, _setOwner);
+    spokeVoteAggregator.setOwner(_setOwner);
   }
 }
 
