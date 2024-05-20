@@ -139,14 +139,14 @@ contract EnableTrustedVotingAddress is HubGovernorTest {
     return _createProposal(abi.encodeWithSignature("enableTrustedVotingAddress(address)", _trustedAddress));
   }
 
-  function testFuzz_SetANewTrustedVoteAddress(address _trustedAddress) public {
+  function testFuzz_SetANewTrustedVoteAddress(address _trustedAddress, string memory _proposalDescription) public {
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
 
     _setGovernorAndDelegates();
 
     ProposalBuilder builder = _createEnableTrustedAddressProposal(_trustedAddress);
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Enable trusted address");
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
   }
 
@@ -160,7 +160,12 @@ contract EnableTrustedVotingAddress is HubGovernorTest {
     governor.enableTrustedVotingAddress(_trustedAddress);
   }
 
-  function testFuzz_SetMultipleTrustedVoteAddresses(address _firstTrustedAddress, address _secondTrustedAddress) public {
+  function testFuzz_SetMultipleTrustedVoteAddresses(
+    address _firstTrustedAddress,
+    address _secondTrustedAddress,
+    string memory _proposalDescriptionFirst,
+    string memory _proposalDescriptionSecond
+  ) public {
     vm.assume(_firstTrustedAddress != address(0) && _secondTrustedAddress != address(0));
     vm.assume(_firstTrustedAddress != address(timelock) && _secondTrustedAddress != address(timelock));
 
@@ -168,18 +173,24 @@ contract EnableTrustedVotingAddress is HubGovernorTest {
 
     ProposalBuilder firstBuilder = _createEnableTrustedAddressProposal(_firstTrustedAddress);
     _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), "Enable first trusted address"
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
     ProposalBuilder secondBuilder = _createEnableTrustedAddressProposal(_secondTrustedAddress);
     _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Enable second trusted address"
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
 
     assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), true);
     assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), true);
   }
 
-  function testFuzz_EnableThenDisableTrustedAddress(address _trustedAddress) public {
+  function testFuzz_EnableThenDisableTrustedAddress(
+    address _trustedAddress,
+    string memory _proposalDescriptionFirst,
+    string memory _proposalDescriptionSecond,
+    string memory _proposalDescriptionThird
+  ) public {
+    vm.assume(keccak256(bytes(_proposalDescriptionFirst)) != keccak256(bytes(_proposalDescriptionThird)));
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
 
@@ -187,7 +198,7 @@ contract EnableTrustedVotingAddress is HubGovernorTest {
 
     ProposalBuilder firstBuilder = _createEnableTrustedAddressProposal(_trustedAddress);
     _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), "Enable trusted address"
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
 
@@ -196,13 +207,13 @@ contract EnableTrustedVotingAddress is HubGovernorTest {
       address(governor), 0, abi.encodeWithSignature("disableTrustedVotingAddress(address)", _trustedAddress)
     );
     _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Disable trusted address"
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
     assertEq(governor.trustedVotingAddresses(_trustedAddress), false);
 
     ProposalBuilder thirdBuilder = _createEnableTrustedAddressProposal(_trustedAddress);
     _queueAndVoteAndExecuteProposal(
-      thirdBuilder.targets(), thirdBuilder.values(), thirdBuilder.calldatas(), "Enable trusted address again"
+      thirdBuilder.targets(), thirdBuilder.values(), thirdBuilder.calldatas(), _proposalDescriptionThird
     );
 
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
@@ -214,7 +225,7 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
     return _createProposal(abi.encodeWithSignature("disableTrustedVotingAddress(address)", _trustedAddress));
   }
 
-  function testFuzz_DisableTrustedAddress(address _trustedAddress) public {
+  function testFuzz_DisableTrustedAddress(address _trustedAddress, string memory _proposalDescription) public {
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
 
@@ -224,7 +235,7 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
     _setGovernorAndDelegates();
 
     ProposalBuilder builder = _createDisableTrustedVotingAddressProposal(_trustedAddress);
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Disable trusted address");
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     assertEq(governor.trustedVotingAddresses(_trustedAddress), false);
   }
 
@@ -238,7 +249,12 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
     governor.disableTrustedVotingAddress(_trustedAddress);
   }
 
-  function testFuzz_DisableMultipleAddresses(address _firstTrustedAddress, address _secondTrustedAddress) public {
+  function testFuzz_DisableMultipleAddresses(
+    address _firstTrustedAddress,
+    address _secondTrustedAddress,
+    string memory _proposalDescriptionFirst,
+    string memory _proposalDescriptionSecond
+  ) public {
     vm.assume(_firstTrustedAddress != address(0) && _secondTrustedAddress != address(0));
 
     governor.exposed_enableTrustedAddress(_firstTrustedAddress);
@@ -250,19 +266,23 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
 
     ProposalBuilder firstBuilder = _createDisableTrustedVotingAddressProposal(_firstTrustedAddress);
     _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), "Disable first trusted address"
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
 
     ProposalBuilder secondBuilder = _createDisableTrustedVotingAddressProposal(_secondTrustedAddress);
     _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Disable second trusted address"
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
 
     assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), false);
     assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), false);
   }
 
-  function testFuzz_DisableThenEnableTrustedAddress(address _trustedAddress) public {
+  function testFuzz_DisableThenEnableTrustedAddress(
+    address _trustedAddress,
+    string memory _proposalDescriptionFirst,
+    string memory _proposalDescriptionSecond
+  ) public {
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
 
@@ -272,7 +292,7 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
 
     ProposalBuilder firstBuilder = _createDisableTrustedVotingAddressProposal(_trustedAddress);
     _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), "Disable trusted address"
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
 
     ProposalBuilder secondBuilder = new ProposalBuilder();
@@ -280,7 +300,7 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
       address(governor), 0, abi.encodeWithSignature("enableTrustedVotingAddress(address)", _trustedAddress)
     );
     _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Enable trusted address"
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
 
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
@@ -292,7 +312,8 @@ contract _CountVote is HubGovernorTest {
     uint8 _support,
     uint32 _forVotes,
     uint32 _againstVotes,
-    uint32 _abstainVotes
+    uint32 _abstainVotes,
+    string memory _proposalDescription
   ) public {
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
     vm.assume(_totalWeight != 0);
@@ -302,7 +323,8 @@ contract _CountVote is HubGovernorTest {
     (ProposalBuilder builder) = _createArbitraryProposal();
 
     vm.startPrank(delegates[0]);
-    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     vm.stopPrank();
 
     _jumpToActiveProposal(_proposalId);
@@ -324,7 +346,8 @@ contract _CountVote is HubGovernorTest {
     uint8 _support,
     uint32 _forVotes,
     uint32 _againstVotes,
-    uint32 _abstainVotes
+    uint32 _abstainVotes,
+    string memory _proposalDescription
   ) public {
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
     vm.assume(_totalWeight != 0);
@@ -335,7 +358,8 @@ contract _CountVote is HubGovernorTest {
     (ProposalBuilder builder) = _createArbitraryProposal();
 
     vm.startPrank(delegates[0]);
-    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     vm.stopPrank();
 
     _jumpToActiveProposal(_proposalId);
@@ -355,7 +379,8 @@ contract _CountVote is HubGovernorTest {
     uint8 support,
     uint32 _forVotes,
     uint32 _againstVotes,
-    uint32 _abstainVotes
+    uint32 _abstainVotes,
+    string memory _proposalDescription
   ) public {
     uint256 ZERO_TOTAL_WEIGHT = 0;
 
@@ -364,7 +389,8 @@ contract _CountVote is HubGovernorTest {
     ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(delegates[0]);
-    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     vm.stopPrank();
 
     _jumpToActiveProposal(_proposalId);
@@ -381,7 +407,8 @@ contract _CountVote is HubGovernorTest {
     uint32 _againstVotes,
     uint32 _abstainVotes,
     bytes memory _secondCallVoteData,
-    uint256 _secondCallTotalWeight
+    uint256 _secondCallTotalWeight,
+    string memory _proposalDescription
   ) public {
     vm.assume(_nonWhitelistedAddress != address(0));
     vm.assume(_nonWhitelistedAddress != address(hubVotePool));
@@ -400,7 +427,8 @@ contract _CountVote is HubGovernorTest {
     (ProposalBuilder builder) = _createArbitraryProposal();
 
     vm.startPrank(_nonWhitelistedAddress);
-    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     vm.stopPrank();
 
     _jumpToActiveProposal(_proposalId);
