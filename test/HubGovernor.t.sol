@@ -184,10 +184,6 @@ contract EnableTrustedVotingAddress is HubGovernorTest {
   }
 
   function testFuzz_EnableThenDisableTrustedAddress(address _trustedAddress) public {
-    // 1. Enable the trusted address
-    // 2. Disable the trusted address
-    // 3. Enable the trusted address
-
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
 
@@ -273,10 +269,6 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
   }
 
   function testFuzz_DisableThenEnableTrustedAddress(address _trustedAddress) public {
-    // 1. Enable the trusted address
-    // 2. Disable the trusted address
-    // 3. Enable the trusted address
-
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
 
