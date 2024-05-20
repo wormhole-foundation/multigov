@@ -28,7 +28,12 @@ contract SetQuorum is HubGovernorTest {
     assertEq(governor.quorum(block.timestamp), _quorum);
   }
 
-  function testFuzz_SetMultipleQuorumValues(uint208 _firstQuorum, uint208 _secondQuorum) public {
+  function testFuzz_SetMultipleQuorumValues(
+    uint208 _firstQuorum,
+    uint208 _secondQuorum,
+    string memory _proposalDescriptionFirst,
+    string memory _proposalDescriptionSecond
+  ) public {
     // Quorum values must be uint128 because of the way _countVotes is implemented to handle overflow
     _firstQuorum = uint128(bound(_firstQuorum, 0, type(uint128).max - 1));
     _secondQuorum = uint128(bound(_secondQuorum, 0, type(uint128).max - 1));
@@ -37,7 +42,7 @@ contract SetQuorum is HubGovernorTest {
 
     ProposalBuilder firstBuilder = _createSetQuorumProposal(_firstQuorum);
     _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), "Setting first quorum value", 1
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst, 1
     );
     assertEq(governor.quorum(block.timestamp), _firstQuorum);
 
@@ -46,12 +51,12 @@ contract SetQuorum is HubGovernorTest {
     // Mint and delegate to the first delegate an amount to pass the first quorum
     _mintAndDelegate(delegates[0], _firstQuorum);
     _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), "Setting second quorum value", 1
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond, 1
     );
     assertEq(governor.quorum(block.timestamp), _secondQuorum);
   }
 
-  function testFuzz_EmitsQuorumUpdatedEvent(uint208 _quorum) public {
+  function testFuzz_EmitsQuorumUpdatedEvent(uint208 _quorum, string memory _proposalDescription) public {
     vm.assume(_quorum != 0);
 
     _setGovernorAndDelegates();
@@ -60,23 +65,22 @@ contract SetQuorum is HubGovernorTest {
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
-    string memory description = "Setting quorum";
 
     vm.prank(delegates[0]);
-    uint256 _proposalId = governor.propose(targets, values, calldatas, description);
+    uint256 _proposalId = governor.propose(targets, values, calldatas, _proposalDescription);
 
     _jumpToActiveProposal(_proposalId);
 
     _delegatesVote(_proposalId, 1);
     _jumpPastVoteComplete(_proposalId);
 
-    governor.queue(targets, values, calldatas, keccak256(bytes(description)));
+    governor.queue(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
 
     _jumpPastProposalEta(_proposalId);
 
     vm.expectEmit();
     emit GovernorSettableFixedQuorum.QuorumUpdated(governor.quorum(block.timestamp), _quorum);
-    governor.execute(targets, values, calldatas, keccak256(bytes(description)));
+    governor.execute(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
   }
 
   function testFuzz_RevertIf_CallerIsNotAuthorized(uint208 _quorum, address _caller) public {
