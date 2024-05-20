@@ -356,7 +356,7 @@ contract _CountVote is HubGovernorTest {
     assertEq(abstainVotes, _abstainVotes);
   }
 
-  function test_RevertIf_NonWhitelistedAddressTotalWeightIsZero(
+  function testFuzz_RevertIf_NonWhitelistedAddressTotalWeightIsZero(
     address _nonWhitelistedAddress,
     uint8 support,
     uint32 _forVotes,
