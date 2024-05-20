@@ -8,7 +8,7 @@ import {HubGovernorTest} from "test/HubGovernor.t.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 
 contract Quorum is HubGovernorTest {
-  function testFuzz_SuccessfullyGetLatestQuorumCheckpoint(uint208 _quorum) public {
+  function testFuzz_SuccessfullyGetLatestQuorumCheckpoint(uint208 _quorum, uint256 _timestamp) public {
     governor.exposed_setQuorum(_quorum);
     uint256 quorum = governor.quorum(block.timestamp);
     assertEq(quorum, _quorum);
@@ -26,14 +26,6 @@ contract SetQuorum is HubGovernorTest {
     ProposalBuilder builder = _createSetQuorumProposal(_quorum);
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi", 1);
     assertEq(governor.quorum(block.timestamp), _quorum);
-  }
-
-  function testFuzz_RevertIf_CallerIsNotAuthorized(uint208 _quorum, address _caller) public {
-    // Timelock will trigger a different error
-    vm.assume(_caller != address(timelock));
-    vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.setQuorum(_quorum);
   }
 
   function testFuzz_SetMultipleQuorumValues(uint208 _firstQuorum, uint208 _secondQuorum) public {
@@ -84,5 +76,13 @@ contract SetQuorum is HubGovernorTest {
     vm.expectEmit();
     emit QuorumUpdated(governor.quorum(block.timestamp), _quorum);
     governor.execute(targets, values, calldatas, keccak256(bytes(description)));
+  }
+
+  function testFuzz_RevertIf_CallerIsNotAuthorized(uint208 _quorum, address _caller) public {
+    // Timelock will trigger a different error
+    vm.assume(_caller != address(timelock));
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
+    governor.setQuorum(_quorum);
   }
 }
