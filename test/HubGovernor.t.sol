@@ -50,7 +50,7 @@ contract HubGovernorTest is Test, ProposalTest {
     return user;
   }
 
-  function _setupDelegates() public returns (address[] memory) {
+  function _setupDelegate() public returns (address[] memory) {
     address delegate = makeAddr("delegate");
     address[] memory delegates = new address[](1);
     delegates[0] = _mintAndDelegate(delegate, governor.proposalThreshold());
@@ -59,7 +59,7 @@ contract HubGovernorTest is Test, ProposalTest {
 
   function _setGovernorAndDelegates() public returns (HubGovernorHarness, address[] memory) {
     _setGovernor(governor);
-    address[] memory delegates = _setupDelegates();
+    address[] memory delegates = _setupDelegate();
     _setDelegates(delegates);
     return (governor, delegates);
   }
