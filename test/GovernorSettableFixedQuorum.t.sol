@@ -44,16 +44,21 @@ contract SetQuorum is HubGovernorTest {
     _queueAndVoteAndExecuteProposal(
       firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
-    assertEq(governor.quorum(block.timestamp), _firstQuorum);
+
+    uint256 betweenProposalsTimestamp = block.timestamp + 1;
+    assertEq(governor.quorum(betweenProposalsTimestamp), _firstQuorum);
 
     ProposalBuilder secondBuilder = _createSetQuorumProposal(_secondQuorum);
 
     // Mint and delegate to the first delegate an amount to pass the first quorum
     _mintAndDelegate(delegates[0], _firstQuorum);
+
     _queueAndVoteAndExecuteProposal(
       secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
+
     assertEq(governor.quorum(block.timestamp), _secondQuorum);
+    assertEq(governor.quorum(betweenProposalsTimestamp), _firstQuorum);
   }
 
   function testFuzz_EmitsQuorumUpdatedEvent(uint208 _quorum, string memory _proposalDescription) public {
