@@ -30,7 +30,8 @@ contract SetQuorum is HubGovernorTest {
 
   function testFuzz_SetMultipleQuorumValues(uint208 _firstQuorum, uint208 _secondQuorum) public {
     // Quorum values must be uint128 because of the way _countVotes is implemented to handle overflow
-    vm.assume(_firstQuorum < type(uint128).max - 1 && _secondQuorum < type(uint128).max - 1);
+    _firstQuorum = uint128(bound(_firstQuorum, 0, type(uint128).max - 1));
+    _secondQuorum = uint128(bound(_secondQuorum, 0, type(uint128).max - 1));
 
     _setGovernorAndDelegates();
 
