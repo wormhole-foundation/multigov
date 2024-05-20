@@ -5,6 +5,12 @@ import {Test, console2} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 abstract contract ProposalTest is Test {
+  enum VoteType {
+    Against,
+    For,
+    Abstain
+  }
+
   IGovernor private governor;
 
   address[] public delegates;
@@ -64,8 +70,7 @@ abstract contract ProposalTest is Test {
     address[] memory _targets,
     uint256[] memory _values,
     bytes[] memory _calldatas,
-    string memory _description,
-    uint8 _voteType
+    string memory _description
   ) internal {
     vm.prank(delegates[0]);
     uint256 _proposalId = governor.propose(_targets, _values, _calldatas, _description);
@@ -75,10 +80,8 @@ abstract contract ProposalTest is Test {
 
     _jumpToActiveProposal(_proposalId);
 
-    _delegatesVote(_proposalId, _voteType);
+    _delegatesVote(_proposalId, uint8(VoteType.For));
     _jumpPastVoteComplete(_proposalId);
-
-    if (_voteType == 0 || _voteType == 2) return;
 
     governor.queue(_targets, _values, _calldatas, keccak256(bytes(_description)));
 

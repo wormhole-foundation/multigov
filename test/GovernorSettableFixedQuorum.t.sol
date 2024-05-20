@@ -24,7 +24,7 @@ contract SetQuorum is HubGovernorTest {
     _setGovernorAndDelegates();
     vm.warp(block.timestamp + 7 days);
     ProposalBuilder builder = _createSetQuorumProposal(_quorum);
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi", 1);
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
     assertEq(governor.quorum(block.timestamp), _quorum);
   }
 
@@ -42,7 +42,7 @@ contract SetQuorum is HubGovernorTest {
 
     ProposalBuilder firstBuilder = _createSetQuorumProposal(_firstQuorum);
     _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst, 1
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
     assertEq(governor.quorum(block.timestamp), _firstQuorum);
 
@@ -51,7 +51,7 @@ contract SetQuorum is HubGovernorTest {
     // Mint and delegate to the first delegate an amount to pass the first quorum
     _mintAndDelegate(delegates[0], _firstQuorum);
     _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond, 1
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
     assertEq(governor.quorum(block.timestamp), _secondQuorum);
   }
