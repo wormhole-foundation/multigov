@@ -74,7 +74,7 @@ contract SetQuorum is HubGovernorTest {
     _jumpPastProposalEta(_proposalId);
 
     vm.expectEmit();
-    emit QuorumUpdated(governor.quorum(block.timestamp), _quorum);
+    emit GovernorSettableFixedQuorum.QuorumUpdated(governor.quorum(block.timestamp), _quorum);
     governor.execute(targets, values, calldatas, keccak256(bytes(description)));
   }
 

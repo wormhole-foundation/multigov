@@ -16,8 +16,6 @@ import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 
 contract HubGovernorTest is Test, ProposalTest {
-  event QuorumUpdated(uint256 oldQuorum, uint256 newQuorum);
-
   HubGovernorHarness public governor;
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
