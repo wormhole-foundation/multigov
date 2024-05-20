@@ -4,8 +4,8 @@ pragma solidity ^0.8.23;
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
-import {HubGovernorTest} from "./HubGovernor.t.sol";
-import {ProposalBuilder} from "./helpers/ProposalBuilder.sol";
+import {HubGovernorTest} from "test/HubGovernor.t.sol";
+import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 
 contract Quorum is HubGovernorTest {
   function testFuzz_SuccessfullyGetLatestQuorumCheckpoint(uint208 _quorum) public {
