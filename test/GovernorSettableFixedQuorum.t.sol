@@ -57,8 +57,6 @@ contract SetQuorum is HubGovernorTest {
   }
 
   function testFuzz_EmitsQuorumUpdatedEvent(uint208 _quorum, string memory _proposalDescription) public {
-    vm.assume(_quorum != 0);
-
     _setGovernorAndDelegates();
 
     ProposalBuilder builder = _createSetQuorumProposal(_quorum);
