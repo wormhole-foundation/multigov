@@ -265,25 +265,528 @@ contract GetMinVotesInWindow is HubGovernorTest {
       token.mint(attacker, uint256(100));
     }
   }
-
-  function testFuzz_GetMinVotesInWindowX(uint256 _start) public {
+  function _createCheckpointArray(uint256 _checkpoints) public {
+    vm.prank(attacker);
+    token.delegate(attacker);
+    vm.warp(1);
+    for (uint256 i = 0; i < _checkpoints; i++) {
+      vm.warp(block.timestamp + 1);
+      token.mint(attacker, uint256(100));
+    }
+  }
+ 
+  // Assume 12 second block times
+  function testFuzz_MainnetBest_OneMinute_GetMinVotesBeforeWindow(uint256 _start) public {
     _start = bound(_start, 0, 1);
     _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
     uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
     assertEq(_votes, 0);
   }
 
-  function testFuzz_GetMinVotesInWindow(uint256 _start) public {
+  function testFuzz_MainnetBest_OneMinute_GetMinVotesInWindow(uint256 _start) public {
     _start = bound(_start, 2, 1000);
     _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
     uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
     assertEq(_votes, (_start - 1) * 100);
   }
 
-  function testFuzz_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+  function testFuzz_MainnetBest_OneMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
     _start = bound(_start, 1001, 10_000);
     _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
     uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
     assertEq(_votes, 1000 * 100);
   }
+
+  function testFuzz_MainnetMid_OneMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(3);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_MainnetMid_OneMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(3);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetMid_OneMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(3);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_MainnetWorst_OneMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(5);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_MainnetWorst_OneMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(5);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetWorst_OneMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(5);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_MainnetBest_TenMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_MainnetBest_TenMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetBest_TenMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_MainnetMid_TenMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(25);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_MainnetMid_TenMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(25);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetMid_TenMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(25);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_MainnetWorst_TenMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(50);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_MainnetWorst_TenMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(50);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetWorst_TenMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(50);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_MainnetBest_ThirtyMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetBest_ThirtyMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_MainnetMid_ThirtyMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(75);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_MainnetMid_ThirtyMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(75);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetMid_ThirtyMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(75);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+ function testFuzz_MainnetWorst_ThirtyMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(150);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_MainnetWorst_ThirtyMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(150);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetWorst_ThirtyMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(150);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+ function testFuzz_MainnetMid_TwoHours_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(300);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_MainnetMid_TwoHours_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(300);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetMid_TwoHours_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(300);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+ function testFuzz_MainnetWorst_TwoHours_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(600);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_MainnetWorst_TwoHours_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(600);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_MainnetWorst_TwoHours_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(600);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+  ///////////////////////////////////////////////////////////////////////
+  function testFuzz_L2Best_OneMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Best_OneMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Best_OneMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_L2Mid_OneMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(15);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Mid_OneMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(15);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Mid_OneMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(15);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_L2Worst_OneMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(30);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Worst_OneMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(30);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Worst_OneMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(30);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_L2Best_TenMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Best_TenMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Best_TenMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_L2Mid_TenMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(150);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Mid_TenMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(150);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Mid_TenMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(150);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_L2Worst_TenMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(300);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Worst_TenMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(300);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Worst_TenMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(300);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_L2Best_ThirtyMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Best_ThirtyMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(2);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_L2Mid_ThirtyMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(450);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Mid_ThirtyMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(450);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Mid_ThirtyMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(450);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+ function testFuzz_L2Worst_ThirtyMinute_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(900);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Worst_ThirtyMinute_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(900);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Worst_ThirtyMinute_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(900);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+ function testFuzz_L2Mid_TwoHours_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray(3600);
+	governor.setWeightCheckpoints(3600);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Mid_TwoHours_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray(3600);
+	governor.setWeightCheckpoints(3600);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Mid_TwoHours_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray(3600);
+	governor.setWeightCheckpoints(3600);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
+ function testFuzz_L2Worst_TwoHours_GetMinVotesBeforeWindow(uint256 _start) public {
+    _start = bound(_start, 0, 1);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(7200);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_L2Worst_TwoHours_GetMinVotesInWindow(uint256 _start) public {
+    _start = bound(_start, 2, 1000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(7200);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, (_start - 1) * 100);
+  }
+
+  function testFuzz_L2Worst_TwoHours_GetMinVotesInWindowAboveCheckpoints(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    _createCheckpointArray();
+	governor.setWeightCheckpoints(7200);
+    uint256 _votes = governor.getMinVotesInWindow(_start, attacker);
+    assertEq(_votes, 1000 * 100);
+  }
+
 }
+

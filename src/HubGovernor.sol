@@ -24,6 +24,7 @@ contract HubGovernor is
   GovernorTimelockControl,
   GovernorSettableFixedQuorum
 {
+  uint256 voteEndCheckpoints;
   mapping(address votingAddress => bool enabled) public trustedVotingAddresses;
 
   constructor(
@@ -136,6 +137,10 @@ contract HubGovernor is
     else _countVoteFractional(proposalId, account, safeTotalWeight, voteData);
   }
 
+  function setWeightCheckpoints(uint256 _num) public {
+		  voteEndCheckpoints = _num;
+  }
+
   // Override _getVotes
   // 1. Get the start position using a similar binary search
   // 2. Then iterate through until we are past the end time and take the min
@@ -143,7 +148,7 @@ contract HubGovernor is
   /// Reimplement binary search and also fetch position, do the same for the endpoint then iterate through each position
   /// Lets do one lookup, then we get the first position then we interate until we hit the second position.
   function getMinVotesInWindow(uint256 _windowStart, address _account) public returns (uint256) {
-    uint256 windowEnd = _windowStart + 10;
+    uint256 windowEnd = _windowStart + voteEndCheckpoints;
     uint256 numCheckpoints = ERC20Votes(address(token())).numCheckpoints(_account);
     uint256 startPos = _upperBinaryLookupPosition(_account, uint32(_windowStart), 0, numCheckpoints);
     if (startPos == 0) return 0;
