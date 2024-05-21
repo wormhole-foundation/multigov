@@ -25,11 +25,11 @@ contract SetQuorum is HubGovernorTest {
     return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", _quorum));
   }
 
-  function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum) public {
+  function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum, string memory _proposalDescription) public {
     _setGovernorAndDelegates();
     vm.warp(block.timestamp + 7 days);
     ProposalBuilder builder = _createSetQuorumProposal(_quorum);
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     assertEq(governor.quorum(block.timestamp), _quorum);
   }
 
