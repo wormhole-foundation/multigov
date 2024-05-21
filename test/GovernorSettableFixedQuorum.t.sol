@@ -8,9 +8,14 @@ import {HubGovernorTest} from "test/HubGovernor.t.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 
 contract Quorum is HubGovernorTest {
-  function testFuzz_SuccessfullyGetLatestQuorumCheckpoint(uint208 _quorum) public {
+  function testFuzz_SuccessfullyGetLatestQuorumCheckpoint(uint208 _quorum, uint256 _futureTimestamp) public {
     governor.exposed_setQuorum(_quorum);
     uint256 quorum = governor.quorum(block.timestamp);
+    assertEq(quorum, _quorum);
+
+    _futureTimestamp = bound(_futureTimestamp, block.timestamp + 1, type(uint48).max);
+    vm.warp(_futureTimestamp);
+    quorum = governor.quorum(block.timestamp);
     assertEq(quorum, _quorum);
   }
 }
