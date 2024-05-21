@@ -52,9 +52,7 @@ abstract contract ProposalTest is Test {
   }
 
   function _delegatesVote(uint256 _proposalId, uint8 _support) internal {
-    console2.logUint(delegates.length);
     for (uint256 _index = 0; _index < delegates.length; _index++) {
-      console2.logUint(_index);
       vm.prank(delegates[_index]);
       governor.castVote(_proposalId, _support);
     }

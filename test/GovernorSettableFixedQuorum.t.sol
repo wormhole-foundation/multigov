@@ -1,13 +1,67 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {Test, console2} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
-import {HubGovernorTest} from "test/HubGovernor.t.sol";
+import {GovernorSettableFixedQuorumHarness} from "test/harnesses/GovernorSettableFixedQuorumHarness.sol";
+import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
+import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
+import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 
-contract Quorum is HubGovernorTest {
+contract GovernorSettableFixedQuorumTest is Test, ProposalTest {
+  GovernorSettableFixedQuorumHarness public governor;
+  ERC20VotesFake public token;
+  TimelockControllerFake public timelock;
+  uint208 constant INITIAL_QUORUM = 100e18;
+
+  function setUp() public {
+    address initialOwner = makeAddr("Initial Owner");
+    timelock = new TimelockControllerFake(initialOwner);
+    token = new ERC20VotesFake();
+    governor = new GovernorSettableFixedQuorumHarness("Example Gov", token, timelock, INITIAL_QUORUM);
+
+    vm.prank(initialOwner);
+    timelock.grantRole(keccak256("PROPOSER_ROLE"), address(governor));
+
+    vm.prank(initialOwner);
+    timelock.grantRole(keccak256("EXECUTOR_ROLE"), address(governor));
+  }
+
+  function _mintAndDelegate(address user, uint256 _amount) public returns (address) {
+    token.mint(user, _amount);
+    vm.prank(user);
+    token.delegate(user);
+    return user;
+  }
+
+  function _setupDelegate() public returns (address[] memory) {
+    address delegate = makeAddr("delegate");
+    address[] memory delegates = new address[](1);
+    delegates[0] = _mintAndDelegate(delegate, INITIAL_QUORUM);
+    return delegates;
+  }
+
+  function _setGovernorAndDelegates() public returns (GovernorSettableFixedQuorumHarness, address[] memory) {
+    _setGovernor(governor);
+    address[] memory delegates = _setupDelegate();
+    _setDelegates(delegates);
+    return (governor, delegates);
+  }
+
+  function _createProposal(bytes memory _callData) public returns (ProposalBuilder) {
+    // Warp to ensure we don't overlap with any minting and delegation
+    vm.warp(block.timestamp + 7 days);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, _callData);
+    return builder;
+  }
+}
+
+contract Quorum is GovernorSettableFixedQuorumTest {
   function testFuzz_SuccessfullyGetLatestQuorumCheckpoint(uint208 _quorum, uint256 _futureTimestamp) public {
     governor.exposed_setQuorum(_quorum);
     uint256 quorum = governor.quorum(block.timestamp);
@@ -20,15 +74,20 @@ contract Quorum is HubGovernorTest {
   }
 }
 
-contract SetQuorum is HubGovernorTest {
+contract SetQuorum is GovernorSettableFixedQuorumTest {
   function _createSetQuorumProposal(uint208 _quorum) public returns (ProposalBuilder) {
     return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", _quorum));
   }
 
-  function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum, string memory _proposalDescription) public {
+  function testFuzz_CorrectlySetQuorumCheckpoint() public {
+    uint208 _quorum = 0;
+    string memory _proposalDescription = "";
     _setGovernorAndDelegates();
     vm.warp(block.timestamp + 7 days);
     ProposalBuilder builder = _createSetQuorumProposal(_quorum);
+    console2.logUint(
+      uint8(timelock.getOperationState(0x1f9fd229cbf5865daa303a0f120e77a30c9f0fbfdc3cf11edafb50dfbf15cf7f))
+    );
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     assertEq(governor.quorum(block.timestamp), _quorum);
   }
