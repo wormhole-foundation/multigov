@@ -150,16 +150,6 @@ contract EnableTrustedVotingAddress is HubGovernorTest {
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
   }
 
-  function testFuzz_RevertIf_CallerIsNotAuthorized(address _trustedAddress, address _caller) public {
-    vm.assume(_trustedAddress != address(0));
-    vm.assume(_trustedAddress != address(timelock));
-    vm.assume(_caller != address(timelock));
-
-    vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.enableTrustedVotingAddress(_trustedAddress);
-  }
-
   function testFuzz_SetMultipleTrustedVoteAddresses(
     address _firstTrustedAddress,
     address _secondTrustedAddress,
@@ -248,6 +238,16 @@ contract EnableTrustedVotingAddress is HubGovernorTest {
     emit HubGovernor.TrustedVotingAddressUpdated(_trustedAddress, true);
     governor.execute(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
   }
+
+  function testFuzz_RevertIf_CallerIsNotAuthorized(address _trustedAddress, address _caller) public {
+    vm.assume(_trustedAddress != address(0));
+    vm.assume(_trustedAddress != address(timelock));
+    vm.assume(_caller != address(timelock));
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
+    governor.enableTrustedVotingAddress(_trustedAddress);
+  }
 }
 
 contract DisableTrustedVotingAddress is HubGovernorTest {
@@ -267,16 +267,6 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
     ProposalBuilder builder = _createDisableTrustedVotingAddressProposal(_trustedAddress);
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     assertEq(governor.trustedVotingAddresses(_trustedAddress), false);
-  }
-
-  function testFuzz_RevertIf_CallerIsNotAuthorized(address _trustedAddress, address _caller) public {
-    vm.assume(_trustedAddress != address(0));
-    vm.assume(_trustedAddress != address(timelock));
-    vm.assume(_caller != address(timelock));
-
-    vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.disableTrustedVotingAddress(_trustedAddress);
   }
 
   function testFuzz_DisableMultipleAddresses(
@@ -364,6 +354,16 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
     vm.expectEmit();
     emit HubGovernor.TrustedVotingAddressUpdated(_trustedAddress, false);
     governor.execute(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
+  }
+
+  function testFuzz_RevertIf_CallerIsNotAuthorized(address _trustedAddress, address _caller) public {
+    vm.assume(_trustedAddress != address(0));
+    vm.assume(_trustedAddress != address(timelock));
+    vm.assume(_caller != address(timelock));
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
+    governor.disableTrustedVotingAddress(_trustedAddress);
   }
 }
 
