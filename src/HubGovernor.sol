@@ -20,6 +20,8 @@ contract HubGovernor is
   GovernorTimelockControl,
   GovernorSettableFixedQuorum
 {
+  event TrustedVotingAddressUpdated(address indexed votingAddress, bool enabled);
+
   mapping(address votingAddress => bool enabled) public trustedVotingAddresses;
 
   constructor(
@@ -62,10 +64,12 @@ contract HubGovernor is
 
   function _disableTrustedVotingAddress(address _trustedAddress) internal {
     trustedVotingAddresses[_trustedAddress] = false;
+    emit TrustedVotingAddressUpdated(_trustedAddress, false);
   }
 
   function _enableTrustedVotingAddress(address _trustedAddress) internal {
     trustedVotingAddresses[_trustedAddress] = true;
+    emit TrustedVotingAddressUpdated(_trustedAddress, true);
   }
 
   function _executeOperations(

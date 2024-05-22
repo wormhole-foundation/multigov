@@ -218,6 +218,36 @@ contract EnableTrustedVotingAddress is HubGovernorTest {
 
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
   }
+
+  function testFuzz_EmitsEnableTrustedVotingAddressUpdated(address _trustedAddress, string memory _proposalDescription)
+    public
+  {
+    vm.assume(_trustedAddress != address(0));
+    vm.assume(_trustedAddress != address(timelock));
+
+    _setGovernorAndDelegates();
+
+    ProposalBuilder builder = _createEnableTrustedAddressProposal(_trustedAddress);
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.prank(delegates[0]);
+    uint256 _proposalId = governor.propose(targets, values, calldatas, _proposalDescription);
+
+    _jumpToActiveProposal(_proposalId);
+
+    _delegatesVote(_proposalId, 1);
+    _jumpPastVoteComplete(_proposalId);
+
+    governor.queue(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
+
+    _jumpPastProposalEta(_proposalId);
+
+    vm.expectEmit();
+    emit HubGovernor.TrustedVotingAddressUpdated(_trustedAddress, true);
+    governor.execute(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
+  }
 }
 
 contract DisableTrustedVotingAddress is HubGovernorTest {
@@ -304,6 +334,36 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
     );
 
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
+  }
+
+  function testFuzz_EmitsDisableTrustedVotingAddressUpdated(address _trustedAddress, string memory _proposalDescription)
+    public
+  {
+    vm.assume(_trustedAddress != address(0));
+    vm.assume(_trustedAddress != address(timelock));
+
+    _setGovernorAndDelegates();
+
+    ProposalBuilder builder = _createDisableTrustedVotingAddressProposal(_trustedAddress);
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.prank(delegates[0]);
+    uint256 _proposalId = governor.propose(targets, values, calldatas, _proposalDescription);
+
+    _jumpToActiveProposal(_proposalId);
+
+    _delegatesVote(_proposalId, 1);
+    _jumpPastVoteComplete(_proposalId);
+
+    governor.queue(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
+
+    _jumpPastProposalEta(_proposalId);
+
+    vm.expectEmit();
+    emit HubGovernor.TrustedVotingAddressUpdated(_trustedAddress, false);
+    governor.execute(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
   }
 }
 
