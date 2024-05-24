@@ -15,7 +15,7 @@ import {HubGovernorHarness} from "test/harnesses/HubGovernorHarness.sol";
 import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 
-contract HubGovernorTest is Test {
+contract HubGovernorTest is Test, ProposalTest {
   HubGovernorHarness public governor;
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
@@ -41,19 +41,40 @@ contract HubGovernorTest is Test {
     hubVotePool.transferOwnership(address(governor));
   }
 
-  // Create a proposal that can be voted on
-  function _createProposal() public returns (ProposalBuilder, address) {
-    address delegate = makeAddr("delegate");
-    token.mint(delegate, governor.proposalThreshold());
-    vm.prank(delegate);
-    token.delegate(delegate);
+  function _mintAndDelegate(address user, uint256 _amount) public returns (address) {
+    token.mint(user, _amount);
+    vm.prank(user);
+    token.delegate(user);
+    return user;
+  }
 
-    vm.warp(block.timestamp + 7 days);
+  function _setupDelegate() public returns (address[] memory) {
+    address delegate = makeAddr("delegate");
     address[] memory delegates = new address[](1);
-    delegates[0] = delegate;
+    delegates[0] = _mintAndDelegate(delegate, governor.proposalThreshold());
+    return delegates;
+  }
+
+  function _setGovernorAndDelegates() public returns (HubGovernorHarness, address[] memory) {
+    _setGovernor(governor);
+    address[] memory delegates = _setupDelegate();
+    _setDelegates(delegates);
+    return (governor, delegates);
+  }
+
+  // Creates a proposal using the currently set governor (HubGovernorHarness) as the target
+  // Use the builder to then create a proposal
+  function _createProposal(bytes memory _callData) public returns (ProposalBuilder) {
+    // Warp to ensure we don't overlap with any minting and delegation
+    vm.warp(block.timestamp + 7 days);
     ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setQuorum(uint208)", 100));
-    return (builder, delegate);
+    builder.push(address(governor), 0, _callData);
+    return builder;
+  }
+
+  // Create a proposal with arbitrary data
+  function _createArbitraryProposal() public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", 100));
   }
 }
 
@@ -113,23 +134,78 @@ contract Constructor is HubGovernorTest {
   }
 }
 
-contract EnableTrustedVotingAddress is HubGovernorTest, ProposalTest {
-  function testFuzz_SetANewTrustedVoteAddress(address _trustedAddress) public {
+contract EnableTrustedVotingAddress is HubGovernorTest {
+  function _createEnableTrustedAddressProposal(address _trustedAddress) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("enableTrustedVotingAddress(address)", _trustedAddress));
+  }
+
+  function testFuzz_SetANewTrustedVoteAddress(address _trustedAddress, string memory _proposalDescription) public {
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
-    address delegate = makeAddr("delegate");
-    token.mint(delegate, governor.proposalThreshold());
-    vm.prank(delegate);
-    token.delegate(delegate);
 
-    vm.warp(block.timestamp + 7 days);
-    address[] memory delegates = new address[](1);
-    delegates[0] = delegate;
-    _setGovernor(governor);
-    _setDelegates(delegates);
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("enableTrustedVotingAddress(address)", _trustedAddress));
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi", 1);
+    _setGovernorAndDelegates();
+
+    ProposalBuilder builder = _createEnableTrustedAddressProposal(_trustedAddress);
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
+    assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
+  }
+
+  function testFuzz_SetMultipleTrustedVoteAddresses(
+    address _firstTrustedAddress,
+    address _secondTrustedAddress,
+    string memory _proposalDescriptionFirst,
+    string memory _proposalDescriptionSecond
+  ) public {
+    vm.assume(_firstTrustedAddress != address(0) && _secondTrustedAddress != address(0));
+    vm.assume(_firstTrustedAddress != address(timelock) && _secondTrustedAddress != address(timelock));
+
+    _setGovernorAndDelegates();
+
+    ProposalBuilder firstBuilder = _createEnableTrustedAddressProposal(_firstTrustedAddress);
+    _queueAndVoteAndExecuteProposal(
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
+    );
+    ProposalBuilder secondBuilder = _createEnableTrustedAddressProposal(_secondTrustedAddress);
+    _queueAndVoteAndExecuteProposal(
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
+    );
+
+    assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), true);
+    assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), true);
+  }
+
+  function testFuzz_EnableThenDisableTrustedAddress(
+    address _trustedAddress,
+    string memory _proposalDescriptionFirst,
+    string memory _proposalDescriptionSecond,
+    string memory _proposalDescriptionThird
+  ) public {
+    vm.assume(keccak256(bytes(_proposalDescriptionFirst)) != keccak256(bytes(_proposalDescriptionThird)));
+    vm.assume(_trustedAddress != address(0));
+    vm.assume(_trustedAddress != address(timelock));
+
+    _setGovernorAndDelegates();
+
+    ProposalBuilder firstBuilder = _createEnableTrustedAddressProposal(_trustedAddress);
+    _queueAndVoteAndExecuteProposal(
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
+    );
+    assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
+
+    ProposalBuilder secondBuilder = new ProposalBuilder();
+    secondBuilder.push(
+      address(governor), 0, abi.encodeWithSignature("disableTrustedVotingAddress(address)", _trustedAddress)
+    );
+    _queueAndVoteAndExecuteProposal(
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
+    );
+    assertEq(governor.trustedVotingAddresses(_trustedAddress), false);
+
+    ProposalBuilder thirdBuilder = _createEnableTrustedAddressProposal(_trustedAddress);
+    _queueAndVoteAndExecuteProposal(
+      thirdBuilder.targets(), thirdBuilder.values(), thirdBuilder.calldatas(), _proposalDescriptionThird
+    );
+
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
   }
 
@@ -144,29 +220,80 @@ contract EnableTrustedVotingAddress is HubGovernorTest, ProposalTest {
   }
 }
 
-contract DisableTrustedVotingAddress is HubGovernorTest, ProposalTest {
-  function testFuzz_SetHubVotePool(address _trustedAddress) public {
+contract DisableTrustedVotingAddress is HubGovernorTest {
+  function _createDisableTrustedVotingAddressProposal(address _trustedAddress) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("disableTrustedVotingAddress(address)", _trustedAddress));
+  }
+
+  function testFuzz_DisableTrustedAddress(address _trustedAddress, string memory _proposalDescription) public {
     vm.assume(_trustedAddress != address(0));
     vm.assume(_trustedAddress != address(timelock));
 
     governor.exposed_enableTrustedAddress(_trustedAddress);
     assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
 
-    address delegate = makeAddr("delegate");
-    console2.logUint(governor.proposalThreshold());
-    token.mint(delegate, governor.proposalThreshold());
-    vm.prank(delegate);
-    token.delegate(delegate);
+    _setGovernorAndDelegates();
 
-    vm.warp(block.timestamp + 7 days);
-    address[] memory delegates = new address[](1);
-    delegates[0] = delegate;
-    _setGovernor(governor);
-    _setDelegates(delegates);
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("disableTrustedVotingAddress(address)", _trustedAddress));
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi", 1);
+    ProposalBuilder builder = _createDisableTrustedVotingAddressProposal(_trustedAddress);
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     assertEq(governor.trustedVotingAddresses(_trustedAddress), false);
+  }
+
+  function testFuzz_DisableMultipleAddresses(
+    address _firstTrustedAddress,
+    address _secondTrustedAddress,
+    string memory _proposalDescriptionFirst,
+    string memory _proposalDescriptionSecond
+  ) public {
+    vm.assume(_firstTrustedAddress != address(0) && _secondTrustedAddress != address(0));
+
+    governor.exposed_enableTrustedAddress(_firstTrustedAddress);
+    governor.exposed_enableTrustedAddress(_secondTrustedAddress);
+    assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), true);
+    assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), true);
+
+    _setGovernorAndDelegates();
+
+    ProposalBuilder firstBuilder = _createDisableTrustedVotingAddressProposal(_firstTrustedAddress);
+    _queueAndVoteAndExecuteProposal(
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
+    );
+
+    ProposalBuilder secondBuilder = _createDisableTrustedVotingAddressProposal(_secondTrustedAddress);
+    _queueAndVoteAndExecuteProposal(
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
+    );
+
+    assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), false);
+    assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), false);
+  }
+
+  function testFuzz_DisableThenEnableTrustedAddress(
+    address _trustedAddress,
+    string memory _proposalDescriptionFirst,
+    string memory _proposalDescriptionSecond
+  ) public {
+    vm.assume(_trustedAddress != address(0));
+    vm.assume(_trustedAddress != address(timelock));
+
+    governor.exposed_enableTrustedAddress(_trustedAddress);
+
+    _setGovernorAndDelegates();
+
+    ProposalBuilder firstBuilder = _createDisableTrustedVotingAddressProposal(_trustedAddress);
+    _queueAndVoteAndExecuteProposal(
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
+    );
+
+    ProposalBuilder secondBuilder = new ProposalBuilder();
+    secondBuilder.push(
+      address(governor), 0, abi.encodeWithSignature("enableTrustedVotingAddress(address)", _trustedAddress)
+    );
+    _queueAndVoteAndExecuteProposal(
+      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
+    );
+
+    assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
   }
 
   function testFuzz_RevertIf_CallerIsNotAuthorized(address _trustedAddress, address _caller) public {
@@ -180,68 +307,30 @@ contract DisableTrustedVotingAddress is HubGovernorTest, ProposalTest {
   }
 }
 
-contract Quorum is HubGovernorTest {
-  function testFuzz_SuccessfullyGetLatestQuorumCheckpoint(uint208 _quorum) public {
-    governor.exposed_setQuorum(_quorum);
-    uint256 quorum = governor.quorum(block.timestamp);
-    assertEq(quorum, _quorum);
-  }
-}
-
-contract SetQuorum is HubGovernorTest, ProposalTest {
-  function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum) public {
-    address delegate = makeAddr("delegate");
-    console2.logUint(governor.proposalThreshold());
-    token.mint(delegate, governor.proposalThreshold());
-    vm.prank(delegate);
-    token.delegate(delegate);
-
-    vm.warp(block.timestamp + 7 days);
-    address[] memory delegates = new address[](1);
-    delegates[0] = delegate;
-    _setGovernor(governor);
-    _setDelegates(delegates);
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setQuorum(uint208)", _quorum));
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi", 1);
-    assertEq(governor.quorum(block.timestamp), _quorum);
-  }
-
-  function testFuzz_RevertIf_CallerIsNotAuthorized(uint208 _quorum, address _caller) public {
-    // Timelock will trigger a different error
-    vm.assume(_caller != address(timelock));
-    vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.setQuorum(_quorum);
-  }
-}
-
-contract _CountVote is HubGovernorTest, ProposalTest {
+contract _CountVote is HubGovernorTest {
   function testFuzz_WhitelistedAddressCanVote(
     uint8 _support,
     uint32 _forVotes,
     uint32 _againstVotes,
-    uint32 _abstainVotes
+    uint32 _abstainVotes,
+    string memory _proposalDescription
   ) public {
-    vm.assume(uint128(_againstVotes) + _forVotes + _abstainVotes != 0);
+    uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
+    vm.assume(_totalWeight != 0);
     _support = uint8(bound(_support, 0, 2));
 
-    (ProposalBuilder builder, address delegate) = _createProposal();
-    address[] memory delegates = new address[](1);
-    delegates[0] = delegate;
-    _setGovernor(governor);
-    _setDelegates(delegates);
+    (, delegates) = _setGovernorAndDelegates();
+    (ProposalBuilder builder) = _createArbitraryProposal();
 
-    vm.startPrank(delegate);
-    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    vm.startPrank(delegates[0]);
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     vm.stopPrank();
 
     _jumpToActiveProposal(_proposalId);
 
     bytes memory voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    governor.exposed_countVote(
-      _proposalId, address(hubVotePool), _support, uint256(_forVotes) + _againstVotes + _abstainVotes, voteData
-    );
+    governor.exposed_countVote(_proposalId, address(hubVotePool), _support, _totalWeight, voteData);
 
     uint256 votingWeight = token.getVotes(address(hubVotePool));
 
@@ -250,5 +339,107 @@ contract _CountVote is HubGovernorTest, ProposalTest {
     assertEq(againstVotes, _againstVotes);
     assertEq(forVotes, _forVotes);
     assertEq(abstainVotes, _abstainVotes);
+  }
+
+  function testFuzz_NonWhitelistedAddressCanVote(
+    address _nonWhitelistedAddress,
+    uint8 _support,
+    uint32 _forVotes,
+    uint32 _againstVotes,
+    uint32 _abstainVotes,
+    string memory _proposalDescription
+  ) public {
+    uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
+    vm.assume(_totalWeight != 0);
+    vm.assume(_nonWhitelistedAddress != address(hubVotePool));
+    _support = uint8(bound(_support, 0, 2));
+
+    (, delegates) = _setGovernorAndDelegates();
+    (ProposalBuilder builder) = _createArbitraryProposal();
+
+    vm.startPrank(delegates[0]);
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
+    vm.stopPrank();
+
+    _jumpToActiveProposal(_proposalId);
+
+    bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
+    governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, _support, _totalWeight, _voteData);
+
+    (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
+
+    assertEq(againstVotes, _againstVotes);
+    assertEq(forVotes, _forVotes);
+    assertEq(abstainVotes, _abstainVotes);
+  }
+
+  function testFuzz_RevertIf_NonWhitelistedAddressTotalWeightIsZero(
+    address _nonWhitelistedAddress,
+    uint8 support,
+    uint32 _forVotes,
+    uint32 _againstVotes,
+    uint32 _abstainVotes,
+    string memory _proposalDescription
+  ) public {
+    uint256 ZERO_TOTAL_WEIGHT = 0;
+
+    vm.assume(_nonWhitelistedAddress != address(0));
+    (, delegates) = _setGovernorAndDelegates();
+    ProposalBuilder builder = _createArbitraryProposal();
+
+    vm.startPrank(delegates[0]);
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
+    vm.stopPrank();
+
+    _jumpToActiveProposal(_proposalId);
+
+    bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
+    vm.expectRevert("GovernorCountingFractional: no weight");
+    governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, support, ZERO_TOTAL_WEIGHT, _voteData);
+  }
+
+  function testFuzz_RevertIf_NonWhitelistedAddressHasAlreadyVotedWithItsWeight(
+    address _nonWhitelistedAddress,
+    uint8 _support,
+    uint32 _forVotes,
+    uint32 _againstVotes,
+    uint32 _abstainVotes,
+    bytes memory _secondCallVoteData,
+    uint256 _secondCallTotalWeight,
+    string memory _proposalDescription
+  ) public {
+    vm.assume(_nonWhitelistedAddress != address(0));
+    vm.assume(_nonWhitelistedAddress != address(hubVotePool));
+    _support = uint8(bound(_support, 0, 2));
+
+    uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
+    vm.assume(_totalWeight != 0);
+    _secondCallTotalWeight = bound(_secondCallTotalWeight, 1, _totalWeight);
+    bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
+
+    token.mint(_nonWhitelistedAddress, governor.proposalThreshold());
+    vm.prank(_nonWhitelistedAddress);
+    token.delegate(_nonWhitelistedAddress);
+
+    _setGovernor(governor);
+    (ProposalBuilder builder) = _createArbitraryProposal();
+
+    vm.startPrank(_nonWhitelistedAddress);
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
+    vm.stopPrank();
+
+    _jumpToActiveProposal(_proposalId);
+
+    governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, _support, _totalWeight, _voteData);
+
+    // Cast another vote where the second call to _countVote uses a total weight that is less than or equal to the total
+    // weight from the first call to _countVote
+    vm.expectRevert("GovernorCountingFractional: all weight cast");
+    governor.exposed_countVote(
+      _proposalId, _nonWhitelistedAddress, _support, _secondCallTotalWeight, _secondCallVoteData
+    );
   }
 }
