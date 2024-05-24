@@ -5,14 +5,14 @@ import {Test, console2} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
-import {GovernorSettableFixedQuorumHarness} from "test/harnesses/GovernorSettableFixedQuorumHarness.sol";
+import {GovernorSettableFixedQuorumFakeHarness} from "test/harnesses/GovernorSettableFixedQuorumFakeHarness.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 
 contract GovernorSettableFixedQuorumTest is Test, ProposalTest {
-  GovernorSettableFixedQuorumHarness public governor;
+  GovernorSettableFixedQuorumFakeHarness public governor;
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
   uint208 constant INITIAL_QUORUM = 100e18;
@@ -21,7 +21,7 @@ contract GovernorSettableFixedQuorumTest is Test, ProposalTest {
     address initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    governor = new GovernorSettableFixedQuorumHarness("Example Gov", token, timelock, INITIAL_QUORUM);
+    governor = new GovernorSettableFixedQuorumFakeHarness("Example Gov", token, timelock, INITIAL_QUORUM);
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("PROPOSER_ROLE"), address(governor));
@@ -44,7 +44,7 @@ contract GovernorSettableFixedQuorumTest is Test, ProposalTest {
     return delegates;
   }
 
-  function _setGovernorAndDelegates() public returns (GovernorSettableFixedQuorumHarness, address[] memory) {
+  function _setGovernorAndDelegates() public returns (GovernorSettableFixedQuorumFakeHarness, address[] memory) {
     _setGovernor(governor);
     address[] memory delegates = _setupDelegate();
     _setDelegates(delegates);

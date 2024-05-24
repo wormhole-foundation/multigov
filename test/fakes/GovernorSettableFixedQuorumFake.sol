@@ -19,7 +19,7 @@ abstract contract GovernorVoteMocks is GovernorVotes, GovernorCountingSimple {
   }
 }
 
-contract GovernorFake is GovernorVoteMocks, GovernorTimelockControl, GovernorSettableFixedQuorum {
+contract GovernorSettableFixedQuorumFake is GovernorVoteMocks, GovernorTimelockControl, GovernorSettableFixedQuorum {
   constructor(string memory _name, ERC20Votes _token, TimelockController _timelock, uint208 _initialQuorum)
     Governor(_name)
     GovernorVotes(_token)
