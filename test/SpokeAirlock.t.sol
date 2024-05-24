@@ -89,4 +89,17 @@ contract ExecuteOperations is SpokeAirlockTest {
     airlock.executeOperations(targets, values, calldatas);
     assertEq(token.balanceOf(_account), _amount);
   }
+
+  function testFuzz_RevertIf_NotCalledByMessageExecutor(address _account, uint208 _amount, address _caller) public {
+    vm.assume(_account != address(0));
+    vm.assume(_caller != address(executor));
+    ProposalBuilder builder = _createMintProposal(_account, _amount);
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.prank(_caller);
+    vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
+    airlock.executeOperations(targets, values, calldatas);
+  }
 }
