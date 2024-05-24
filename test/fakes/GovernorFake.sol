@@ -55,11 +55,11 @@ contract GovernorFake is GovernorVoteMocks, GovernorTimelockControl, GovernorSet
   }
 
   function _queueOperations(
-    uint256 _proposalId, /*proposalId*/
-    address[] memory _targets, /*targets*/
-    uint256[] memory _values, /*values*/
-    bytes[] memory _calldatas, /*calldatas*/
-    bytes32 _description /*descriptionHash*/
+    uint256 _proposalId,
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
+    bytes32 _description
   ) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
     return GovernorTimelockControl._queueOperations(_proposalId, _targets, _values, _calldatas, _description);
   }

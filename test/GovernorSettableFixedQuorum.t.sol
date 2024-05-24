@@ -3,7 +3,6 @@ pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 import {GovernorSettableFixedQuorumHarness} from "test/harnesses/GovernorSettableFixedQuorumHarness.sol";
@@ -79,15 +78,10 @@ contract SetQuorum is GovernorSettableFixedQuorumTest {
     return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", _quorum));
   }
 
-  function testFuzz_CorrectlySetQuorumCheckpoint() public {
-    uint208 _quorum = 0;
-    string memory _proposalDescription = "";
+  function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum, string memory _proposalDescription) public {
     _setGovernorAndDelegates();
     vm.warp(block.timestamp + 7 days);
     ProposalBuilder builder = _createSetQuorumProposal(_quorum);
-    console2.logUint(
-      uint8(timelock.getOperationState(0x1f9fd229cbf5865daa303a0f120e77a30c9f0fbfdc3cf11edafb50dfbf15cf7f))
-    );
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
     assertEq(governor.quorum(block.timestamp), _quorum);
   }
