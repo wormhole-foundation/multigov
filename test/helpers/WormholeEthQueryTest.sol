@@ -7,7 +7,7 @@ import {Setup} from "wormhole/Setup.sol";
 import {Wormhole} from "wormhole/Wormhole.sol";
 import {QueryResponse} from "wormhole/query/QueryResponse.sol";
 
-import {SpokeMetadataCollectorQueriesHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
+import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 
 contract WormholeEthQueryTest is Test {
   address constant DEVNET_GUARDIAN = 0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe;
@@ -22,7 +22,7 @@ contract WormholeEthQueryTest is Test {
     hex"ff0c222dc9e3655ec38e212e9792bf1860356d1277462b6bf747db865caca6fc08e6317b64ee3245264e371146b1d315d38c867fe1f69614368dc4430bb560f200";
   address GOVERNANCE_CONTRACT = 0x8a907De47E00830a2b742db65e938a3ea1070A2E; // Pooltogether governor
   Wormhole public wormhole;
-  SpokeMetadataCollectorQueriesHarness spokeMetadataCollector;
+  SpokeMetadataCollectorHarness spokeMetadataCollector;
 
   function _setupWormhole() internal {
     // Deploy the Setup contract.
