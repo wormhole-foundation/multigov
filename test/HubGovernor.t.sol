@@ -45,11 +45,18 @@ contract HubGovernorTest is Test, ProposalTest {
     token.mint(user, _amount);
     vm.prank(user);
     token.delegate(user);
+    vm.warp(block.timestamp + 1);
     return user;
   }
 
   function _setupDelegate() public returns (address[] memory) {
     address delegate = makeAddr("delegate");
+    address[] memory delegates = new address[](1);
+    delegates[0] = _mintAndDelegate(delegate, governor.proposalThreshold());
+    return delegates;
+  }
+
+  function _setupDelegate(address delegate) public returns (address[] memory) {
     address[] memory delegates = new address[](1);
     delegates[0] = _mintAndDelegate(delegate, governor.proposalThreshold());
     return delegates;
@@ -308,43 +315,43 @@ contract DisableTrustedVotingAddress is HubGovernorTest {
 }
 
 contract Propose is HubGovernorTest {
+  function _createSetTrustedProposerProposal(address _newTrustedProposer) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setTrustedProposer(address)", _newTrustedProposer));
+  }
+
   function testFuzz_TrustedProposerCanProposeWithoutMeetingProposalThreshold(
     address _trustedProposer,
-    address _proposer
+    address _proposer,
+    string memory _description
   ) public {
     vm.assume(_trustedProposer != address(0));
-    vm.warp(block.timestamp + 7 days);
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+    ProposalBuilder builder = _createSetTrustedProposerProposal(_proposer);
 
     governor.exposed_setTrustedProposer(_trustedProposer);
 
     vm.startPrank(_trustedProposer);
-    uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), _description);
     vm.stopPrank();
 
     uint256 voteStart = governor.proposalSnapshot(proposalId);
     assertEq(voteStart, block.timestamp + governor.votingDelay());
   }
 
-  function testFuzz_UntrustedProposerCanProposeWhenMeetingProposalThreshold(address _trustedProposer, address _proposer)
-    public
-  {
+  function testFuzz_UntrustedProposerCanProposeWhenMeetingProposalThreshold(
+    address _trustedProposer,
+    address _proposer,
+    string memory _description
+  ) public {
     vm.assume(_trustedProposer != address(0));
     vm.assume(_proposer != address(0));
 
-    token.mint(_proposer, governor.proposalThreshold());
-    vm.prank(_proposer);
-    token.delegate(_proposer);
-
-    vm.warp(block.timestamp + 7 days);
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+    ProposalBuilder builder = _createSetTrustedProposerProposal(_proposer);
+    _setupDelegate(_proposer);
 
     governor.exposed_setTrustedProposer(_trustedProposer);
 
     vm.startPrank(_proposer);
-    uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), _description);
     vm.stopPrank();
 
     uint256 voteStart = governor.proposalSnapshot(proposalId);
@@ -353,13 +360,12 @@ contract Propose is HubGovernorTest {
 
   function testFuzz_RevertIf_UntrustedProposerCannotProposeWithoutMeetingProposalThreshold(
     address _trustedProposer,
-    address _proposer
+    address _proposer,
+    string memory _description
   ) public {
-    vm.assume(_trustedProposer != address(0));
+    vm.assume(_trustedProposer != address(0) && _proposer != address(0));
     vm.assume(_trustedProposer != _proposer);
-    vm.warp(block.timestamp + 7 days);
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+    ProposalBuilder builder = _createSetTrustedProposerProposal(_proposer);
 
     governor.exposed_setTrustedProposer(_trustedProposer);
 
@@ -372,20 +378,15 @@ contract Propose is HubGovernorTest {
         IGovernor.GovernorInsufficientProposerVotes.selector, _proposer, 0, governor.proposalThreshold()
       )
     );
-    governor.propose(targets, values, calldatas, "Hi");
+    governor.propose(targets, values, calldatas, _description);
     vm.stopPrank();
   }
 
   function testFuzz_RevertIf_AProposalHasAnInvalidDesciption(address _proposer, address _incorrectProposer) public {
     vm.assume(_proposer != _incorrectProposer);
     vm.assume(_proposer != address(0));
-    token.mint(_proposer, governor.proposalThreshold());
-    vm.prank(_proposer);
-    token.delegate(_proposer);
-
-    vm.warp(block.timestamp + 7 days);
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+    ProposalBuilder builder = _createSetTrustedProposerProposal(_proposer);
+    _setupDelegate(_proposer);
 
     vm.startPrank(_proposer);
     address[] memory targets = builder.targets();
