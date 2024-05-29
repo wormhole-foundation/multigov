@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Test, console2} from "forge-std/Test.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
@@ -88,6 +89,33 @@ contract HubVotePoolTest is WormholeEthQueryTest {
   }
 }
 
+contract RegisterSpoke is HubVotePoolTest {
+  function testFuzz_RegisterNewSpoke(uint16 _wormholeChainId, address _spokeContract) public {
+    bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
+    vm.prank(address(governor));
+    hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
+    bytes32 wormholeAddress = hubVotePool.spokeRegistry(_wormholeChainId);
+    assertEq(wormholeAddress, spokeWormholeAddress);
+  }
+
+  function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(uint16 _wormholeChainId, address _spokeContract) public {
+    bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
+    vm.expectEmit();
+    emit HubVotePool.SpokeRegistered(
+      _wormholeChainId, hubVotePool.spokeRegistry(_wormholeChainId), spokeWormholeAddress
+    );
+    vm.prank(address(governor));
+    hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
+  }
+
+  function testFuzz_RevertIf_NotCalledByOwner(uint16 _wormholeChainId, address _spokeContract, address _caller) public {
+    bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
+  }
+}
+
 contract CrossChainEVMVote is HubVotePoolTest {
   function testFuzz_CorrectlyAddNewVote(
     uint256 _proposalId,
@@ -123,7 +151,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     assertEq(governor.proposalId(), _proposalId);
     assertEq(governor.support(), 1);
-    assertEq(governor.reason(), "rolled-up vote from governance L2 token holders");
+    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
     assertEq(governor.params(), abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes)));
     assertEq(againstVotes, _againstVotes);
     assertEq(forVotes, _forVotes);
