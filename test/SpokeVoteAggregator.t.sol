@@ -2,16 +2,19 @@
 pragma solidity ^0.8.23;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 import {Test, console2} from "forge-std/Test.sol";
 
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
+import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 import {SpokeVoteAggregatorHarness} from "test/harnesses/SpokeVoteAggregatorHarness.sol";
+import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
-import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 
 contract SpokeVoteAggregatorTest is Test {
   SpokeVoteAggregatorHarness public spokeVoteAggregator;
+  SpokeMetadataCollectorHarness public spokeMetadataCollector;
   ERC20VotesFake public token;
   WormholeMock public wormhole;
   uint16 immutable HUB_CHAIN_ID = 2;
@@ -21,9 +24,9 @@ contract SpokeVoteAggregatorTest is Test {
     address _hubProposalMetadataSender = makeAddr("Hub proposal metadata");
     wormhole = new WormholeMock();
     token = new ERC20VotesFake();
-    spokeVoteAggregator = new SpokeVoteAggregatorHarness(
-      address(wormhole), HUB_CHAIN_ID, _hubProposalMetadataSender, address(token), 1 days, owner
-    );
+    spokeMetadataCollector =
+      new SpokeMetadataCollectorHarness(address(wormhole), HUB_CHAIN_ID, _hubProposalMetadataSender);
+    spokeVoteAggregator = new SpokeVoteAggregatorHarness(address(spokeMetadataCollector), address(token), 1 days, owner);
   }
 
   function _boundProposalTime(uint48 _voteStart, uint48 _voteEnd) internal pure returns (uint48, uint48) {
@@ -37,20 +40,16 @@ contract Constructor is SpokeVoteAggregatorTest {
   function testFuzz_CorrectlySetConstructorArgs(
     address _token,
     uint32 _safeWindow,
-    address _wormholeCore,
-    uint16 _hubChainId,
-    address _hubProposalMetadataSender,
+    address _spokeMetadataCollector,
     address _owner
   ) public {
-    vm.assume(_wormholeCore != address(0));
+    vm.assume(_owner != address(0));
     SpokeVoteAggregator spokeVoteAggregator =
-      new SpokeVoteAggregator(_wormholeCore, _hubChainId, _hubProposalMetadataSender, _token, _safeWindow, _owner);
+      new SpokeVoteAggregator(_spokeMetadataCollector, _token, _safeWindow, _owner);
     assertEq(address(spokeVoteAggregator.VOTING_TOKEN()), _token);
     assertEq(spokeVoteAggregator.safeWindow(), _safeWindow);
     assertEq(spokeVoteAggregator.owner(), _owner);
-    assertEq(address(spokeVoteAggregator.WORMHOLE_CORE()), _wormholeCore);
-    assertEq(spokeVoteAggregator.HUB_CHAIN_ID(), _hubChainId);
-    assertEq(spokeVoteAggregator.HUB_PROPOSAL_METADATA(), _hubProposalMetadataSender);
+    assertEq(address(spokeVoteAggregator.spokeMetadataCollector()), _spokeMetadataCollector);
   }
 }
 
@@ -59,7 +58,7 @@ contract State is SpokeVoteAggregatorTest {
     vm.assume(_proposalId != 0);
     (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
     vm.warp(_voteStart - 1);
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
     SpokeVoteAggregator.ProposalState state = spokeVoteAggregator.state(_proposalId);
     assertEq(uint8(state), uint8(SpokeVoteAggregator.ProposalState.Pending));
   }
@@ -69,7 +68,7 @@ contract State is SpokeVoteAggregatorTest {
     (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
 
     vm.warp(_voteStart);
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
     SpokeVoteAggregator.ProposalState state = spokeVoteAggregator.state(_proposalId);
     assertEq(uint8(state), uint8(SpokeVoteAggregator.ProposalState.Active));
   }
@@ -79,7 +78,7 @@ contract State is SpokeVoteAggregatorTest {
     (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
     vm.warp(_voteEnd + 1);
 
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
     SpokeVoteAggregator.ProposalState state = spokeVoteAggregator.state(_proposalId);
     assertEq(uint8(state), uint8(SpokeVoteAggregator.ProposalState.Expired));
   }
@@ -101,7 +100,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
 
     vm.startPrank(_caller);
     vm.warp(_voteStart + 1);
@@ -127,7 +126,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.prank(_caller);
     token.delegate(_caller);
 
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
 
     vm.startPrank(_caller);
     vm.warp(uint48(_voteStart) + 1);
@@ -154,7 +153,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.prank(_caller);
     token.delegate(_caller);
 
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
     vm.startPrank(_caller);
     vm.warp(uint48(_voteStart) + 1);
     spokeVoteAggregator.castVote(_proposalId, uint8(SpokeCountingFractional.VoteType.Abstain));
@@ -177,7 +176,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     _support = uint8(bound(_support, 0, 2));
     (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
 
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
 
     vm.warp(_voteStart - 1);
     vm.startPrank(_caller);
@@ -204,7 +203,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     token.delegate(_caller);
 
     _support = uint8(bound(_support, 0, 2));
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
 
     vm.startPrank(_caller);
     vm.warp(uint48(_voteStart) + 1);
@@ -227,7 +226,7 @@ contract SetSafeWindow is SpokeVoteAggregatorTest {
     vm.assume(owner != _caller);
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(SpokeVoteAggregator.OwnerUnauthorizedAccount.selector, _caller));
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     spokeVoteAggregator.setSafeWindow(_safeWindow);
   }
 }
@@ -244,7 +243,7 @@ contract IsVotingSafe is SpokeVoteAggregatorTest {
     _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - _safeWindow));
     _voteEnd = uint48(bound(_voteEnd, _voteStart + _safeWindow, type(uint48).max));
     spokeVoteAggregator.exposed_setSafeWindow(_safeWindow);
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
     vm.warp(_voteStart);
     bool isSafe = spokeVoteAggregator.isVotingSafe(_proposalId);
     assertEq(isSafe, true);
@@ -261,7 +260,7 @@ contract IsVotingSafe is SpokeVoteAggregatorTest {
     (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
     _voteEnd = uint16(bound(_voteEnd, _safeWindow, type(uint16).max));
     spokeVoteAggregator.exposed_setSafeWindow(_safeWindow);
-    spokeVoteAggregator.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
 
     vm.warp(_voteEnd - _safeWindow + 1);
     bool isSafe = spokeVoteAggregator.isVotingSafe(_proposalId);
