@@ -6,14 +6,14 @@ import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
-import {SpokeMetadataCollectorQueriesHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
+import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 
 contract AddProposal is WormholeEthQueryTest {
   function setUp() public {
     _setupWormhole();
     spokeMetadataCollector =
-      new SpokeMetadataCollectorQueriesHarness(address(wormhole), uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
+      new SpokeMetadataCollectorHarness(address(wormhole), uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
   }
 
   function _buildAddProposalQuery(

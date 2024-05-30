@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
+import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 
 abstract contract DeploySpokeContractsBaseImpl is Script {
   // This should not be used for a production deploy the correct address will be set as an environment variable.
@@ -31,20 +32,16 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     return wallet;
   }
 
-  function run() public returns (SpokeVoteAggregator) {
+  function run() public returns (SpokeVoteAggregator, SpokeMetadataCollector) {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
     vm.startBroadcast(wallet.privateKey);
-    SpokeVoteAggregator aggregator = new SpokeVoteAggregator(
-      config.wormholeCore,
-      config.hubChainId,
-      config.hubProposalMetadata,
-      config.votingToken,
-      config.safeWindow,
-      wallet.addr
-    );
+    SpokeMetadataCollector spokeMetadataCollector =
+      new SpokeMetadataCollector(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
+    SpokeVoteAggregator aggregator =
+      new SpokeVoteAggregator(address(spokeMetadataCollector), config.votingToken, config.safeWindow, wallet.addr);
 
     vm.stopBroadcast();
-    return aggregator;
+    return (aggregator, spokeMetadataCollector);
   }
 }
