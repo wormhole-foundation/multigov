@@ -109,6 +109,7 @@ contract RegisterSpoke is HubVotePoolTest {
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(uint16 _wormholeChainId, address _spokeContract, address _caller) public {
+    vm.assume(_caller != address(governor));
     bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
