@@ -22,12 +22,6 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   bytes32 public constant BALLOT_TYPEHASH =
     keccak256("Ballot(uint256 proposalId,uint8 support,address voter,uint256 nonce)");
 
-  enum ProposalState {
-    Pending,
-    Active,
-    Expired
-  }
-
   ERC20Votes public immutable VOTING_TOKEN;
   uint48 public safeWindow;
   SpokeMetadataCollector public spokeMetadataCollector;
@@ -60,15 +54,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   }
 
   function isVotingSafe(uint256 _proposalId) external view returns (bool) {
-    SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(_proposalId);
     return _isVotingSafe(_proposalId);
-  }
-
-  function state(uint256 _proposalId) external virtual returns (ProposalState) {
-    SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(_proposalId);
-    if (VOTING_TOKEN.clock() < proposal.voteStart) return ProposalState.Pending;
-    else if (_isVotingSafe(_proposalId)) return ProposalState.Active;
-    else return ProposalState.Expired;
   }
 
   function castVote(uint256 proposalId, uint8 support) public returns (uint256) {
