@@ -59,14 +59,10 @@ contract Constructor is SpokeVoteAggregatorTest {
   }
 }
 
-
 contract CastVote is SpokeVoteAggregatorTest {
-  function testFuzz_CorrectlyCastVoteAgainst(
-    uint128 _amount,
-    uint256 _proposalId,
-    uint48 _voteStart,
-    address _caller
-  ) public {
+  function testFuzz_CorrectlyCastVoteAgainst(uint128 _amount, uint256 _proposalId, uint48 _voteStart, address _caller)
+    public
+  {
     vm.assume(_amount != 0);
     vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
@@ -85,12 +81,9 @@ contract CastVote is SpokeVoteAggregatorTest {
     assertEq(against, _amount, "Votes against are not correct");
   }
 
-  function testFuzz_CorrectlyCastVoteFor(
-    uint128 _amount,
-    uint256 _proposalId,
-    uint48 _voteStart,
-    address _caller
-  ) public {
+  function testFuzz_CorrectlyCastVoteFor(uint128 _amount, uint256 _proposalId, uint48 _voteStart, address _caller)
+    public
+  {
     vm.assume(_amount != 0);
     vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
@@ -111,12 +104,9 @@ contract CastVote is SpokeVoteAggregatorTest {
     assertEq(forVotes, _amount, "Votes for are not correct");
   }
 
-  function testFuzz_CorrectlyCastVoteAbstain(
-    uint128 _amount,
-    uint256 _proposalId,
-    uint48 _voteStart,
-    address _caller
-  ) public {
+  function testFuzz_CorrectlyCastVoteAbstain(uint128 _amount, uint256 _proposalId, uint48 _voteStart, address _caller)
+    public
+  {
     vm.assume(_amount != 0);
     vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
@@ -203,11 +193,7 @@ contract SetSafeWindow is SpokeVoteAggregatorTest {
 }
 
 contract IsVotingSafe is SpokeVoteAggregatorTest {
-  function testFuzz_GetIsProposalSafeForSafeProposal(
-    uint16 _safeWindow,
-    uint256 _proposalId,
-    uint48 _voteStart
-  ) public {
+  function testFuzz_GetIsProposalSafeForSafeProposal(uint16 _safeWindow, uint256 _proposalId, uint48 _voteStart) public {
     vm.assume(_safeWindow != 0);
     vm.assume(_proposalId != 0);
     _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - _safeWindow));
