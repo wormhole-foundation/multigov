@@ -118,7 +118,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
 
-    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
+    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes,) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(2, _proposalId)));
 
     assertEq(governor.proposalId(), _proposalId);

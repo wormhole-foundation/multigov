@@ -33,6 +33,7 @@ contract HubVotePool is QueryResponse, Ownable {
     uint128 againstVotes;
     uint128 forVotes;
     uint128 abstainVotes;
+    uint48 lastReported;
   }
 
   struct SpokeVoteAggregator {
@@ -44,6 +45,7 @@ contract HubVotePool is QueryResponse, Ownable {
 
   // Instead of nested mapping create encoding for the key
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
+  uint16[] public activeChains;
 
   constructor(address _core, address _hubGovernor, SpokeVoteAggregator[] memory _initialSpokeRegistry)
     QueryResponse(_core)
@@ -55,7 +57,26 @@ contract HubVotePool is QueryResponse, Ownable {
       SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
       spokeRegistry[aggregator.wormholeChainId] = bytes32(uint256(uint160(aggregator.addr)));
       emit SpokeRegistered(aggregator.wormholeChainId, bytes32(uint256(uint160(aggregator.addr))));
+      activeChains.push(aggregator.wormholeChainId);
     }
+  }
+
+  function canExtend(uint256 _proposalId) external view returns (bool) {
+    // 4 hours would be a settable unsafe period
+    uint256 unsafePeriod = hubGovernor.proposalDeadline(_proposalId) - 4 hours;
+    // We would need to change hubGovernor type to not be IGovernor
+    //uint256 extended = hubGovernor.extendedDeadlines(_proposalId);
+    //if (extended != 0) {
+    //		return false;
+    //}
+    for (uint256 i = 0; i < activeChains.length; i++) {
+      uint16 spokeChainId = activeChains[i];
+      bytes32 _spokeProposalId = keccak256(abi.encode(spokeChainId, _proposalId));
+      ProposalVote memory proposalVote = spokeProposalVotes[_spokeProposalId];
+      // check it hasnt't already been extended
+      if (proposalVote.lastReported <= unsafePeriod) return true;
+    }
+    return false;
   }
 
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
@@ -99,14 +120,15 @@ contract HubVotePool is QueryResponse, Ownable {
         || existingSpokeVote.abstainVotes > abstainVotes
     ) revert InvalidProposalVote();
 
-    spokeProposalVotes[_spokeProposalId] = ProposalVote(againstVotes, forVotes, abstainVotes);
+    spokeProposalVotes[_spokeProposalId] = ProposalVote(againstVotes, forVotes, abstainVotes, uint48(block.timestamp));
 
     _castVote(
       proposalId,
       ProposalVote(
         againstVotes - existingSpokeVote.againstVotes,
         forVotes - existingSpokeVote.forVotes,
-        abstainVotes - existingSpokeVote.abstainVotes
+        abstainVotes - existingSpokeVote.abstainVotes,
+        uint48(block.timestamp)
       ),
       perChainResp.chainId
     );

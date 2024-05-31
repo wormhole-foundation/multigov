@@ -5,12 +5,14 @@ import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import {GovernorCountingFractional} from "flexible-voting/GovernorCountingFractional.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
+import {HubVotePool} from "src/HubVotePool.sol";
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 
 contract HubGovernor is
@@ -21,6 +23,16 @@ contract HubGovernor is
   GovernorSettableFixedQuorum
 {
   mapping(address votingAddress => bool enabled) public trustedVotingAddresses;
+  address public trustedVoteExtender;
+  uint48 public proposalExtension;
+  HubVotePool public hubVotePool;
+
+  error AddressCannotExtendProposal();
+  error ProposalAlreadyExtended();
+  error ProposalCannotBeExtended();
+  error CancelProposalIsPending();
+
+  mapping(uint256 proposalId => uint48 newVoteEnd) public extendedDeadlines;
 
   constructor(
     string memory _name,
@@ -39,6 +51,9 @@ contract HubGovernor is
     GovernorSettableFixedQuorum(_initialQuorum)
   {
     _enableTrustedVotingAddress(_trustedVotingAddress);
+    trustedVoteExtender = 0xEAC5F0d4A9a45E1f9FdD0e7e2882e9f60E301156; // test address
+    proposalExtension = 3 days;
+    hubVotePool = HubVotePool(_trustedVotingAddress);
   }
 
   function enableTrustedVotingAddress(address _trustedAddress) external {
@@ -49,6 +64,30 @@ contract HubGovernor is
   function disableTrustedVotingAddress(address _trustedAddress) external {
     _checkGovernance();
     _disableTrustedVotingAddress(_trustedAddress);
+  }
+
+  function extendProposal(
+    uint256 _proposalId,
+    address[] calldata targets,
+    uint256[] calldata values,
+    bytes[] calldata calldatas,
+    bytes32 descriptionHash
+  ) external {
+    // We could check if the id is pending in the timelock
+    // if it is then revert it should be cancelled.
+    bytes32 salt = _timelockInternalSalt(descriptionHash);
+    bytes32 timelockId = TimelockController(payable(timelock())).hashOperationBatch(targets, values, calldatas, 0, salt);
+    bool isPending = TimelockController(payable(timelock())).isOperationPending(timelockId);
+    if (isPending) revert CancelProposalIsPending();
+    if (msg.sender != trustedVoteExtender) revert AddressCannotExtendProposal();
+    if (extendedDeadlines[_proposalId] == 0) revert ProposalAlreadyExtended();
+    // also can't extend if executed or defeated or canceled etc..
+    if (!hubVotePool.canExtend(_proposalId)) revert ProposalCannotBeExtended();
+    extendedDeadlines[_proposalId] = uint48(block.timestamp) + proposalExtension;
+  }
+
+  function proposalDeadline(uint256 _proposalId) public view virtual override returns (uint256) {
+    return Math.max(super.proposalDeadline(_proposalId), extendedDeadlines[_proposalId]);
   }
 
   function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
@@ -130,5 +169,9 @@ contract HubGovernor is
 
     if (voteData.length == 0) _countVoteNominal(proposalId, account, safeTotalWeight, support);
     else _countVoteFractional(proposalId, account, safeTotalWeight, voteData);
+  }
+
+  function _timelockInternalSalt(bytes32 descriptionHash) internal view returns (bytes32) {
+    return bytes20(address(this)) ^ descriptionHash;
   }
 }
