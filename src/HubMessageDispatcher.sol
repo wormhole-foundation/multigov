@@ -12,8 +12,6 @@ contract HubMessageDispatcher is WormholeDispatcher {
     WormholeDispatcher(_timelock, _core, _dispatchConsistencyLevel)
   {}
 
-  // Opting for single call because handling failure cases will be much easier.
-  // And the calldata will be simpler to put together.
   function dispatch(bytes calldata _payload) external {
     _checkOwner();
 
