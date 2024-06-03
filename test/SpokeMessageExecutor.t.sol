@@ -139,14 +139,14 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     uint32 _nonce,
     uint64 _sequence,
     uint8 _consistencyLevel,
-    uint256 _proposalId,
+    uint256 _messageId,
     uint208 _amount
   ) public {
     // build simple proposal
     address account = makeAddr("Token holder");
     ProposalBuilder builder = _createMintProposal(account, _amount);
     bytes memory _payload =
-      abi.encode(_proposalId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
+      abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
     (bytes memory vaa, bytes32 hash) = _buildVm(
       _timestamp,
       _nonce,
@@ -168,14 +168,14 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     uint32 _nonce,
     uint64 _sequence,
     uint8 _consistencyLevel,
-    uint256 _proposalId,
+    uint256 _messageId,
     uint208 _amount
   ) public {
     // build simple proposal
     address account = makeAddr("Token holder");
     ProposalBuilder builder = _createMintProposal(account, _amount);
     bytes memory _payload =
-      abi.encode(_proposalId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
+      abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
     (bytes memory vaa,) = _buildVm(
       _timestamp,
       _nonce,
@@ -186,7 +186,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
       _payload
     );
     vm.expectEmit();
-    emit SpokeMessageExecutor.ProposalExecuted(_proposalId);
+    emit SpokeMessageExecutor.ProposalExecuted(_messageId);
 
     executor.receiveMessage(vaa);
   }
@@ -196,7 +196,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     uint32 _nonce,
     uint64 _sequence,
     uint8 _consistencyLevel,
-    uint256 _proposalId,
+    uint256 _messageId,
     uint208 _amount,
     address _dispatcher
   ) public {
@@ -205,7 +205,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     address account = makeAddr("Token holder");
     ProposalBuilder builder = _createMintProposal(account, _amount);
     bytes memory _payload =
-      abi.encode(_proposalId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
+      abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
     (bytes memory vaa,) = _buildVm(
       _timestamp,
       _nonce,
@@ -225,7 +225,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     uint32 _nonce,
     uint64 _sequence,
     uint8 _consistencyLevel,
-    uint256 _proposalId,
+    uint256 _messageId,
     uint208 _amount,
     uint16 _dispatcherChainId
   ) public {
@@ -234,7 +234,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     address account = makeAddr("Token holder");
     ProposalBuilder builder = _createMintProposal(account, _amount);
     bytes memory _payload =
-      abi.encode(_proposalId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
+      abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
     (bytes memory vaa,) = _buildVm(
       _timestamp,
       _nonce,
@@ -249,12 +249,90 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     executor.receiveMessage(vaa);
   }
 
+  function testFuzz_RevertIf_LengthOfOperationTargetsIsNotTheSame(
+    uint32 _timestamp,
+    uint32 _nonce,
+    uint64 _sequence,
+    uint8 _consistencyLevel,
+    uint256 _messageId,
+    uint208 _amount
+  ) public {
+    address account = makeAddr("Token holder");
+    ProposalBuilder builder = _createMintProposal(account, _amount);
+    bytes memory _payload =
+      abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, new address[](0), builder.values(), builder.calldatas());
+    (bytes memory vaa,) = _buildVm(
+      _timestamp,
+      _nonce,
+      WORMHOLE_HUB_CHAIN,
+      bytes32(uint256(uint160(hubDispatcher))),
+      _sequence,
+      _consistencyLevel,
+      _payload
+    );
+
+    vm.expectRevert(abi.encodeWithSelector(SpokeMessageExecutor.InvalidSpokeExecutorOperationLength.selector, 0, 1, 1));
+    executor.receiveMessage(vaa);
+  }
+
+  function testFuzz_RevertIf_LengthOfOperationValuesIsNotTheSame(
+    uint32 _timestamp,
+    uint32 _nonce,
+    uint64 _sequence,
+    uint8 _consistencyLevel,
+    uint256 _messageId,
+    uint208 _amount
+  ) public {
+    address account = makeAddr("Token holder");
+    ProposalBuilder builder = _createMintProposal(account, _amount);
+    bytes memory _payload =
+      abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), new address[](0), builder.calldatas());
+    (bytes memory vaa,) = _buildVm(
+      _timestamp,
+      _nonce,
+      WORMHOLE_HUB_CHAIN,
+      bytes32(uint256(uint160(hubDispatcher))),
+      _sequence,
+      _consistencyLevel,
+      _payload
+    );
+
+    vm.expectRevert(abi.encodeWithSelector(SpokeMessageExecutor.InvalidSpokeExecutorOperationLength.selector, 1, 0, 1));
+    executor.receiveMessage(vaa);
+  }
+
+  function testFuzz_RevertIf_LengthOfOperationCalldatasIsNotTheSame(
+    uint32 _timestamp,
+    uint32 _nonce,
+    uint64 _sequence,
+    uint8 _consistencyLevel,
+    uint256 _messageId,
+    uint208 _amount
+  ) public {
+    address account = makeAddr("Token holder");
+    ProposalBuilder builder = _createMintProposal(account, _amount);
+    bytes memory _payload =
+      abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), new address[](0));
+    (bytes memory vaa,) = _buildVm(
+      _timestamp,
+      _nonce,
+      WORMHOLE_HUB_CHAIN,
+      bytes32(uint256(uint160(hubDispatcher))),
+      _sequence,
+      _consistencyLevel,
+      _payload
+    );
+
+    vm.expectRevert(abi.encodeWithSelector(SpokeMessageExecutor.InvalidSpokeExecutorOperationLength.selector, 1, 1, 0));
+    executor.receiveMessage(vaa);
+  }
+
   function testFuzz_RevertIf_MessageMeantForADifferentSpokeChain(
     uint32 _timestamp,
     uint32 _nonce,
     uint64 _sequence,
     uint8 _consistencyLevel,
-    uint256 _proposalId,
+    uint256 _messageId,
     uint208 _amount,
     uint16 _targetChainId
   ) public {
@@ -263,7 +341,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     address account = makeAddr("Token holder");
     ProposalBuilder builder = _createMintProposal(account, _amount);
     bytes memory _payload =
-      abi.encode(_proposalId, _targetChainId, builder.targets(), builder.values(), builder.calldatas());
+      abi.encode(_messageId, _targetChainId, builder.targets(), builder.values(), builder.calldatas());
     (bytes memory vaa,) = _buildVm(
       _timestamp,
       _nonce,

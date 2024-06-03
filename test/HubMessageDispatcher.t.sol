@@ -47,12 +47,12 @@ contract Dispatch is HubMessageDispatcherTest {
     string memory _description,
     uint16 _wormholeChainId
   ) public {
-    uint256 proposalId = governor.hashProposal(_targets, _values, _calldatas, keccak256(bytes(_description)));
+    uint256 nextMessageId = dispatcher.nextMessageId();
     bytes memory payload = abi.encode(_wormholeChainId, _targets, _values, _calldatas, keccak256(bytes(_description)));
     dispatcher.dispatch(payload);
     assertEq(
       wormholeCoreMock.ghostPublishMessagePayload(),
-      abi.encode(proposalId, _wormholeChainId, _targets, _values, _calldatas)
+      abi.encode(nextMessageId, _wormholeChainId, _targets, _values, _calldatas)
     );
   }
 
@@ -63,12 +63,12 @@ contract Dispatch is HubMessageDispatcherTest {
     string memory _description,
     uint16 _wormholeChainId
   ) public {
-    uint256 proposalId = governor.hashProposal(_targets, _values, _calldatas, keccak256(bytes(_description)));
+    uint256 nextMessageId = dispatcher.nextMessageId();
     bytes memory payload = abi.encode(_wormholeChainId, _targets, _values, _calldatas, keccak256(bytes(_description)));
-    bytes memory emittedPayload = abi.encode(proposalId, _wormholeChainId, _targets, _values, _calldatas);
+    bytes memory emittedPayload = abi.encode(nextMessageId, _wormholeChainId, _targets, _values, _calldatas);
 
     vm.expectEmit();
-    emit HubMessageDispatcher.MessageDispatched(proposalId, emittedPayload);
+    emit HubMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);
     dispatcher.dispatch(payload);
   }
 }

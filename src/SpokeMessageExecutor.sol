@@ -19,6 +19,7 @@ contract SpokeMessageExecutor {
   error AlreadyInitialized();
   error InvalidCaller();
   error InvalidWormholeMessage(string);
+  error InvalidSpokeExecutorOperationLength(uint256, uint256, uint256);
   error UnknownMessageEmitter();
 
   event ProposalExecuted(uint256 proposalId);
@@ -66,12 +67,16 @@ contract SpokeMessageExecutor {
     }
 
     (
-      uint256 _proposalId,
+      uint256 _messageId,
       uint16 _wormholeChainId,
       address[] memory _targets,
       uint256[] memory _values,
       bytes[] memory _calldatas
     ) = abi.decode(wormholeMessage.payload, (uint256, uint16, address[], uint256[], bytes[]));
+
+    if (_targets.length != _values.length || _targets.length != _calldatas.length) {
+      revert InvalidSpokeExecutorOperationLength(_targets.length, _values.length, _calldatas.length);
+    }
 
     _validateChainId(_wormholeChainId);
 
@@ -79,6 +84,6 @@ contract SpokeMessageExecutor {
     // Should there be a deadline
     airlock.executeOperations(_targets, _values, _calldatas);
     messageReceived[wormholeMessage.hash] = true;
-    emit ProposalExecuted(_proposalId);
+    emit ProposalExecuted(_messageId);
   }
 }
