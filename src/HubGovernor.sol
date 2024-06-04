@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
@@ -75,14 +76,14 @@ contract HubGovernor is
   ) external {
     // We could check if the id is pending in the timelock
     // if it is then revert it should be cancelled.
-    bytes32 salt = _timelockInternalSalt(descriptionHash);
-    bytes32 timelockId = TimelockController(payable(timelock())).hashOperationBatch(targets, values, calldatas, 0, salt);
-    bool isPending = TimelockController(payable(timelock())).isOperationPending(timelockId);
-    if (isPending) revert CancelProposalIsPending();
+    // bytes32 salt = _timelockInternalSalt(descriptionHash);
+    // bytes32 timelockId = TimelockController(payable(timelock())).hashOperationBatch(targets, values, calldatas, 0, salt);
+    // bool isPending = TimelockController(payable(timelock())).isOperationPending(timelockId);
+    // if (isPending) revert CancelProposalIsPending();
     if (msg.sender != trustedVoteExtender) revert AddressCannotExtendProposal();
-    if (extendedDeadlines[_proposalId] == 0) revert ProposalAlreadyExtended();
+    if (extendedDeadlines[_proposalId] != 0) revert ProposalAlreadyExtended();
     // also can't extend if executed or defeated or canceled etc..
-    if (!hubVotePool.canExtend(_proposalId)) revert ProposalCannotBeExtended();
+    if (!hubVotePool.canExtend(_proposalId) || state(_proposalId) == IGovernor.ProposalState.Canceled) revert ProposalCannotBeExtended();
     extendedDeadlines[_proposalId] = uint48(block.timestamp) + proposalExtension;
   }
 

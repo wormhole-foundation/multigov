@@ -38,6 +38,12 @@ contract HubGovernorTest is Test, ProposalTest {
     timelock.grantRole(keccak256("EXECUTOR_ROLE"), address(governor));
 
     vm.prank(initialOwner);
+    timelock.grantRole(keccak256("CANCELLER_ROLE"), address(governor));
+
+    vm.prank(initialOwner);
+	hubVotePool.setGovernor(address(governor));
+
+    vm.prank(initialOwner);
     hubVotePool.transferOwnership(address(governor));
   }
 
@@ -441,5 +447,66 @@ contract _CountVote is HubGovernorTest {
     governor.exposed_countVote(
       _proposalId, _nonWhitelistedAddress, _support, _secondCallTotalWeight, _secondCallVoteData
     );
+  }
+}
+
+// Downside
+// 1. Give trusted address ability to cancel proposal in timelock. Arbitrary.
+// 2. State will not be cleaned up in GovernorTimelockControl.
+// 3. Governor contract size
+// Requirements
+// 1. Can extend if proposal is not pending in timelock
+// 2. Can only be extended by trusted address
+// 3. Can't re-extend exisiting proposal
+// 4. Cannot extend executed, defeated, successful, canceled, executed proposal
+// 5. HubVotePool has proposed to extend
+
+// Biggest test
+// 1. propose have the proposal get queued, then try to cancel, then cancel and extend
+
+contract ExtensionSpike is HubGovernorTest {
+  function testFuzz_MostComplicatedExtensionPath(address _nonWhitelistedAddress) public {
+		  // avoid early block edge cases
+    vm.warp(block.timestamp + 7 days);
+    vm.assume(_nonWhitelistedAddress != address(0));
+    vm.assume(_nonWhitelistedAddress != address(hubVotePool));
+    token.mint(_nonWhitelistedAddress, governor.proposalThreshold());
+    vm.prank(_nonWhitelistedAddress);
+    token.delegate(_nonWhitelistedAddress);
+    _setGovernor(governor);
+
+    ProposalBuilder builder =
+      _createProposal(abi.encodeWithSignature("disableTrustedVotingAddress(address)", address(0)));
+    vm.startPrank(_nonWhitelistedAddress);
+    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    vm.stopPrank();
+
+    _jumpToActiveProposal(_proposalId);
+    vm.prank(_nonWhitelistedAddress);
+    governor.castVote(_proposalId, 1);
+    // _jumpPastVoteComplete(_proposalId);
+    //governor.queue(builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes("Hi")));
+	address extender =  0xEAC5F0d4A9a45E1f9FdD0e7e2882e9f60E301156;
+
+    address[] memory _targets = builder.targets();
+	uint256[] memory _values = builder.values();
+	bytes[] memory _calldatas = builder.calldatas();
+	// vm.prank(extender);
+	// vm.expectRevert(HubGovernor.CancelProposalIsPending.selector);
+	// governor.extendProposal(_proposalId,_targets, _values, _calldatas, keccak256(bytes("Hi")));
+
+    // bytes32 timelockId = TimelockController(payable(timelock)).hashOperationBatch(builder.targets(), builder.values(), builder.calldatas(), 0, bytes20(address(governor)) ^ keccak256(bytes("Hi")));
+
+	// vm.prank(address(governor));
+	// timelock.cancel(timelockId);
+	
+
+	vm.prank(extender);
+	governor.extendProposal(_proposalId,_targets, _values, _calldatas, keccak256(bytes("Hi")));
+    _jumpPastVoteComplete(_proposalId);
+	console2.log(uint8(governor.state(_proposalId)));
+	console2.log(uint8(IGovernor.ProposalState.Canceled));
+    governor.queue(builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes("Hi")));
+
   }
 }
