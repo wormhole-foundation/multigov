@@ -122,6 +122,32 @@ contract AddProposal is SpokeMetadataCollectorTest {
     assertEq(proposal.voteStart, _voteStart);
   }
 
+  function testFuzzSuccessfullyAddMultipleProposals(
+    uint256 _proposalId1,
+    uint256 _proposalId2,
+    uint256 _voteStart1,
+    uint256 _voteEnd1,
+    uint256 _voteStart2,
+    uint256 _voteEnd2
+  ) public {
+    vm.assume(_proposalId1 != 0 && _proposalId2 != 0);
+    vm.assume(_voteStart1 != 0 && _voteStart1 != type(uint256).max);
+    vm.assume(_voteStart2 != 0 && _voteStart2 != type(uint256).max);
+    _voteEnd1 = bound(_voteEnd1, _voteStart1 + 1, type(uint256).max);
+    _voteEnd2 = bound(_voteEnd2, _voteStart2 + 1, type(uint256).max);
+
+    _addProposal(_proposalId1, _voteStart1, _voteEnd1);
+    _addProposal(_proposalId2, _voteStart2, _voteEnd2);
+
+    SpokeMetadataCollector.Proposal memory proposal1 = spokeMetadataCollector.exposed_proposals(_proposalId1);
+    SpokeMetadataCollector.Proposal memory proposal2 = spokeMetadataCollector.exposed_proposals(_proposalId2);
+
+    assertEq(proposal1.voteStart, _voteStart1);
+    assertEq(proposal1.voteEnd, _voteEnd1);
+    assertEq(proposal2.voteStart, _voteStart2);
+    assertEq(proposal2.voteEnd, _voteEnd2);
+  }
+
   function testFuzz_RevertIf_SenderChainIsNotTheHubChain(
     uint256 _proposalId,
     uint256 _voteStart,
