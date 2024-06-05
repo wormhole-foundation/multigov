@@ -130,7 +130,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     uint256 _voteStart2,
     uint256 _voteEnd2
   ) public {
-    vm.assume(_proposalId1 != 0 && _proposalId2 != 0);
+    vm.assume(_proposalId1 != 0 && _proposalId2 != 0 && _proposalId1 != _proposalId2);
     vm.assume(_voteStart1 != 0 && _voteStart1 != type(uint256).max);
     vm.assume(_voteStart2 != 0 && _voteStart2 != type(uint256).max);
     _voteEnd1 = bound(_voteEnd1, _voteStart1 + 1, type(uint256).max);
