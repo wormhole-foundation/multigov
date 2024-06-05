@@ -8,6 +8,7 @@ import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
+import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 
 contract Constructor is Test {
   function testFuzz_CorrectlySetContstructorArgs(address _core, uint16 _hubChainId, address _hubProposalMetadata)
@@ -19,6 +20,11 @@ contract Constructor is Test {
     assertEq(address(spokeMetadataCollector.WORMHOLE_CORE()), _core);
     assertEq(spokeMetadataCollector.HUB_CHAIN_ID(), _hubChainId);
     assertEq(spokeMetadataCollector.HUB_PROPOSAL_METADATA(), _hubProposalMetadata);
+  }
+
+  function testFuzz_RevertIf_CoreIsZero(address _hubProposalMetadata, uint16 _hubChainId) public {
+    vm.expectRevert(EmptyWormholeAddress.selector);
+    new SpokeMetadataCollector(address(0), _hubChainId, _hubProposalMetadata);
   }
 }
 
