@@ -1,13 +1,26 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {console2} from "forge-std/Test.sol";
+import {console2, Test} from "forge-std/Test.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
+
+contract Constructor is Test {
+  function testFuzz_CorrectlySetContstructorArgs(address _core, uint16 _hubChainId, address _hubProposalMetadata)
+    public
+  {
+    vm.assume(_core != address(0));
+
+    SpokeMetadataCollector spokeMetadataCollector = new SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadata);
+    assertEq(address(spokeMetadataCollector.WORMHOLE_CORE()), _core);
+    assertEq(spokeMetadataCollector.HUB_CHAIN_ID(), _hubChainId);
+    assertEq(spokeMetadataCollector.HUB_PROPOSAL_METADATA(), _hubProposalMetadata);
+  }
+}
 
 contract AddProposal is WormholeEthQueryTest {
   function setUp() public {
