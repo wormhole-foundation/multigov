@@ -122,7 +122,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     assertEq(proposal.voteStart, _voteStart);
   }
 
-  function testFuzzSuccessfullyAddMultipleProposals(
+  function testFuzz_SuccessfullyAddMultipleProposals(
     uint256 _proposalId1,
     uint256 _proposalId2,
     uint256 _voteStart1,
