@@ -24,7 +24,7 @@ contract SpokeMessageExecutor {
 
   event ProposalExecuted(uint256 proposalId);
 
-  mapping(bytes32 messageHash => bool exectured) public messageReceived;
+  mapping(bytes32 messageHash => bool executed) public messageReceived;
 
   constructor(bytes32 _hubDispatcher, uint16 _hubChainId, IWormhole _wormholeCore, uint16 _spokeChainId) {
     HUB_DISPATCHER = _hubDispatcher;
