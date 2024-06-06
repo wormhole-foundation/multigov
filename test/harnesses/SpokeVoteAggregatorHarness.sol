@@ -8,7 +8,7 @@ contract SpokeVoteAggregatorHarness is SpokeVoteAggregator {
     SpokeVoteAggregator(_spokeMetadataCollector, _votingToken, _safeWindow, _owner)
   {}
 
-  function exposed_setSafeWindow(uint32 _safeWindow) public {
+  function exposed_setSafeWindow(uint48 _safeWindow) public {
     _setSafeWindow(_safeWindow);
   }
 }

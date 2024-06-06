@@ -8,8 +8,8 @@ contract SpokeMetadataCollectorHarness is SpokeMetadataCollector {
     SpokeMetadataCollector(_core, _hubChainId, _hubGovernor)
   {}
 
-  function workaround_createProposal(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd) public {
-    proposals[_proposalId] = Proposal({voteStart: _voteStart, voteEnd: _voteEnd});
+  function workaround_createProposal(uint256 _proposalId, uint256 _voteStart) public {
+    proposals[_proposalId] = Proposal({voteStart: _voteStart});
   }
 
   function exposed_proposals(uint256 _proposalId) external view returns (Proposal memory) {

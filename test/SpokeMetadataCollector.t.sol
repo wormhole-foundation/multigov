@@ -81,7 +81,6 @@ contract AddProposal is WormholeEthQueryTest {
     SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.exposed_proposals(_proposalId);
 
     assertEq(proposal.voteStart, _voteStart);
-    assertEq(proposal.voteEnd, _voteEnd);
   }
 
   function testFuzz_RevertIf_SenderChainIsNotTheHubChain(

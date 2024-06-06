@@ -10,9 +10,8 @@ contract HubProposalMetadata {
     GOVERNOR = IGovernor(_governor);
   }
 
-  function getProposalMetadata(uint256 _proposalId) external view returns (uint256, uint256, uint256) {
+  function getProposalMetadata(uint256 _proposalId) external view returns (uint256, uint256) {
     uint256 voteStart = GOVERNOR.proposalSnapshot(_proposalId);
-    uint256 voteEnd = GOVERNOR.proposalDeadline(_proposalId);
-    return (_proposalId, voteStart, voteEnd);
+    return (_proposalId, voteStart);
   }
 }

@@ -22,14 +22,8 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   bytes32 public constant BALLOT_TYPEHASH =
     keccak256("Ballot(uint256 proposalId,uint8 support,address voter,uint256 nonce)");
 
-  enum ProposalState {
-    Pending,
-    Active,
-    Expired
-  }
-
   ERC20Votes public immutable VOTING_TOKEN;
-  uint32 public safeWindow;
+  uint48 public safeWindow;
   SpokeMetadataCollector public spokeMetadataCollector;
 
   error InvalidSignature(address voter);
@@ -54,21 +48,13 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     spokeMetadataCollector = SpokeMetadataCollector(_spokeMetadataCollector);
   }
 
-  function setSafeWindow(uint32 _safeWindow) external {
+  function setSafeWindow(uint48 _safeWindow) external {
     _checkOwner();
     _setSafeWindow(_safeWindow);
   }
 
   function isVotingSafe(uint256 _proposalId) external view returns (bool) {
-    SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(_proposalId);
-    return (proposal.voteEnd - safeWindow) >= block.timestamp;
-  }
-
-  function state(uint256 _proposalId) external view virtual returns (ProposalState) {
-    SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(_proposalId);
-    if (VOTING_TOKEN.clock() < proposal.voteStart) return ProposalState.Pending;
-    else if (voteActiveInternal(_proposalId)) return ProposalState.Active;
-    else return ProposalState.Expired;
+    return _isVotingSafe(_proposalId);
   }
 
   function castVote(uint256 proposalId, uint8 support) public returns (uint256) {
@@ -128,7 +114,12 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     return weight;
   }
 
-  function _setSafeWindow(uint32 _safeWindow) internal {
+  function _isVotingSafe(uint256 _proposalId) internal view returns (bool) {
+    SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(_proposalId);
+    return (proposal.voteStart + safeWindow) >= block.timestamp;
+  }
+
+  function _setSafeWindow(uint48 _safeWindow) internal {
     safeWindow = _safeWindow;
   }
 
@@ -136,6 +127,6 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(proposalId);
     // TODO: do we need to use voting token clock or can we replace w more efficient block.timestamp
     uint256 _time = VOTING_TOKEN.clock();
-    return _time <= proposal.voteEnd && _time >= proposal.voteStart;
+    return _time >= proposal.voteStart;
   }
 }
