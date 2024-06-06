@@ -26,7 +26,7 @@ contract HubVotePool is QueryResponse, Ownable {
     uint16 indexed emitterChainId, uint256 proposalId, uint256 voteAgainst, uint256 voteFor, uint256 voteAbstain
   );
 
-  event SpokeRegistered(uint16 indexed targetChain, bytes32 spokeVoteAddress);
+  event SpokeRegistered(uint16 indexed targetChain, bytes32 oldSpokeVoteAddress, bytes32 newSpokeVoteAddress);
 
   /// @dev Contains the distribution of a proposal vote.
   struct ProposalVote {
@@ -54,14 +54,16 @@ contract HubVotePool is QueryResponse, Ownable {
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
       SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
       spokeRegistry[aggregator.wormholeChainId] = bytes32(uint256(uint160(aggregator.addr)));
-      emit SpokeRegistered(aggregator.wormholeChainId, bytes32(uint256(uint160(aggregator.addr))));
+      emit SpokeRegistered(
+        aggregator.wormholeChainId, bytes32(uint256(uint160(address(0)))), bytes32(uint256(uint160(aggregator.addr)))
+      );
     }
   }
 
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
     _checkOwner();
+    emit SpokeRegistered(_targetChain, spokeRegistry[_targetChain], _spokeVoteAddress);
     spokeRegistry[_targetChain] = _spokeVoteAddress;
-    emit SpokeRegistered(_targetChain, _spokeVoteAddress);
   }
 
   function setGovernor(address _newGovernor) external {
@@ -116,7 +118,7 @@ contract HubVotePool is QueryResponse, Ownable {
     bytes memory votes = abi.encodePacked(vote.againstVotes, vote.forVotes, vote.abstainVotes);
 
     hubGovernor.castVoteWithReasonAndParams(
-      proposalId, UNUSED_SUPPORT_PARAM, "rolled-up vote from governance L2 token holders", votes
+      proposalId, UNUSED_SUPPORT_PARAM, "rolled-up vote from governance spoke token holders", votes
     );
 
     emit SpokeVoteCast(emitterChainId, proposalId, vote.againstVotes, vote.forVotes, vote.abstainVotes);

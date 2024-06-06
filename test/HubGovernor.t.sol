@@ -385,6 +385,8 @@ contract _CountVote is HubGovernorTest {
     uint256 ZERO_TOTAL_WEIGHT = 0;
 
     vm.assume(_nonWhitelistedAddress != address(0));
+    vm.assume(_nonWhitelistedAddress != address(hubVotePool));
+
     (, delegates) = _setGovernorAndDelegates();
     ProposalBuilder builder = _createArbitraryProposal();
 
