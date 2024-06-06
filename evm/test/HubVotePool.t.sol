@@ -5,6 +5,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Test, console2} from "forge-std/Test.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
+import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {HubVotePool} from "src/HubVotePool.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
@@ -86,6 +88,47 @@ contract HubVotePoolTest is WormholeEthQueryTest {
       )
     );
     return _resp;
+  }
+}
+
+contract Constructor is Test {
+  function testFuzz_CorrectlySetConstructorArgs(
+    address _core,
+    address _hubGovernor,
+    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
+  ) public {
+    vm.assume(_core != address(0));
+    vm.assume(_hubGovernor != address(0));
+
+    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
+
+    for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
+      HubVotePool.SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
+      bytes32 aggregatorAddress = bytes32(uint256(uint160(aggregator.addr)));
+      assertEq(hubVotePool.spokeRegistry(aggregator.wormholeChainId), aggregatorAddress);
+    }
+
+    assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
+    assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
+    assertEq(hubVotePool.spokeRegistry(0), bytes32(0));
+  }
+
+  function testFuzz_RevertIf_CoreIsZeroAddress(
+    address _hubGovernor,
+    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
+  ) public {
+    vm.assume(_hubGovernor != address(0));
+    vm.expectRevert(EmptyWormholeAddress.selector);
+    new HubVotePool(address(0), _hubGovernor, _initialSpokeRegistry);
+  }
+
+  function testFuzz_RevertIf_HubGovernorIsZeroAddress(
+    address _core,
+    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
+  ) public {
+    vm.assume(_core != address(0));
+    vm.expectRevert(Ownable.OwnableInvalidOwner.selector);
+    new HubVotePool(_core, address(0), _initialSpokeRegistry);
   }
 }
 
