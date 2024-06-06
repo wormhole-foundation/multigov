@@ -27,7 +27,7 @@ contract SpokeMetadataCollector is QueryResponse {
   error SenderChainMismatch();
   error TooManyEthCallResults(uint256);
 
-  event ProposalCreated(uint256 proposalId, uint256 startBlock, uint256 endBlock);
+  event ProposalCreated(uint256 proposalId, uint256 start);
 
   constructor(address _core, uint16 _hubChainId, address _hubProposalMetadata) QueryResponse(_core) {
     WORMHOLE_CORE = IWormhole(_core);
@@ -55,16 +55,15 @@ contract SpokeMetadataCollector is QueryResponse {
     if (_ethCalls.result[0].contractAddress != HUB_PROPOSAL_METADATA) {
       revert InvalidWormholeMessage("Query data must be from hub proposal metadata contract");
     }
-    (uint256 proposalId, uint256 voteStart, uint256 voteEnd) =
-      abi.decode(_ethCalls.result[0].result, (uint256, uint256, uint256));
+    (uint256 proposalId, uint256 voteStart) = abi.decode(_ethCalls.result[0].result, (uint256, uint256));
 
     // If the proposal exists we can revert (prevent overwriting existing proposals with old zeroes)
     if (proposals[proposalId].voteStart != 0) revert ProposalAlreadyExists();
-    _addProposal(proposalId, voteStart, voteEnd);
+    _addProposal(proposalId, voteStart);
   }
 
-  function _addProposal(uint256 proposalId, uint256 voteStart, uint256 voteEnd) internal {
+  function _addProposal(uint256 proposalId, uint256 voteStart) internal {
     proposals[proposalId] = Proposal(voteStart);
-    emit ProposalCreated(proposalId, voteStart, voteEnd);
+    emit ProposalCreated(proposalId, voteStart);
   }
 }
