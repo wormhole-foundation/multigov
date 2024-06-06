@@ -15,6 +15,8 @@ contract SpokeAirlock {
     messageExecutor = _messageExecutor;
   }
 
+  receive() external payable {}
+
   function _onlyMessageExecutor() internal view {
     if (msg.sender != messageExecutor) revert InvalidMessageExecutor();
   }

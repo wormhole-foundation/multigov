@@ -11,23 +11,32 @@ contract SpokeMessageExecutor {
   bytes32 public immutable HUB_DISPATCHER;
   uint16 public immutable HUB_CHAIN_ID;
   IWormhole public immutable WORMHOLE_CORE;
-  uint256 public immutable SPOKE_INDEX;
+  uint16 public immutable SPOKE_CHAIN_ID;
+  bool private _initialized = false;
   SpokeAirlock public airlock;
 
   error AlreadyProcessedMessage();
+  error AlreadyInitialized();
   error InvalidCaller();
   error InvalidWormholeMessage(string);
+  error InvalidSpokeExecutorOperationLength(uint256, uint256, uint256);
   error UnknownMessageEmitter();
 
   event ProposalExecuted(uint256 proposalId);
 
-  mapping(bytes32 messageHash => bool exectured) public messageReceived;
+  mapping(bytes32 messageHash => bool executed) public messageReceived;
 
-  constructor(bytes32 _hubDispatcher, uint16 _hubChainId, IWormhole _wormholeCore, uint256 _spokeIndex) {
+  constructor(bytes32 _hubDispatcher, uint16 _hubChainId, IWormhole _wormholeCore, uint16 _spokeChainId) {
     HUB_DISPATCHER = _hubDispatcher;
     HUB_CHAIN_ID = _hubChainId;
     WORMHOLE_CORE = _wormholeCore;
-    SPOKE_INDEX = _spokeIndex;
+    SPOKE_CHAIN_ID = _spokeChainId;
+  }
+
+  function initialize(address payable _airlock) external {
+    if (_initialized) revert AlreadyInitialized();
+    airlock = SpokeAirlock(_airlock);
+    _initialized = true;
   }
 
   function _onlyAirlock() internal view {
@@ -35,17 +44,13 @@ contract SpokeMessageExecutor {
   }
 
   // TODO: Double opt in necessary? (propose/accept)
-  function setAirlock(address _newAirlock) external {
+  function setAirlock(address payable _newAirlock) external {
     _onlyAirlock();
     airlock = SpokeAirlock(_newAirlock);
   }
 
-  function _validateBitfieldForChain(uint256 _bitfield) internal view {
-    if (!_isBitSet(_bitfield, SPOKE_INDEX)) revert InvalidWormholeMessage("Bitfield does not include chain index");
-  }
-
-  function _isBitSet(uint256 b, uint256 pos) internal pure returns (bool) {
-    return ((b >> pos) & 1) == 1;
+  function _validateChainId(uint16 _messageChainId) internal view {
+    if (SPOKE_CHAIN_ID != _messageChainId) revert InvalidWormholeMessage("Message is not meant for this chain.");
   }
 
   function receiveMessage(bytes memory _encodedMessage) external payable {
@@ -62,18 +67,23 @@ contract SpokeMessageExecutor {
     }
 
     (
-      uint256 _proposalId,
-      uint256 _bitfield,
+      uint256 _messageId,
+      uint16 _wormholeChainId,
       address[] memory _targets,
       uint256[] memory _values,
       bytes[] memory _calldatas
-    ) = abi.decode(wormholeMessage.payload, (uint256, uint256, address[], uint256[], bytes[]));
+    ) = abi.decode(wormholeMessage.payload, (uint256, uint16, address[], uint256[], bytes[]));
 
-    _validateBitfieldForChain(_bitfield);
+    if (_targets.length != _values.length || _targets.length != _calldatas.length) {
+      revert InvalidSpokeExecutorOperationLength(_targets.length, _values.length, _calldatas.length);
+    }
+
+    _validateChainId(_wormholeChainId);
 
     // TODO: Need proposalId or descriptionHash?
+    // Should there be a deadline
     airlock.executeOperations(_targets, _values, _calldatas);
     messageReceived[wormholeMessage.hash] = true;
-    emit ProposalExecuted(_proposalId);
+    emit ProposalExecuted(_messageId);
   }
 }
