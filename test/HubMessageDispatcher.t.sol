@@ -56,7 +56,7 @@ contract Dispatch is HubMessageDispatcherTest {
     );
   }
 
-  function testFuzz_DispatchingProposalEmitsAMessageDispatchedEvent(
+  function testFuzz_EmitsAMessageDispatchedEvent(
     address[] memory _targets,
     uint256[] memory _values,
     bytes[] memory _calldatas,

@@ -59,15 +59,15 @@ contract Constructor is SpokeMessageExecutorTest {
 }
 
 contract Initialize is SpokeMessageExecutorTest {
-  function testFuzz_CorrectlyInitializeAirlock(address payable _initializeAirlock) public {
+  function testFuzz_CorrectlyInitialize(address payable _airlock) public {
     SpokeMessageExecutor spokeExecutor = new SpokeMessageExecutor(
       bytes32(uint256(uint160(hubDispatcher))),
       WORMHOLE_HUB_CHAIN,
       IWormhole(address(wormholeCoreMock)),
       WORMHOLE_SPOKE_CHAIN
     );
-    spokeExecutor.initialize(_initializeAirlock);
-    assertEq(_initializeAirlock, payable(spokeExecutor.airlock()));
+    spokeExecutor.initialize(_airlock);
+    assertEq(_airlock, payable(spokeExecutor.airlock()));
   }
 
   function testFuzz_RevertIf_CalledTwice(address payable _updatedAirlock) public {
@@ -85,7 +85,7 @@ contract Initialize is SpokeMessageExecutorTest {
 }
 
 contract SetAirlock is SpokeMessageExecutorTest {
-  function testFuzz_AirlockCanBeSetByTheAirlock(address payable _newAirlock) public {
+  function testFuzz_CanBeCalledByAirlock(address payable _newAirlock) public {
     vm.prank(address(airlock));
     executor.setAirlock(_newAirlock);
     assertEq(payable(executor.airlock()), _newAirlock);
@@ -188,6 +188,33 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     vm.expectEmit();
     emit SpokeMessageExecutor.ProposalExecuted(_messageId);
 
+    executor.receiveMessage(vaa);
+  }
+
+  function testFuzz_RevertIf_AlreadyProcessedMessage(
+    uint32 _timestamp,
+    uint32 _nonce,
+    uint64 _sequence,
+    uint8 _consistencyLevel,
+    uint256 _messageId,
+    uint208 _amount
+  ) public {
+    // build simple proposal
+    address account = makeAddr("Token holder");
+    ProposalBuilder builder = _createMintProposal(account, _amount);
+    bytes memory _payload =
+      abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
+    (bytes memory vaa,) = _buildVm(
+      _timestamp,
+      _nonce,
+      WORMHOLE_HUB_CHAIN,
+      bytes32(uint256(uint160(hubDispatcher))),
+      _sequence,
+      _consistencyLevel,
+      _payload
+    );
+    executor.receiveMessage(vaa);
+    vm.expectRevert(SpokeMessageExecutor.AlreadyProcessedMessage.selector);
     executor.receiveMessage(vaa);
   }
 

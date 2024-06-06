@@ -63,7 +63,7 @@ contract SetMessageExecutor is SpokeAirlockTest {
     assertEq(airlock.messageExecutor(), _newExecutor);
   }
 
-  function testFuzz_SetNewMessageExecutorEmitsMessageExecutorUpdatedEvent(address _newExecutor) public {
+  function testFuzz_EmitsMessageExecutorUpdatedEvent(address _newExecutor) public {
     vm.prank(address(executor));
     vm.expectEmit();
     emit SpokeAirlock.MessageExecutorUpdated(_newExecutor);
