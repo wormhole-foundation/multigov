@@ -98,7 +98,6 @@ contract Constructor is Test {
 
 contract GetProposal is SpokeMetadataCollectorTest {
   function testFuzz_SuccessfullyGetProposal(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd) public {
-    vm.assume(_proposalId != 0);
     vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
     _voteEnd = bound(_voteEnd, _voteStart + 1, type(uint256).max);
 
