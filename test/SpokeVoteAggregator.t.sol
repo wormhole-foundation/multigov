@@ -19,6 +19,7 @@ contract SpokeVoteAggregatorTest is Test {
   WormholeMock public wormhole;
   uint16 immutable HUB_CHAIN_ID = 2;
   address owner = makeAddr("Spoke Vote Aggregator Owner");
+  uint48 initialSafeWindow = 1 days;
 
   function setUp() public {
     address _hubProposalMetadataSender = makeAddr("Hub proposal metadata");
@@ -29,10 +30,15 @@ contract SpokeVoteAggregatorTest is Test {
     spokeVoteAggregator = new SpokeVoteAggregatorHarness(address(spokeMetadataCollector), address(token), 1 days, owner);
   }
 
-  function _boundProposalTime(uint48 _voteStart, uint48 _voteEnd) internal pure returns (uint48, uint48) {
+  function _boundProposalTime(uint48 _voteStart) internal pure returns (uint48) {
     _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - 2));
-    _voteEnd = uint48(bound(_voteEnd, _voteStart, type(uint48).max - 1));
-    return (_voteStart, _voteEnd);
+    return _voteStart;
+  }
+
+  function _boundProposalSafeWindow(uint48 _voteStart, uint48 _safeWindow) internal pure returns (uint48, uint48) {
+    _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - 3));
+    _safeWindow = uint48(bound(_safeWindow, 1, type(uint48).max - _voteStart - 2));
+    return (_voteStart, _safeWindow);
   }
 }
 
@@ -53,54 +59,19 @@ contract Constructor is SpokeVoteAggregatorTest {
   }
 }
 
-contract State is SpokeVoteAggregatorTest {
-  function testFuzz_CorrectlyGetStateOfPendingProposal(uint256 _proposalId, uint48 _voteStart, uint48 _voteEnd) public {
-    vm.assume(_proposalId != 0);
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
-    vm.warp(_voteStart - 1);
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
-    SpokeVoteAggregator.ProposalState state = spokeVoteAggregator.state(_proposalId);
-    assertEq(uint8(state), uint8(SpokeVoteAggregator.ProposalState.Pending));
-  }
-
-  function testFuzz_CorrectlyGetStateOfActiveProposal(uint256 _proposalId, uint48 _voteStart, uint48 _voteEnd) public {
-    vm.assume(_proposalId != 0);
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
-
-    vm.warp(_voteStart);
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
-    SpokeVoteAggregator.ProposalState state = spokeVoteAggregator.state(_proposalId);
-    assertEq(uint8(state), uint8(SpokeVoteAggregator.ProposalState.Active));
-  }
-
-  function testFuzz_CorrectlyGetStateOfExpiredProposal(uint256 _proposalId, uint48 _voteStart, uint48 _voteEnd) public {
-    vm.assume(_proposalId != 0);
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
-    vm.warp(_voteEnd + 1);
-
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
-    SpokeVoteAggregator.ProposalState state = spokeVoteAggregator.state(_proposalId);
-    assertEq(uint8(state), uint8(SpokeVoteAggregator.ProposalState.Expired));
-  }
-}
-
 contract CastVote is SpokeVoteAggregatorTest {
-  function testFuzz_CorrectlyCastVoteAgainst(
-    uint128 _amount,
-    uint256 _proposalId,
-    uint48 _voteStart,
-    uint48 _voteEnd,
-    address _caller
-  ) public {
+  function testFuzz_CorrectlyCastVoteAgainst(uint128 _amount, uint256 _proposalId, uint48 _voteStart, address _caller)
+    public
+  {
     vm.assume(_amount != 0);
     vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
+    _voteStart = _boundProposalTime(_voteStart);
 
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
     vm.startPrank(_caller);
     vm.warp(_voteStart + 1);
@@ -110,23 +81,19 @@ contract CastVote is SpokeVoteAggregatorTest {
     assertEq(against, _amount, "Votes against are not correct");
   }
 
-  function testFuzz_CorrectlyCastVoteFor(
-    uint128 _amount,
-    uint256 _proposalId,
-    uint48 _voteStart,
-    uint48 _voteEnd,
-    address _caller
-  ) public {
+  function testFuzz_CorrectlyCastVoteFor(uint128 _amount, uint256 _proposalId, uint48 _voteStart, address _caller)
+    public
+  {
     vm.assume(_amount != 0);
     vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
+    _voteStart = _boundProposalTime(_voteStart);
 
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
 
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
     vm.startPrank(_caller);
     vm.warp(uint48(_voteStart) + 1);
@@ -137,23 +104,19 @@ contract CastVote is SpokeVoteAggregatorTest {
     assertEq(forVotes, _amount, "Votes for are not correct");
   }
 
-  function testFuzz_CorrectlyCastVoteAbstain(
-    uint128 _amount,
-    uint256 _proposalId,
-    uint48 _voteStart,
-    uint48 _voteEnd,
-    address _caller
-  ) public {
+  function testFuzz_CorrectlyCastVoteAbstain(uint128 _amount, uint256 _proposalId, uint48 _voteStart, address _caller)
+    public
+  {
     vm.assume(_amount != 0);
     vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
+    _voteStart = _boundProposalTime(_voteStart);
 
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
 
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
     vm.startPrank(_caller);
     vm.warp(uint48(_voteStart) + 1);
     spokeVoteAggregator.castVote(_proposalId, uint8(SpokeCountingFractional.VoteType.Abstain));
@@ -167,16 +130,15 @@ contract CastVote is SpokeVoteAggregatorTest {
     uint8 _support,
     uint256 _proposalId,
     uint48 _voteStart,
-    uint48 _voteEnd,
     address _caller
   ) public {
     vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
     _voteStart = uint32(bound(_voteStart, 2, type(uint32).max));
     _support = uint8(bound(_support, 0, 2));
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
+    _voteStart = _boundProposalTime(_voteStart);
 
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
     vm.warp(_voteStart - 1);
     vm.startPrank(_caller);
@@ -190,20 +152,19 @@ contract CastVote is SpokeVoteAggregatorTest {
     uint8 _support,
     uint256 _proposalId,
     uint48 _voteStart,
-    uint48 _voteEnd,
     address _caller
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
+    _voteStart = _boundProposalTime(_voteStart);
 
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
 
     _support = uint8(bound(_support, 0, 2));
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd + 1);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
     vm.startPrank(_caller);
     vm.warp(uint48(_voteStart) + 1);
@@ -216,13 +177,13 @@ contract CastVote is SpokeVoteAggregatorTest {
 }
 
 contract SetSafeWindow is SpokeVoteAggregatorTest {
-  function testFuzz_CorrectlySetSafeWindow(uint32 _safeWindow) public {
+  function testFuzz_CorrectlySetSafeWindow(uint48 _safeWindow) public {
     vm.prank(owner);
     spokeVoteAggregator.setSafeWindow(_safeWindow);
     assertEq(spokeVoteAggregator.safeWindow(), _safeWindow);
   }
 
-  function testFuzz_RevertIf_NotCalledByOwner(uint32 _safeWindow, address _caller) public {
+  function testFuzz_RevertIf_NotCalledByOwner(uint48 _safeWindow, address _caller) public {
     vm.assume(owner != _caller);
 
     vm.prank(_caller);
@@ -232,37 +193,27 @@ contract SetSafeWindow is SpokeVoteAggregatorTest {
 }
 
 contract IsVotingSafe is SpokeVoteAggregatorTest {
-  function testFuzz_GetIsProposalSafeForSafeProposal(
-    uint16 _safeWindow,
-    uint256 _proposalId,
-    uint48 _voteStart,
-    uint48 _voteEnd
-  ) public {
+  function testFuzz_GetIsProposalSafeForSafeProposal(uint16 _safeWindow, uint256 _proposalId, uint48 _voteStart) public {
     vm.assume(_safeWindow != 0);
     vm.assume(_proposalId != 0);
     _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - _safeWindow));
-    _voteEnd = uint48(bound(_voteEnd, _voteStart + _safeWindow, type(uint48).max));
     spokeVoteAggregator.exposed_setSafeWindow(_safeWindow);
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
     vm.warp(_voteStart);
     bool isSafe = spokeVoteAggregator.isVotingSafe(_proposalId);
     assertEq(isSafe, true);
   }
 
-  function testFuzz_GetIsProposalSafeForUnsafeProposal(
-    uint16 _safeWindow,
-    uint256 _proposalId,
-    uint48 _voteStart,
-    uint48 _voteEnd
-  ) public {
+  function testFuzz_GetIsProposalSafeForUnsafeProposal(uint48 _safeWindow, uint256 _proposalId, uint48 _voteStart)
+    public
+  {
     vm.assume(_safeWindow != 0);
     vm.assume(_proposalId != 0);
-    (_voteStart, _voteEnd) = _boundProposalTime(_voteStart, _voteEnd);
-    _voteEnd = uint16(bound(_voteEnd, _safeWindow, type(uint16).max));
+    (_voteStart, _safeWindow) = _boundProposalSafeWindow(_voteStart, _safeWindow);
     spokeVoteAggregator.exposed_setSafeWindow(_safeWindow);
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart, _voteEnd);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
-    vm.warp(_voteEnd - _safeWindow + 1);
+    vm.warp(_voteStart + _safeWindow + 1);
     bool isSafe = spokeVoteAggregator.isVotingSafe(_proposalId);
     assertEq(isSafe, false);
   }
