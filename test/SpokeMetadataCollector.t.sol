@@ -165,7 +165,6 @@ contract AddProposal is SpokeMetadataCollectorTest {
   }
 
   function testFuzz_RevertIf_ProposalAlreadyExists(uint256 _proposalId, uint256 _voteStart) public {
-    vm.assume(_proposalId != 0);
     vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
 
     bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
