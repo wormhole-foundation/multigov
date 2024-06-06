@@ -142,10 +142,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     uint256 _voteEnd,
     uint16 _responseChainId
   ) public {
-    vm.assume(_proposalId != 0);
-    vm.assume(_voteStart != 0 && _voteStart != type(uint256).max);
     vm.assume(_responseChainId != uint16(MAINNET_CHAIN_ID));
-    _voteEnd = bound(_voteEnd, _voteStart + 1, type(uint256).max);
 
     bytes memory _resp =
       _buildAddProposalQuery(_proposalId, _voteStart, _voteEnd, _responseChainId, GOVERNANCE_CONTRACT);
