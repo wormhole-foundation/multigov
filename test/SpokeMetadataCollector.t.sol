@@ -109,7 +109,7 @@ contract GetProposal is SpokeMetadataCollectorTest {
 contract AddProposal is SpokeMetadataCollectorTest {
   function testFuzz_SuccessfullyAddProposal(uint256 _proposalId, uint256 _voteStart, uint256 _voteEnd) public {
     _addProposal(_proposalId, _voteStart, _voteEnd);
-    SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.exposed_proposals(_proposalId);
+    SpokeMetadataCollectorHarness.Proposal memory proposal = spokeMetadataCollector.exposed_proposals(_proposalId);
 
     assertEq(proposal.voteStart, _voteStart);
   }
