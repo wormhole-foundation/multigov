@@ -358,7 +358,7 @@ contract Propose is HubGovernorTest {
     assertEq(voteStart, block.timestamp + governor.votingDelay());
   }
 
-  function testFuzz_RevertIf_UntrustedProposerCannotProposeWithoutMeetingProposalThreshold(
+  function testFuzz_RevertIf_UntrustedProposerDoesNotMeetProposalThreshold(
     address _trustedProposer,
     address _proposer,
     string memory _description
@@ -382,7 +382,7 @@ contract Propose is HubGovernorTest {
     vm.stopPrank();
   }
 
-  function testFuzz_RevertIf_AProposalHasAnInvalidDesciption(address _proposer, address _incorrectProposer) public {
+  function testFuzz_RevertIf_ProposalHasAnInvalidDescription(address _proposer, address _incorrectProposer) public {
     vm.assume(_proposer != _incorrectProposer);
     vm.assume(_proposer != address(0));
     ProposalBuilder builder = _createSetTrustedProposerProposal(_proposer);
@@ -424,7 +424,7 @@ contract SetTrustedProposer is HubGovernorTest {
     assertEq(governor.trustedProposer(), _proposer);
   }
 
-  function testFuzz_SetNewTrustedProposerEmitsTrustedProposerUpdated(address _proposer) public {
+  function testFuzz_EmitsTrustedProposerUpdated(address _proposer) public {
     address delegate = makeAddr("delegate");
     token.mint(delegate, governor.proposalThreshold());
     vm.prank(delegate);
