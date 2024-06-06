@@ -20,7 +20,10 @@ contract HubGovernor is
   GovernorTimelockControl,
   GovernorSettableFixedQuorum
 {
+  address public trustedProposer;
   mapping(address votingAddress => bool enabled) public trustedVotingAddresses;
+
+  event TrustedProposerUpdated(address oldProposer, address newProposer);
 
   constructor(
     string memory _name,
@@ -49,6 +52,34 @@ contract HubGovernor is
   function disableTrustedVotingAddress(address _trustedAddress) external {
     _checkGovernance();
     _disableTrustedVotingAddress(_trustedAddress);
+  }
+
+  function propose(
+    address[] memory targets,
+    uint256[] memory values,
+    bytes[] memory calldatas,
+    string memory description
+  ) public override returns (uint256) {
+    address proposer = _msgSender();
+
+    // check description restriction
+    if (!_isValidDescriptionForProposer(proposer, description)) revert GovernorRestrictedProposer(proposer);
+
+    // Check if trusted proposer
+    if (proposer == trustedProposer) return _propose(targets, values, calldatas, description, proposer);
+
+    // check proposal threshold
+    uint256 proposerVotes = getVotes(proposer, clock() - 1);
+    uint256 votesThreshold = proposalThreshold();
+    if (proposerVotes < votesThreshold) {
+      revert GovernorInsufficientProposerVotes(proposer, proposerVotes, votesThreshold);
+    }
+    return _propose(targets, values, calldatas, description, proposer);
+  }
+
+  function setTrustedProposer(address _proposer) external {
+    _checkGovernance();
+    _setTrustedProposer(_proposer);
   }
 
   function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
@@ -90,6 +121,11 @@ contract HubGovernor is
     bytes32 _description /*descriptionHash*/
   ) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
     return GovernorTimelockControl._queueOperations(_proposalId, _targets, _values, _calldatas, _description);
+  }
+
+  function _setTrustedProposer(address _proposer) internal {
+    emit TrustedProposerUpdated(trustedProposer, _proposer);
+    trustedProposer = _proposer;
   }
 
   function proposalNeedsQueuing(uint256 proposalId)

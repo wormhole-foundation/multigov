@@ -46,4 +46,8 @@ contract HubGovernorHarness is HubGovernor {
   function exposed_enableTrustedAddress(address _trustedAddress) public {
     _enableTrustedVotingAddress(_trustedAddress);
   }
+
+  function exposed_setTrustedProposer(address _proposer) public {
+    _setTrustedProposer(_proposer);
+  }
 }
