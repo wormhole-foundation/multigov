@@ -102,7 +102,7 @@ jobs:
       - name: Check formatting
         run: |
           scopelint --version
-          scopelint check
+          make check-format
 
   slither-analyze:
     runs-on: ubuntu-latest
