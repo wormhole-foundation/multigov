@@ -16,6 +16,3 @@
 [submodule "evm/lib/wormhole-solidity-sdk"]
 	path = evm/lib/wormhole-solidity-sdk
 	url = https://github.com/alexkeating/wormhole-solidity-sdk
-[submodule "evm/lib/solady"]
-	path = evm/lib/solady
-	url = https://github.com/Vectorized/solady
