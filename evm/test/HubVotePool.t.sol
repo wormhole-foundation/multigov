@@ -102,15 +102,43 @@ contract Constructor is Test {
 
     HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
 
-    for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
+    // Track the last seen address for each wormholeChainId
+    // This is to ensure that the last seen address is the one that is stored
+    uint256 length = _initialSpokeRegistry.length;
+    uint16[] memory chainIds = new uint16[](length);
+    bytes32[] memory lastSeenAddresses = new bytes32[](length);
+    uint256 uniqueCount = 0;
+
+    for (uint256 i = 0; i < length; i++) {
       HubVotePool.SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
       bytes32 aggregatorAddress = bytes32(uint256(uint160(aggregator.addr)));
-      assertEq(hubVotePool.spokeRegistry(aggregator.wormholeChainId), aggregatorAddress);
+
+      bool found = false;
+      for (uint256 j = 0; j < uniqueCount; j++) {
+        if (chainIds[j] == aggregator.wormholeChainId) {
+          lastSeenAddresses[j] = aggregatorAddress;
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        chainIds[uniqueCount] = aggregator.wormholeChainId;
+        lastSeenAddresses[uniqueCount] = aggregatorAddress;
+        uniqueCount++;
+      }
+    }
+
+    for (uint256 i = 0; i < uniqueCount; i++) {
+      uint16 chainId = chainIds[i];
+      bytes32 expectedAddress = lastSeenAddresses[i];
+      bytes32 storedAddress = hubVotePool.spokeRegistry(chainId);
+
+      assertEq(storedAddress, expectedAddress);
     }
 
     assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
-    assertEq(hubVotePool.spokeRegistry(0), bytes32(0));
   }
 
   function testFuzz_RevertIf_CoreIsZeroAddress(
@@ -129,6 +157,17 @@ contract Constructor is Test {
     vm.assume(_core != address(0));
     vm.expectRevert(Ownable.OwnableInvalidOwner.selector);
     new HubVotePool(_core, address(0), _initialSpokeRegistry);
+  }
+
+  function testFuzz_RevertIf_SpokeIsZeroAddress(address _core, address _hubGovernor) public {
+    vm.assume(_core != address(0));
+    vm.assume(_hubGovernor != address(0));
+
+    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry = new HubVotePool.SpokeVoteAggregator[](1);
+    _initialSpokeRegistry[0] = HubVotePool.SpokeVoteAggregator({wormholeChainId: 0, addr: address(0)});
+
+    vm.expectRevert(EmptyWormholeAddress.selector);
+    new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
   }
 }
 
