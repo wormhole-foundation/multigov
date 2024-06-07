@@ -59,7 +59,7 @@ jobs:
       - name: Filter directories
         run: |
           sudo apt update && sudo apt install -y lcov
-          lcov --remove lcov.info 'test/*' 'script/*' --output-file lcov.info --rc lcov_branch_coverage=1
+          cd evm && lcov --remove lcov.info 'test/*' 'script/*' --output-file lcov.info --rc lcov_branch_coverage=1
 
       # This step posts a detailed coverage report as a comment and deletes previous comments on
       # each push. The below step is used to fail coverage if the specified coverage threshold is
@@ -71,13 +71,13 @@ jobs:
         uses: romeovs/lcov-reporter-action@v0.3.1
         with:
           delete-old-comments: true
-          lcov-file: ./lcov.info
+          lcov-file: ./evm/lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }} # Adds a coverage summary comment to the PR.
 
       - name: Verify minimum coverage
         uses: zgosalvez/github-actions-report-lcov@v2
         with:
-          coverage-files: ./lcov.info
+          coverage-files: ./evm/lcov.info
           minimum-coverage: 0 # Set coverage threshold.
 
   lint:
@@ -102,7 +102,7 @@ jobs:
       - name: Check formatting
         run: |
           scopelint --version
-          make check-format
+          cd evm && scopelint check
 
   slither-analyze:
     runs-on: ubuntu-latest
