@@ -89,6 +89,13 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     );
     return _resp;
   }
+
+  function _getSignatures(bytes memory _resp) internal view returns (IWormhole.Signature[] memory) {
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
+    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
+    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+    return signatures;
+  }
 }
 
 contract Constructor is Test {
@@ -227,9 +234,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
       GOVERNANCE_CONTRACT
     );
 
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
 
@@ -268,9 +273,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
       GOVERNANCE_CONTRACT
     );
 
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
     bytes memory _invalidResp = _buildAddVoteQuery(
@@ -283,11 +286,11 @@ contract CrossChainEVMVote is HubVotePoolTest {
       QUERY_CHAIN_ID,
       GOVERNANCE_CONTRACT
     );
-    (uint8 invalidSigV, bytes32 invalidSigR, bytes32 invalidSigS) = getSignature(_invalidResp, address(hubVotePool));
-    signatures[0] = IWormhole.Signature({r: invalidSigR, s: invalidSigS, v: invalidSigV, guardianIndex: 0});
+
+    IWormhole.Signature[] memory signatureForInvalidResp = _getSignatures(_invalidResp);
 
     vm.expectRevert(HubVotePool.InvalidProposalVote.selector);
-    hubVotePool.crossChainEVMVote(_invalidResp, signatures);
+    hubVotePool.crossChainEVMVote(_invalidResp, signatureForInvalidResp);
   }
 
   function testFuzz_RevertIf_SpokeIsNotRegistered(
@@ -307,9 +310,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
       GOVERNANCE_CONTRACT
     );
 
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
     hubVotePool.crossChainEVMVote(_resp, signatures);
@@ -384,9 +385,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
         )
       )
     );
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyQueryResponses.selector, 2));
     hubVotePool.crossChainEVMVote(_resp, signatures);
@@ -440,9 +440,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
         ethCallResp
       )
     );
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyEthCallResults.selector, 2));
     hubVotePool.crossChainEVMVote(_resp, signatures);
