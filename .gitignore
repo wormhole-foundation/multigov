@@ -1,6 +1,10 @@
 # Compiler files
 cache/
 out/
+evm/cache/
+evm/out/
+
+
 
 # Ignores development broadcast logs
 !/broadcast

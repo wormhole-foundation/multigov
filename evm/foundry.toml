@@ -1,4 +1,11 @@
 [profile.default]
+  # src = 'evm/src'
+  # cache_path = 'evm/cache'
+  # out = 'evm/out'
+  # test = 'evm/test'
+  # script = 'evm/script'
+  # libs = ['evm/lib']
+  # broadcast= 'evm/broadcast'
   evm_version = "paris"
   optimizer = true
   optimizer_runs = 10_000_000
