@@ -9,7 +9,7 @@
 	url = https://github.com/wormhole-foundation/wormhole
 [submodule "evm/lib/openzeppelin-contracts-4"]
 	path = evm/lib/openzeppelin-contracts-4
-	url = https://github.com/openzeppelin/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
 [submodule "evm/lib/flexible-voting"]
 	path = evm/lib/flexible-voting
 	url = https://github.com/ScopeLift/flexible-voting
