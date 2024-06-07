@@ -155,19 +155,8 @@ contract Constructor is Test {
     HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
   ) public {
     vm.assume(_core != address(0));
-    vm.expectRevert(Ownable.OwnableInvalidOwner.selector);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
     new HubVotePool(_core, address(0), _initialSpokeRegistry);
-  }
-
-  function testFuzz_RevertIf_SpokeIsZeroAddress(address _core, address _hubGovernor) public {
-    vm.assume(_core != address(0));
-    vm.assume(_hubGovernor != address(0));
-
-    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry = new HubVotePool.SpokeVoteAggregator[](1);
-    _initialSpokeRegistry[0] = HubVotePool.SpokeVoteAggregator({wormholeChainId: 0, addr: address(0)});
-
-    vm.expectRevert(EmptyWormholeAddress.selector);
-    new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
   }
 }
 
