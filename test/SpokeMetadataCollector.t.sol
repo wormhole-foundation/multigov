@@ -127,6 +127,12 @@ contract AddProposal is SpokeMetadataCollectorTest {
     assertEq(proposal2.voteStart, _voteStart2);
   }
 
+  function testFuzz_EmitsProposalCreated(uint256 _proposalId, uint256 _voteStart) public {
+    vm.expectEmit();
+    emit SpokeMetadataCollector.ProposalCreated(_proposalId, _voteStart);
+    _addProposal(_proposalId, _voteStart);
+  }
+
   function testFuzz_RevertIf_SenderChainIsNotTheHubChain(
     uint256 _proposalId,
     uint256 _voteStart,
