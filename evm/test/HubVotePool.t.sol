@@ -188,6 +188,21 @@ contract RegisterSpoke is HubVotePoolTest {
   }
 }
 
+contract SetGovernor is HubVotePoolTest {
+  function testFuzz_CorrectlySetsGovernor(address _newGovernor) public {
+    vm.prank(address(governor));
+    hubVotePool.setGovernor(_newGovernor);
+    assertEq(address(hubVotePool.hubGovernor()), _newGovernor);
+  }
+
+  function testFuzz_RevertIf_NotCalledByOwner(address _newGovernor, address _caller) public {
+    vm.assume(_caller != address(governor));
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    hubVotePool.setGovernor(_newGovernor);
+  }
+}
+
 contract CrossChainEVMVote is HubVotePoolTest {
   function testFuzz_CorrectlyAddNewVote(
     uint256 _proposalId,
