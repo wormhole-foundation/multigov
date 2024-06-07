@@ -67,9 +67,7 @@ contract SpokeMetadataCollectorTest is WormholeEthQueryTest {
 
   function _addProposal(uint256 _proposalId, uint256 _voteStart) internal {
     bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(spokeMetadataCollector));
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+    IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
