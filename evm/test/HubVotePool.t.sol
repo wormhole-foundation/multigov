@@ -218,7 +218,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
     uint64 _abstainVotes
   ) public {
     vm.assume(_againstVotes != 0);
-    vm.assume(_proposalId != 0);
 
     vm.prank(address(governor));
     hubVotePool.registerSpoke(2, bytes32(uint256(uint160(GOVERNANCE_CONTRACT))));
@@ -257,7 +256,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
     uint64 _abstainVotes
   ) public {
     vm.assume(_againstVotes != 0);
-    vm.assume(_proposalId != 0);
 
     vm.prank(address(governor));
     hubVotePool.registerSpoke(2, bytes32(uint256(uint160(GOVERNANCE_CONTRACT))));
