@@ -92,6 +92,29 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
     return signatures;
   }
+
+  function _processVote(VoteParams memory _voteParams, uint16 _queryChainId, address _spokeContract) internal {
+    bytes memory _resp = _buildArbitraryQuery(_voteParams, _queryChainId, _spokeContract);
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+
+    hubVotePool.crossChainEVMVote(_resp, signatures);
+
+    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
+
+    assertEq(governor.proposalId(), _voteParams.proposalId);
+    assertEq(governor.support(), 1);
+    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
+    assertEq(
+      governor.params(),
+      abi.encodePacked(
+        uint128(_voteParams.againstVotes), uint128(_voteParams.forVotes), uint128(_voteParams.abstainVotes)
+      )
+    );
+    assertEq(againstVotes, _voteParams.againstVotes);
+    assertEq(forVotes, _voteParams.forVotes);
+    assertEq(abstainVotes, _voteParams.abstainVotes);
+  }
 }
 
 contract Constructor is Test {
@@ -227,42 +250,13 @@ contract SetGovernor is HubVotePoolTest {
 }
 
 contract CrossChainEVMVote is HubVotePoolTest {
-  function testFuzz_CorrectlyAddNewVote(
-    uint256 _proposalId,
-    uint64 _againstVotes,
-    uint64 _forVotes,
-    uint64 _abstainVotes,
-    address _spokeContract,
-    uint16 _queryChainId
-  ) public {
+  function testFuzz_CorrectlyAddNewVote(VoteParams memory _voteParams, address _spokeContract, uint16 _queryChainId)
+    public
+  {
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
-    bytes memory _resp = _buildArbitraryQuery(
-      VoteParams({
-        proposalId: _proposalId,
-        againstVotes: _againstVotes,
-        forVotes: _forVotes,
-        abstainVotes: _abstainVotes
-      }),
-      _queryChainId,
-      _spokeContract
-    );
-
-    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
-
-    hubVotePool.crossChainEVMVote(_resp, signatures);
-
-    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
-      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _proposalId)));
-
-    assertEq(governor.proposalId(), _proposalId);
-    assertEq(governor.support(), 1);
-    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
-    assertEq(governor.params(), abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes)));
-    assertEq(againstVotes, _againstVotes);
-    assertEq(forVotes, _forVotes);
-    assertEq(abstainVotes, _abstainVotes);
+    _processVote(_voteParams, _queryChainId, _spokeContract);
   }
 
   function testFuzz_CorrectlyAddNewVoteMultipleQueries(
@@ -274,49 +268,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
-    bytes memory _resp1 = _buildArbitraryQuery(_voteParams1, _queryChainId, _spokeContract);
-
-    IWormhole.Signature[] memory signatures = _getSignatures(_resp1);
-
-    hubVotePool.crossChainEVMVote(_resp1, signatures);
-
-    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
-      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams1.proposalId)));
-
-    assertEq(governor.proposalId(), _voteParams1.proposalId);
-    assertEq(governor.support(), 1);
-    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
-    assertEq(
-      governor.params(),
-      abi.encodePacked(
-        uint128(_voteParams1.againstVotes), uint128(_voteParams1.forVotes), uint128(_voteParams1.abstainVotes)
-      )
-    );
-    assertEq(againstVotes, _voteParams1.againstVotes);
-    assertEq(forVotes, _voteParams1.forVotes);
-    assertEq(abstainVotes, _voteParams1.abstainVotes);
-
-    bytes memory _resp2 = _buildArbitraryQuery(_voteParams2, _queryChainId, _spokeContract);
-
-    IWormhole.Signature[] memory signatures2 = _getSignatures(_resp2);
-
-    hubVotePool.crossChainEVMVote(_resp2, signatures2);
-
-    (againstVotes, forVotes, abstainVotes) =
-      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams2.proposalId)));
-
-    assertEq(governor.proposalId(), _voteParams2.proposalId);
-    assertEq(governor.support(), 1);
-    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
-    assertEq(
-      governor.params(),
-      abi.encodePacked(
-        uint128(_voteParams2.againstVotes), uint128(_voteParams2.forVotes), uint128(_voteParams2.abstainVotes)
-      )
-    );
-    assertEq(againstVotes, _voteParams2.againstVotes);
-    assertEq(forVotes, _voteParams2.forVotes);
-    assertEq(abstainVotes, _voteParams2.abstainVotes);
+    _processVote(_voteParams1, _queryChainId, _spokeContract);
+    _processVote(_voteParams2, _queryChainId, _spokeContract);
   }
 
   function testFuzz_CorrectlyAddNewVoteMultipleChains(
@@ -334,49 +287,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
     hubVotePool.registerSpoke(_queryChainId2, addressToBytes32(_spokeContract2));
     vm.stopPrank();
 
-    bytes memory _resp1 = _buildArbitraryQuery(_voteParams1, _queryChainId1, _spokeContract1);
-
-    IWormhole.Signature[] memory signatures = _getSignatures(_resp1);
-
-    hubVotePool.crossChainEVMVote(_resp1, signatures);
-
-    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
-      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId1, _voteParams1.proposalId)));
-
-    assertEq(governor.proposalId(), _voteParams1.proposalId);
-    assertEq(governor.support(), 1);
-    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
-    assertEq(
-      governor.params(),
-      abi.encodePacked(
-        uint128(_voteParams1.againstVotes), uint128(_voteParams1.forVotes), uint128(_voteParams1.abstainVotes)
-      )
-    );
-    assertEq(againstVotes, _voteParams1.againstVotes);
-    assertEq(forVotes, _voteParams1.forVotes);
-    assertEq(abstainVotes, _voteParams1.abstainVotes);
-
-    bytes memory _resp2 = _buildArbitraryQuery(_voteParams2, _queryChainId2, _spokeContract2);
-
-    IWormhole.Signature[] memory signatures2 = _getSignatures(_resp2);
-
-    hubVotePool.crossChainEVMVote(_resp2, signatures2);
-
-    (againstVotes, forVotes, abstainVotes) =
-      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId2, _voteParams2.proposalId)));
-
-    assertEq(governor.proposalId(), _voteParams2.proposalId);
-    assertEq(governor.support(), 1);
-    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
-    assertEq(
-      governor.params(),
-      abi.encodePacked(
-        uint128(_voteParams2.againstVotes), uint128(_voteParams2.forVotes), uint128(_voteParams2.abstainVotes)
-      )
-    );
-    assertEq(againstVotes, _voteParams2.againstVotes);
-    assertEq(forVotes, _voteParams2.forVotes);
-    assertEq(abstainVotes, _voteParams2.abstainVotes);
+    _processVote(_voteParams1, _queryChainId1, _spokeContract1);
+    _processVote(_voteParams2, _queryChainId2, _spokeContract2);
   }
 
   function testFuzz_RevertIf_QueriedVotesAreLessThanOnHubVotePoolForSpoke(
