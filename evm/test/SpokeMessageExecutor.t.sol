@@ -169,24 +169,37 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     uint64 _sequence,
     uint8 _consistencyLevel,
     uint256 _messageId,
-    uint208 _amount
+    uint16 _emitterChainId,
+    address _emitterChainAddress
   ) public {
     // build simple proposal
     address account = makeAddr("Token holder");
-    ProposalBuilder builder = _createMintProposal(account, _amount);
+    ProposalBuilder builder = _createMintProposal(account, 1);
+    SpokeMessageExecutor executor = new SpokeMessageExecutor(
+      bytes32(uint256(uint160(_emitterChainAddress))),
+      _emitterChainId,
+      IWormhole(address(wormholeCoreMock)),
+      WORMHOLE_SPOKE_CHAIN
+    );
+    SpokeAirlock airlock = new SpokeAirlock(address(executor));
+    executor.initialize(payable(airlock));
+
     bytes memory _payload =
       abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
     (bytes memory vaa,) = _buildVm(
       _timestamp,
       _nonce,
-      WORMHOLE_HUB_CHAIN,
-      bytes32(uint256(uint160(hubDispatcher))),
+      _emitterChainId,
+      bytes32(uint256(uint160(_emitterChainAddress))),
       _sequence,
       _consistencyLevel,
       _payload
     );
+
     vm.expectEmit();
-    emit SpokeMessageExecutor.ProposalExecuted(_messageId);
+    emit SpokeMessageExecutor.ProposalExecuted(
+      _emitterChainId, bytes32(uint256(uint160(_emitterChainAddress))), _messageId
+    );
 
     executor.receiveMessage(vaa);
   }
