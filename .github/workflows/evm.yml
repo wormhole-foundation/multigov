@@ -80,12 +80,12 @@ jobs:
 
       - name: list files
         run: |
-          cd && ls -la
+          cd evm && ls -la
 
       - name: Verify minimum coverage
         uses: zgosalvez/github-actions-report-lcov@v2
         with:
-          coverage-files: ./lcov.info
+          coverage-files: ./evm/lcov.info
           minimum-coverage: 0 # Set coverage threshold.
           working-directory: ./evm
 
