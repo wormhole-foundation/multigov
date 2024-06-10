@@ -33,7 +33,7 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     hubVotePool = new HubVotePool(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
   }
 
-  function _buildAddVoteQuery(VoteParams memory _voteParams, uint16 _responseChainId, address _governance)
+  function _buildArbitraryQuery(VoteParams memory _voteParams, uint16 _responseChainId, address _governance)
     internal
     view
     returns (bytes memory)
@@ -218,7 +218,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, bytes32(uint256(uint160(_spokeContract))));
 
-    bytes memory _resp = _buildAddVoteQuery(
+    bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
         againstVotes: _againstVotes,
@@ -258,7 +258,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, bytes32(uint256(uint160(_spokeContract))));
 
-    bytes memory _resp = _buildAddVoteQuery(
+    bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
         againstVotes: _againstVotes,
@@ -272,7 +272,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
-    bytes memory _invalidResp = _buildAddVoteQuery(
+    bytes memory _invalidResp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
         againstVotes: _againstVotes - 1,
@@ -295,7 +295,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     uint64 _forVotes,
     uint64 _abstainVotes
   ) public {
-    bytes memory _resp = _buildAddVoteQuery(
+    bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
         againstVotes: _againstVotes,
