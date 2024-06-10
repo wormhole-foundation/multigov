@@ -144,6 +144,26 @@ contract Constructor is Test {
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
   }
 
+  function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(
+    address _core,
+    address _hubGovernor,
+    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
+  ) public {
+    vm.assume(_core != address(0));
+    vm.assume(_hubGovernor != address(0));
+
+    for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
+      vm.expectEmit();
+      emit HubVotePool.SpokeRegistered(
+        _initialSpokeRegistry[i].wormholeChainId,
+        bytes32(uint256(uint160(address(0)))),
+        bytes32(uint256(uint160(_initialSpokeRegistry[i].addr)))
+      );
+    }
+
+    new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
+  }
+
   function testFuzz_RevertIf_CoreIsZeroAddress(
     address _hubGovernor,
     HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
