@@ -22,9 +22,16 @@ use {
         global_config::GlobalConfig,
     },
     std::convert::TryInto,
+    utils::{
+        clock::{
+            get_current_epoch,
+            time_to_epoch,
+        }
+    },
 };
 
 mod state;
+mod utils;
 
 declare_id!("pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ");
 #[program]
