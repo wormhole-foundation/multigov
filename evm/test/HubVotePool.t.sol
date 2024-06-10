@@ -165,7 +165,7 @@ contract Constructor is Test {
 
 contract RegisterSpoke is HubVotePoolTest {
   function testFuzz_RegisterNewSpoke(uint16 _wormholeChainId, address _spokeContract) public {
-    bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
+    bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
     bytes32 wormholeAddress = hubVotePool.spokeRegistry(_wormholeChainId);
@@ -173,7 +173,7 @@ contract RegisterSpoke is HubVotePoolTest {
   }
 
   function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(uint16 _wormholeChainId, address _spokeContract) public {
-    bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
+    bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.expectEmit();
     emit HubVotePool.SpokeRegistered(
       _wormholeChainId, hubVotePool.spokeRegistry(_wormholeChainId), spokeWormholeAddress
@@ -184,7 +184,7 @@ contract RegisterSpoke is HubVotePoolTest {
 
   function testFuzz_RevertIf_NotCalledByOwner(uint16 _wormholeChainId, address _spokeContract, address _caller) public {
     vm.assume(_caller != address(governor));
-    bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
+    bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
@@ -216,7 +216,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     uint16 _queryChainId
   ) public {
     vm.prank(address(governor));
-    hubVotePool.registerSpoke(_queryChainId, bytes32(uint256(uint160(_spokeContract))));
+    hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
     bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
@@ -252,7 +252,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     uint16 _queryChainId
   ) public {
     vm.prank(address(governor));
-    hubVotePool.registerSpoke(_queryChainId, bytes32(uint256(uint160(_spokeContract))));
+    hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
     bytes memory _resp1 = _buildArbitraryQuery(_voteParams1, _queryChainId, _spokeContract);
 
@@ -310,8 +310,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
     vm.assume(_queryChainId1 != _queryChainId2);
 
     vm.startPrank(address(governor));
-    hubVotePool.registerSpoke(_queryChainId1, bytes32(uint256(uint160(_spokeContract1))));
-    hubVotePool.registerSpoke(_queryChainId2, bytes32(uint256(uint160(_spokeContract2))));
+    hubVotePool.registerSpoke(_queryChainId1, addressToBytes32(_spokeContract1));
+    hubVotePool.registerSpoke(_queryChainId2, addressToBytes32(_spokeContract2));
     vm.stopPrank();
 
     bytes memory _resp1 = _buildArbitraryQuery(_voteParams1, _queryChainId1, _spokeContract1);
@@ -370,7 +370,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     vm.assume(_againstVotes != 0);
 
     vm.prank(address(governor));
-    hubVotePool.registerSpoke(_queryChainId, bytes32(uint256(uint160(_spokeContract))));
+    hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
     bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
@@ -433,7 +433,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     uint128 _abstainVotes
   ) public {
     vm.prank(address(governor));
-    hubVotePool.registerSpoke(2, bytes32(uint256(uint160(GOVERNANCE_CONTRACT))));
+    hubVotePool.registerSpoke(2, addressToBytes32(GOVERNANCE_CONTRACT));
 
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
       bytes("0x1296c33"), // blockId
@@ -505,7 +505,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
   function testFuzz_RevertIf_TooManyCalls(uint16 _queryChainId, address _spokeContract) public {
     vm.prank(address(governor));
-    hubVotePool.registerSpoke(_queryChainId, bytes32(uint256(uint160(_spokeContract))));
+    hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
       bytes("0x1296c33"), // blockId

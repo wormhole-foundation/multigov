@@ -53,4 +53,8 @@ contract WormholeEthQueryTest is Test {
     bytes32 responseDigest = QueryResponse(_getSig).getResponseDigest(response);
     (v, r, s) = vm.sign(DEVNET_GUARDIAN_PRIVATE_KEY, responseDigest);
   }
+
+  function addressToBytes32(address a) internal pure returns (bytes32) {
+    return bytes32(uint256(uint160(a)));
+  }
 }
