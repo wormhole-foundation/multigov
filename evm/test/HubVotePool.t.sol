@@ -245,6 +245,60 @@ contract CrossChainEVMVote is HubVotePoolTest {
     assertEq(abstainVotes, _abstainVotes);
   }
 
+  function testFuzz_CorrectlyAddNewVoteMultipleQueries(
+    VoteParams memory _voteParams1,
+    VoteParams memory _voteParams2,
+    address _spokeContract,
+    uint16 _queryChainId
+  ) public {
+    vm.prank(address(governor));
+    hubVotePool.registerSpoke(_queryChainId, bytes32(uint256(uint160(_spokeContract))));
+
+    bytes memory _resp1 = _buildArbitraryQuery(_voteParams1, _queryChainId, _spokeContract);
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp1);
+
+    hubVotePool.crossChainEVMVote(_resp1, signatures);
+
+    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams1.proposalId)));
+
+    assertEq(governor.proposalId(), _voteParams1.proposalId);
+    assertEq(governor.support(), 1);
+    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
+    assertEq(
+      governor.params(),
+      abi.encodePacked(
+        uint128(_voteParams1.againstVotes), uint128(_voteParams1.forVotes), uint128(_voteParams1.abstainVotes)
+      )
+    );
+    assertEq(againstVotes, _voteParams1.againstVotes);
+    assertEq(forVotes, _voteParams1.forVotes);
+    assertEq(abstainVotes, _voteParams1.abstainVotes);
+
+    bytes memory _resp2 = _buildArbitraryQuery(_voteParams2, _queryChainId, _spokeContract);
+
+    IWormhole.Signature[] memory signatures2 = _getSignatures(_resp2);
+
+    hubVotePool.crossChainEVMVote(_resp2, signatures2);
+
+    (againstVotes, forVotes, abstainVotes) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams2.proposalId)));
+
+    assertEq(governor.proposalId(), _voteParams2.proposalId);
+    assertEq(governor.support(), 1);
+    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
+    assertEq(
+      governor.params(),
+      abi.encodePacked(
+        uint128(_voteParams2.againstVotes), uint128(_voteParams2.forVotes), uint128(_voteParams2.abstainVotes)
+      )
+    );
+    assertEq(againstVotes, _voteParams2.againstVotes);
+    assertEq(forVotes, _voteParams2.forVotes);
+    assertEq(abstainVotes, _voteParams2.abstainVotes);
+  }
+
   function testFuzz_RevertIf_QueriedVotesAreLessThanOnHubVotePoolForSpoke(
     uint256 _proposalId,
     uint64 _againstVotes,
