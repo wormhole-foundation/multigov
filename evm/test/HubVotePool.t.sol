@@ -339,8 +339,12 @@ contract CrossChainEVMVote is HubVotePoolTest {
     uint256 _proposalId,
     uint64 _againstVotes,
     uint64 _forVotes,
-    uint64 _abstainVotes
+    uint64 _abstainVotes,
+    address _spokeContract,
+    uint16 _queryChainId
   ) public {
+    vm.assume(_spokeContract != address(0));
+
     bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
@@ -348,8 +352,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
       }),
-      QUERY_CHAIN_ID,
-      GOVERNANCE_CONTRACT
+      _queryChainId,
+      _spokeContract
     );
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
