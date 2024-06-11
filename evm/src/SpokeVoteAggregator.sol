@@ -12,20 +12,11 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 
-// TODO valid spoke chain token holders must be able to cast their vote on proposals
-// TODO must be a method for votes on spoke chain to be bridged to hub
-// TODO revert if proposalId doesn't exist
-// TODO revert if proposal is inactive
-// TODO revert if invalid vote is cast
-// TODO revert if voter has no vote weight
-// TODO Compatible with Flexible voting on the L2
-// TODO Message can only be bridged during the cast vote window period (Is this what we want)
 contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional, GovernorMinimumWeightedVoteWindow {
   bytes32 public constant BALLOT_TYPEHASH =
     keccak256("Ballot(uint256 proposalId,uint8 support,address voter,uint256 nonce)");
 
   ERC20Votes public immutable VOTING_TOKEN;
-  uint48 public safeWindow;
   SpokeMetadataCollector public spokeMetadataCollector;
 
   error InvalidSignature(address voter);
@@ -53,22 +44,12 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     GovernorMinimumWeightedVoteWindow(_initialVoteWindow)
   {
     VOTING_TOKEN = ERC20Votes(_votingToken);
-    _setSafeWindow(_safeWindow);
     spokeMetadataCollector = SpokeMetadataCollector(_spokeMetadataCollector);
-  }
-
-  function setSafeWindow(uint48 _safeWindow) external {
-    _checkOwner();
-    _setSafeWindow(_safeWindow);
   }
 
   function setVoteWeightWindow(uint48 _weightWindow) public {
     _checkOwner();
     _setVoteWeightWindow(_weightWindow);
-  }
-
-  function isVotingSafe(uint256 _proposalId) external view returns (bool) {
-    return _isVotingSafe(_proposalId);
   }
 
   function castVote(uint256 proposalId, uint8 support) public returns (uint256) {
@@ -130,15 +111,6 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     if (_params.length == 0) emit VoteCast(_voter, _proposalId, _support, weight, _reason);
     else emit VoteCastWithParams(_voter, _proposalId, _support, weight, _reason, _params);
     return weight;
-  }
-
-  function _isVotingSafe(uint256 _proposalId) internal view returns (bool) {
-    SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(_proposalId);
-    return (proposal.voteStart + safeWindow) >= block.timestamp;
-  }
-
-  function _setSafeWindow(uint48 _safeWindow) internal {
-    safeWindow = _safeWindow;
   }
 
   function voteActiveInternal(uint256 proposalId) public view returns (bool active) {

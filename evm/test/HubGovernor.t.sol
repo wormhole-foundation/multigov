@@ -8,10 +8,12 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 
 import {HubGovernor} from "src/HubGovernor.sol";
+import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {HubGovernorHarness} from "test/harnesses/HubGovernorHarness.sol";
+import {HubVotePoolHarness} from "test/harnesses/HubVotePoolHarness.sol";
 import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 
@@ -19,20 +21,36 @@ contract HubGovernorTest is Test, ProposalTest {
   HubGovernorHarness public governor;
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
-  HubVotePool public hubVotePool;
+  HubVotePoolHarness public hubVotePool;
   WormholeMock public wormhole;
+  address initialOwner;
 
   uint48 VOTE_WINDOW = 1 days;
 
-  function setUp() public {
-    address initialOwner = makeAddr("Initial Owner");
+  function setUp() public virtual {
+    initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
     wormhole = new WormholeMock();
-    hubVotePool = new HubVotePool(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
-    governor = new HubGovernorHarness(
-      "Example Gov", token, timelock, 1 days, 1 days, 500_000e18, 100e18, address(hubVotePool), VOTE_WINDOW
-    );
+    HubGovernorProposalExtender extender = new HubGovernorProposalExtender(initialOwner, 1 days, initialOwner);
+
+    hubVotePool =
+      new HubVotePoolHarness(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1), 1 days);
+
+    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+      name: "Example Gov",
+      token: token,
+      timelock: timelock,
+      initialVotingDelay: 1 days,
+      initialVotingPeriod: 3 days,
+      initialProposalThreshold: 500_000e18,
+      initialQuorum: 100e18,
+      hubVotePool: address(hubVotePool),
+      whitelistedVoteExtender: address(extender),
+      initialVoteWindow: VOTE_WINDOW
+    });
+
+    governor = new HubGovernorHarness(params);
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("PROPOSER_ROLE"), address(governor));
@@ -41,7 +59,15 @@ contract HubGovernorTest is Test, ProposalTest {
     timelock.grantRole(keccak256("EXECUTOR_ROLE"), address(governor));
 
     vm.prank(initialOwner);
+    hubVotePool.setGovernor(address(governor));
+
+    vm.prank(initialOwner);
     hubVotePool.transferOwnership(address(governor));
+
+    vm.prank(initialOwner);
+    extender.transferOwnership(address(timelock));
+
+    extender.initialize(payable(governor));
   }
 
   function _mintAndDelegate(address user, uint256 _amount) public returns (address) {
@@ -82,6 +108,14 @@ contract HubGovernorTest is Test, ProposalTest {
     return builder;
   }
 
+  function _createProposal(address _target, bytes memory _callData) public returns (ProposalBuilder) {
+    // Warp to ensure we don't overlap with any minting and delegation
+    vm.warp(vm.getBlockTimestamp() + 7 days);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(_target, 0, _callData);
+    return builder;
+  }
+
   // Create a proposal with arbitrary data
   function _createArbitraryProposal() public returns (ProposalBuilder) {
     return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", 100));
@@ -97,21 +131,25 @@ contract Constructor is HubGovernorTest {
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _hubVotePool
+    address _hubVotePool,
+    address _voteExtender
   ) public {
     vm.assume(_initialVotingPeriod != 0);
 
-    HubGovernor _governor = new HubGovernor(
-      _name,
-      ERC20Votes(_token),
-      TimelockController(_timelock),
-      _initialVotingDelay,
-      _initialVotingPeriod,
-      _initialProposalThreshold,
-      _initialQuorum,
-      _hubVotePool,
-      1 days
-    );
+    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+      name: _name,
+      token: ERC20Votes(_token),
+      timelock: TimelockController(_timelock),
+      initialVotingDelay: _initialVotingDelay,
+      initialVotingPeriod: _initialVotingPeriod,
+      initialProposalThreshold: _initialProposalThreshold,
+      initialQuorum: _initialQuorum,
+      hubVotePool: _hubVotePool,
+      whitelistedVoteExtender: _voteExtender,
+      initialVoteWindow: 1 days
+    });
+
+    HubGovernor _governor = new HubGovernor(params);
 
     assertEq(_governor.name(), _name);
     assertEq(address(_governor.token()), _token);
@@ -119,7 +157,8 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.votingDelay(), _initialVotingDelay);
     assertEq(_governor.votingPeriod(), _initialVotingPeriod);
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
-    // assertEq(_governor.whitelistedVotingAddresses(_hubVotePool), true);
+    assertEq(address(_governor.hubVotePool()), _hubVotePool);
+    assertEq(address(_governor.governorProposalExtender()), _voteExtender);
   }
 
   function testFuzz_RevertIf_VotingPeriodIsZero(
@@ -129,20 +168,24 @@ contract Constructor is HubGovernorTest {
     uint48 _initialVotingDelay,
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _hubVotePool
+    address _hubVotePool,
+    address _voteExtender
   ) public {
+    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+      name: _name,
+      token: ERC20Votes(_token),
+      timelock: TimelockController(_timelock),
+      initialVotingDelay: _initialVotingDelay,
+      initialVotingPeriod: 0,
+      initialProposalThreshold: _initialProposalThreshold,
+      initialQuorum: _initialQuorum,
+      hubVotePool: _hubVotePool,
+      whitelistedVoteExtender: _voteExtender,
+      initialVoteWindow: 1 days
+    });
+
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorInvalidVotingPeriod.selector, 0));
-    new HubGovernor(
-      _name,
-      ERC20Votes(_token),
-      TimelockController(_timelock),
-      _initialVotingDelay,
-      0,
-      _initialProposalThreshold,
-      _initialQuorum,
-      _hubVotePool,
-      1 days
-    );
+    new HubGovernor(params);
   }
 }
 

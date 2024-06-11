@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {Test, console2} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -14,6 +15,7 @@ import {
 contract HubVotePool is QueryResponse, Ownable {
   IWormhole public immutable WORMHOLE_CORE;
   IGovernor public hubGovernor;
+  uint48 public safeWindow;
   uint8 constant UNUSED_SUPPORT_PARAM = 1;
 
   error InvalidWormholeMessage(string);
@@ -45,12 +47,15 @@ contract HubVotePool is QueryResponse, Ownable {
   // Instead of nested mapping create encoding for the key
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
-  constructor(address _core, address _hubGovernor, SpokeVoteAggregator[] memory _initialSpokeRegistry)
-    QueryResponse(_core)
-    Ownable(_hubGovernor)
-  {
+  constructor(
+    address _core,
+    address _hubGovernor,
+    SpokeVoteAggregator[] memory _initialSpokeRegistry,
+    uint32 _safeWindow
+  ) QueryResponse(_core) Ownable(_hubGovernor) {
     WORMHOLE_CORE = IWormhole(_core);
     hubGovernor = IGovernor(_hubGovernor);
+    _setSafeWindow(_safeWindow);
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
       SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
       spokeRegistry[aggregator.wormholeChainId] = bytes32(uint256(uint160(aggregator.addr)));
@@ -58,6 +63,10 @@ contract HubVotePool is QueryResponse, Ownable {
         aggregator.wormholeChainId, bytes32(uint256(uint160(address(0)))), bytes32(uint256(uint160(aggregator.addr)))
       );
     }
+  }
+
+  function isVotingSafe(uint256 _proposalId) external view returns (bool) {
+    return _isVotingSafe(_proposalId);
   }
 
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
@@ -69,6 +78,11 @@ contract HubVotePool is QueryResponse, Ownable {
   function setGovernor(address _newGovernor) external {
     _checkOwner();
     hubGovernor = IGovernor(_newGovernor);
+  }
+
+  function setSafeWindow(uint48 _safeWindow) external {
+    _checkOwner();
+    _setSafeWindow(_safeWindow);
   }
 
   // TODO we will need a Solana method as well
@@ -124,5 +138,19 @@ contract HubVotePool is QueryResponse, Ownable {
     );
 
     emit SpokeVoteCast(emitterChainId, proposalId, vote.againstVotes, vote.forVotes, vote.abstainVotes);
+  }
+
+  function _isVotingSafe(uint256 _proposalId) internal view returns (bool) {
+    uint256 voteStart = hubGovernor.proposalSnapshot(_proposalId);
+    console2.logUint(block.timestamp);
+    console2.logUint(voteStart + safeWindow);
+    console2.logUint(voteStart);
+    console2.logUint(safeWindow);
+    console2.logBool((voteStart + safeWindow) >= block.timestamp);
+    return (voteStart + safeWindow) >= block.timestamp;
+  }
+
+  function _setSafeWindow(uint48 _safeWindow) internal {
+    safeWindow = _safeWindow;
   }
 }

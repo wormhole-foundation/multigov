@@ -2,6 +2,8 @@
 pragma solidity ^0.8.23;
 
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
@@ -14,9 +16,14 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {GovernorCountingFractional} from "flexible-voting/GovernorCountingFractional.sol";
 
+import {HubVotePool} from "src/HubVotePool.sol";
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
+
+interface IVoteExtender {
+  function extendedDeadlines(uint256 _proposalId) external view returns (uint48 _newVoteEnd);
+}
 
 contract HubGovernor is
   GovernorCountingFractional,
@@ -28,33 +35,54 @@ contract HubGovernor is
 {
   address public whitelistedProposer;
   HubVotePool public hubVotePool;
+  IVoteExtender public governorProposalExtender;
+
+  // Should we remove this mapping and add the hubVotePool
+  mapping(address votingAddress => bool enabled) public whitelistedVotingAddresses;
 
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
 
-  constructor(
-    string memory _name,
-    ERC20Votes _token,
-    TimelockController _timelock,
-    uint48 _initialVotingDelay,
-    uint32 _initialVotingPeriod,
-    uint256 _initialProposalThreshold,
-    uint208 _initialQuorum,
-    address _hubVotePool,
-    uint48 _initialVoteWindow
-  )
-    Governor(_name)
-    GovernorSettings(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold)
-    GovernorVotes(_token)
-    GovernorTimelockControl(_timelock)
-    GovernorSettableFixedQuorum(_initialQuorum)
-    GovernorMinimumWeightedVoteWindow(_initialVoteWindow)
+  struct ConstructorParams {
+    string name;
+    ERC20Votes token;
+    TimelockController timelock;
+    uint48 initialVotingDelay;
+    uint32 initialVotingPeriod;
+    uint256 initialProposalThreshold;
+    uint208 initialQuorum;
+    address hubVotePool;
+    address whitelistedVoteExtender;
+    uint48 initialVoteWindow;
+  }
+
+  constructor(ConstructorParams memory _params)
+    Governor(_params.name)
+    GovernorSettings(_params.initialVotingDelay, _params.initialVotingPeriod, _params.initialProposalThreshold)
+    GovernorVotes(_params.token)
+    GovernorTimelockControl(_params.timelock)
+    GovernorSettableFixedQuorum(_params.initialQuorum)
+    GovernorMinimumWeightedVoteWindow(_params.initialVoteWindow)
   {
-    _setHubVotePool(_hubVotePool);
+    _setHubVotePool(_params.hubVotePool);
+    _setGovernorProposalExtender(_params.whitelistedVoteExtender);
+  }
+
+  function checkGovernance() external {
+    _checkGovernance();
   }
 
   function setHubVotePool(address _hubVotePool) external {
     _checkGovernance();
     _setHubVotePool(_hubVotePool);
+  }
+
+  function setGovernorProposalExtender(address _extender) public {
+    _checkGovernance();
+    _setGovernorProposalExtender(_extender);
+  }
+
+  function proposalDeadline(uint256 _proposalId) public view virtual override returns (uint256) {
+    return Math.max(super.proposalDeadline(_proposalId), governorProposalExtender.extendedDeadlines(_proposalId));
   }
 
   function propose(
@@ -103,8 +131,17 @@ contract HubGovernor is
     return GovernorTimelockControl._cancel(targets, values, calldatas, descriptionHash);
   }
 
+  function _setGovernorProposalExtender(address _extender) internal {
+    governorProposalExtender = IVoteExtender(_extender);
+  }
+
   function _setHubVotePool(address _hubVotePool) internal {
     hubVotePool = HubVotePool(_hubVotePool);
+  }
+
+  function _setWhitelistedProposer(address _proposer) internal {
+    emit WhitelistedProposerUpdated(whitelistedProposer, _proposer);
+    whitelistedProposer = _proposer;
   }
 
   function _executeOperations(
@@ -129,11 +166,6 @@ contract HubGovernor is
     bytes32 _description /*descriptionHash*/
   ) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
     return GovernorTimelockControl._queueOperations(_proposalId, _targets, _values, _calldatas, _description);
-  }
-
-  function _setWhitelistedProposer(address _proposer) internal {
-    emit WhitelistedProposerUpdated(whitelistedProposer, _proposer);
-    whitelistedProposer = _proposer;
   }
 
   function proposalNeedsQueuing(uint256 proposalId)

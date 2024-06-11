@@ -18,11 +18,12 @@ contract SpokeVoteAggregatorTest is Test {
   ERC20VotesFake public token;
   WormholeMock public wormhole;
   uint16 immutable HUB_CHAIN_ID = 2;
-  address owner = makeAddr("Spoke Vote Aggregator Owner");
   uint48 initialSafeWindow = 1 days;
+  address owner;
 
   function setUp() public {
     address _hubProposalMetadataSender = makeAddr("Hub proposal metadata");
+    owner = makeAddr("Aggregator owner");
     wormhole = new WormholeMock();
     token = new ERC20VotesFake();
     spokeMetadataCollector =
@@ -34,12 +35,6 @@ contract SpokeVoteAggregatorTest is Test {
   function _boundProposalTime(uint48 _voteStart) internal pure returns (uint48) {
     _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - 2));
     return _voteStart;
-  }
-
-  function _boundProposalSafeWindow(uint48 _voteStart, uint48 _safeWindow) internal pure returns (uint48, uint48) {
-    _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - 3));
-    _safeWindow = uint48(bound(_safeWindow, 1, type(uint48).max - _voteStart - 2));
-    return (_voteStart, _safeWindow);
   }
 }
 
@@ -55,8 +50,6 @@ contract Constructor is SpokeVoteAggregatorTest {
     SpokeVoteAggregator spokeVoteAggregator =
       new SpokeVoteAggregator(_spokeMetadataCollector, _token, _safeWindow, _owner, _voteWeightWindow);
     assertEq(address(spokeVoteAggregator.VOTING_TOKEN()), _token);
-    assertEq(spokeVoteAggregator.safeWindow(), _safeWindow);
-    assertEq(spokeVoteAggregator.owner(), _owner);
     assertEq(address(spokeVoteAggregator.spokeMetadataCollector()), _spokeMetadataCollector);
   }
 }
@@ -175,49 +168,6 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.expectRevert("SpokeCountingFractional: all weight cast");
     spokeVoteAggregator.castVote(_proposalId, _support);
     vm.stopPrank();
-  }
-}
-
-contract SetSafeWindow is SpokeVoteAggregatorTest {
-  function testFuzz_CorrectlySetSafeWindow(uint48 _safeWindow) public {
-    vm.prank(owner);
-    spokeVoteAggregator.setSafeWindow(_safeWindow);
-    assertEq(spokeVoteAggregator.safeWindow(), _safeWindow);
-  }
-
-  function testFuzz_RevertIf_NotCalledByOwner(uint48 _safeWindow, address _caller) public {
-    vm.assume(owner != _caller);
-
-    vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
-    spokeVoteAggregator.setSafeWindow(_safeWindow);
-  }
-}
-
-contract IsVotingSafe is SpokeVoteAggregatorTest {
-  function testFuzz_GetIsProposalSafeForSafeProposal(uint16 _safeWindow, uint256 _proposalId, uint48 _voteStart) public {
-    vm.assume(_safeWindow != 0);
-    vm.assume(_proposalId != 0);
-    _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - _safeWindow));
-    spokeVoteAggregator.exposed_setSafeWindow(_safeWindow);
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
-    vm.warp(_voteStart);
-    bool isSafe = spokeVoteAggregator.isVotingSafe(_proposalId);
-    assertEq(isSafe, true);
-  }
-
-  function testFuzz_GetIsProposalSafeForUnsafeProposal(uint48 _safeWindow, uint256 _proposalId, uint48 _voteStart)
-    public
-  {
-    vm.assume(_safeWindow != 0);
-    vm.assume(_proposalId != 0);
-    (_voteStart, _safeWindow) = _boundProposalSafeWindow(_voteStart, _safeWindow);
-    spokeVoteAggregator.exposed_setSafeWindow(_safeWindow);
-    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
-
-    vm.warp(_voteStart + _safeWindow + 1);
-    bool isSafe = spokeVoteAggregator.isVotingSafe(_proposalId);
-    assertEq(isSafe, false);
   }
 }
 

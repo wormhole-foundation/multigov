@@ -7,6 +7,7 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
 import {HubGovernor} from "src/HubGovernor.sol";
+import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 
@@ -26,11 +27,13 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint208 initialQuorum;
     address wormholeCore;
     uint48 voteWeightWindow;
+    address whitelistedVoteExtender;
+    uint48 voteTimeExtension;
   }
 
   error InvalidAddressConfiguration();
 
-  function _getDeploymentConfiguration() internal pure virtual returns (DeploymentConfiguration memory);
+  function _getDeploymentConfiguration() internal virtual returns (DeploymentConfiguration memory);
 
   function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
     uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
@@ -47,23 +50,34 @@ abstract contract DeployHubContractsBaseImpl is Script {
     TimelockController timelock =
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
-    HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0));
+    HubVotePool pool =
+      new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0), 1 days);
+
+    HubGovernorProposalExtender extender = new HubGovernorProposalExtender(
+      config.whitelistedVoteExtender, config.voteTimeExtension, config.whitelistedVoteExtender
+    );
+
+    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+      name: config.name,
+      token: ERC20Votes(config.token),
+      timelock: timelock,
+      initialVotingDelay: config.initialVotingDelay,
+      initialVotingPeriod: config.initialVotingPeriod,
+      initialProposalThreshold: config.initialProposalThreshold,
+      initialQuorum: config.initialQuorum,
+      hubVotePool: address(pool),
+      whitelistedVoteExtender: address(extender),
+      initialVoteWindow: config.voteWeightWindow
+    });
 
     // DeployHub Governor
-    HubGovernor gov = new HubGovernor(
-      config.name,
-      ERC20Votes(config.token),
-      timelock,
-      config.initialVotingDelay,
-      config.initialVotingPeriod,
-      config.initialProposalThreshold,
-      config.initialQuorum,
-      address(pool),
-      config.voteWeightWindow
-    );
+    HubGovernor gov = new HubGovernor(params);
 
     // Ownership will be transferred during configuration
     pool.setGovernor(address(gov));
+
+    // Set governor on extender
+    extender.initialize(payable(gov));
 
     // Grant roles
     timelock.grantRole(timelock.PROPOSER_ROLE(), address(gov));
