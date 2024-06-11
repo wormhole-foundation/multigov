@@ -87,6 +87,25 @@ pub mod staking {
         Ok(())
     }
 
+    /// Trustless instruction that creates a stake account for a user
+    #[inline(never)]
+    pub fn create_stake_account(
+        ctx: Context<CreateStakeAccount>,
+        owner: Pubkey,
+    ) -> Result<()> {
+        let config = &ctx.accounts.config;
+
+        let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+        stake_account_metadata.initialize(
+            *ctx.bumps.get("stake_account_metadata").unwrap(),
+            *ctx.bumps.get("stake_account_custody").unwrap(),
+            *ctx.bumps.get("custody_authority").unwrap(),
+            &owner,
+        );
+
+        Ok(())
+    }
+
     /** Recovers a user's `stake account` ownership by transferring ownership
      * from a token account to the `owner` of that token account.
      *
