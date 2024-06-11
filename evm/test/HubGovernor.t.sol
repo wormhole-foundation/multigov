@@ -2,8 +2,8 @@
 pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 
@@ -22,14 +22,17 @@ contract HubGovernorTest is Test, ProposalTest {
   HubVotePool public hubVotePool;
   WormholeMock public wormhole;
 
+  uint48 VOTE_WINDOW = 1 days;
+
   function setUp() public {
     address initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
     wormhole = new WormholeMock();
     hubVotePool = new HubVotePool(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
-    governor =
-      new HubGovernorHarness("Example Gov", token, timelock, 1 days, 1 days, 500_000e18, 100e18, address(hubVotePool));
+    governor = new HubGovernorHarness(
+      "Example Gov", token, timelock, 1 days, 1 days, 500_000e18, 100e18, address(hubVotePool), VOTE_WINDOW
+    );
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("PROPOSER_ROLE"), address(governor));
@@ -45,7 +48,7 @@ contract HubGovernorTest is Test, ProposalTest {
     token.mint(user, _amount);
     vm.prank(user);
     token.delegate(user);
-    vm.warp(block.timestamp + 1);
+    vm.warp(vm.getBlockTimestamp() + 1);
     return user;
   }
 
@@ -73,7 +76,7 @@ contract HubGovernorTest is Test, ProposalTest {
   // Use the builder to then create a proposal
   function _createProposal(bytes memory _callData) public returns (ProposalBuilder) {
     // Warp to ensure we don't overlap with any minting and delegation
-    vm.warp(block.timestamp + 7 days);
+    vm.warp(vm.getBlockTimestamp() + 7 days);
     ProposalBuilder builder = new ProposalBuilder();
     builder.push(address(governor), 0, _callData);
     return builder;
@@ -100,13 +103,14 @@ contract Constructor is HubGovernorTest {
 
     HubGovernor _governor = new HubGovernor(
       _name,
-      IVotes(_token),
+      ERC20Votes(_token),
       TimelockController(_timelock),
       _initialVotingDelay,
       _initialVotingPeriod,
       _initialProposalThreshold,
       _initialQuorum,
-      _hubVotePool
+      _hubVotePool,
+      1 days
     );
 
     assertEq(_governor.name(), _name);
@@ -115,7 +119,7 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.votingDelay(), _initialVotingDelay);
     assertEq(_governor.votingPeriod(), _initialVotingPeriod);
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
-    assertEq(_governor.whitelistedVotingAddresses(_hubVotePool), true);
+    // assertEq(_governor.whitelistedVotingAddresses(_hubVotePool), true);
   }
 
   function testFuzz_RevertIf_VotingPeriodIsZero(
@@ -130,189 +134,64 @@ contract Constructor is HubGovernorTest {
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorInvalidVotingPeriod.selector, 0));
     new HubGovernor(
       _name,
-      IVotes(_token),
+      ERC20Votes(_token),
       TimelockController(_timelock),
       _initialVotingDelay,
       0,
       _initialProposalThreshold,
       _initialQuorum,
-      _hubVotePool
+      _hubVotePool,
+      1 days
     );
   }
 }
 
-contract EnableWhitelistedVotingAddress is HubGovernorTest {
-  function _createEnableWhitelistedAddressProposal(address _whitelistedAddress) public returns (ProposalBuilder) {
-    return _createProposal(abi.encodeWithSignature("enableWhitelistedVotingAddress(address)", _whitelistedAddress));
+contract SetHubVotePool is HubGovernorTest {
+  function _createHubVotePoolProposal(address _hubVotePool) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setHubVotePool(address)", _hubVotePool));
   }
 
-  function testFuzz_SetANewWhitelistedVoteAddress(address _whitelistedAddress, string memory _proposalDescription)
-    public
-  {
-    vm.assume(_whitelistedAddress != address(0));
-    vm.assume(_whitelistedAddress != address(timelock));
+  function testFuzz_SetANewHubVoteAddress(address _hubVotePool, string memory _proposalDescription) public {
+    vm.assume(_hubVotePool != address(0));
+    vm.assume(_hubVotePool != address(timelock));
 
     _setGovernorAndDelegates();
 
-    ProposalBuilder builder = _createEnableWhitelistedAddressProposal(_whitelistedAddress);
+    ProposalBuilder builder = _createHubVotePoolProposal(_hubVotePool);
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
-    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
+
+    assertEq(address(governor.hubVotePool()), _hubVotePool);
   }
 
-  function testFuzz_SetMultipleWhitelistedVoteAddresses(
-    address _firstWhitelistedAddress,
-    address _secondWhitelistedAddress,
+  function testFuzz_ChangeHubVotePoolMultipleTimes(
+    address _newHubVotePool1,
+    address _newHubVotePool2,
     string memory _proposalDescriptionFirst,
     string memory _proposalDescriptionSecond
   ) public {
-    vm.assume(_firstWhitelistedAddress != address(0) && _secondWhitelistedAddress != address(0));
-    vm.assume(_firstWhitelistedAddress != address(timelock) && _secondWhitelistedAddress != address(timelock));
+    vm.assume(_newHubVotePool1 != address(0) && _newHubVotePool2 != address(0));
+    vm.assume(_newHubVotePool1 != address(timelock) && _newHubVotePool2 != address(timelock));
 
     _setGovernorAndDelegates();
 
-    ProposalBuilder firstBuilder = _createEnableWhitelistedAddressProposal(_firstWhitelistedAddress);
-    _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
-    );
-    ProposalBuilder secondBuilder = _createEnableWhitelistedAddressProposal(_secondWhitelistedAddress);
-    _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
-    );
+    ProposalBuilder builder = _createHubVotePoolProposal(_newHubVotePool1);
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescriptionFirst);
 
-    assertEq(governor.whitelistedVotingAddresses(_firstWhitelistedAddress), true);
-    assertEq(governor.whitelistedVotingAddresses(_secondWhitelistedAddress), true);
+    ProposalBuilder builder2 = _createHubVotePoolProposal(_newHubVotePool2);
+    _queueAndVoteAndExecuteProposal(
+      builder2.targets(), builder2.values(), builder2.calldatas(), _proposalDescriptionSecond
+    );
+    assertEq(address(governor.hubVotePool()), _newHubVotePool2);
   }
 
-  function testFuzz_EnableThenDisableWhitelistedAddress(
-    address _whitelistedAddress,
-    string memory _proposalDescriptionFirst,
-    string memory _proposalDescriptionSecond,
-    string memory _proposalDescriptionThird
-  ) public {
-    vm.assume(keccak256(bytes(_proposalDescriptionFirst)) != keccak256(bytes(_proposalDescriptionThird)));
-    vm.assume(_whitelistedAddress != address(0));
-    vm.assume(_whitelistedAddress != address(timelock));
-
-    _setGovernorAndDelegates();
-
-    ProposalBuilder firstBuilder = _createEnableWhitelistedAddressProposal(_whitelistedAddress);
-    _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
-    );
-    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
-
-    ProposalBuilder secondBuilder = new ProposalBuilder();
-    secondBuilder.push(
-      address(governor), 0, abi.encodeWithSignature("disableWhitelistedVotingAddress(address)", _whitelistedAddress)
-    );
-    _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
-    );
-    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), false);
-
-    ProposalBuilder thirdBuilder = _createEnableWhitelistedAddressProposal(_whitelistedAddress);
-    _queueAndVoteAndExecuteProposal(
-      thirdBuilder.targets(), thirdBuilder.values(), thirdBuilder.calldatas(), _proposalDescriptionThird
-    );
-
-    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
-  }
-
-  function testFuzz_RevertIf_CallerIsNotAuthorized(address _whitelistedAddress, address _caller) public {
-    vm.assume(_whitelistedAddress != address(0));
-    vm.assume(_whitelistedAddress != address(timelock));
+  function testFuzz_RevertIf_CallerIsNotAuthorized(address _hubVotePool, address _caller) public {
+    vm.assume(_hubVotePool != address(0));
+    vm.assume(_hubVotePool != address(timelock));
     vm.assume(_caller != address(timelock));
 
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.enableWhitelistedVotingAddress(_whitelistedAddress);
-  }
-}
-
-contract DisableWhitelistedVotingAddress is HubGovernorTest {
-  function _createDisableWhitelistedVotingAddressProposal(address _whitelistedAddress) public returns (ProposalBuilder) {
-    return _createProposal(abi.encodeWithSignature("disableWhitelistedVotingAddress(address)", _whitelistedAddress));
-  }
-
-  function testFuzz_DisableWhitelistedAddress(address _whitelistedAddress, string memory _proposalDescription) public {
-    vm.assume(_whitelistedAddress != address(0));
-    vm.assume(_whitelistedAddress != address(timelock));
-
-    governor.exposed_enableWhitelistedAddress(_whitelistedAddress);
-    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
-
-    _setGovernorAndDelegates();
-
-    ProposalBuilder builder = _createDisableWhitelistedVotingAddressProposal(_whitelistedAddress);
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
-    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), false);
-  }
-
-  function testFuzz_DisableMultipleAddresses(
-    address _firstWhitelistedAddress,
-    address _secondWhitelistedAddress,
-    string memory _proposalDescriptionFirst,
-    string memory _proposalDescriptionSecond
-  ) public {
-    vm.assume(_firstWhitelistedAddress != address(0) && _secondWhitelistedAddress != address(0));
-
-    governor.exposed_enableWhitelistedAddress(_firstWhitelistedAddress);
-    governor.exposed_enableWhitelistedAddress(_secondWhitelistedAddress);
-    assertEq(governor.whitelistedVotingAddresses(_firstWhitelistedAddress), true);
-    assertEq(governor.whitelistedVotingAddresses(_secondWhitelistedAddress), true);
-
-    _setGovernorAndDelegates();
-
-    ProposalBuilder firstBuilder = _createDisableWhitelistedVotingAddressProposal(_firstWhitelistedAddress);
-    _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
-    );
-
-    ProposalBuilder secondBuilder = _createDisableWhitelistedVotingAddressProposal(_secondWhitelistedAddress);
-    _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
-    );
-
-    assertEq(governor.whitelistedVotingAddresses(_firstWhitelistedAddress), false);
-    assertEq(governor.whitelistedVotingAddresses(_secondWhitelistedAddress), false);
-  }
-
-  function testFuzz_DisableThenEnableWhitelistedAddress(
-    address _whitelistedAddress,
-    string memory _proposalDescriptionFirst,
-    string memory _proposalDescriptionSecond
-  ) public {
-    vm.assume(_whitelistedAddress != address(0));
-    vm.assume(_whitelistedAddress != address(timelock));
-
-    governor.exposed_enableWhitelistedAddress(_whitelistedAddress);
-
-    _setGovernorAndDelegates();
-
-    ProposalBuilder firstBuilder = _createDisableWhitelistedVotingAddressProposal(_whitelistedAddress);
-    _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
-    );
-
-    ProposalBuilder secondBuilder = new ProposalBuilder();
-    secondBuilder.push(
-      address(governor), 0, abi.encodeWithSignature("enableWhitelistedVotingAddress(address)", _whitelistedAddress)
-    );
-    _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
-    );
-
-    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
-  }
-
-  function testFuzz_RevertIf_CallerIsNotAuthorized(address _whitelistedAddress, address _caller) public {
-    vm.assume(_whitelistedAddress != address(0));
-    vm.assume(_whitelistedAddress != address(timelock));
-    vm.assume(_caller != address(timelock));
-
-    vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.disableWhitelistedVotingAddress(_whitelistedAddress);
+    governor.setHubVotePool(_hubVotePool);
   }
 }
 
@@ -336,7 +215,7 @@ contract Propose is HubGovernorTest {
     vm.stopPrank();
 
     uint256 voteStart = governor.proposalSnapshot(proposalId);
-    assertEq(voteStart, block.timestamp + governor.votingDelay());
+    assertEq(voteStart, vm.getBlockTimestamp() + governor.votingDelay());
   }
 
   function testFuzz_UnwhitelistedProposerCanProposeWhenMeetingProposalThreshold(
@@ -347,8 +226,8 @@ contract Propose is HubGovernorTest {
     vm.assume(_whitelistedProposer != address(0));
     vm.assume(_proposer != address(0));
 
-    ProposalBuilder builder = _createSetWhitelistedProposerProposal(_proposer);
     _setupDelegate(_proposer);
+    ProposalBuilder builder = _createSetWhitelistedProposerProposal(_proposer);
 
     governor.exposed_setWhitelistedProposer(_whitelistedProposer);
 
@@ -357,7 +236,7 @@ contract Propose is HubGovernorTest {
     vm.stopPrank();
 
     uint256 voteStart = governor.proposalSnapshot(proposalId);
-    assertEq(voteStart, block.timestamp + governor.votingDelay());
+    assertEq(voteStart, vm.getBlockTimestamp() + governor.votingDelay());
   }
 
   function testFuzz_RevertIf_UnwhitelistedProposerDoesNotMeetProposalThreshold(
@@ -403,7 +282,7 @@ contract Propose is HubGovernorTest {
 contract Quorum is HubGovernorTest {
   function testFuzz_SuccessfullyGetLatestQuorumCheckpoint(uint208 _quorum) public {
     governor.exposed_setQuorum(_quorum);
-    uint256 quorum = governor.quorum(block.timestamp);
+    uint256 quorum = governor.quorum(vm.getBlockTimestamp());
     assertEq(quorum, _quorum);
   }
 }
@@ -415,7 +294,7 @@ contract SetWhitelistedProposer is HubGovernorTest {
     vm.prank(delegate);
     token.delegate(delegate);
 
-    vm.warp(block.timestamp + 7 days);
+    vm.warp(vm.getBlockTimestamp() + 7 days);
     address[] memory delegates = new address[](1);
     delegates[0] = delegate;
     _setGovernor(governor);
@@ -432,7 +311,7 @@ contract SetWhitelistedProposer is HubGovernorTest {
     vm.prank(delegate);
     token.delegate(delegate);
 
-    vm.warp(block.timestamp + 7 days);
+    vm.warp(vm.getBlockTimestamp() + 7 days);
     address[] memory delegates = new address[](1);
     delegates[0] = delegate;
     _setGovernor(governor);
@@ -473,12 +352,11 @@ contract SetWhitelistedProposer is HubGovernorTest {
 contract SetQuorum is HubGovernorTest {
   function testFuzz_CorrectlySetQuorumCheckpoint(uint208 _quorum) public {
     address delegate = makeAddr("delegate");
-    console2.logUint(governor.proposalThreshold());
     token.mint(delegate, governor.proposalThreshold());
     vm.prank(delegate);
     token.delegate(delegate);
 
-    vm.warp(block.timestamp + 7 days);
+    vm.warp(vm.getBlockTimestamp() + 7 days);
     address[] memory delegates = new address[](1);
     delegates[0] = delegate;
     _setGovernor(governor);
@@ -486,7 +364,7 @@ contract SetQuorum is HubGovernorTest {
     ProposalBuilder builder = new ProposalBuilder();
     builder.push(address(governor), 0, abi.encodeWithSignature("setQuorum(uint208)", _quorum));
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
-    assertEq(governor.quorum(block.timestamp), _quorum);
+    assertEq(governor.quorum(vm.getBlockTimestamp()), _quorum);
   }
 
   function testFuzz_RevertIf_CallerIsNotAuthorized(uint208 _quorum, address _caller) public {
@@ -495,6 +373,37 @@ contract SetQuorum is HubGovernorTest {
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
     governor.setQuorum(_quorum);
+  }
+}
+
+contract SetVoteWeightWindow is HubGovernorTest {
+  function testFuzz_CorrectlyUpdateVoteWeightWindow(uint48 _window) public {
+    address delegate = makeAddr("delegate");
+    token.mint(delegate, governor.proposalThreshold());
+
+    vm.prank(delegate);
+    token.delegate(delegate);
+
+    vm.warp(vm.getBlockTimestamp() + VOTE_WINDOW + 1);
+    address[] memory delegates = new address[](1);
+    delegates[0] = delegate;
+    _setGovernor(governor);
+    _setDelegates(delegates);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("setVoteWeightWindow(uint48)", _window));
+
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    // uint48 setWindow = governor.voteWeightWindowLength();
+    // assertEq(setWindow, _window);
+  }
+
+  function testFuzz_RevertIf_NotCalledByOwner(address _caller, uint16 _window) public {
+    vm.assume(_caller != address(governor));
+    vm.assume(_caller != address(timelock));
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
+    governor.setVoteWeightWindow(_window);
   }
 }
 
@@ -634,5 +543,143 @@ contract _CountVote is HubGovernorTest {
     governor.exposed_countVote(
       _proposalId, _nonWhitelistedAddress, _support, _secondCallTotalWeight, _secondCallVoteData
     );
+  }
+}
+
+contract _GetVotes is HubGovernorTest {
+  address attacker = makeAddr("Attacker");
+
+  function _createIncreasingCheckpointArray(uint256 _checkpoints) public {
+    vm.prank(attacker);
+    token.delegate(attacker);
+    vm.warp(1);
+    for (uint256 i = 0; i < _checkpoints; i++) {
+      vm.warp(vm.getBlockTimestamp() + 1);
+      token.mint(attacker, uint256(100));
+    }
+  }
+
+  function _createDecreasingCheckpointArray(uint256 _checkpoints) public {
+    vm.prank(attacker);
+    token.delegate(attacker);
+    vm.warp(1);
+    token.mint(attacker, uint256(100 * _checkpoints));
+    for (uint256 i = 0; i < _checkpoints; i++) {
+      vm.warp(vm.getBlockTimestamp() + 1);
+      token.burn(attacker, uint256(100));
+    }
+  }
+
+  function _createUniformCheckpointArray(uint256 _checkpoints) public {
+    vm.prank(attacker);
+    token.delegate(attacker);
+    vm.warp(1);
+    token.mint(attacker, uint256(100 * _checkpoints));
+    for (uint256 i = 0; i < _checkpoints; i++) {
+      vm.warp(vm.getBlockTimestamp() + 1);
+    }
+  }
+
+  function _createAlternatingCheckpointArray(uint256 _checkpoints) public {
+    vm.prank(attacker);
+    token.delegate(attacker);
+    vm.warp(1);
+    for (uint256 i = 0; i < _checkpoints; i++) {
+      vm.warp(vm.getBlockTimestamp() + 1);
+      if (i % 2 == 0) token.mint(attacker, uint256(100 * _checkpoints));
+      else token.burn(attacker, uint256(100 * _checkpoints));
+    }
+  }
+
+  function testFuzz_GetCorrectVoteWeightWhenTheUserNoWeight(address _account, uint96 _windowStart) public {
+    _windowStart = uint96(bound(_windowStart, VOTE_WINDOW, type(uint96).max));
+    uint256 _votingWeight = governor.exposed_getVotes(_account, _windowStart);
+    assertEq(_votingWeight, 0);
+  }
+
+  function testFuzz_RevertIf_WhenEarlierThanWindow(uint96 _start) public {
+    uint48 WINDOW_LENGTH = 2;
+    _start = uint96(bound(_start, 1, WINDOW_LENGTH - 1));
+
+    vm.warp(1);
+    governor.exposed_setVoteWeightWindow(WINDOW_LENGTH);
+    _createIncreasingCheckpointArray(5);
+
+    vm.expectRevert();
+    governor.exposed_getVotes(attacker, _start);
+  }
+
+  function testFuzz_GetCorrectVoteWeightBeforeCheckpointsAreRecorded(uint48 _start) public {
+    uint48 WINDOW_LENGTH = 2;
+    _start = uint48(bound(_start, WINDOW_LENGTH, 3));
+    governor.exposed_setVoteWeightWindow(WINDOW_LENGTH);
+    _createIncreasingCheckpointArray(5);
+    uint256 _votes = governor.exposed_getVotes(attacker, _start);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_GetCorrectVoteWeightWhenItHasNIncreasingCheckpoints(uint48 _start) public {
+    _start = uint48(bound(_start, 4, 1002));
+    governor.exposed_setVoteWeightWindow(2);
+    _createIncreasingCheckpointArray(1000);
+    uint256 _votes = governor.exposed_getVotes(attacker, _start);
+    console2.logUint(_start);
+    assertEq(_votes, (_start - 3) * 100);
+  }
+
+  function testFuzz_GetCorrectVoteWeightWhenItHasNDecreasingCheckpoints(uint48 _start) public {
+    _start = uint48(bound(_start, 4, 1000));
+    governor.exposed_setVoteWeightWindow(2);
+    _createDecreasingCheckpointArray(1000);
+    uint256 _votes = governor.exposed_getVotes(attacker, _start);
+    assertEq(_votes, (1000 * 100) - ((_start - 1) * 100));
+  }
+
+  function testFuzz_GetCorrectVoteWeightWhenItHasNUniformCheckpoints(uint256 _start) public {
+    _start = bound(_start, 4, 1002);
+    governor.exposed_setVoteWeightWindow(2);
+    _createUniformCheckpointArray(1000);
+    uint256 _votes = governor.exposed_getVotes(attacker, _start);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_GetCorrectVoteWeightWhenItHasNAlternatingCheckpoints(uint256 _start) public {
+    _start = bound(_start, 4, 1002);
+    governor.exposed_setVoteWeightWindow(2);
+    _createAlternatingCheckpointArray(1000);
+    uint256 _votes = governor.exposed_getVotes(attacker, _start);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_GetCorrectWeightAfterLastCheckpointIncreasingWeight(uint256 _start) public {
+    _start = bound(_start, 1003, 10_000);
+    governor.exposed_setVoteWeightWindow(2);
+    _createIncreasingCheckpointArray(1000);
+    uint256 _votes = governor.exposed_getVotes(attacker, _start);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_GetCorrectWeightAfterLastCheckpointDecreasingWeight(uint256 _start) public {
+    _start = bound(_start, 1001, 10_000);
+    governor.exposed_setVoteWeightWindow(2);
+    _createDecreasingCheckpointArray(1000);
+    uint256 _votes = governor.exposed_getVotes(attacker, _start);
+    assertEq(_votes, 0);
+  }
+
+  function testFuzz_GetCorrectWeightAfterLastCheckpointUniformWeight(uint256 _start) public {
+    _start = bound(_start, 1003, 10_000);
+    governor.exposed_setVoteWeightWindow(2);
+    _createUniformCheckpointArray(1000);
+    uint256 _votes = governor.exposed_getVotes(attacker, _start);
+    assertEq(_votes, 1000 * 100);
+  }
+
+  function testFuzz_GetCorrectWeightAfterLastCheckpointAlternatingWeight(uint256 _start) public {
+    _start = bound(_start, 1003, 10_000);
+    governor.exposed_setVoteWeightWindow(2);
+    _createAlternatingCheckpointArray(1000);
+    uint256 _votes = governor.exposed_getVotes(attacker, _start);
+    assertEq(_votes, 0);
   }
 }

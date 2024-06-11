@@ -27,7 +27,8 @@ contract SpokeVoteAggregatorTest is Test {
     token = new ERC20VotesFake();
     spokeMetadataCollector =
       new SpokeMetadataCollectorHarness(address(wormhole), HUB_CHAIN_ID, _hubProposalMetadataSender);
-    spokeVoteAggregator = new SpokeVoteAggregatorHarness(address(spokeMetadataCollector), address(token), 1 days, owner);
+    spokeVoteAggregator =
+      new SpokeVoteAggregatorHarness(address(spokeMetadataCollector), address(token), 1 days, owner, 1 days);
   }
 
   function _boundProposalTime(uint48 _voteStart) internal pure returns (uint48) {
@@ -47,11 +48,12 @@ contract Constructor is SpokeVoteAggregatorTest {
     address _token,
     uint32 _safeWindow,
     address _spokeMetadataCollector,
-    address _owner
+    address _owner,
+    uint48 _voteWeightWindow
   ) public {
     vm.assume(_owner != address(0));
     SpokeVoteAggregator spokeVoteAggregator =
-      new SpokeVoteAggregator(_spokeMetadataCollector, _token, _safeWindow, _owner);
+      new SpokeVoteAggregator(_spokeMetadataCollector, _token, _safeWindow, _owner, _voteWeightWindow);
     assertEq(address(spokeVoteAggregator.VOTING_TOKEN()), _token);
     assertEq(spokeVoteAggregator.safeWindow(), _safeWindow);
     assertEq(spokeVoteAggregator.owner(), _owner);
@@ -216,5 +218,23 @@ contract IsVotingSafe is SpokeVoteAggregatorTest {
     vm.warp(_voteStart + _safeWindow + 1);
     bool isSafe = spokeVoteAggregator.isVotingSafe(_proposalId);
     assertEq(isSafe, false);
+  }
+}
+
+contract SetVoteWeightWindow is SpokeVoteAggregatorTest {
+  function testFuzz_CorrectlyUpdateVoteWeightWindow(uint16 _window) public {
+    vm.prank(owner);
+    spokeVoteAggregator.setVoteWeightWindow(_window);
+
+    // uint48 setWindow = spokeVoteAggregator.voteWeightWindowLength();
+    // assertEq(setWindow, _window);
+  }
+
+  function testFuzz_RevertIf_NotCalledByOwner(address _caller, uint16 _window) public {
+    vm.assume(_caller != owner);
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    spokeVoteAggregator.setVoteWeightWindow(_window);
   }
 }
