@@ -36,5 +36,27 @@ mod utils;
 declare_id!("pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ");
 #[program]
 pub mod staking {
+    /// Creates a global config for the program
+    use super::*;
 
+    pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
+        let config_account = &mut ctx.accounts.config_account;
+        config_account.bump = *ctx.bumps.get("config_account").unwrap();
+        config_account.governance_authority = global_config.governance_authority;
+        config_account.epoch_duration = global_config.epoch_duration;
+        config_account.freeze = global_config.freeze;
+        config_account.pda_authority = global_config.pda_authority;
+        config_account.governance_program = global_config.governance_program;
+        config_account.agreement_hash = global_config.agreement_hash;
+
+        #[cfg(feature = "mock-clock")]
+        {
+            config_account.mock_clock_time = global_config.mock_clock_time;
+        }
+
+        if global_config.epoch_duration == 0 {
+            return Err(error!(ErrorCode::ZeroEpochDuration));
+        }
+        Ok(())
+    }
 }
