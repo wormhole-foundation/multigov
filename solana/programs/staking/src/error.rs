@@ -9,6 +9,8 @@ pub enum ErrorCode {
     GenericOverflow,
     #[msg("You need to be an LLC member to perform this action")] //6029
     NotLlcMember,
+    #[msg("Can't recover account with staking positions. Unstake your tokens first.")] // 6035
+    RecoverWithStake,
     #[msg("Other")] //6036
     Other,
 }
