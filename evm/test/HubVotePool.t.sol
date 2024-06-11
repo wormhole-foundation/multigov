@@ -460,6 +460,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
   }
 
   function testFuzz_RevertIf_TooManyCalls(uint16 _queryChainId, address _spokeContract) public {
+    vm.assume(_spokeContract != address(0));
+
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
