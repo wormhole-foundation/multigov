@@ -347,8 +347,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
     address _spokeContract,
     uint16 _queryChainId
   ) public {
-    vm.assume(_spokeContract != address(0));
-
     bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
