@@ -97,23 +97,35 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     bytes memory _resp = _buildArbitraryQuery(_voteParams, _queryChainId, _spokeContract);
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
+    (uint128 existingAgainstVotes, uint128 existingForVotes, uint128 existingAbstainVotes) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
+
     hubVotePool.crossChainEVMVote(_resp, signatures);
 
+    _verifyVotes(_voteParams, _queryChainId, existingAgainstVotes, existingForVotes, existingAbstainVotes);
+  }
+
+  function _verifyVotes(
+    VoteParams memory _voteParams,
+    uint16 _queryChainId,
+    uint128 existingAgainstVotes,
+    uint128 existingForVotes,
+    uint128 existingAbstainVotes
+  ) internal view {
     (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
+
+    uint128 againstVotesDelta = againstVotes - existingAgainstVotes;
+    uint128 forVotesDelta = forVotes - existingForVotes;
+    uint128 abstainVotesDelta = abstainVotes - existingAbstainVotes;
 
     assertEq(governor.proposalId(), _voteParams.proposalId);
     assertEq(governor.support(), 1);
     assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
-    assertEq(
-      governor.params(),
-      abi.encodePacked(
-        uint128(_voteParams.againstVotes), uint128(_voteParams.forVotes), uint128(_voteParams.abstainVotes)
-      )
-    );
-    assertEq(againstVotes, _voteParams.againstVotes);
-    assertEq(forVotes, _voteParams.forVotes);
-    assertEq(abstainVotes, _voteParams.abstainVotes);
+    assertEq(governor.params(), abi.encodePacked(againstVotesDelta, forVotesDelta, abstainVotesDelta));
+    assertEq(againstVotesDelta, _voteParams.againstVotes - existingAgainstVotes);
+    assertEq(forVotesDelta, _voteParams.forVotes - existingForVotes);
+    assertEq(abstainVotesDelta, _voteParams.abstainVotes - existingAbstainVotes);
   }
 }
 
