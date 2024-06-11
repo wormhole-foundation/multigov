@@ -59,4 +59,31 @@ pub mod staking {
         }
         Ok(())
     }
+
+    pub fn update_governance_authority(
+        ctx: Context<UpdateGovernanceAuthority>,
+        new_authority: Pubkey,
+    ) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        config.governance_authority = new_authority;
+        Ok(())
+    }
+
+    pub fn update_pda_authority(
+        ctx: Context<UpdatePdaAuthority>,
+        new_authority: Pubkey,
+    ) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        config.pda_authority = new_authority;
+        Ok(())
+    }
+
+    pub fn update_agreement_hash(
+        ctx: Context<UpdateAgreementHash>,
+        agreement_hash: [u8; 32],
+    ) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        config.agreement_hash = agreement_hash;
+        Ok(())
+    }
 }
