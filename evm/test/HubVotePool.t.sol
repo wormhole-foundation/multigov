@@ -265,6 +265,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
   function testFuzz_CorrectlyAddNewVote(VoteParams memory _voteParams, address _spokeContract, uint16 _queryChainId)
     public
   {
+    vm.assume(_spokeContract != address(0));
+
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
@@ -277,6 +279,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
     address _spokeContract,
     uint16 _queryChainId
   ) public {
+    vm.assume(_spokeContract != address(0));
+
     _voteParams2.forVotes = uint128(bound(_voteParams2.forVotes, _voteParams1.forVotes, type(uint128).max));
     _voteParams2.againstVotes = uint128(bound(_voteParams2.againstVotes, _voteParams1.againstVotes, type(uint128).max));
     _voteParams2.abstainVotes = uint128(bound(_voteParams2.abstainVotes, _voteParams1.abstainVotes, type(uint128).max));
@@ -296,6 +300,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     uint16 _queryChainId1,
     uint16 _queryChainId2
   ) public {
+    vm.assume(_spokeContract1 != address(0) && _spokeContract2 != address(0));
     vm.assume(_queryChainId1 != _queryChainId2);
 
     vm.startPrank(address(governor));
@@ -315,6 +320,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     address _spokeContract,
     uint16 _queryChainId
   ) public {
+    vm.assume(_spokeContract != address(0));
     vm.assume(_againstVotes != 0);
 
     vm.prank(address(governor));
@@ -502,6 +508,15 @@ contract CrossChainEVMVote is HubVotePoolTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyEthCallResults.selector, 2));
+    hubVotePool.crossChainEVMVote(_resp, signatures);
+  }
+
+  function testFuzz_RevertIf_SpokeContractIsZeroAddress(VoteParams memory _voteParams, uint16 _queryChainId) public {
+    bytes memory _resp = _buildArbitraryQuery(_voteParams, _queryChainId, address(0));
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+
+    vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
     hubVotePool.crossChainEVMVote(_resp, signatures);
   }
 }
