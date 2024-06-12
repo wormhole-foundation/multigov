@@ -1,19 +1,24 @@
 import { parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import {
+  TOKEN_PROGRAM_ID,
+  Token,
+} from "@solana/spl-token";
+import {
   startValidator,
   readAnchorConfig,
   getPortNumber,
   ANCHOR_CONFIG_PATH,
+  requestWHTokenAirdrop,
   getDummyAgreementHash,
   getDummyAgreementHash2,
 } from "./utils/before";
-import { expectFail } from "./utils/utils";
+import { expectFail, createMint } from "./utils/utils";
 import BN from "bn.js";
 import assert from "assert";
 import path from "path";
 import * as wasm from "@pythnetwork/staking-wasm";
-import { StakeConnection } from "../app";
+import { WH_TOKEN_DECIMALS, WHTokenBalance, StakeConnection } from "../app";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -22,6 +27,9 @@ const DEBUG = true;
 const portNumber = getPortNumber(path.basename(__filename));
 
 describe("config", async () => {
+  const whMintAccount = new Keypair();
+  const whMintAuthority = new Keypair();
+
   const pdaAuthorityKeypair = new Keypair();
   const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
   const pdaAuthority = pdaAuthorityKeypair.publicKey;
@@ -44,6 +52,15 @@ describe("config", async () => {
   before(async () => {
     ({ controller, program } = await startValidator(portNumber, config));
     errMap = parseIdlErrors(program.idl);
+
+    await createMint(
+      program.provider,
+      whMintAccount,
+      whMintAuthority.publicKey,
+      null,
+      WH_TOKEN_DECIMALS,
+      TOKEN_PROGRAM_ID
+    );
   });
 
   it("initializes config", async () => {
@@ -64,6 +81,14 @@ describe("config", async () => {
       .rpc({
         skipPreflight: DEBUG,
       });
+
+    await requestWHTokenAirdrop(
+      program.provider.wallet.publicKey,
+      whMintAccount.publicKey,
+      whMintAuthority,
+      WHTokenBalance.fromString("100"),
+      program.provider.connection
+    );
 
     const configAccountData = await program.account.globalConfig.fetch(
       configAccount

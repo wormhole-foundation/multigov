@@ -9,6 +9,7 @@ import {
 import {
   PublicKey,
   Connection,
+  Keypair,
   SYSVAR_CLOCK_PUBKEY,
 } from "@solana/web3.js";
 import * as wasm2 from "@pythnetwork/staking-wasm";
@@ -20,6 +21,7 @@ import {
 import BN from "bn.js";
 import { Staking } from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
+import { WHTokenBalance } from "./whTokenBalance";
 import {
   EPOCH_DURATION,
   GOVERNANCE_ADDRESS,
@@ -146,10 +148,22 @@ export class StakeConnection {
       )
     )[0];
 
+    const mint = new Token(
+      this.program.provider.connection,
+      this.config.whTokenMint,
+      TOKEN_PROGRAM_ID,
+      new Keypair()
+    );
+
+    const tokenBalance = (await mint.getAccountInfo(custodyAddress)).amount;
+    const totalSupply = (await mint.getMintInfo()).supply;
+
     return new StakeAccount(
       address,
       stakeAccountMetadata,
+      tokenBalance,
       authorityAddress,
+      totalSupply,
       this.config
     );
   }
@@ -176,18 +190,24 @@ export class StakeConnection {
 export class StakeAccount {
   address: PublicKey;
   stakeAccountMetadata: StakeAccountMetadata;
+  tokenBalance: u64;
   authorityAddress: PublicKey;
+  totalSupply: BN;
   config: GlobalConfig;
 
   constructor(
     address: PublicKey,
     stakeAccountMetadata: StakeAccountMetadata,
+    tokenBalance: u64,
     authorityAddress: PublicKey,
+    totalSupply: BN,
     config: GlobalConfig
   ) {
     this.address = address;
     this.stakeAccountMetadata = stakeAccountMetadata;
+    this.tokenBalance = tokenBalance;
     this.authorityAddress = authorityAddress;
+    this.totalSupply = totalSupply;
     this.config = config;
   }
 }

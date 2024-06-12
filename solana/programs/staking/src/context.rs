@@ -5,6 +5,7 @@ use {
     },
     anchor_lang::prelude::*,
     anchor_spl::token::{
+        Mint,
         Token,
         TokenAccount,
         Transfer,
@@ -78,6 +79,18 @@ pub struct CreateStakeAccount<'info> {
     pub custody_authority:       AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config:                  Account<'info, global_config::GlobalConfig>,
+    // Wormhole token mint:
+    #[account(address = config.wh_token_mint)]
+    pub mint:                    Account<'info, Mint>,
+    #[account(
+        init,
+        seeds = [CUSTODY_SEED.as_bytes()],
+        bump,
+        payer = payer,
+        token::mint = mint,
+        token::authority = custody_authority,
+    )]
+    pub stake_account_custody:   Account<'info, TokenAccount>,
     // Primitive accounts :
     pub rent:                    Sysvar<'info, Rent>,
     pub token_program:           Program<'info, Token>,

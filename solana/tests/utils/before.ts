@@ -3,18 +3,27 @@ import { mkdtemp } from "fs/promises";
 import {
   PublicKey,
   Connection,
+  Keypair,
+  Transaction,
 } from "@solana/web3.js";
 import fs from "fs";
 import { Program, Wallet, utils, AnchorProvider } from "@coral-xyz/anchor";
 import * as wasm from "@pythnetwork/staking-wasm";
+import {
+  TOKEN_PROGRAM_ID,
+  Token,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  u64,
+} from "@solana/spl-token";
 import shell from "shelljs";
 import BN from "bn.js";
 import toml from "toml";
 import path from "path";
 import os from "os";
-import { StakeConnection } from "../../app";
+import { StakeConnection, WHTokenBalance, WH_TOKEN_DECIMALS } from "../../app";
 import { GlobalConfig } from "../../app/StakeConnection";
 import {
+  createMint,
   initAddressLookupTable,
 } from "./utils";
 import { loadKeypair } from "./keys";
@@ -202,8 +211,59 @@ export function getConnection(portNumber: number): Connection {
   );
 }
 
+/**
+ * Request and deliver an airdrop of Wormhole tokens to the associated token account of ```destination```
+ */
+export async function requestWHTokenAirdrop(
+  destination: PublicKey,
+  whMintAccount: PublicKey,
+  whMintAuthority: Keypair,
+  amount: WHTokenBalance,
+  connection: Connection
+) {
+  // Testnet airdrop to ensure that the WH authority can pay for gas
+  await connection.requestAirdrop(whMintAuthority.publicKey, 1_000_000_000);
+
+  const transaction = new Transaction();
+
+  const destinationAta = await Token.getAssociatedTokenAddress(
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+    whMintAccount,
+    destination,
+    true
+  );
+
+  if ((await connection.getAccountInfo(destinationAta)) == null) {
+    const createAtaIx = Token.createAssociatedTokenAccountInstruction(
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      whMintAccount,
+      destinationAta,
+      destination,
+      whMintAuthority.publicKey
+    );
+    transaction.add(createAtaIx);
+  }
+
+  const mintIx = Token.createMintToInstruction(
+    TOKEN_PROGRAM_ID,
+    whMintAccount,
+    destinationAta,
+    whMintAuthority.publicKey,
+    [],
+    new u64(amount.toBN().toString())
+  );
+  transaction.add(mintIx);
+
+  await connection.sendTransaction(transaction, [whMintAuthority], {
+    skipPreflight: true,
+  });
+}
+
 export async function initConfig(
   program: Program,
+  whMintAccount: PublicKey,
   globalConfig: GlobalConfig
 ) {
   const [configAccount, bump] = await PublicKey.findProgramAddress(
@@ -235,20 +295,42 @@ export function makeDefaultConfig(
 /**
  * Standard setup for test, this function :
  * - Launches at validator at `portNumber`
+ * - Creates a Wormhole token in the localnet environment
+ * - Airdrops Wormhole token to the currently connected wallet
  * - Initializes the global config of the wormhole staking program to some default values
  * - Creates a connection to the localnet wormhole staking program
  * */
 export async function standardSetup(
   portNumber: number,
   config: AnchorConfig,
-  globalConfig: GlobalConfig
+  whMintAccount: Keypair,
+  whMintAuthority: Keypair,
+  globalConfig: GlobalConfig,
+  amount?: WHTokenBalance
 ) {
   const { controller, program, provider } = await startValidator(
     portNumber,
     config
   );
 
+  await createMint(
+    provider,
+    whMintAccount,
+    whMintAuthority.publicKey,
+    null,
+    WH_TOKEN_DECIMALS,
+    TOKEN_PROGRAM_ID
+  );
+
   const user = provider.wallet.publicKey;
+
+  await requestWHTokenAirdrop(
+    user,
+    whMintAccount.publicKey,
+    whMintAuthority,
+    amount ? amount : WHTokenBalance.fromString("200"),
+    program.provider.connection
+  );
 
   if (globalConfig.pdaAuthority == null) {
     globalConfig.pdaAuthority = user;
@@ -258,10 +340,11 @@ export async function standardSetup(
   // User becomes a temporary dictator during setup
   temporaryConfig.governanceAuthority = user;
 
-  await initConfig(program, temporaryConfig);
+  await initConfig(program, whMintAccount.publicKey, temporaryConfig);
 
   const lookupTableAddress = await initAddressLookupTable(
     provider,
+    whMintAccount.publicKey
   );
   console.log("Lookup table address: ", lookupTableAddress.toBase58());
 
