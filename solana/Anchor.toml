@@ -1,0 +1,31 @@
+anchor_version = "0.24.1"
+
+[features]
+seeds = true
+
+[workspace]
+members = ["programs/staking"]
+
+[programs.localnet]
+staking = "pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ"
+governance = "pytGY6tWRgGinSCvRLnSv4fHfBTMoiDGiCsesmHWM6U"
+chat = "gCHAtYKrUUktTVzE4hEnZdLV4LXrdBf6Hh9qMaJALET"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "localnet"
+wallet = "./app/keypairs/localnet_authority.json"
+
+[scripts]
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/staking.ts"
+
+[validator]
+ledger_dir = "./.anchor/test-ledger"
+
+[path]
+idl_path = "./target/idl/staking.json"
+binary_path = "./target/deploy/staking.so"
+governance_path = "./target/deploy/governance.so"
+chat_path = "./target/deploy/chat.so"
