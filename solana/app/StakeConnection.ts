@@ -12,7 +12,7 @@ import {
   Keypair,
   SYSVAR_CLOCK_PUBKEY,
 } from "@solana/web3.js";
-import * as wasm2 from "@pythnetwork/staking-wasm";
+import * as wasm2 from "@wormhole/staking-wasm";
 import {
   Token,
   TOKEN_PROGRAM_ID,

@@ -9,7 +9,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 TEST=false
 
 # Parse command-line arguments
-# -t: build the staking program for tests
+# -t: build the Wormhole staking program for tests
 while getopts "t" opt; do
     case ${opt} in
     t)
@@ -23,23 +23,23 @@ while getopts "t" opt; do
 done
 
 if [ "$TEST" = "true" ]; then
-    echo "Building the image for the staking program test"
-    docker build --platform linux/amd64 --build-arg TEST=true -t staking-build-test -f "$REPO_ROOT"/solana/Dockerfile "$REPO_ROOT"/solana
+    echo "Building the image for the Wormhole staking program test"
+    docker build --platform linux/amd64 --build-arg TEST=true -t wh-staking-build-test -f "$REPO_ROOT"/solana/Dockerfile "$REPO_ROOT"/solana
 else
-    echo "Building the image for the staking program production"
-    docker build --platform linux/amd64 -t staking-build -f "$REPO_ROOT"/solana/Dockerfile "$REPO_ROOT"/solana
+    echo "Building the image for the Wormhole staking program production"
+    docker build --platform linux/amd64 -t wh-staking-build -f "$REPO_ROOT"/solana/Dockerfile "$REPO_ROOT"/solana
 fi
 
 if [ "$TEST" = "true" ]; then
-    echo "Building the staking program test"
-    docker run --platform linux/amd64 --rm -v "$REPO_ROOT"/solana/target:/workspace/target staking-build-test
+    echo "Building the Wormhole staking program test"
+    docker run --platform linux/amd64 --rm -v "$REPO_ROOT"/solana/target:/workspace/target wh-staking-build-test
 else
-    echo "Building the staking program"
-    docker run --platform linux/amd64 --rm -v "$REPO_ROOT"/solana/target:/workspace/target staking-build
+    echo "Building the Wormhole staking program"
+    docker run --platform linux/amd64 --rm -v "$REPO_ROOT"/solana/target:/workspace/target wh-staking-build
 fi
 
-echo "Successfully built the staking program."
+echo "Successfully built the Wormhole staking program."
 echo "The artifacts are available at $REPO_ROOT/solana/target"
 
 CHECKSUM=$(sha256sum $REPO_ROOT/solana/target/deploy/staking.so | awk '{print $1}')
-echo "sha256sum of the staking program: $CHECKSUM"
+echo "sha256sum of the Wormhole staking program: $CHECKSUM"
