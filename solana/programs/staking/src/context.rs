@@ -1,6 +1,5 @@
 use {
     crate::{
-        error::ErrorCode,
         state::*,
     },
     anchor_lang::prelude::*,
@@ -8,9 +7,7 @@ use {
         Mint,
         Token,
         TokenAccount,
-        Transfer,
     },
-    std::iter::Iterator,
 };
 
 pub const AUTHORITY_SEED: &str = "authority";

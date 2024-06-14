@@ -4,9 +4,9 @@
 * Deserializes the contents of the SYSVAR_CLOCK account (onChainSerialized), returning the
 * Unix time field
 * @param {Uint8Array} onChainSerialized
-* @returns {BigInt}
+* @returns {bigint}
 */
-export function getUnixTime(onChainSerialized: Uint8Array): BigInt;
+export function getUnixTime(onChainSerialized: Uint8Array): bigint;
 /**
 * Initialize Javascript logging and panic handler
 */
@@ -31,10 +31,6 @@ export class Constants {
 * @returns {string}
 */
   static CONFIG_SEED(): string;
-/**
-* @returns {string}
-*/
-  static VOTER_RECORD_SEED(): string;
 }
 /**
 */
@@ -221,102 +217,3 @@ export class Pubkey {
 */
   static findProgramAddress(seeds: any[], program_id: Pubkey): any;
 }
-export class SystemInstruction {
-  free(): void;
-/**
-* @param {Pubkey} from_pubkey
-* @param {Pubkey} to_pubkey
-* @param {BigInt} lamports
-* @param {BigInt} space
-* @param {Pubkey} owner
-* @returns {Instruction}
-*/
-  static createAccount(from_pubkey: Pubkey, to_pubkey: Pubkey, lamports: BigInt, space: BigInt, owner: Pubkey): Instruction;
-/**
-* @param {Pubkey} from_pubkey
-* @param {Pubkey} to_pubkey
-* @param {Pubkey} base
-* @param {string} seed
-* @param {BigInt} lamports
-* @param {BigInt} space
-* @param {Pubkey} owner
-* @returns {Instruction}
-*/
-  static createAccountWithSeed(from_pubkey: Pubkey, to_pubkey: Pubkey, base: Pubkey, seed: string, lamports: BigInt, space: BigInt, owner: Pubkey): Instruction;
-/**
-* @param {Pubkey} pubkey
-* @param {Pubkey} owner
-* @returns {Instruction}
-*/
-  static assign(pubkey: Pubkey, owner: Pubkey): Instruction;
-/**
-* @param {Pubkey} pubkey
-* @param {Pubkey} base
-* @param {string} seed
-* @param {Pubkey} owner
-* @returns {Instruction}
-*/
-  static assignWithSeed(pubkey: Pubkey, base: Pubkey, seed: string, owner: Pubkey): Instruction;
-/**
-* @param {Pubkey} from_pubkey
-* @param {Pubkey} to_pubkey
-* @param {BigInt} lamports
-* @returns {Instruction}
-*/
-  static transfer(from_pubkey: Pubkey, to_pubkey: Pubkey, lamports: BigInt): Instruction;
-/**
-* @param {Pubkey} from_pubkey
-* @param {Pubkey} from_base
-* @param {string} from_seed
-* @param {Pubkey} from_owner
-* @param {Pubkey} to_pubkey
-* @param {BigInt} lamports
-* @returns {Instruction}
-*/
-  static transferWithSeed(from_pubkey: Pubkey, from_base: Pubkey, from_seed: string, from_owner: Pubkey, to_pubkey: Pubkey, lamports: BigInt): Instruction;
-/**
-* @param {Pubkey} pubkey
-* @param {BigInt} space
-* @returns {Instruction}
-*/
-  static allocate(pubkey: Pubkey, space: BigInt): Instruction;
-/**
-* @param {Pubkey} address
-* @param {Pubkey} base
-* @param {string} seed
-* @param {BigInt} space
-* @param {Pubkey} owner
-* @returns {Instruction}
-*/
-  static allocateWithSeed(address: Pubkey, base: Pubkey, seed: string, space: BigInt, owner: Pubkey): Instruction;
-/**
-* @param {Pubkey} from_pubkey
-* @param {Pubkey} nonce_pubkey
-* @param {Pubkey} authority
-* @param {BigInt} lamports
-* @returns {Array<any>}
-*/
-  static createNonceAccount(from_pubkey: Pubkey, nonce_pubkey: Pubkey, authority: Pubkey, lamports: BigInt): Array<any>;
-/**
-* @param {Pubkey} nonce_pubkey
-* @param {Pubkey} authorized_pubkey
-* @returns {Instruction}
-*/
-  static advanceNonceAccount(nonce_pubkey: Pubkey, authorized_pubkey: Pubkey): Instruction;
-/**
-* @param {Pubkey} nonce_pubkey
-* @param {Pubkey} authorized_pubkey
-* @param {Pubkey} to_pubkey
-* @param {BigInt} lamports
-* @returns {Instruction}
-*/
-  static withdrawNonceAccount(nonce_pubkey: Pubkey, authorized_pubkey: Pubkey, to_pubkey: Pubkey, lamports: BigInt): Instruction;
-/**
-* @param {Pubkey} nonce_pubkey
-* @param {Pubkey} authorized_pubkey
-* @param {Pubkey} new_authority
-* @returns {Instruction}
-*/
-  static authorizeNonceAccount(nonce_pubkey: Pubkey, authorized_pubkey: Pubkey, new_authority: Pubkey): Instruction;
-}
-

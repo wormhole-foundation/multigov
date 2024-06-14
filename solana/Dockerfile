@@ -1,5 +1,5 @@
 #
-# Docker image to generate a deterministic build of the WH Staking Program
+# Docker image to generate a deterministic build of the Wormhole MultiGov Solana Staking Program
 # This image extends projectserum/build which is based on backpackapp/build
 # but with a specific version of the Solana CLI and Anchor CLI.
 #

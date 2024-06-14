@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Ensure the directory exists
+mkdir -p ./target/deploy
+
 if [ ! -f target/deploy/governance.so ]
 then
 	# This is the real governance

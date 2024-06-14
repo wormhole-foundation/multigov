@@ -9,29 +9,18 @@
 use {
     crate::error::ErrorCode,
     anchor_lang::prelude::*,
-    anchor_spl::token::transfer,
     context::*,
-    spl_governance::state::{
-        governance::get_governance_data_for_realm,
-        proposal::{
-            get_proposal_data,
-            ProposalV2,
-        },
-    },
     state::{
         global_config::GlobalConfig,
     },
-    std::convert::TryInto,
-    utils::{
-        clock::{
-            get_current_epoch,
-            time_to_epoch,
-        }
-    },
 };
 
+mod context;
+mod error;
 mod state;
 mod utils;
+#[cfg(feature = "wasm")]
+pub mod wasm;
 
 declare_id!("pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ");
 #[program]
@@ -94,13 +83,14 @@ pub mod staking {
         ctx: Context<CreateStakeAccount>,
         owner: Pubkey,
     ) -> Result<()> {
-        let config = &ctx.accounts.config;
+        let _config = &ctx.accounts.config;
 
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
         stake_account_metadata.initialize(
             *ctx.bumps.get("stake_account_metadata").unwrap(),
             *ctx.bumps.get("stake_account_custody").unwrap(),
             *ctx.bumps.get("custody_authority").unwrap(),
+            0,
             &owner,
         );
 

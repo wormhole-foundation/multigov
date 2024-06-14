@@ -1,6 +1,6 @@
 # Staking Program
 
-This repository contains the Staking Program.
+This repository contains the Wormhole MultiGov Solana Staking Program.
 
 ## Prerequisites
 

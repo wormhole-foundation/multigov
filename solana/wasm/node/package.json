@@ -1,7 +1,7 @@
 {
-  "name": "wh-multigov-solana-staking-program",
+  "name": "wormhole-staking-program",
   "description": "Created with Anchor",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "files": [
     "staking_bg.wasm",
     "staking.js",
