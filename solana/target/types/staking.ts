@@ -327,6 +327,10 @@ export type Staking = {
                 32
               ]
             }
+          },
+          {
+            "name": "mockClockTime",
+            "type": "i64"
           }
         ]
       }
@@ -744,6 +748,10 @@ export const IDL: Staking = {
                 32
               ]
             }
+          },
+          {
+            "name": "mockClockTime",
+            "type": "i64"
           }
         ]
       }
