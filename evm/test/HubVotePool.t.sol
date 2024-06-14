@@ -122,10 +122,6 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     uint128 forVotesDelta = forVotes - existingForVotes;
     uint128 abstainVotesDelta = abstainVotes - existingAbstainVotes;
 
-    assertEq(governor.proposalId(), _voteParams.proposalId);
-    assertEq(governor.support(), 1);
-    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
-    assertEq(governor.params(), abi.encodePacked(againstVotesDelta, forVotesDelta, abstainVotesDelta));
     assertEq(againstVotesDelta, _voteParams.againstVotes - existingAgainstVotes);
     assertEq(forVotesDelta, _voteParams.forVotes - existingForVotes);
     assertEq(abstainVotesDelta, _voteParams.abstainVotes - existingAbstainVotes);
@@ -312,6 +308,14 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     (,, uint128 _existingAgainstVotes, uint128 _existingForVotes, uint128 _existingAbstainVotes) =
       _sendCrossChainVote(_voteParams, _queryChainId, _spokeContract);
+
+    assertEq(governor.proposalId(), _voteParams.proposalId);
+    assertEq(governor.support(), 1);
+    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
+    assertEq(
+      governor.params(), abi.encodePacked(_voteParams.againstVotes, _voteParams.forVotes, _voteParams.abstainVotes)
+    );
+
     _verifyVotes(_voteParams, _queryChainId, _existingAgainstVotes, _existingForVotes, _existingAbstainVotes);
   }
 
