@@ -209,7 +209,7 @@ contract Constructor is Test {
     new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
   }
 
-  function testFuzz_ConstructorWithEmptySpokeRegistry(address _core, address _hubGovernor) public {
+  function testFuzz_ConstructorWithEmptySpokeRegistry(address _core, address _hubGovernor, uint16 _spokeChainId) public {
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
 
@@ -219,7 +219,7 @@ contract Constructor is Test {
 
     assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
-    assertEq(hubVotePool.spokeRegistry(0), bytes32(uint256(uint160(address(0)))));
+    assertEq(hubVotePool.spokeRegistry(_spokeChainId), bytes32(uint256(uint160(address(0)))));
   }
 
   function testFuzz_ConstructorWithNonEmptySpokeRegistry(
