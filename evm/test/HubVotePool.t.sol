@@ -496,16 +496,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
       _queryRequestBytes, // query request
       2, // num per chain responses
       abi.encodePacked(
-        QueryTest.buildPerChainResponseBytes(
-          2, // eth mainnet
-          hubVotePool.QT_ETH_CALL(),
-          ethCallResp
-        ),
-        QueryTest.buildPerChainResponseBytes(
-          2, // eth mainnet
-          hubVotePool.QT_ETH_CALL(),
-          ethCallResp
-        )
+        QueryTest.buildPerChainResponseBytes(2, hubVotePool.QT_ETH_CALL(), ethCallResp),
+        QueryTest.buildPerChainResponseBytes(2, hubVotePool.QT_ETH_CALL(), ethCallResp)
       )
     );
 
@@ -556,11 +548,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
       OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(
-        _queryChainId, // eth mainnet
-        hubVotePool.QT_ETH_CALL(),
-        ethCallResp
-      )
+      QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), ethCallResp)
     );
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
