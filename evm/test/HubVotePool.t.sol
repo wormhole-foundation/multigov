@@ -93,7 +93,7 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     return signatures;
   }
 
-  function _processVote(VoteParams memory _voteParams, uint16 _queryChainId, address _spokeContract) internal {
+  function _sendCrossChainVote(VoteParams memory _voteParams, uint16 _queryChainId, address _spokeContract) internal {
     bytes memory _resp = _buildArbitraryQuery(_voteParams, _queryChainId, _spokeContract);
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
@@ -307,7 +307,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
-    _processVote(_voteParams, _queryChainId, _spokeContract);
+    _sendCrossChainVote(_voteParams, _queryChainId, _spokeContract);
   }
 
   function testFuzz_CorrectlyAddNewVoteMultipleQueries(
@@ -325,8 +325,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
-    _processVote(_voteParams1, _queryChainId, _spokeContract);
-    _processVote(_voteParams2, _queryChainId, _spokeContract);
+    _sendCrossChainVote(_voteParams1, _queryChainId, _spokeContract);
+    _sendCrossChainVote(_voteParams2, _queryChainId, _spokeContract);
   }
 
   function testFuzz_CorrectlyAddNewVoteMultipleChains(
@@ -345,8 +345,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
     hubVotePool.registerSpoke(_queryChainId2, addressToBytes32(_spokeContract2));
     vm.stopPrank();
 
-    _processVote(_voteParams1, _queryChainId1, _spokeContract1);
-    _processVote(_voteParams2, _queryChainId2, _spokeContract2);
+    _sendCrossChainVote(_voteParams1, _queryChainId1, _spokeContract1);
+    _sendCrossChainVote(_voteParams2, _queryChainId2, _spokeContract2);
   }
 
   function testFuzz_RevertIf_QueriedVotesAreLessThanOnHubVotePoolForSpoke(
