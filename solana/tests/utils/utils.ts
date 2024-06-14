@@ -13,7 +13,7 @@ import {
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorError } from "@coral-xyz/anchor";
 import assert from "assert";
-import * as wasm from "@wormhole/staking-wasm";
+import * as wasm from "@pythnetwork/staking-wasm";
 import { Staking } from "../../target/types/staking";
 import { GOVERNANCE_ADDRESS, STAKING_ADDRESS } from "../../app";
 

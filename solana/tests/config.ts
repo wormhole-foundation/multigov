@@ -17,7 +17,7 @@ import { expectFail, createMint } from "./utils/utils";
 import BN from "bn.js";
 import assert from "assert";
 import path from "path";
-import * as wasm from "@wormhole/staking-wasm";
+import * as wasm from "@pythnetwork/staking-wasm";
 import { WH_TOKEN_DECIMALS, WHTokenBalance, StakeConnection } from "../app";
 
 // When DEBUG is turned on, we turn preflight transaction checking off

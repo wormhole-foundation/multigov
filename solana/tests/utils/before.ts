@@ -8,7 +8,7 @@ import {
 } from "@solana/web3.js";
 import fs from "fs";
 import { Program, Wallet, utils, AnchorProvider } from "@coral-xyz/anchor";
-import * as wasm from "@wormhole/staking-wasm";
+import * as wasm from "@pythnetwork/staking-wasm";
 import {
   TOKEN_PROGRAM_ID,
   Token,
