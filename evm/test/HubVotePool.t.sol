@@ -128,42 +128,25 @@ contract HubVotePoolTest is WormholeEthQueryTest {
   }
 }
 
-contract Constructor is Test {
-  function _validateSpokeRegistry(HubVotePool hubVotePool, HubVotePool.SpokeVoteAggregator[] memory spokeRegistry)
-    internal
-    view
-  {
-    // Track the last seen address for each wormholeChainId
-    // This is to ensure that the last seen address is the one that is stored
-    uint256 length = spokeRegistry.length;
-    uint16[] memory chainIds = new uint16[](length);
-    bytes32[] memory lastSeenAddresses = new bytes32[](length);
-    uint256 uniqueCount = 0;
+contract ConstructorNice is Test {
+  mapping(bytes32 => bool) public initialSpokeRegistrySeen;
 
-    for (uint256 i = 0; i < length; i++) {
-      HubVotePool.SpokeVoteAggregator memory aggregator = spokeRegistry[i];
-      bytes32 aggregatorAddress = bytes32(uint256(uint160(aggregator.addr)));
-
-      bool found = false;
-      for (uint256 j = 0; j < uniqueCount; j++) {
-        if (chainIds[j] == aggregator.wormholeChainId) {
-          lastSeenAddresses[j] = aggregatorAddress;
-          found = true;
-          break;
-        }
-      }
-
-      if (!found) {
-        chainIds[uniqueCount] = aggregator.wormholeChainId;
-        lastSeenAddresses[uniqueCount] = aggregatorAddress;
-        uniqueCount++;
-      }
+  function _isUnique(HubVotePool.SpokeVoteAggregator[] memory _array) internal returns (bool) {
+    for (uint256 i = 0; i < _array.length; i++) {
+      bytes32 encoded = keccak256(abi.encodePacked(_array[i].wormholeChainId, _array[i].addr));
+      if (initialSpokeRegistrySeen[encoded]) return false;
+      initialSpokeRegistrySeen[encoded] = true;
     }
+    return true;
+  }
 
-    for (uint256 i = 0; i < uniqueCount; i++) {
-      uint16 chainId = chainIds[i];
-      bytes32 expectedAddress = lastSeenAddresses[i];
-      bytes32 storedAddress = hubVotePool.spokeRegistry(chainId);
+  function _validateSpokeRegistry(HubVotePool _hubVotePool, HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry)
+    internal
+  {
+    for (uint256 i = 0; i < _spokeRegistry.length; i++) {
+      uint16 chainId = _spokeRegistry[i].wormholeChainId;
+      bytes32 expectedAddress = bytes32(uint256(uint160(_spokeRegistry[i].addr)));
+      bytes32 storedAddress = _hubVotePool.spokeRegistry(chainId);
 
       assertEq(storedAddress, expectedAddress);
     }
@@ -176,11 +159,11 @@ contract Constructor is Test {
   ) public {
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
+    vm.assume(_isUnique(_initialSpokeRegistry));
 
     HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
 
     _validateSpokeRegistry(hubVotePool, _initialSpokeRegistry);
-
     assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
   }
@@ -192,6 +175,7 @@ contract Constructor is Test {
   ) public {
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
+    vm.assume(_isUnique(_initialSpokeRegistry));
 
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
       vm.expectEmit();
