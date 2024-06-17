@@ -8,3 +8,4 @@ lib
 .env
 snapshots
 /artifacts
+package-lock.json
