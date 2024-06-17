@@ -72,11 +72,13 @@ describe("config", async () => {
     await program.methods
       .initConfig({
         governanceAuthority: program.provider.wallet.publicKey,
+        whTokenMint: whMintAccount.publicKey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: pdaAuthority,
         governanceProgram: governanceProgram,
         agreementHash: getDummyAgreementHash(),
+        mockClockTime: new BN(10),
       })
       .rpc({
         skipPreflight: DEBUG,
@@ -99,11 +101,13 @@ describe("config", async () => {
       JSON.stringify({
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
+        whTokenMint: whMintAccount.publicKey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: pdaAuthority,
         governanceProgram: governanceProgram,
         agreementHash: getDummyAgreementHash(),
+        mockClockTime: new BN(10),
       })
     );
   });
@@ -118,11 +122,13 @@ describe("config", async () => {
       JSON.stringify({
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
+        whTokenMint: whMintAccount.publicKey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: pdaAuthority,
         governanceProgram: governanceProgram,
         agreementHash: getDummyAgreementHash(),
+        mockClockTime: new BN(10),
       })
     );
 
@@ -204,11 +210,13 @@ describe("config", async () => {
       JSON.stringify({
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
+        whTokenMint: whMintAccount.publicKey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: program.provider.wallet.publicKey,
         governanceProgram,
         agreementHash: getDummyAgreementHash(),
+        mockClockTime: new BN(10),
       })
     );
 
@@ -222,11 +230,13 @@ describe("config", async () => {
       JSON.stringify({
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
+        whTokenMint: whMintAccount.publicKey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: pdaAuthority,
         governanceProgram,
         agreementHash: getDummyAgreementHash(),
+        mockClockTime: new BN(10),
       })
     );
   });
@@ -247,11 +257,13 @@ describe("config", async () => {
       JSON.stringify({
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
+        whTokenMint: whMintAccount.publicKey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: pdaAuthority,
         governanceProgram,
         agreementHash: getDummyAgreementHash2(),
+        mockClockTime: new BN(10),
       })
     );
   });

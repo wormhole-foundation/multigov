@@ -175,11 +175,7 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
     config.programs.localnet.governance
   } ${config.path.governance_path} --bpf-program ${
     config.programs.localnet.chat
-  } ${config.path.chat_path}  --bpf-program ${
-    config.programs.localnet.wallet_tester
-  } ${config.path.wallet_tester_path} --bpf-program ${
-    config.programs.localnet.profile
-  } ${config.path.profile_path}
+  } ${config.path.chat_path}
 
   --clone ENmcpFCpxN1CqyUjuog9yyUVfdXBKF3LVCwLr7grJZpk -ud`;
 
@@ -331,6 +327,8 @@ export async function standardSetup(
     amount ? amount : WHTokenBalance.fromString("200"),
     program.provider.connection
   );
+
+  globalConfig.governanceAuthority = Keypair.generate().publicKey;
 
   if (globalConfig.pdaAuthority == null) {
     globalConfig.pdaAuthority = user;
