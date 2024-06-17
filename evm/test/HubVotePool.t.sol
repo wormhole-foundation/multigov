@@ -128,14 +128,14 @@ contract HubVotePoolTest is WormholeEthQueryTest {
   }
 }
 
-contract ConstructorNice is Test {
-  mapping(bytes32 => bool) public initialSpokeRegistrySeen;
+contract Constructor is Test {
+  mapping(uint16 => bool) public initialSpokeRegistrySeen;
 
   function _isUnique(HubVotePool.SpokeVoteAggregator[] memory _array) internal returns (bool) {
     for (uint256 i = 0; i < _array.length; i++) {
-      bytes32 encoded = keccak256(abi.encodePacked(_array[i].wormholeChainId, _array[i].addr));
-      if (initialSpokeRegistrySeen[encoded]) return false;
-      initialSpokeRegistrySeen[encoded] = true;
+      uint16 chainId = _array[i].wormholeChainId;
+      if (initialSpokeRegistrySeen[chainId]) return false;
+      initialSpokeRegistrySeen[chainId] = true;
     }
     return true;
   }
@@ -210,6 +210,7 @@ contract ConstructorNice is Test {
     vm.assume(_nonEmptyInitialSpokeRegistry.length != 0);
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
+    vm.assume(_isUnique(_nonEmptyInitialSpokeRegistry));
 
     HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _nonEmptyInitialSpokeRegistry);
 
