@@ -31,8 +31,8 @@ contract SpokeCountingFractionalTest is Test {
   }
 }
 
-contract CountingMode is SpokeCountingFractionalTest {
-  function test_COUNTING_MODE() public view {
+contract COUNTING_MODE is SpokeCountingFractionalTest {
+  function test_CorrectlyGetCountingMode() public view {
     assertEq(spokeCountingFractional.COUNTING_MODE(), "support=bravo&quorum=for,abstain&params=fractional");
   }
 }
