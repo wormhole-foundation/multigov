@@ -137,6 +137,8 @@ contract _CountVote is SpokeCountingFractionalTest {
 
     uint128 TOTAL_WEIGHT_LESS_THAN_CAST = uint128(_totalWeight - 1);
 
+    vm.assume(_totalWeight != 0);
+
     spokeCountingFractional.workaround_createProposalVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
     vm.expectRevert("SpokeCountingFractional: all weight cast");
