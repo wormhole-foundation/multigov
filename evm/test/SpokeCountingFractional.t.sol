@@ -184,7 +184,7 @@ contract _CountVoteNominal is SpokeCountingFractionalTest {
     spokeCountingFractional.exposed_countVoteNominal(_proposalId, _account, _additionalWeight, _support);
   }
 
-  function testRevert_IfInvalidSupportValue(
+  function testFuzz_RevertIf_InvalidSupportValue(
     uint256 _proposalId,
     address _account,
     uint128 _totalWeight,
@@ -220,7 +220,6 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
     // Create invalid vote data (not 48 bytes)
     bytes memory invalidVoteData = abi.encodePacked(uint128(100), uint128(200));
 
-    // Expect revert when casting vote with invalid vote data
     vm.expectRevert("SpokeCountingFractional: invalid voteData");
     spokeCountingFractional.exposed_countVoteFractional(_proposalId, _account, _totalWeight, invalidVoteData);
   }
