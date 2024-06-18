@@ -350,6 +350,10 @@ export type Staking = {
             "type": "publicKey"
           },
           {
+            "name": "whGovernanceRealm",
+            "type": "publicKey"
+          },
+          {
             "name": "epochDuration",
             "type": "u64"
           },
@@ -847,6 +851,10 @@ export const IDL: Staking = {
           },
           {
             "name": "whTokenMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "whGovernanceRealm",
             "type": "publicKey"
           },
           {

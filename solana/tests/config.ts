@@ -29,6 +29,7 @@ const portNumber = getPortNumber(path.basename(__filename));
 describe("config", async () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const zeroPubkey = new PublicKey(0);
 
   const pdaAuthorityKeypair = new Keypair();
   const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
@@ -102,6 +103,7 @@ describe("config", async () => {
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
+        whGovernanceRealm: zeroPubkey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: pdaAuthority,
@@ -123,6 +125,7 @@ describe("config", async () => {
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
+        whGovernanceRealm: zeroPubkey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: pdaAuthority,
@@ -224,6 +227,7 @@ describe("config", async () => {
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
+        whGovernanceRealm: zeroPubkey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: program.provider.wallet.publicKey,
@@ -244,6 +248,7 @@ describe("config", async () => {
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
+        whGovernanceRealm: zeroPubkey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: pdaAuthority,
@@ -271,6 +276,7 @@ describe("config", async () => {
         bump,
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
+        whGovernanceRealm: zeroPubkey,
         epochDuration: new BN(3600),
         freeze: false,
         pdaAuthority: pdaAuthority,

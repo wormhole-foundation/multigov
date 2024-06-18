@@ -9,6 +9,7 @@ pub struct GlobalConfig {
     pub bump:                  u8,
     pub governance_authority:  Pubkey,
     pub wh_token_mint:         Pubkey,
+    pub wh_governance_realm:   Pubkey,
     pub epoch_duration:        u64, // epoch duration in seconds
     pub freeze:                bool,
     pub pda_authority:         Pubkey, // Authority that can authorize the transfer of locked tokens

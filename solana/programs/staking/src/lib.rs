@@ -33,6 +33,7 @@ pub mod staking {
         config_account.bump = *ctx.bumps.get("config_account").unwrap();
         config_account.governance_authority = global_config.governance_authority;
         config_account.wh_token_mint = global_config.wh_token_mint;
+        config_account.wh_governance_realm = global_config.wh_governance_realm;
         config_account.epoch_duration = global_config.epoch_duration;
         config_account.freeze = global_config.freeze;
         config_account.pda_authority = global_config.pda_authority;

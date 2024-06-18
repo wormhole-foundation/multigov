@@ -5,6 +5,7 @@ import {
   Connection,
   Keypair,
   Transaction,
+  LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import fs from "fs";
 import { Program, Wallet, utils, AnchorProvider } from "@coral-xyz/anchor";
@@ -15,6 +16,18 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   u64,
 } from "@solana/spl-token";
+import {
+  GovernanceConfig,
+  GoverningTokenType,
+  MintMaxVoteWeightSource,
+  PROGRAM_VERSION_V2,
+  VoteThreshold,
+  VoteThresholdType,
+  VoteTipping,
+  withCreateGovernance,
+  withCreateNativeTreasury,
+  withCreateRealm,
+} from "@solana/spl-governance";
 import shell from "shelljs";
 import BN from "bn.js";
 import toml from "toml";
@@ -257,6 +270,71 @@ export async function requestWHTokenAirdrop(
   });
 }
 
+interface GovernanceIds {
+  realm: PublicKey;
+  governance: PublicKey;
+}
+
+/*
+  Creates a governance realm using the SPL-governance deployment in config.
+  Creates an account governance with a 20% vote threshold that can sign using the PDA this function returns.
+*/
+export async function createDefaultRealm(
+  provider: AnchorProvider,
+  config: AnchorConfig,
+  maxVotingTime: number, // in seconds
+  whMint: PublicKey
+): Promise<GovernanceIds> {
+  const realmAuthority = Keypair.generate();
+  const tx = new Transaction();
+  const govProgramId = new PublicKey(config.programs.localnet.governance);
+
+  const realm = await withCreateRealm(
+    tx.instructions,
+    govProgramId,
+    PROGRAM_VERSION_V2,
+    "Wormhole Governance",
+    realmAuthority.publicKey,
+    whMint,
+    provider.wallet.publicKey,
+    undefined, // no council mint
+    MintMaxVoteWeightSource.FULL_SUPPLY_FRACTION,
+    new BN(200), // 200 required so we can create governances during tests
+    {
+      voterWeightAddin: new PublicKey(config.programs.localnet.staking),
+      maxVoterWeightAddin: new PublicKey(config.programs.localnet.staking),
+      tokenType: GoverningTokenType.Liquid,
+    },
+    undefined
+  );
+
+  const governance = await withCreateDefaultGovernance(
+    tx,
+    maxVotingTime,
+    govProgramId,
+    realm,
+    new PublicKey(0),
+    provider.wallet.publicKey,
+    realmAuthority.publicKey,
+    null
+  );
+
+  const mintGov = await withCreateNativeTreasury(
+    tx.instructions,
+    govProgramId,
+    PROGRAM_VERSION_V2,
+    governance,
+    provider.wallet.publicKey
+  );
+
+  await provider.sendAndConfirm(tx, [realmAuthority], { skipPreflight: true });
+
+  // Give governance 100 SOL to play with
+  await provider.connection.requestAirdrop(mintGov, LAMPORTS_PER_SOL * 100);
+
+  return { realm, governance };
+}
+
 export async function initConfig(
   program: Program,
   whMintAccount: PublicKey,
@@ -286,6 +364,57 @@ export function makeDefaultConfig(
     pdaAuthority,
     agreementHash: getDummyAgreementHash(),
   };
+}
+
+export async function withCreateDefaultGovernance(
+  tx: Transaction,
+  maxVotingTime: number,
+  govProgramId: PublicKey,
+  realm: PublicKey,
+  tokenOwnerRecord: PublicKey,
+  payer: PublicKey,
+  authority: PublicKey,
+  voterWeightRecord: PublicKey
+) {
+  const governanceConfig = new GovernanceConfig({
+    communityVoteThreshold: new VoteThreshold({
+      type: VoteThresholdType.YesVotePercentage,
+      value: 20,
+    }),
+    minCommunityTokensToCreateProposal: WHTokenBalance.fromNumber(200).toBN(),
+    minInstructionHoldUpTime: 1,
+    baseVotingTime: maxVotingTime,
+    minCouncilTokensToCreateProposal: new BN(1),
+    councilVoteThreshold: new VoteThreshold({
+      type: VoteThresholdType.YesVotePercentage,
+      value: 0,
+    }),
+    councilVetoVoteThreshold: new VoteThreshold({
+      type: VoteThresholdType.YesVotePercentage,
+      value: 0,
+    }),
+    communityVetoVoteThreshold: new VoteThreshold({
+      type: VoteThresholdType.YesVotePercentage,
+      value: 0,
+    }),
+    councilVoteTipping: VoteTipping.Strict,
+    votingCoolOffTime: 0,
+    depositExemptProposalCount: 255,
+  });
+  const governance = await withCreateGovernance(
+    tx.instructions,
+    govProgramId,
+    PROGRAM_VERSION_V2,
+    realm,
+    tokenOwnerRecord,
+    governanceConfig,
+    tokenOwnerRecord,
+    payer,
+    authority,
+    voterWeightRecord
+  );
+
+  return governance;
 }
 
 /**
@@ -328,7 +457,16 @@ export async function standardSetup(
     program.provider.connection
   );
 
-  globalConfig.governanceAuthority = Keypair.generate().publicKey;
+  if (globalConfig.whGovernanceRealm == null) {
+    const { realm, governance } = await createDefaultRealm(
+      provider,
+      config,
+      Math.max(globalConfig.epochDuration.toNumber(), 60), // at least one minute
+      whMintAccount.publicKey
+    );
+    globalConfig.governanceAuthority = governance;
+    globalConfig.whGovernanceRealm = realm;
+  }
 
   if (globalConfig.pdaAuthority == null) {
     globalConfig.pdaAuthority = user;
