@@ -13,7 +13,7 @@
   "repository": "https://github.com/wormhole-foundation/example-multigov/tree/main/solana",
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
-    "@pythnetwork/staking-wasm": "*",
+    "@wormhole/staking-wasm": "file:./wasm",
     "@solana/spl-governance": "0.3.26",
     "@solana/spl-token": "^0.1.8",
     "@solana/web3.js": "^1.87.5",
