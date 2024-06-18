@@ -118,6 +118,16 @@ describe("staking", async () => {
 
     const tx = await program.methods
       .createStakeAccount(owner)
+      .preInstructions([
+        await program.account.checkpointData.createInstruction(
+          stakeAccountSecret,
+          wasm.Constants.POSITIONS_ACCOUNT_SIZE()
+        ),
+      ])
+      .accounts({
+        stakeAccountCheckpoints: stakeAccountSecret.publicKey,
+        mint: whMintAccount.publicKey,
+      })
       .signers([stakeAccountSecret])
       .rpc({
         skipPreflight: DEBUG,

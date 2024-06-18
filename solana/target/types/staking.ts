@@ -151,6 +151,11 @@ export type Staking = {
           "isSigner": true
         },
         {
+          "name": "stakeAccountCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "stakeAccountMetadata",
           "isMut": true,
           "isSigner": false,
@@ -160,6 +165,11 @@ export type Staking = {
                 "kind": "const",
                 "type": "string",
                 "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
               }
             ]
           }
@@ -177,6 +187,11 @@ export type Staking = {
                 "kind": "const",
                 "type": "string",
                 "value": "authority"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
               }
             ]
           }
@@ -210,6 +225,11 @@ export type Staking = {
                 "kind": "const",
                 "type": "string",
                 "value": "custody"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
               }
             ]
           }
@@ -286,6 +306,32 @@ export type Staking = {
     }
   ],
   "accounts": [
+    {
+      "name": "checkpointData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "checkpoints",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    200
+                  ]
+                },
+                20
+              ]
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "globalConfig",
       "type": {
@@ -390,29 +436,62 @@ export type Staking = {
       }
     }
   ],
+  "types": [
+    {
+      "name": "Checkpoint",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ],
   "errors": [
     {
       "code": 6000,
+      "name": "TooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
+    },
+    {
+      "code": 6001,
       "name": "ZeroEpochDuration",
       "msg": "Epoch duration is 0"
     },
     {
-      "code": 6001,
+      "code": 6002,
       "name": "GenericOverflow",
       "msg": "An arithmetic operation unexpectedly overflowed"
     },
     {
-      "code": 6002,
+      "code": 6003,
+      "name": "CheckpointSerDe",
+      "msg": "Error deserializing checkpoint"
+    },
+    {
+      "code": 6004,
+      "name": "CheckpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
+    },
+    {
+      "code": 6005,
       "name": "NotLlcMember",
       "msg": "You need to be an LLC member to perform this action"
     },
     {
-      "code": 6003,
+      "code": 6006,
       "name": "RecoverWithStake",
       "msg": "Can't recover account with staking positions. Unstake your tokens first."
     },
     {
-      "code": 6004,
+      "code": 6007,
       "name": "Other",
       "msg": "Other"
     }
@@ -572,6 +651,11 @@ export const IDL: Staking = {
           "isSigner": true
         },
         {
+          "name": "stakeAccountCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "stakeAccountMetadata",
           "isMut": true,
           "isSigner": false,
@@ -581,6 +665,11 @@ export const IDL: Staking = {
                 "kind": "const",
                 "type": "string",
                 "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
               }
             ]
           }
@@ -598,6 +687,11 @@ export const IDL: Staking = {
                 "kind": "const",
                 "type": "string",
                 "value": "authority"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
               }
             ]
           }
@@ -631,6 +725,11 @@ export const IDL: Staking = {
                 "kind": "const",
                 "type": "string",
                 "value": "custody"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
               }
             ]
           }
@@ -707,6 +806,32 @@ export const IDL: Staking = {
     }
   ],
   "accounts": [
+    {
+      "name": "checkpointData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "checkpoints",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    200
+                  ]
+                },
+                20
+              ]
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "globalConfig",
       "type": {
@@ -811,29 +936,62 @@ export const IDL: Staking = {
       }
     }
   ],
+  "types": [
+    {
+      "name": "Checkpoint",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ],
   "errors": [
     {
       "code": 6000,
+      "name": "TooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
+    },
+    {
+      "code": 6001,
       "name": "ZeroEpochDuration",
       "msg": "Epoch duration is 0"
     },
     {
-      "code": 6001,
+      "code": 6002,
       "name": "GenericOverflow",
       "msg": "An arithmetic operation unexpectedly overflowed"
     },
     {
-      "code": 6002,
+      "code": 6003,
+      "name": "CheckpointSerDe",
+      "msg": "Error deserializing checkpoint"
+    },
+    {
+      "code": 6004,
+      "name": "CheckpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
+    },
+    {
+      "code": 6005,
       "name": "NotLlcMember",
       "msg": "You need to be an LLC member to perform this action"
     },
     {
-      "code": 6003,
+      "code": 6006,
       "name": "RecoverWithStake",
       "msg": "Can't recover account with staking positions. Unstake your tokens first."
     },
     {
-      "code": 6004,
+      "code": 6007,
       "name": "Other",
       "msg": "Other"
     }

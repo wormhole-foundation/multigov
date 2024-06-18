@@ -3,14 +3,20 @@ use anchor_lang::prelude::*;
 #[error_code]
 #[derive(PartialEq, Eq)]
 pub enum ErrorCode {
-    #[msg("Epoch duration is 0")] //6011
+    #[msg("Number of checkpoint limit reached")] //6000
+    TooManyCheckpoints,
+    #[msg("Epoch duration is 0")] //6001
     ZeroEpochDuration,
-    #[msg("An arithmetic operation unexpectedly overflowed")] //6015
+    #[msg("An arithmetic operation unexpectedly overflowed")] //6002
     GenericOverflow,
-    #[msg("You need to be an LLC member to perform this action")] //6029
+    #[msg("Error deserializing checkpoint")] //6003
+    CheckpointSerDe,
+    #[msg("Checkpoint out of bounds")] //6004
+    CheckpointOutOfBounds,
+    #[msg("You need to be an LLC member to perform this action")] //6005
     NotLlcMember,
-    #[msg("Can't recover account with staking positions. Unstake your tokens first.")] // 6035
+    #[msg("Can't recover account with staking positions. Unstake your tokens first.")] // 6006
     RecoverWithStake,
-    #[msg("Other")] //6036
+    #[msg("Other")] //6007
     Other,
 }

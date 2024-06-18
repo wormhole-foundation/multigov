@@ -1,5 +1,12 @@
 #![allow(non_snake_case)]
 use {
+    crate::{
+        state::{
+            checkpoints::{
+                CheckpointData,
+            },
+        },
+    },
     anchor_lang::{
         prelude::{
             Clock,
@@ -54,6 +61,14 @@ reexport_seed_const!(AUTHORITY_SEED);
 reexport_seed_const!(CUSTODY_SEED);
 reexport_seed_const!(STAKE_ACCOUNT_METADATA_SEED);
 reexport_seed_const!(CONFIG_SEED);
+
+#[wasm_bindgen]
+impl Constants {
+    #[wasm_bindgen]
+    pub fn POSITIONS_ACCOUNT_SIZE() -> usize {
+        CheckpointData::LEN
+    }
+}
 
 #[wasm_bindgen]
 extern "C" {

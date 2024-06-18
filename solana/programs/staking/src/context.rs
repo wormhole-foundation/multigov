@@ -69,10 +69,12 @@ pub struct CreateStakeAccount<'info> {
     #[account(mut)]
     pub payer:                   Signer<'info>,
     // Stake program accounts:
-    #[account(init, payer = payer, space = stake_account::StakeAccountMetadata::LEN, seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes()], bump)]
+    #[account(zero)]
+    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    #[account(init, payer = payer, space = stake_account::StakeAccountMetadata::LEN, seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub stake_account_metadata:  Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
-    #[account(seeds = [AUTHORITY_SEED.as_bytes()], bump)]
+    #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub custody_authority:       AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config:                  Account<'info, global_config::GlobalConfig>,
@@ -81,7 +83,7 @@ pub struct CreateStakeAccount<'info> {
     pub mint:                    Account<'info, Mint>,
     #[account(
         init,
-        seeds = [CUSTODY_SEED.as_bytes()],
+        seeds = [CUSTODY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
         bump,
         payer = payer,
         token::mint = mint,

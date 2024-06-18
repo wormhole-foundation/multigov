@@ -1,5 +1,5 @@
 import { parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
-import { PublicKey, Keypair } from "@solana/web3.js";
+import { PublicKey, Keypair, TransactionInstruction } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
   Token,
@@ -134,9 +134,22 @@ describe("config", async () => {
 
     const owner = program.provider.wallet.publicKey;
     const stakeAccountKeypair = new Keypair();
+    const instructions: TransactionInstruction[] = [];
+
+    instructions.push(
+      await program.account.checkpointData.createInstruction(
+        stakeAccountKeypair,
+        wasm.Constants.POSITIONS_ACCOUNT_SIZE()
+      )
+    );
 
     await program.methods
       .createStakeAccount(owner)
+      .preInstructions(instructions)
+      .accounts({
+        stakeAccountCheckpoints: stakeAccountKeypair.publicKey,
+        mint: whMintAccount.publicKey,
+      })
       .signers([stakeAccountKeypair])
       .rpc();
 
