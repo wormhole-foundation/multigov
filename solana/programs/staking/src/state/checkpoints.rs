@@ -1,4 +1,4 @@
-use {
+  use {
     crate::error::ErrorCode,
     anchor_lang::{
         prelude::{
@@ -115,9 +115,9 @@ pub mod tests {
             CheckpointData,
             MAX_CHECKPOINTS,
             CHECKPOINT_BUFFER_SIZE,
+            TryBorsh
         },
         anchor_lang::{
-            prelude::*,
             solana_program::borsh::get_packed_len,
         },
         quickcheck::{
@@ -128,7 +128,6 @@ pub mod tests {
         rand::Rng,
         std::collections::HashSet,
     };
-
 
     #[test]
     fn test_serialized_size() {
