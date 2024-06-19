@@ -74,12 +74,20 @@ jobs:
           lcov-file: ./evm/lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }} # Adds a coverage summary comment to the PR.
 
-            #- name: Verify minimum coverage
-            #  uses: zgosalvez/github-actions-report-lcov@v2
-            #  with:
-            #    coverage-files: ./lcov.info
-            #    minimum-coverage: 0 # Set coverage threshold.
-            #    working-directory: ./evm
+      - name: list files
+        run: |
+          ls -la
+
+      - name: list files
+        run: |
+          cd evm && ls -la
+
+      - name: Verify minimum coverage
+        uses: zgosalvez/github-actions-report-lcov@v2
+        with:
+          coverage-files: ./evm/lcov.info
+          minimum-coverage: 0 # Set coverage threshold.
+          working-directory: ./evm
 
   lint:
     runs-on: ubuntu-latest
