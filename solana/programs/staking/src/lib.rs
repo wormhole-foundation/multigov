@@ -84,16 +84,22 @@ pub mod staking {
         ctx: Context<CreateStakeAccount>,
         owner: Pubkey,
     ) -> Result<()> {
-        let _config = &ctx.accounts.config;
+        let config = &ctx.accounts.config;
 
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
         stake_account_metadata.initialize(
             *ctx.bumps.get("stake_account_metadata").unwrap(),
             *ctx.bumps.get("stake_account_custody").unwrap(),
             *ctx.bumps.get("custody_authority").unwrap(),
-            0,
+            *ctx.bumps.get("voter_weight_record").unwrap(),
             &owner,
         );
+
+        let stake_account_checkpoints = &mut ctx.accounts.stake_account_checkpoints.load_init()?;
+        stake_account_checkpoints.initialize(&owner);
+
+        let voter_weight_record = &mut ctx.accounts.voter_weight_record;
+        voter_weight_record.initialize(config, &owner);
 
         Ok(())
     }

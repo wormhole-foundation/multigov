@@ -110,7 +110,7 @@ describe("staking", async () => {
     let voterBump: number;
     [voterAccount, voterBump] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode(wasm.Constants.VOTER_RECORD_SEED()),
+        anchor.utils.bytes.utf8.encode(wasm.Constants.VOTER_WEIGHT_RECORD_SEED()),
         stakeAccountSecret.publicKey.toBuffer(),
       ],
       program.programId

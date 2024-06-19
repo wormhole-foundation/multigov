@@ -14,6 +14,7 @@ pub const AUTHORITY_SEED: &str = "authority";
 pub const CUSTODY_SEED: &str = "custody";
 pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
 pub const CONFIG_SEED: &str = "config";
+pub const VOTER_WEIGHT_RECORD_SEED: &str = "voter_weight_record";
 
 #[derive(Accounts)]
 #[instruction(config_data : global_config::GlobalConfig)]
@@ -76,6 +77,16 @@ pub struct CreateStakeAccount<'info> {
     /// CHECK : This AccountInfo is safe because it's a checked PDA
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub custody_authority:       AccountInfo<'info>,
+    #[account(
+        init,
+        payer = payer,
+        space = voter_weight_record::VoterWeightRecord::LEN,
+        seeds = [
+            VOTER_WEIGHT_RECORD_SEED.as_bytes(),
+            stake_account_checkpoints.key().as_ref()
+        ],
+        bump)]
+    pub voter_weight_record:     Account<'info, voter_weight_record::VoterWeightRecord>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config:                  Account<'info, global_config::GlobalConfig>,
     // Wormhole token mint:
@@ -83,7 +94,10 @@ pub struct CreateStakeAccount<'info> {
     pub mint:                    Account<'info, Mint>,
     #[account(
         init,
-        seeds = [CUSTODY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        seeds = [
+            CUSTODY_SEED.as_bytes(),
+            stake_account_checkpoints.key().as_ref()
+        ],
         bump,
         payer = payer,
         token::mint = mint,
@@ -106,14 +120,29 @@ pub struct RecoverAccount<'info> {
     #[account(address = stake_account_metadata.owner)]
     pub payer_token_account: Account<'info, TokenAccount>,
 
+    // Stake program accounts:
+    #[account(zero)]
+    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+
     #[account(
         mut,
         seeds = [
-            STAKE_ACCOUNT_METADATA_SEED.as_bytes()
+            STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
+            stake_account_checkpoints.key().as_ref()
         ],
         bump = stake_account_metadata.metadata_bump
     )]
     pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
+
+    #[account(
+        mut,
+        seeds = [
+            VOTER_WEIGHT_RECORD_SEED.as_bytes(),
+            stake_account_checkpoints.key().as_ref()
+        ],
+        bump = stake_account_metadata.voter_bump
+    )]
+    pub voter_weight_record: Account<'info, voter_weight_record::VoterWeightRecord>,
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,

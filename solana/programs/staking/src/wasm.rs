@@ -61,6 +61,7 @@ reexport_seed_const!(AUTHORITY_SEED);
 reexport_seed_const!(CUSTODY_SEED);
 reexport_seed_const!(STAKE_ACCOUNT_METADATA_SEED);
 reexport_seed_const!(CONFIG_SEED);
+reexport_seed_const!(VOTER_WEIGHT_RECORD_SEED);
 
 #[wasm_bindgen]
 impl Constants {
