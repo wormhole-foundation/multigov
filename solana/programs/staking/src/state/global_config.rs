@@ -22,7 +22,7 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub const LEN: usize = 6144;
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 8 + 1 + 32 + 32 + 32 + 8;
 }
 
 #[cfg(test)]
