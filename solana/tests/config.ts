@@ -142,7 +142,7 @@ describe("config", async () => {
     instructions.push(
       await program.account.checkpointData.createInstruction(
         stakeAccountKeypair,
-        wasm.Constants.POSITIONS_ACCOUNT_SIZE()
+        wasm.Constants.CHECKPOINT_DATA_SIZE()
       )
     );
 

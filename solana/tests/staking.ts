@@ -121,7 +121,7 @@ describe("staking", async () => {
       .preInstructions([
         await program.account.checkpointData.createInstruction(
           stakeAccountSecret,
-          wasm.Constants.POSITIONS_ACCOUNT_SIZE()
+          wasm.Constants.CHECKPOINT_DATA_SIZE()
         ),
       ])
       .accounts({

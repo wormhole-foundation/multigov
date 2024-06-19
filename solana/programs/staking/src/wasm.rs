@@ -66,7 +66,7 @@ reexport_seed_const!(VOTER_WEIGHT_RECORD_SEED);
 #[wasm_bindgen]
 impl Constants {
     #[wasm_bindgen]
-    pub fn POSITIONS_ACCOUNT_SIZE() -> usize {
+    pub fn CHECKPOINT_DATA_SIZE() -> usize {
         CheckpointData::LEN
     }
 }
