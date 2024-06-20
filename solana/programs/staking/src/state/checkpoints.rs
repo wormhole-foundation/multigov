@@ -50,9 +50,9 @@ impl CheckpointData {
 
     /// Finds first index available for a new checkpoint, increments the internal counter
     pub fn reserve_new_index(&mut self) -> Result<usize> {
-        let res = *self.next_index as usize;
+        let res = self.next_index as usize;
         if res < MAX_CHECKPOINTS {
-            *self.next_index += 1;
+            self.next_index += 1;
             Ok(res)
         } else {
             Err(error!(ErrorCode::TooManyCheckpoints))
@@ -75,7 +75,7 @@ impl CheckpointData {
         if self.next_index == 0 {
             Ok(None)
         } else {
-            self.read_checkpoint((self.next_index - 1) as usize)?.map(|cp| cp.value)
+            Ok(self.read_checkpoint((self.next_index - 1) as usize)?.map(|cp| cp.value))
         }
     }
 
@@ -111,8 +111,8 @@ impl CheckpointData {
                     timestamp,
                     value,
                 };
-                self.write_checkpoint(self.next_index as usize, &new_checkpoint)?;
-                self.next_index += 1;
+                let i = self.reserve_new_index().unwrap();
+                self.write_checkpoint(i, &new_checkpoint)?;
                 Ok((last_checkpoint.value, value))
             }
         } else {
@@ -120,8 +120,8 @@ impl CheckpointData {
                 timestamp,
                 value,
             };
-            self.write_checkpoint(0, &new_checkpoint)?;
-            self.next_index = 1;
+            let i = self.reserve_new_index().unwrap();
+            self.write_checkpoint(i, &new_checkpoint)?;
             Ok((0, value))
         }
     }
@@ -182,11 +182,11 @@ pub mod tests {
     fn test_serialized_size() {
         assert_eq!(
             std::mem::size_of::<CheckpointData>(),
-            32 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+            32 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
         );
         assert_eq!(
             CheckpointData::LEN,
-            8 + 32 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+            32 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
         );
         // Checks that the checkpoint struct fits in the individual checkpoint buffer
         assert!(get_packed_len::<Checkpoint>() < CHECKPOINT_BUFFER_SIZE);
@@ -219,7 +219,7 @@ pub mod tests {
     impl Arbitrary for DataOperation {
         fn arbitrary(g: &mut Gen) -> Self {
             let sample = u8::arbitrary(g);
-            match sample % 3 {
+            match sample % 2 {
                 0 => {
                     return DataOperation::Add(Checkpoint::arbitrary(g));
                 }
@@ -246,7 +246,7 @@ pub mod tests {
                 }
             }
 
-            for i in next_index..(MAX_CHECKPOINTS as u8) {
+            for i in next_index..(MAX_CHECKPOINTS as u64) {
                 assert_eq!(
                     Option::<Checkpoint>::None,
                     self.read_checkpoint(i as usize).unwrap()
@@ -265,14 +265,14 @@ pub mod tests {
         for op in input {
             match op {
                 DataOperation::Add(checkpoint) => {
-                    if next_index < MAX_CHECKPOINTS as u8 {
+                    if next_index < MAX_CHECKPOINTS as u64 {
                         set.insert(checkpoint);
-                        let i = checkpoint_data.reserve_new_index(&mut next_index).unwrap();
+                        let i = checkpoint_data.reserve_new_index().unwrap();
                         checkpoint_data.write_checkpoint(i, &checkpoint).unwrap();
+                        next_index = checkpoint_data.next_index;
                     } else {
                         assert!(set.len() == MAX_CHECKPOINTS);
-                        assert!(checkpoint_data.reserve_new_index(&mut next_index).is_err());
-                        next_index -= 1;
+                        assert!(checkpoint_data.reserve_new_index().is_err());
                     }
                 }
                 DataOperation::Modify(checkpoint) => {
