@@ -22,7 +22,7 @@ contract SpokeMessageExecutor {
   error InvalidSpokeExecutorOperationLength(uint256, uint256, uint256);
   error UnknownMessageEmitter();
 
-  event ProposalExecuted(uint256 proposalId);
+  event ProposalExecuted(uint16 emitterChainId, bytes32 emitterAddress, uint256 proposalId);
 
   mapping(bytes32 messageHash => bool executed) public messageReceived;
 
@@ -84,6 +84,6 @@ contract SpokeMessageExecutor {
     // Should there be a deadline
     airlock.executeOperations(_targets, _values, _calldatas);
     messageReceived[wormholeMessage.hash] = true;
-    emit ProposalExecuted(_messageId);
+    emit ProposalExecuted(wormholeMessage.emitterChainId, wormholeMessage.emitterAddress, _messageId);
   }
 }
