@@ -17,6 +17,10 @@ pub enum ErrorCode {
     NotLlcMember,
     #[msg("Can't recover account with staking positions. Unstake your tokens first.")] // 6006
     RecoverWithStake,
-    #[msg("Other")] //6007
+    #[msg("Checkpoint not found")] //6007
+    CheckpointNotFound,
+    #[msg("Invalid timestamp")] //6008
+    InvalidTimestamp,
+    #[msg("Other")] //6009
     Other,
 }

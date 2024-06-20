@@ -14,19 +14,16 @@
     },
 };
 
-pub const MAX_CHECKPOINTS: usize = 20;
-// Intentionally make the buffer for checkpoints bigger than it needs for migrations
-pub const CHECKPOINT_BUFFER_SIZE: usize = 200;
+pub const MAX_CHECKPOINTS: usize = 210;
+pub const CHECKPOINT_BUFFER_SIZE: usize = 48;
 
 #[account(zero_copy)]
 #[repr(C)]
 pub struct CheckpointData {
     pub owner: Pubkey,
+    pub delegate: Pubkey,
+    pub next_index: u64,
     checkpoints: [[u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
-}
-
-impl CheckpointData {
-    pub const LEN: usize = 8 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
 }
 
 #[cfg(test)]
@@ -34,37 +31,34 @@ impl Default for CheckpointData {
     // Only used for testing, so unwrap is acceptable
     fn default() -> Self {
         CheckpointData {
-            owner:     Pubkey::default(),
+            owner:       Pubkey::default(),
+            delegate:    Pubkey::default(),
+            next_index:  0,
             checkpoints: [[0u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
         }
     }
 }
+
 impl CheckpointData {
+    pub const LEN: usize = 8 + 32 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
+
     pub fn initialize(&mut self, owner: &Pubkey) {
         self.owner = *owner;
+        self.delegate = *owner; // initially, the delegate is the owner himself
+        self.next_index = 0;
     }
 
     /// Finds first index available for a new checkpoint, increments the internal counter
-    pub fn reserve_new_index(&mut self, next_index: &mut u8) -> Result<usize> {
-        let res = *next_index as usize;
-        *next_index += 1;
+    pub fn reserve_new_index(&mut self) -> Result<usize> {
+        let res = *self.next_index as usize;
         if res < MAX_CHECKPOINTS {
+            *self.next_index += 1;
             Ok(res)
         } else {
             Err(error!(ErrorCode::TooManyCheckpoints))
         }
     }
-
-    // Makes checkpoint at index i none, and swaps checkpoints to preserve the invariant
-    pub fn make_none(&mut self, i: usize, next_index: &mut u8) -> Result<()> {
-        if (*next_index as usize) <= i {
-            return Err(error!(ErrorCode::CheckpointOutOfBounds));
-        }
-        *next_index -= 1;
-        self.checkpoints[i] = self.checkpoints[*next_index as usize];
-        None::<Option<Checkpoint>>.try_write(&mut self.checkpoints[*next_index as usize])
-    }
-
+    
     pub fn write_checkpoint(&mut self, i: usize, &checkpoint: &Checkpoint) -> Result<()> {
         Some(checkpoint).try_write(&mut self.checkpoints[i])
     }
@@ -75,6 +69,61 @@ impl CheckpointData {
                 .get(i)
                 .ok_or_else(|| error!(ErrorCode::CheckpointOutOfBounds))?,
         )
+    }
+
+    pub fn latest(&self) -> Result<Option<u64>> {
+        if self.next_index == 0 {
+            Ok(None)
+        } else {
+            self.read_checkpoint((self.next_index - 1) as usize)?.map(|cp| cp.value)
+        }
+    }
+
+    pub fn latest_checkpoint(&self) -> Result<Option<(u64, u64)>> {
+        if self.next_index == 0 {
+            Ok(None)
+        } else {
+            self.read_checkpoint((self.next_index - 1) as usize)?
+                .map(|cp| Ok(Some((cp.value, cp.timestamp))))
+                .unwrap_or(Ok(None))
+        }
+    }
+
+    pub fn push(&mut self, timestamp: u64, value: u64) -> Result<(u64, u64)> {
+        if self.next_index > 0 {
+            let last_checkpoint = self.read_checkpoint((self.next_index - 1) as usize)?
+                .ok_or(ErrorCode::CheckpointNotFound)?;
+
+            require!(
+                last_checkpoint.timestamp <= timestamp,
+                ErrorCode::InvalidTimestamp
+            );
+
+            if last_checkpoint.timestamp == timestamp {
+                let new_checkpoint = Checkpoint {
+                    timestamp,
+                    value,
+                };
+                self.write_checkpoint((self.next_index - 1) as usize, &new_checkpoint)?;
+                Ok((last_checkpoint.value, value))
+            } else {
+                let new_checkpoint = Checkpoint {
+                    timestamp,
+                    value,
+                };
+                self.write_checkpoint(self.next_index as usize, &new_checkpoint)?;
+                self.next_index += 1;
+                Ok((last_checkpoint.value, value))
+            }
+        } else {
+            let new_checkpoint = Checkpoint {
+                timestamp,
+                value,
+            };
+            self.write_checkpoint(0, &new_checkpoint)?;
+            self.next_index = 1;
+            Ok((0, value))
+        }
     }
 }
 
@@ -103,8 +152,8 @@ where
 #[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone, Copy, BorshSchema)]
 #[cfg_attr(test, derive(Hash, PartialEq, Eq))]
 pub struct Checkpoint {
-    pub amount:                 u64,
-    pub ts:                     i64,
+    pub value:     u64,
+    pub timestamp: u64,
 }
 
 #[cfg(test)]
@@ -133,11 +182,11 @@ pub mod tests {
     fn test_serialized_size() {
         assert_eq!(
             std::mem::size_of::<CheckpointData>(),
-            32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+            32 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
         );
         assert_eq!(
             CheckpointData::LEN,
-            8 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+            8 + 32 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
         );
         // Checks that the checkpoint struct fits in the individual checkpoint buffer
         assert!(get_packed_len::<Checkpoint>() < CHECKPOINT_BUFFER_SIZE);
@@ -155,15 +204,14 @@ pub mod tests {
     enum DataOperation {
         Add(Checkpoint),
         Modify(Checkpoint),
-        Delete,
     }
 
     // Boiler plate to generate random instances
     impl Arbitrary for Checkpoint {
         fn arbitrary(g: &mut Gen) -> Self {
             return Checkpoint {
-                amount:  u64::arbitrary(g),
-                ts:      i64::arbitrary(g),
+                value:     u64::arbitrary(g),
+                timestamp: u64::arbitrary(g),
             };
         }
     }
@@ -178,16 +226,13 @@ pub mod tests {
                 1 => {
                     return DataOperation::Modify(Checkpoint::arbitrary(g));
                 }
-                2 => {
-                    return DataOperation::Delete;
-                }
                 _ => panic!(),
             }
         }
     }
 
     impl CheckpointData {
-        fn to_set(self, next_index: u8) -> HashSet<Checkpoint> {
+        fn to_set(self, next_index: u64) -> HashSet<Checkpoint> {
             let mut res: HashSet<Checkpoint> = HashSet::new();
             for i in 0..next_index {
                 if let Some(checkpoint) = self.read_checkpoint(i as usize).unwrap() {
@@ -214,7 +259,7 @@ pub mod tests {
     #[quickcheck]
     fn prop(input: Vec<DataOperation>) -> bool {
         let mut checkpoint_data = CheckpointData::default();
-        let mut next_index: u8 = 0;
+        let mut next_index: u64 = 0;
         let mut set: HashSet<Checkpoint> = HashSet::new();
         let mut rng = rand::thread_rng();
         for op in input {
@@ -237,16 +282,6 @@ pub mod tests {
                         checkpoint_data.write_checkpoint(i, &checkpoint).unwrap();
                         set.remove(&current_checkpoint);
                         set.insert(checkpoint);
-                    } else {
-                        assert!(set.len() == 0);
-                    }
-                }
-                DataOperation::Delete => {
-                    if next_index != 0 {
-                        let i: usize = rng.gen_range(0..(next_index as usize));
-                        let current_checkpoint = checkpoint_data.read_checkpoint(i).unwrap().unwrap();
-                        checkpoint_data.make_none(i, &mut next_index).unwrap();
-                        set.remove(&current_checkpoint);
                     } else {
                         assert!(set.len() == 0);
                     }
