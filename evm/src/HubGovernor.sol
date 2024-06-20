@@ -20,10 +20,10 @@ contract HubGovernor is
   GovernorTimelockControl,
   GovernorSettableFixedQuorum
 {
-  address public trustedProposer;
-  mapping(address votingAddress => bool enabled) public trustedVotingAddresses;
+  address public whitelistedProposer;
+  mapping(address votingAddress => bool enabled) public whitelistedVotingAddresses;
 
-  event TrustedProposerUpdated(address oldProposer, address newProposer);
+  event WhitelistedProposerUpdated(address oldProposer, address newProposer);
 
   constructor(
     string memory _name,
@@ -33,7 +33,7 @@ contract HubGovernor is
     uint32 _initialVotingPeriod,
     uint256 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _trustedVotingAddress
+    address _whitelistedVotingAddress
   )
     Governor(_name)
     GovernorSettings(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold)
@@ -41,17 +41,17 @@ contract HubGovernor is
     GovernorTimelockControl(_timelock)
     GovernorSettableFixedQuorum(_initialQuorum)
   {
-    _enableTrustedVotingAddress(_trustedVotingAddress);
+    _enableWhitelistedVotingAddress(_whitelistedVotingAddress);
   }
 
-  function enableTrustedVotingAddress(address _trustedAddress) external {
+  function enableWhitelistedVotingAddress(address _whitelistedAddress) external {
     _checkGovernance();
-    _enableTrustedVotingAddress(_trustedAddress);
+    _enableWhitelistedVotingAddress(_whitelistedAddress);
   }
 
-  function disableTrustedVotingAddress(address _trustedAddress) external {
+  function disableWhitelistedVotingAddress(address _whitelistedAddress) external {
     _checkGovernance();
-    _disableTrustedVotingAddress(_trustedAddress);
+    _disableWhitelistedVotingAddress(_whitelistedAddress);
   }
 
   function propose(
@@ -65,8 +65,8 @@ contract HubGovernor is
     // check description restriction
     if (!_isValidDescriptionForProposer(proposer, description)) revert GovernorRestrictedProposer(proposer);
 
-    // Check if trusted proposer
-    if (proposer == trustedProposer) return _propose(targets, values, calldatas, description, proposer);
+    // Check if whitelisted proposer
+    if (proposer == whitelistedProposer) return _propose(targets, values, calldatas, description, proposer);
 
     // check proposal threshold
     uint256 proposerVotes = getVotes(proposer, clock() - 1);
@@ -77,9 +77,9 @@ contract HubGovernor is
     return _propose(targets, values, calldatas, description, proposer);
   }
 
-  function setTrustedProposer(address _proposer) external {
+  function setWhitelistedProposer(address _proposer) external {
     _checkGovernance();
-    _setTrustedProposer(_proposer);
+    _setWhitelistedProposer(_proposer);
   }
 
   function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
@@ -91,12 +91,12 @@ contract HubGovernor is
     return GovernorTimelockControl._cancel(targets, values, calldatas, descriptionHash);
   }
 
-  function _disableTrustedVotingAddress(address _trustedAddress) internal {
-    trustedVotingAddresses[_trustedAddress] = false;
+  function _disableWhitelistedVotingAddress(address _whitelistedAddress) internal {
+    whitelistedVotingAddresses[_whitelistedAddress] = false;
   }
 
-  function _enableTrustedVotingAddress(address _trustedAddress) internal {
-    trustedVotingAddresses[_trustedAddress] = true;
+  function _enableWhitelistedVotingAddress(address _whitelistedAddress) internal {
+    whitelistedVotingAddresses[_whitelistedAddress] = true;
   }
 
   function _executeOperations(
@@ -123,9 +123,9 @@ contract HubGovernor is
     return GovernorTimelockControl._queueOperations(_proposalId, _targets, _values, _calldatas, _description);
   }
 
-  function _setTrustedProposer(address _proposer) internal {
-    emit TrustedProposerUpdated(trustedProposer, _proposer);
-    trustedProposer = _proposer;
+  function _setWhitelistedProposer(address _proposer) internal {
+    emit WhitelistedProposerUpdated(whitelistedProposer, _proposer);
+    whitelistedProposer = _proposer;
   }
 
   function proposalNeedsQueuing(uint256 proposalId)
@@ -157,7 +157,7 @@ contract HubGovernor is
     virtual
     override(Governor, GovernorCountingFractional)
   {
-    if (!trustedVotingAddresses[account]) {
+    if (!whitelistedVotingAddresses[account]) {
       require(totalWeight > 0, "GovernorCountingFractional: no weight");
       if (voteWeightCast(proposalId, account) >= totalWeight) revert("GovernorCountingFractional: all weight cast");
     }

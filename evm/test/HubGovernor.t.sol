@@ -115,7 +115,7 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.votingDelay(), _initialVotingDelay);
     assertEq(_governor.votingPeriod(), _initialVotingPeriod);
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
-    assertEq(_governor.trustedVotingAddresses(_hubVotePool), true);
+    assertEq(_governor.whitelistedVotingAddresses(_hubVotePool), true);
   }
 
   function testFuzz_RevertIf_VotingPeriodIsZero(
@@ -141,195 +141,197 @@ contract Constructor is HubGovernorTest {
   }
 }
 
-contract EnableTrustedVotingAddress is HubGovernorTest {
-  function _createEnableTrustedAddressProposal(address _trustedAddress) public returns (ProposalBuilder) {
-    return _createProposal(abi.encodeWithSignature("enableTrustedVotingAddress(address)", _trustedAddress));
+contract EnableWhitelistedVotingAddress is HubGovernorTest {
+  function _createEnableWhitelistedAddressProposal(address _whitelistedAddress) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("enableWhitelistedVotingAddress(address)", _whitelistedAddress));
   }
 
-  function testFuzz_SetANewTrustedVoteAddress(address _trustedAddress, string memory _proposalDescription) public {
-    vm.assume(_trustedAddress != address(0));
-    vm.assume(_trustedAddress != address(timelock));
+  function testFuzz_SetANewWhitelistedVoteAddress(address _whitelistedAddress, string memory _proposalDescription)
+    public
+  {
+    vm.assume(_whitelistedAddress != address(0));
+    vm.assume(_whitelistedAddress != address(timelock));
 
     _setGovernorAndDelegates();
 
-    ProposalBuilder builder = _createEnableTrustedAddressProposal(_trustedAddress);
+    ProposalBuilder builder = _createEnableWhitelistedAddressProposal(_whitelistedAddress);
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
-    assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
+    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
   }
 
-  function testFuzz_SetMultipleTrustedVoteAddresses(
-    address _firstTrustedAddress,
-    address _secondTrustedAddress,
+  function testFuzz_SetMultipleWhitelistedVoteAddresses(
+    address _firstWhitelistedAddress,
+    address _secondWhitelistedAddress,
     string memory _proposalDescriptionFirst,
     string memory _proposalDescriptionSecond
   ) public {
-    vm.assume(_firstTrustedAddress != address(0) && _secondTrustedAddress != address(0));
-    vm.assume(_firstTrustedAddress != address(timelock) && _secondTrustedAddress != address(timelock));
+    vm.assume(_firstWhitelistedAddress != address(0) && _secondWhitelistedAddress != address(0));
+    vm.assume(_firstWhitelistedAddress != address(timelock) && _secondWhitelistedAddress != address(timelock));
 
     _setGovernorAndDelegates();
 
-    ProposalBuilder firstBuilder = _createEnableTrustedAddressProposal(_firstTrustedAddress);
+    ProposalBuilder firstBuilder = _createEnableWhitelistedAddressProposal(_firstWhitelistedAddress);
     _queueAndVoteAndExecuteProposal(
       firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
-    ProposalBuilder secondBuilder = _createEnableTrustedAddressProposal(_secondTrustedAddress);
+    ProposalBuilder secondBuilder = _createEnableWhitelistedAddressProposal(_secondWhitelistedAddress);
     _queueAndVoteAndExecuteProposal(
       secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
 
-    assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), true);
-    assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), true);
+    assertEq(governor.whitelistedVotingAddresses(_firstWhitelistedAddress), true);
+    assertEq(governor.whitelistedVotingAddresses(_secondWhitelistedAddress), true);
   }
 
-  function testFuzz_EnableThenDisableTrustedAddress(
-    address _trustedAddress,
+  function testFuzz_EnableThenDisableWhitelistedAddress(
+    address _whitelistedAddress,
     string memory _proposalDescriptionFirst,
     string memory _proposalDescriptionSecond,
     string memory _proposalDescriptionThird
   ) public {
     vm.assume(keccak256(bytes(_proposalDescriptionFirst)) != keccak256(bytes(_proposalDescriptionThird)));
-    vm.assume(_trustedAddress != address(0));
-    vm.assume(_trustedAddress != address(timelock));
+    vm.assume(_whitelistedAddress != address(0));
+    vm.assume(_whitelistedAddress != address(timelock));
 
     _setGovernorAndDelegates();
 
-    ProposalBuilder firstBuilder = _createEnableTrustedAddressProposal(_trustedAddress);
+    ProposalBuilder firstBuilder = _createEnableWhitelistedAddressProposal(_whitelistedAddress);
     _queueAndVoteAndExecuteProposal(
       firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
-    assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
+    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
 
     ProposalBuilder secondBuilder = new ProposalBuilder();
     secondBuilder.push(
-      address(governor), 0, abi.encodeWithSignature("disableTrustedVotingAddress(address)", _trustedAddress)
+      address(governor), 0, abi.encodeWithSignature("disableWhitelistedVotingAddress(address)", _whitelistedAddress)
     );
     _queueAndVoteAndExecuteProposal(
       secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
-    assertEq(governor.trustedVotingAddresses(_trustedAddress), false);
+    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), false);
 
-    ProposalBuilder thirdBuilder = _createEnableTrustedAddressProposal(_trustedAddress);
+    ProposalBuilder thirdBuilder = _createEnableWhitelistedAddressProposal(_whitelistedAddress);
     _queueAndVoteAndExecuteProposal(
       thirdBuilder.targets(), thirdBuilder.values(), thirdBuilder.calldatas(), _proposalDescriptionThird
     );
 
-    assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
+    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
   }
 
-  function testFuzz_RevertIf_CallerIsNotAuthorized(address _trustedAddress, address _caller) public {
-    vm.assume(_trustedAddress != address(0));
-    vm.assume(_trustedAddress != address(timelock));
+  function testFuzz_RevertIf_CallerIsNotAuthorized(address _whitelistedAddress, address _caller) public {
+    vm.assume(_whitelistedAddress != address(0));
+    vm.assume(_whitelistedAddress != address(timelock));
     vm.assume(_caller != address(timelock));
 
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.enableTrustedVotingAddress(_trustedAddress);
+    governor.enableWhitelistedVotingAddress(_whitelistedAddress);
   }
 }
 
-contract DisableTrustedVotingAddress is HubGovernorTest {
-  function _createDisableTrustedVotingAddressProposal(address _trustedAddress) public returns (ProposalBuilder) {
-    return _createProposal(abi.encodeWithSignature("disableTrustedVotingAddress(address)", _trustedAddress));
+contract DisableWhitelistedVotingAddress is HubGovernorTest {
+  function _createDisableWhitelistedVotingAddressProposal(address _whitelistedAddress) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("disableWhitelistedVotingAddress(address)", _whitelistedAddress));
   }
 
-  function testFuzz_DisableTrustedAddress(address _trustedAddress, string memory _proposalDescription) public {
-    vm.assume(_trustedAddress != address(0));
-    vm.assume(_trustedAddress != address(timelock));
+  function testFuzz_DisableWhitelistedAddress(address _whitelistedAddress, string memory _proposalDescription) public {
+    vm.assume(_whitelistedAddress != address(0));
+    vm.assume(_whitelistedAddress != address(timelock));
 
-    governor.exposed_enableTrustedAddress(_trustedAddress);
-    assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
+    governor.exposed_enableWhitelistedAddress(_whitelistedAddress);
+    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
 
     _setGovernorAndDelegates();
 
-    ProposalBuilder builder = _createDisableTrustedVotingAddressProposal(_trustedAddress);
+    ProposalBuilder builder = _createDisableWhitelistedVotingAddressProposal(_whitelistedAddress);
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
-    assertEq(governor.trustedVotingAddresses(_trustedAddress), false);
+    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), false);
   }
 
   function testFuzz_DisableMultipleAddresses(
-    address _firstTrustedAddress,
-    address _secondTrustedAddress,
+    address _firstWhitelistedAddress,
+    address _secondWhitelistedAddress,
     string memory _proposalDescriptionFirst,
     string memory _proposalDescriptionSecond
   ) public {
-    vm.assume(_firstTrustedAddress != address(0) && _secondTrustedAddress != address(0));
+    vm.assume(_firstWhitelistedAddress != address(0) && _secondWhitelistedAddress != address(0));
 
-    governor.exposed_enableTrustedAddress(_firstTrustedAddress);
-    governor.exposed_enableTrustedAddress(_secondTrustedAddress);
-    assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), true);
-    assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), true);
+    governor.exposed_enableWhitelistedAddress(_firstWhitelistedAddress);
+    governor.exposed_enableWhitelistedAddress(_secondWhitelistedAddress);
+    assertEq(governor.whitelistedVotingAddresses(_firstWhitelistedAddress), true);
+    assertEq(governor.whitelistedVotingAddresses(_secondWhitelistedAddress), true);
 
     _setGovernorAndDelegates();
 
-    ProposalBuilder firstBuilder = _createDisableTrustedVotingAddressProposal(_firstTrustedAddress);
+    ProposalBuilder firstBuilder = _createDisableWhitelistedVotingAddressProposal(_firstWhitelistedAddress);
     _queueAndVoteAndExecuteProposal(
       firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
 
-    ProposalBuilder secondBuilder = _createDisableTrustedVotingAddressProposal(_secondTrustedAddress);
+    ProposalBuilder secondBuilder = _createDisableWhitelistedVotingAddressProposal(_secondWhitelistedAddress);
     _queueAndVoteAndExecuteProposal(
       secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
 
-    assertEq(governor.trustedVotingAddresses(_firstTrustedAddress), false);
-    assertEq(governor.trustedVotingAddresses(_secondTrustedAddress), false);
+    assertEq(governor.whitelistedVotingAddresses(_firstWhitelistedAddress), false);
+    assertEq(governor.whitelistedVotingAddresses(_secondWhitelistedAddress), false);
   }
 
-  function testFuzz_DisableThenEnableTrustedAddress(
-    address _trustedAddress,
+  function testFuzz_DisableThenEnableWhitelistedAddress(
+    address _whitelistedAddress,
     string memory _proposalDescriptionFirst,
     string memory _proposalDescriptionSecond
   ) public {
-    vm.assume(_trustedAddress != address(0));
-    vm.assume(_trustedAddress != address(timelock));
+    vm.assume(_whitelistedAddress != address(0));
+    vm.assume(_whitelistedAddress != address(timelock));
 
-    governor.exposed_enableTrustedAddress(_trustedAddress);
+    governor.exposed_enableWhitelistedAddress(_whitelistedAddress);
 
     _setGovernorAndDelegates();
 
-    ProposalBuilder firstBuilder = _createDisableTrustedVotingAddressProposal(_trustedAddress);
+    ProposalBuilder firstBuilder = _createDisableWhitelistedVotingAddressProposal(_whitelistedAddress);
     _queueAndVoteAndExecuteProposal(
       firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
     );
 
     ProposalBuilder secondBuilder = new ProposalBuilder();
     secondBuilder.push(
-      address(governor), 0, abi.encodeWithSignature("enableTrustedVotingAddress(address)", _trustedAddress)
+      address(governor), 0, abi.encodeWithSignature("enableWhitelistedVotingAddress(address)", _whitelistedAddress)
     );
     _queueAndVoteAndExecuteProposal(
       secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
     );
 
-    assertEq(governor.trustedVotingAddresses(_trustedAddress), true);
+    assertEq(governor.whitelistedVotingAddresses(_whitelistedAddress), true);
   }
 
-  function testFuzz_RevertIf_CallerIsNotAuthorized(address _trustedAddress, address _caller) public {
-    vm.assume(_trustedAddress != address(0));
-    vm.assume(_trustedAddress != address(timelock));
+  function testFuzz_RevertIf_CallerIsNotAuthorized(address _whitelistedAddress, address _caller) public {
+    vm.assume(_whitelistedAddress != address(0));
+    vm.assume(_whitelistedAddress != address(timelock));
     vm.assume(_caller != address(timelock));
 
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.disableTrustedVotingAddress(_trustedAddress);
+    governor.disableWhitelistedVotingAddress(_whitelistedAddress);
   }
 }
 
 contract Propose is HubGovernorTest {
-  function _createSetTrustedProposerProposal(address _newTrustedProposer) public returns (ProposalBuilder) {
-    return _createProposal(abi.encodeWithSignature("setTrustedProposer(address)", _newTrustedProposer));
+  function _createSetWhitelistedProposerProposal(address _newWhitelistedProposer) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setWhitelistedProposer(address)", _newWhitelistedProposer));
   }
 
-  function testFuzz_TrustedProposerCanProposeWithoutMeetingProposalThreshold(
-    address _trustedProposer,
+  function testFuzz_WhitelistedProposerCanProposeWithoutMeetingProposalThreshold(
+    address _whitelistedProposer,
     address _proposer,
     string memory _description
   ) public {
-    vm.assume(_trustedProposer != address(0));
-    ProposalBuilder builder = _createSetTrustedProposerProposal(_proposer);
+    vm.assume(_whitelistedProposer != address(0));
+    ProposalBuilder builder = _createSetWhitelistedProposerProposal(_proposer);
 
-    governor.exposed_setTrustedProposer(_trustedProposer);
+    governor.exposed_setWhitelistedProposer(_whitelistedProposer);
 
-    vm.startPrank(_trustedProposer);
+    vm.startPrank(_whitelistedProposer);
     uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), _description);
     vm.stopPrank();
 
@@ -337,18 +339,18 @@ contract Propose is HubGovernorTest {
     assertEq(voteStart, block.timestamp + governor.votingDelay());
   }
 
-  function testFuzz_UntrustedProposerCanProposeWhenMeetingProposalThreshold(
-    address _trustedProposer,
+  function testFuzz_UnwhitelistedProposerCanProposeWhenMeetingProposalThreshold(
+    address _whitelistedProposer,
     address _proposer,
     string memory _description
   ) public {
-    vm.assume(_trustedProposer != address(0));
+    vm.assume(_whitelistedProposer != address(0));
     vm.assume(_proposer != address(0));
 
-    ProposalBuilder builder = _createSetTrustedProposerProposal(_proposer);
+    ProposalBuilder builder = _createSetWhitelistedProposerProposal(_proposer);
     _setupDelegate(_proposer);
 
-    governor.exposed_setTrustedProposer(_trustedProposer);
+    governor.exposed_setWhitelistedProposer(_whitelistedProposer);
 
     vm.startPrank(_proposer);
     uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), _description);
@@ -358,16 +360,16 @@ contract Propose is HubGovernorTest {
     assertEq(voteStart, block.timestamp + governor.votingDelay());
   }
 
-  function testFuzz_RevertIf_UntrustedProposerDoesNotMeetProposalThreshold(
-    address _trustedProposer,
+  function testFuzz_RevertIf_UnwhitelistedProposerDoesNotMeetProposalThreshold(
+    address _whitelistedProposer,
     address _proposer,
     string memory _description
   ) public {
-    vm.assume(_trustedProposer != address(0) && _proposer != address(0));
-    vm.assume(_trustedProposer != _proposer);
-    ProposalBuilder builder = _createSetTrustedProposerProposal(_proposer);
+    vm.assume(_whitelistedProposer != address(0) && _proposer != address(0));
+    vm.assume(_whitelistedProposer != _proposer);
+    ProposalBuilder builder = _createSetWhitelistedProposerProposal(_proposer);
 
-    governor.exposed_setTrustedProposer(_trustedProposer);
+    governor.exposed_setWhitelistedProposer(_whitelistedProposer);
 
     vm.startPrank(_proposer);
     address[] memory targets = builder.targets();
@@ -385,7 +387,7 @@ contract Propose is HubGovernorTest {
   function testFuzz_RevertIf_ProposalHasAnInvalidDescription(address _proposer, address _incorrectProposer) public {
     vm.assume(_proposer != _incorrectProposer);
     vm.assume(_proposer != address(0));
-    ProposalBuilder builder = _createSetTrustedProposerProposal(_proposer);
+    ProposalBuilder builder = _createSetWhitelistedProposerProposal(_proposer);
     _setupDelegate(_proposer);
 
     vm.startPrank(_proposer);
@@ -406,8 +408,8 @@ contract Quorum is HubGovernorTest {
   }
 }
 
-contract SetTrustedProposer is HubGovernorTest {
-  function testFuzz_CorrectlySetNewTrustedProposer(address _proposer) public {
+contract SetWhitelistedProposer is HubGovernorTest {
+  function testFuzz_CorrectlySetNewWhitelistedProposer(address _proposer) public {
     address delegate = makeAddr("delegate");
     token.mint(delegate, governor.proposalThreshold());
     vm.prank(delegate);
@@ -419,12 +421,12 @@ contract SetTrustedProposer is HubGovernorTest {
     _setGovernor(governor);
     _setDelegates(delegates);
     ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+    builder.push(address(governor), 0, abi.encodeWithSignature("setWhitelistedProposer(address)", _proposer));
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
-    assertEq(governor.trustedProposer(), _proposer);
+    assertEq(governor.whitelistedProposer(), _proposer);
   }
 
-  function testFuzz_EmitsTrustedProposerUpdated(address _proposer) public {
+  function testFuzz_EmitsWhitelistedProposerUpdated(address _proposer) public {
     address delegate = makeAddr("delegate");
     token.mint(delegate, governor.proposalThreshold());
     vm.prank(delegate);
@@ -436,7 +438,7 @@ contract SetTrustedProposer is HubGovernorTest {
     _setGovernor(governor);
     _setDelegates(delegates);
     ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(governor), 0, abi.encodeWithSignature("setTrustedProposer(address)", _proposer));
+    builder.push(address(governor), 0, abi.encodeWithSignature("setWhitelistedProposer(address)", _proposer));
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
@@ -456,7 +458,7 @@ contract SetTrustedProposer is HubGovernorTest {
     _jumpPastProposalEta(_proposalId);
 
     vm.expectEmit();
-    emit HubGovernor.TrustedProposerUpdated(governor.trustedProposer(), _proposer);
+    emit HubGovernor.WhitelistedProposerUpdated(governor.whitelistedProposer(), _proposer);
     governor.execute(targets, values, calldatas, keccak256(bytes("Hi")));
   }
 
@@ -464,7 +466,7 @@ contract SetTrustedProposer is HubGovernorTest {
     vm.assume(_caller != address(timelock));
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.setTrustedProposer(_proposer);
+    governor.setWhitelistedProposer(_proposer);
   }
 }
 

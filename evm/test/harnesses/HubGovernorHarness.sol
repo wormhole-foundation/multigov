@@ -43,11 +43,11 @@ contract HubGovernorHarness is HubGovernor {
     _countVote(_proposalId, _account, _support, _totalWeight, _voteData);
   }
 
-  function exposed_enableTrustedAddress(address _trustedAddress) public {
-    _enableTrustedVotingAddress(_trustedAddress);
+  function exposed_enableWhitelistedAddress(address _whitelistedAddress) public {
+    _enableWhitelistedVotingAddress(_whitelistedAddress);
   }
 
-  function exposed_setTrustedProposer(address _proposer) public {
-    _setTrustedProposer(_proposer);
+  function exposed_setWhitelistedProposer(address _proposer) public {
+    _setWhitelistedProposer(_proposer);
   }
 }

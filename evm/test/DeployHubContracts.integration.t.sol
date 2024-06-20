@@ -34,7 +34,7 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     assertEq(timelock.hasRole(timelock.PROPOSER_ROLE(), address(governor)), true);
     assertEq(timelock.hasRole(timelock.CANCELLER_ROLE(), address(governor)), true);
 
-    assertEq(governor.trustedVotingAddresses(address(hubVotePool)), true);
+    assertEq(governor.whitelistedVotingAddresses(address(hubVotePool)), true);
     assertEq(address(governor.token()), WORMHOLE_SEPOLIA_W_TOKEN);
     assertEq(governor.votingDelay(), 90);
     assertEq(governor.votingPeriod(), 1800);
