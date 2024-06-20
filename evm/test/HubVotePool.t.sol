@@ -108,7 +108,7 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     return (_voteParams, _queryChainId, existingAgainstVotes, existingForVotes, existingAbstainVotes);
   }
 
-  function _verifyVotes(
+  function _assertVotesEq(
     VoteParams memory _voteParams,
     uint16 _queryChainId,
     uint128 existingAgainstVotes,
@@ -301,7 +301,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
       governor.params(), abi.encodePacked(_voteParams.againstVotes, _voteParams.forVotes, _voteParams.abstainVotes)
     );
 
-    _verifyVotes(_voteParams, _queryChainId, _existingAgainstVotes, _existingForVotes, _existingAbstainVotes);
+    _assertVotesEq(_voteParams, _queryChainId, _existingAgainstVotes, _existingForVotes, _existingAbstainVotes);
   }
 
   function testFuzz_CorrectlyAddNewVoteMultipleQueries(
@@ -321,11 +321,11 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     (,, uint128 _existingAgainstVotes, uint128 _existingForVotes, uint128 _existingAbstainVotes) =
       _sendCrossChainVote(_voteParams1, _queryChainId, _spokeContract);
-    _verifyVotes(_voteParams1, _queryChainId, _existingAgainstVotes, _existingForVotes, _existingAbstainVotes);
+    _assertVotesEq(_voteParams1, _queryChainId, _existingAgainstVotes, _existingForVotes, _existingAbstainVotes);
 
     (,, _existingAgainstVotes, _existingForVotes, _existingAbstainVotes) =
       _sendCrossChainVote(_voteParams2, _queryChainId, _spokeContract);
-    _verifyVotes(_voteParams2, _queryChainId, _existingAgainstVotes, _existingForVotes, _existingAbstainVotes);
+    _assertVotesEq(_voteParams2, _queryChainId, _existingAgainstVotes, _existingForVotes, _existingAbstainVotes);
   }
 
   function testFuzz_CorrectlyAddNewVoteMultipleChains(
@@ -346,11 +346,11 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     (,, uint128 _existingAgainstVotes1, uint128 _existingForVotes1, uint128 _existingAbstainVotes1) =
       _sendCrossChainVote(_voteParams1, _queryChainId1, _spokeContract1);
-    _verifyVotes(_voteParams1, _queryChainId1, _existingAgainstVotes1, _existingForVotes1, _existingAbstainVotes1);
+    _assertVotesEq(_voteParams1, _queryChainId1, _existingAgainstVotes1, _existingForVotes1, _existingAbstainVotes1);
 
     (,, uint128 _existingAgainstVotes2, uint128 _existingForVotes2, uint128 _existingAbstainVotes2) =
       _sendCrossChainVote(_voteParams2, _queryChainId2, _spokeContract2);
-    _verifyVotes(_voteParams2, _queryChainId2, _existingAgainstVotes2, _existingForVotes2, _existingAbstainVotes2);
+    _assertVotesEq(_voteParams2, _queryChainId2, _existingAgainstVotes2, _existingForVotes2, _existingAbstainVotes2);
   }
 
   function testFuzz_RevertIf_QueriedVotesAreLessThanOnHubVotePoolForSpoke(
