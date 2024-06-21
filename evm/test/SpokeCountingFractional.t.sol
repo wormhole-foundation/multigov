@@ -205,8 +205,9 @@ contract _CountVoteNominal is SpokeCountingFractionalTest {
   ) public {
     _support = uint8(bound(_support, 0, 2));
 
-    _initialWeight = uint128(bound(_initialWeight, 1, type(uint128).max / 2));
-    _additionalWeight = uint128(bound(_additionalWeight, 1, type(uint128).max / 2));
+    uint128 maxWeightValue = type(uint128).max / 2;
+    _initialWeight = uint128(bound(_initialWeight, 1, maxWeightValue));
+    _additionalWeight = uint128(bound(_additionalWeight, 1, maxWeightValue));
 
     spokeCountingFractional.exposed_countVoteNominal(_proposalId, _account, _initialWeight, _support);
 
