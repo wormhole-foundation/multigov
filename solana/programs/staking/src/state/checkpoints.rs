@@ -338,4 +338,107 @@ pub mod tests {
         }
         return set == checkpoint_data.to_set(next_index);
     }
+    
+    #[test]
+    fn test_get_at_probably_recent_timestamp() {
+        let mut checkpoint_data = CheckpointData::default();
+        
+        // Add some checkpoints
+        checkpoint_data.push(100, 1000).unwrap();
+        checkpoint_data.push(200, 2000).unwrap();
+        checkpoint_data.push(300, 3000).unwrap();
+        checkpoint_data.push(400, 4000).unwrap();
+        checkpoint_data.push(500, 5000).unwrap();
+
+        // Test exact matches
+        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(100).unwrap(), Some(1000));
+        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(300).unwrap(), Some(3000));
+        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(500).unwrap(), Some(5000));
+
+        // Test timestamps between checkpoints
+        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(150).unwrap(), Some(1000));
+        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(250).unwrap(), Some(2000));
+        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(450).unwrap(), Some(4000));
+
+        // Test timestamp before first checkpoint
+        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(50).unwrap(), None);
+
+        // Test timestamp after last checkpoint
+        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(600).unwrap(), Some(5000));
+    }
+
+    #[test]
+    fn test_upper_binary_lookup() {
+        let mut checkpoint_data = CheckpointData::default();
+        
+        // Add some checkpoints
+        checkpoint_data.push(100, 1000).unwrap();
+        checkpoint_data.push(200, 2000).unwrap();
+        checkpoint_data.push(300, 3000).unwrap();
+        checkpoint_data.push(400, 4000).unwrap();
+        checkpoint_data.push(500, 5000).unwrap();
+
+        // Test exact matches
+        assert_eq!(checkpoint_data.upper_binary_lookup(100, 0, 5).unwrap(), 1);
+        assert_eq!(checkpoint_data.upper_binary_lookup(300, 0, 5).unwrap(), 3);
+        assert_eq!(checkpoint_data.upper_binary_lookup(500, 0, 5).unwrap(), 5);
+
+        // Test timestamps between checkpoints
+        assert_eq!(checkpoint_data.upper_binary_lookup(150, 0, 5).unwrap(), 1);
+        assert_eq!(checkpoint_data.upper_binary_lookup(250, 0, 5).unwrap(), 2);
+        assert_eq!(checkpoint_data.upper_binary_lookup(450, 0, 5).unwrap(), 4);
+
+        // Test timestamp before first checkpoint
+        assert_eq!(checkpoint_data.upper_binary_lookup(50, 0, 5).unwrap(), 0);
+
+        // Test timestamp after last checkpoint
+        assert_eq!(checkpoint_data.upper_binary_lookup(600, 0, 5).unwrap(), 5);
+    }
+
+    #[quickcheck]
+    fn prop_get_at_probably_recent_timestamp(timestamps: Vec<u64>) -> bool {
+        let mut checkpoint_data = CheckpointData::default();
+        let mut sorted_timestamps: Vec<u64> = timestamps.into_iter().filter(|&t| t < u64::MAX / 2).collect();
+        sorted_timestamps.sort();
+        sorted_timestamps.dedup();
+
+        for (i, &timestamp) in sorted_timestamps.iter().enumerate() {
+            if i >= MAX_CHECKPOINTS {
+                break;
+            }
+            checkpoint_data.push(timestamp, i as u64).unwrap();
+        }
+
+        // Check that we can retrieve all inserted checkpoints
+        for (i, &timestamp) in sorted_timestamps.iter().enumerate() {
+            if i >= MAX_CHECKPOINTS {
+                break;
+            }
+            if checkpoint_data.get_at_probably_recent_timestamp(timestamp).unwrap() != Some(i as u64) {
+                return false;
+            }
+        }
+
+        // Check some random timestamps
+        let mut rng = rand::thread_rng();
+        for _ in 0..100 {
+            let random_timestamp = if let Some(&last) = sorted_timestamps.last() {
+                rng.gen_range(0..=last)
+            } else {
+                0
+            };
+            let expected = sorted_timestamps
+                .iter()
+                .enumerate()
+                .take(MAX_CHECKPOINTS)
+                .rev()
+                .find(|(_, &t)| t <= random_timestamp)
+                .map(|(i, _)| i as u64);
+            if checkpoint_data.get_at_probably_recent_timestamp(random_timestamp).unwrap() != expected {
+                return false;
+            }
+        }
+
+        true
+    }
 }
