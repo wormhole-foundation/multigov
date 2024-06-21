@@ -123,15 +123,18 @@ contract _CountVote is SpokeCountingFractionalTest {
     assertEq(abstainVotes, _votes.abstainVotes);
   }
 
-  function testFuzz_RevertIf_TotalWeightIsZero(uint256 _proposalId, address _account, uint8 _support) public {
+  function testFuzz_RevertIf_TotalWeightIsZero(
+    uint256 _proposalId,
+    address _account,
+    uint8 _support,
+    bytes memory _voteData
+  ) public {
     _support = uint8(bound(_support, 0, 2));
 
     uint128 ZERO_TOTAL_WEIGHT = 0;
 
-    bytes memory _arbitraryVoteData = "";
-
     vm.expectRevert("SpokeCountingFractional: no weight");
-    spokeCountingFractional.exposed_countVote(_proposalId, _account, _support, ZERO_TOTAL_WEIGHT, _arbitraryVoteData);
+    spokeCountingFractional.exposed_countVote(_proposalId, _account, _support, ZERO_TOTAL_WEIGHT, _voteData);
   }
 
   function testFuzz_RevertIf_HasAlreadyVotedWithItsWeight(
