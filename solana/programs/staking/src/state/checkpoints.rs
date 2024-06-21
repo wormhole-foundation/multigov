@@ -125,6 +125,50 @@ impl CheckpointData {
             Ok((0, value))
         }
     }
+
+    pub fn get_at_probably_recent_timestamp(&self, timestamp: u64) -> Result<Option<u64>> {
+        if self.next_index == 0 {
+            return Ok(None);
+        }
+
+        let len = self.next_index as usize;
+        let mut low = 0;
+        let mut high = len;
+
+        if len > 5 {
+            let mid = len - (len as f64).sqrt() as usize;
+            if let Some(checkpoint) = self.read_checkpoint(mid)? {
+                if timestamp < checkpoint.timestamp {
+                    high = mid;
+                } else {
+                    low = mid + 1;
+                }
+            }
+        }
+
+        let pos = self.upper_binary_lookup(timestamp, low, high)?;
+        if pos == 0 {
+            Ok(None)
+        } else {
+            self.read_checkpoint(pos - 1)?.map(|cp| Ok(Some(cp.value))).unwrap_or(Ok(None))
+        }
+    }
+
+    fn upper_binary_lookup(&self, timestamp: u64, mut low: usize, mut high: usize) -> Result<usize> {
+        while low < high {
+            let mid = (low + high) / 2;
+            if let Some(checkpoint) = self.read_checkpoint(mid)? {
+                if checkpoint.timestamp > timestamp {
+                    high = mid;
+                } else {
+                    low = mid + 1;
+                }
+            } else {
+                return Err(error!(ErrorCode::CheckpointNotFound));
+            }
+        }
+        Ok(high)
+    }
 }
 
 pub trait TryBorsh {
