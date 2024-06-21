@@ -263,12 +263,30 @@ contract _DecodePackedVotes is SpokeCountingFractionalTest {
     view
   {
     bytes memory _voteData = abi.encodePacked(_againstVotes, _forVotes, _abstainVotes);
-
     (uint128 decodedAgainstVotes, uint128 decodedForVotes, uint128 decodedAbstainVotes) =
       spokeCountingFractional.exposed_decodePackedVotes(_voteData);
-
     assertEq(decodedAgainstVotes, _againstVotes);
     assertEq(decodedForVotes, _forVotes);
     assertEq(decodedAbstainVotes, _abstainVotes);
+  }
+
+  function testFuzz_DecodePackedVotesWithInvalidLength(bytes memory _invalidVoteData) public view {
+    vm.assume(_invalidVoteData.length != 48); // 48 bytes = 3 * 16 bytes (3 uint128 values)
+
+    spokeCountingFractional.exposed_decodePackedVotes(_invalidVoteData);
+
+    // No revert expected intentionally
+    assertTrue(true);
+  }
+
+  function testFuzz_DecodePackedVotesWithZeroLength() public view {
+    bytes memory _emptyVoteData = new bytes(0);
+
+    (uint128 decodedAgainstVotes, uint128 decodedForVotes, uint128 decodedAbstainVotes) =
+      spokeCountingFractional.exposed_decodePackedVotes(_emptyVoteData);
+
+    assertEq(decodedAgainstVotes, 0);
+    assertEq(decodedForVotes, 0);
+    assertEq(decodedAbstainVotes, 0);
   }
 }
