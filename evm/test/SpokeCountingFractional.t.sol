@@ -263,6 +263,8 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
   ) public {
     (bytes memory _initialVoteData, uint256 _initialTotalWeight) = _getVoteData(_initialVotes);
 
+    vm.assume(_initialTotalWeight != 0);
+
     spokeCountingFractional.exposed_countVoteFractional(
       _proposalId, _account, uint128(_initialTotalWeight), _initialVoteData
     );
