@@ -12,10 +12,11 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
+import {AddressUtils} from "test/helpers/AddressUtils.sol";
 
 import {GovernorMock} from "test/mocks/GovernorMock.sol";
 
-contract HubVotePoolTest is WormholeEthQueryTest {
+contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
   HubVotePool hubVotePool;
   GovernorMock governor;
   uint16 QUERY_CHAIN_ID = 2;
@@ -119,7 +120,7 @@ contract HubVotePoolTest is WormholeEthQueryTest {
   }
 }
 
-contract Constructor is Test {
+contract Constructor is Test, AddressUtils {
   mapping(uint16 => bool) public initialSpokeRegistrySeen;
 
   function _isUnique(HubVotePool.SpokeVoteAggregator[] memory _array) internal returns (bool) {
@@ -136,7 +137,7 @@ contract Constructor is Test {
   {
     for (uint256 i = 0; i < _spokeRegistry.length; i++) {
       uint16 chainId = _spokeRegistry[i].wormholeChainId;
-      bytes32 expectedAddress = bytes32(uint256(uint160(_spokeRegistry[i].addr)));
+      bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
       bytes32 storedAddress = _hubVotePool.spokeRegistry(chainId);
 
       assertEq(storedAddress, expectedAddress);
@@ -172,8 +173,8 @@ contract Constructor is Test {
       vm.expectEmit();
       emit HubVotePool.SpokeRegistered(
         _initialSpokeRegistry[i].wormholeChainId,
-        bytes32(uint256(uint160(address(0)))),
-        bytes32(uint256(uint160(_initialSpokeRegistry[i].addr)))
+        addressToBytes32(address(0)),
+        addressToBytes32(_initialSpokeRegistry[i].addr)
       );
     }
 
@@ -190,7 +191,7 @@ contract Constructor is Test {
 
     assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
-    assertEq(hubVotePool.spokeRegistry(_spokeChainId), bytes32(uint256(uint160(address(0)))));
+    assertEq(hubVotePool.spokeRegistry(_spokeChainId), addressToBytes32(address(0)));
   }
 
   function testFuzz_ConstructorWithNonEmptySpokeRegistry(
