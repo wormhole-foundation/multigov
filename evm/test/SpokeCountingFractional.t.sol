@@ -61,7 +61,11 @@ contract HasVoted is SpokeCountingFractionalTest {
 }
 
 contract VoteWeightCast is SpokeCountingFractionalTest {
-  function testFuzz_CorrectlyGetVoteWeightCast(
+  function testFuzz_VoteWeightCastReturnsZeroBeforeVoting(uint256 _proposalId, address _account) public view {
+    assertEq(spokeCountingFractional.voteWeightCast(_proposalId, _account), 0);
+  }
+
+  function testFuzz_VoteWeightCastReturnsTotalWeightAfterVoting(
     uint256 _proposalId,
     address _account,
     uint8 _support,
