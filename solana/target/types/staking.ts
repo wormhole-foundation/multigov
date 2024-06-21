@@ -364,16 +364,24 @@ export type Staking = {
             "type": "publicKey"
           },
           {
+            "name": "delegate",
+            "type": "publicKey"
+          },
+          {
+            "name": "nextIndex",
+            "type": "u64"
+          },
+          {
             "name": "checkpoints",
             "type": {
               "array": [
                 {
                   "array": [
                     "u8",
-                    200
+                    48
                   ]
                 },
-                20
+                210
               ]
             }
           }
@@ -574,12 +582,12 @@ export type Staking = {
         "kind": "struct",
         "fields": [
           {
-            "name": "amount",
+            "name": "value",
             "type": "u64"
           },
           {
-            "name": "ts",
-            "type": "i64"
+            "name": "timestamp",
+            "type": "u64"
           }
         ]
       }
@@ -643,6 +651,16 @@ export type Staking = {
     },
     {
       "code": 6007,
+      "name": "CheckpointNotFound",
+      "msg": "Checkpoint not found"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidTimestamp",
+      "msg": "Invalid timestamp"
+    },
+    {
+      "code": 6009,
       "name": "Other",
       "msg": "Other"
     }
@@ -1015,16 +1033,24 @@ export const IDL: Staking = {
             "type": "publicKey"
           },
           {
+            "name": "delegate",
+            "type": "publicKey"
+          },
+          {
+            "name": "nextIndex",
+            "type": "u64"
+          },
+          {
             "name": "checkpoints",
             "type": {
               "array": [
                 {
                   "array": [
                     "u8",
-                    200
+                    48
                   ]
                 },
-                20
+                210
               ]
             }
           }
@@ -1225,12 +1251,12 @@ export const IDL: Staking = {
         "kind": "struct",
         "fields": [
           {
-            "name": "amount",
+            "name": "value",
             "type": "u64"
           },
           {
-            "name": "ts",
-            "type": "i64"
+            "name": "timestamp",
+            "type": "u64"
           }
         ]
       }
@@ -1294,6 +1320,16 @@ export const IDL: Staking = {
     },
     {
       "code": 6007,
+      "name": "CheckpointNotFound",
+      "msg": "Checkpoint not found"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidTimestamp",
+      "msg": "Invalid timestamp"
+    },
+    {
+      "code": 6009,
       "name": "Other",
       "msg": "Other"
     }
