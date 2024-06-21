@@ -17,9 +17,10 @@ contract SpokeCountingFractionalTest is Test {
     pure
     returns (bytes memory, uint256)
   {
-    _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, type(uint128).max / 3));
-    _votes.forVotes = uint128(bound(_votes.forVotes, 0, type(uint128).max / 3));
-    _votes.abstainVotes = uint128(bound(_votes.abstainVotes, 0, type(uint128).max / 3));
+    uint128 maxVoteValue = type(uint128).max / 3;
+    _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, maxVoteValue));
+    _votes.forVotes = uint128(bound(_votes.forVotes, 0, maxVoteValue));
+    _votes.abstainVotes = uint128(bound(_votes.abstainVotes, 0, maxVoteValue));
 
     bytes memory _voteData =
       abi.encodePacked(uint128(_votes.againstVotes), uint128(_votes.forVotes), uint128(_votes.abstainVotes));
