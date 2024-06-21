@@ -203,7 +203,6 @@ contract _CountVoteNominal is SpokeCountingFractionalTest {
     uint128 _additionalWeight,
     uint8 _support
   ) public {
-    // Ensure support is within the valid range
     _support = uint8(bound(_support, 0, 2));
 
     _initialWeight = uint128(bound(_initialWeight, 1, type(uint128).max / 2));
