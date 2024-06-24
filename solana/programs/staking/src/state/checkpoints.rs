@@ -20,7 +20,6 @@ pub const CHECKPOINT_BUFFER_SIZE: usize = 48;
 #[account(zero_copy)]
 #[repr(C)]
 pub struct CheckpointData {
-    pub owner: Pubkey,
     pub delegate: Pubkey,
     pub next_index: u64,
     checkpoints: [[u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
@@ -31,7 +30,6 @@ impl Default for CheckpointData {
     // Only used for testing, so unwrap is acceptable
     fn default() -> Self {
         CheckpointData {
-            owner:       Pubkey::default(),
             delegate:    Pubkey::default(),
             next_index:  0,
             checkpoints: [[0u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
@@ -40,11 +38,10 @@ impl Default for CheckpointData {
 }
 
 impl CheckpointData {
-    pub const LEN: usize = 8 + 32 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
+    pub const LEN: usize = 8 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
 
-    pub fn initialize(&mut self, owner: &Pubkey) {
-        self.owner = *owner;
-        self.delegate = *owner; // initially, the delegate is the owner himself
+    pub fn initialize(&mut self, delegate: &Pubkey) {
+        self.delegate = *delegate;
         self.next_index = 0;
     }
 
@@ -58,7 +55,7 @@ impl CheckpointData {
             Err(error!(ErrorCode::TooManyCheckpoints))
         }
     }
-    
+
     pub fn write_checkpoint(&mut self, i: usize, &checkpoint: &Checkpoint) -> Result<()> {
         Some(checkpoint).try_write(&mut self.checkpoints[i])
     }
@@ -226,11 +223,11 @@ pub mod tests {
     fn test_serialized_size() {
         assert_eq!(
             std::mem::size_of::<CheckpointData>(),
-            32 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+            32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
         );
         assert_eq!(
             CheckpointData::LEN,
-            32 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+            32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
         );
         // Checks that the checkpoint struct fits in the individual checkpoint buffer
         assert!(get_packed_len::<Checkpoint>() < CHECKPOINT_BUFFER_SIZE);

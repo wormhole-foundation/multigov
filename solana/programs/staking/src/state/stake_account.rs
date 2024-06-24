@@ -9,8 +9,9 @@ use {
 };
 
 /// This is the metadata account for each staker
-/// It is derived from the positions account with seeds "stake_metadata" and the positions account
-/// pubkey It stores some PDA bumps, the owner of the account
+/// It is derived from the checkpoints account with seeds "stake_metadata" 
+/// and the checkpoints account pubkey
+/// It stores some PDA bumps, owner and delegate accounts
 
 #[account]
 #[derive(BorshSchema)]
@@ -20,7 +21,8 @@ pub struct StakeAccountMetadata {
     pub authority_bump:        u8,
     pub voter_bump:            u8,
     pub owner:                 Pubkey,
-    pub next_index:            u8,
+    pub delegate:              Pubkey,
+    pub recorded_balance:      u64,
     pub transfer_epoch:        Option<u64>, // null if the account was created, some epoch if the account received a transfer
     pub signed_agreement_hash: Option<[u8; 32]>,
 }
@@ -53,7 +55,8 @@ impl StakeAccountMetadata {
         self.authority_bump = authority_bump;
         self.voter_bump = voter_bump;
         self.owner = *owner;
-        self.next_index = 0;
+        self.delegate = *owner;
+        self.recorded_balance = 0;
         self.transfer_epoch = None;
         self.signed_agreement_hash = None;
     }
@@ -86,7 +89,8 @@ pub mod tests {
             authority_bump:        0,
             voter_bump:            0,
             owner:                 Pubkey::default(),
-            next_index:            0,
+            delegate:              Pubkey::default(),
+            recorded_balance:      0,
             transfer_epoch:        None,
             signed_agreement_hash: Some([0; 32]),
         };
@@ -98,14 +102,14 @@ pub mod tests {
             .check_is_llc_member(&[1; 32])
             .is_err());
 
-
         let stake_account_metadata_non_llc_member = StakeAccountMetadata {
             metadata_bump:         0,
             custody_bump:          0,
             authority_bump:        0,
             voter_bump:            0,
             owner:                 Pubkey::default(),
-            next_index:            0,
+            delegate:              Pubkey::default(),
+            recorded_balance:      0,
             transfer_epoch:        None,
             signed_agreement_hash: None,
         };

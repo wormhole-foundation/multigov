@@ -37,6 +37,41 @@ pub struct InitConfig<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(owner : Pubkey, delegatee : Pubkey)]
+pub struct Delegate<'info> {
+    // Native payer:
+    #[account( address = stake_account_metadata.owner)]
+    pub payer:                   Signer<'info>,
+
+    // User stake account:
+    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+    pub stake_account_custody:       Box<Account<'info, TokenAccount>>,
+
+    // Current delegate stake account:
+    #[account(mut)]
+    pub current_delegate_stake_account_checkpoints:     AccountLoader<'info, checkpoints::CheckpointData>,
+    #[account(
+        mut,
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_checkpoints.key().as_ref()],
+        bump = current_delegate_stake_account_metadata.metadata_bump
+    )]
+    pub current_delegate_stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+
+    // Delegatee stake accounts:
+    #[account(mut)]
+    pub delegatee_stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    #[account(
+        mut,
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), delegatee_stake_account_checkpoints.key().as_ref()],
+        bump = delegatee_stake_account_metadata.metadata_bump
+    )]
+    pub delegatee_stake_account_metadata:  Box<Account<'info, stake_account::StakeAccountMetadata>>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config:                  Box<Account<'info, global_config::GlobalConfig>>,
+}
+
+#[derive(Accounts)]
 #[instruction(new_authority : Pubkey)]
 pub struct UpdateGovernanceAuthority<'info> {
     #[account(address = config.governance_authority)]

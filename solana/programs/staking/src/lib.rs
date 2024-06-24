@@ -13,6 +13,7 @@ use {
     state::{
         global_config::GlobalConfig,
     },
+    std::convert::TryInto,
 };
 
 mod context;
@@ -104,6 +105,54 @@ pub mod staking {
         Ok(())
     }
 
+    pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
+        let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+        let current_delegate = stake_account_metadata.delegate;
+        stake_account_metadata.delegate = delegatee;
+
+        let recorded_balance = stake_account_metadata.recorded_balance;
+        let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
+
+        let config = &ctx.accounts.config;
+        let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
+
+        let current_delegate_stake_account_checkpoints = &mut ctx.accounts.current_delegate_stake_account_checkpoints.load_mut()?;
+        let delegatee_stake_account_checkpoints = &mut ctx.accounts.delegatee_stake_account_checkpoints.load_mut()?;
+
+        if current_delegate != delegatee {
+            if current_delegate != Pubkey::default() {
+                let latest_current_delegate_checkpoint_value = current_delegate_stake_account_checkpoints.latest()?.unwrap_or(0);
+                if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
+                    current_timestamp,
+                    latest_current_delegate_checkpoint_value - recorded_balance
+                ) {};
+            }
+
+            if delegatee != Pubkey::default() {
+                let latest_delegatee_checkpoint_value = delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
+                if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
+                    current_timestamp,
+                    latest_delegatee_checkpoint_value + *current_stake_balance
+                ) {};
+            }
+
+            if *current_stake_balance != recorded_balance {
+                stake_account_metadata.recorded_balance = *current_stake_balance;
+            }
+        } else {
+            if *current_stake_balance != recorded_balance {
+                let latest_delegatee_checkpoint_value = delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
+                if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
+                    current_timestamp,
+                    latest_delegatee_checkpoint_value + *current_stake_balance - recorded_balance
+                ) {};
+                stake_account_metadata.recorded_balance = *current_stake_balance;
+            }
+        }
+
+        Ok(())
+    }
+
     /** Recovers a user's `stake account` ownership by transferring ownership
      * from a token account to the `owner` of that token account.
      *
@@ -114,7 +163,7 @@ pub mod staking {
         // Check that there aren't any staked tokens in the account.
         // Transferring accounts with staked tokens might lead to double voting
         require!(
-            ctx.accounts.stake_account_metadata.next_index == 0,
+            ctx.accounts.stake_account_metadata.recorded_balance == 0,
             ErrorCode::RecoverWithStake
         );
 

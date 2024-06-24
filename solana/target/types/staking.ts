@@ -277,6 +277,94 @@ export type Staking = {
       ]
     },
     {
+      "name": "delegate",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "stakeAccountMetadata",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeAccountCustody",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "currentDelegateStakeAccountCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "currentDelegateStakeAccountMetadata",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "current_delegate_stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "delegateeStakeAccountCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateeStakeAccountMetadata",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "delegatee_stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "config"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "delegatee",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
       "name": "recoverAccount",
       "docs": [
         "Recovers a user's `stake account` ownership by transferring ownership\n     * from a token account to the `owner` of that token account.\n     *\n     * This functionality addresses the scenario where a user mistakenly\n     * created a stake account using their token account address as the owner."
@@ -360,10 +448,6 @@ export type Staking = {
         "kind": "struct",
         "fields": [
           {
-            "name": "owner",
-            "type": "publicKey"
-          },
-          {
             "name": "delegate",
             "type": "publicKey"
           },
@@ -445,8 +529,9 @@ export type Staking = {
       "name": "stakeAccountMetadata",
       "docs": [
         "This is the metadata account for each staker",
-        "It is derived from the positions account with seeds \"stake_metadata\" and the positions account",
-        "pubkey It stores some PDA bumps, the owner of the account"
+        "It is derived from the checkpoints account with seeds \"stake_metadata\"",
+        "and the checkpoints account pubkey",
+        "It stores some PDA bumps, owner and delegate accounts"
       ],
       "type": {
         "kind": "struct",
@@ -472,8 +557,12 @@ export type Staking = {
             "type": "publicKey"
           },
           {
-            "name": "nextIndex",
-            "type": "u8"
+            "name": "delegate",
+            "type": "publicKey"
+          },
+          {
+            "name": "recordedBalance",
+            "type": "u64"
           },
           {
             "name": "transferEpoch",
@@ -647,7 +736,7 @@ export type Staking = {
     {
       "code": 6006,
       "name": "RecoverWithStake",
-      "msg": "Can't recover account with staking positions. Unstake your tokens first."
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
     },
     {
       "code": 6007,
@@ -946,6 +1035,94 @@ export const IDL: Staking = {
       ]
     },
     {
+      "name": "delegate",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "stakeAccountMetadata",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeAccountCustody",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "currentDelegateStakeAccountCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "currentDelegateStakeAccountMetadata",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "current_delegate_stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "delegateeStakeAccountCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateeStakeAccountMetadata",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "delegatee_stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "config"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "delegatee",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
       "name": "recoverAccount",
       "docs": [
         "Recovers a user's `stake account` ownership by transferring ownership\n     * from a token account to the `owner` of that token account.\n     *\n     * This functionality addresses the scenario where a user mistakenly\n     * created a stake account using their token account address as the owner."
@@ -1029,10 +1206,6 @@ export const IDL: Staking = {
         "kind": "struct",
         "fields": [
           {
-            "name": "owner",
-            "type": "publicKey"
-          },
-          {
             "name": "delegate",
             "type": "publicKey"
           },
@@ -1114,8 +1287,9 @@ export const IDL: Staking = {
       "name": "stakeAccountMetadata",
       "docs": [
         "This is the metadata account for each staker",
-        "It is derived from the positions account with seeds \"stake_metadata\" and the positions account",
-        "pubkey It stores some PDA bumps, the owner of the account"
+        "It is derived from the checkpoints account with seeds \"stake_metadata\"",
+        "and the checkpoints account pubkey",
+        "It stores some PDA bumps, owner and delegate accounts"
       ],
       "type": {
         "kind": "struct",
@@ -1141,8 +1315,12 @@ export const IDL: Staking = {
             "type": "publicKey"
           },
           {
-            "name": "nextIndex",
-            "type": "u8"
+            "name": "delegate",
+            "type": "publicKey"
+          },
+          {
+            "name": "recordedBalance",
+            "type": "u64"
           },
           {
             "name": "transferEpoch",
@@ -1316,7 +1494,7 @@ export const IDL: Staking = {
     {
       "code": 6006,
       "name": "RecoverWithStake",
-      "msg": "Can't recover account with staking positions. Unstake your tokens first."
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
     },
     {
       "code": 6007,
