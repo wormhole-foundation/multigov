@@ -132,14 +132,14 @@ contract Constructor is Test, AddressUtils {
     return true;
   }
 
-  function _validateSpokeRegistry(HubVotePool _hubVotePool, HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry)
-    internal
-  {
+  function _assertSpokesRegistered(
+    function(uint16) external view returns (bytes32) spokeRegistryFunc,
+    HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry
+  ) internal view {
     for (uint256 i = 0; i < _spokeRegistry.length; i++) {
       uint16 chainId = _spokeRegistry[i].wormholeChainId;
       bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
-      bytes32 storedAddress = _hubVotePool.spokeRegistry(chainId);
-
+      bytes32 storedAddress = spokeRegistryFunc(chainId);
       assertEq(storedAddress, expectedAddress);
     }
   }
@@ -155,7 +155,7 @@ contract Constructor is Test, AddressUtils {
 
     HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
 
-    _validateSpokeRegistry(hubVotePool, _initialSpokeRegistry);
+    _assertSpokesRegistered(hubVotePool.spokeRegistry, _initialSpokeRegistry);
     assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
   }
@@ -206,7 +206,7 @@ contract Constructor is Test, AddressUtils {
 
     HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _nonEmptyInitialSpokeRegistry);
 
-    _validateSpokeRegistry(hubVotePool, _nonEmptyInitialSpokeRegistry);
+    _assertSpokesRegistered(hubVotePool.spokeRegistry, _nonEmptyInitialSpokeRegistry);
 
     assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
