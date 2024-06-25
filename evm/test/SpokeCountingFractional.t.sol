@@ -12,11 +12,7 @@ contract SpokeCountingFractionalTest is Test {
     spokeCountingFractional = new SpokeCountingFractionalHarness();
   }
 
-  function _getVoteData(SpokeCountingFractional.ProposalVote memory _votes)
-    internal
-    pure
-    returns (bytes memory, uint256)
-  {
+  function _getVoteData(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (bytes memory) {
     uint128 maxVoteValue = type(uint128).max / 3;
     _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, maxVoteValue));
     _votes.forVotes = uint128(bound(_votes.forVotes, 0, maxVoteValue));
@@ -25,10 +21,11 @@ contract SpokeCountingFractionalTest is Test {
     bytes memory _voteData =
       abi.encodePacked(uint128(_votes.againstVotes), uint128(_votes.forVotes), uint128(_votes.abstainVotes));
 
-    uint256 _totalWeight = uint256(_votes.againstVotes) + uint256(_votes.forVotes) + uint256(_votes.abstainVotes);
-    _totalWeight = bound(_totalWeight, 1, type(uint128).max);
+    return _voteData;
+  }
 
-    return (_voteData, _totalWeight);
+  function _getTotalWeight(SpokeCountingFractional.ProposalVote memory _votes) internal returns (uint256) {
+    return uint256(_votes.againstVotes) + _votes.forVotes + _votes.abstainVotes;
   }
 }
 
@@ -50,7 +47,8 @@ contract HasVoted is SpokeCountingFractionalTest {
     SpokeCountingFractional.ProposalVote memory _votes
   ) public {
     _support = uint8(bound(_support, 0, 2));
-    (bytes memory _voteData, uint256 _totalWeight) = _getVoteData(_votes);
+    bytes memory _voteData = _getVoteData(_votes);
+    uint256 _totalWeight = _getTotalWeight(_votes);
 
     spokeCountingFractional.workaround_createProposalVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
@@ -70,7 +68,8 @@ contract VoteWeightCast is SpokeCountingFractionalTest {
     SpokeCountingFractional.ProposalVote memory _votes
   ) public {
     _support = uint8(bound(_support, 0, 2));
-    (bytes memory _voteData, uint256 _totalWeight) = _getVoteData(_votes);
+    bytes memory _voteData = _getVoteData(_votes);
+    uint256 _totalWeight = _getTotalWeight(_votes);
 
     assertEq(spokeCountingFractional.voteWeightCast(_proposalId, _account), 0);
 
@@ -89,7 +88,8 @@ contract ProposalVotes is SpokeCountingFractionalTest {
   ) public {
     _support = uint8(bound(_support, 0, 2));
 
-    (bytes memory _voteData, uint256 _totalWeight) = _getVoteData(_votes);
+    bytes memory _voteData = _getVoteData(_votes);
+    uint256 _totalWeight = _getTotalWeight(_votes);
 
     spokeCountingFractional.workaround_createProposalVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
@@ -110,7 +110,8 @@ contract _CountVote is SpokeCountingFractionalTest {
   ) public {
     _support = uint8(bound(_support, 0, 2));
 
-    (bytes memory _voteData, uint256 _totalWeight) = _getVoteData(_votes);
+    bytes memory _voteData = _getVoteData(_votes);
+    uint256 _totalWeight = _getTotalWeight(_votes);
 
     spokeCountingFractional.exposed_countVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
@@ -142,8 +143,9 @@ contract _CountVote is SpokeCountingFractionalTest {
     SpokeCountingFractional.ProposalVote memory _votes
   ) public {
     _support = uint8(bound(_support, 0, 2));
-    (bytes memory _voteData, uint256 _totalWeight) =
-      _getVoteData(SpokeCountingFractional.ProposalVote(_votes.againstVotes, _votes.forVotes, _votes.abstainVotes));
+
+    bytes memory _voteData = _getVoteData(_votes);
+    uint256 _totalWeight = _getTotalWeight(_votes);
 
     uint128 TOTAL_WEIGHT_LESS_THAN_CAST = uint128(_totalWeight - 1);
 
@@ -234,7 +236,8 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
     address _account,
     SpokeCountingFractional.ProposalVote memory _votes
   ) public {
-    (bytes memory _voteData, uint256 _totalWeight) = _getVoteData(_votes);
+    bytes memory _voteData = _getVoteData(_votes);
+    uint128 _totalWeight = uint128(_getTotalWeight(_votes));
 
     spokeCountingFractional.exposed_countVoteFractional(_proposalId, _account, uint128(_totalWeight), _voteData);
 
@@ -259,7 +262,8 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
     SpokeCountingFractional.ProposalVote memory _initialVotes,
     SpokeCountingFractional.ProposalVote memory _additionalVotes
   ) public {
-    (bytes memory _initialVoteData, uint256 _initialTotalWeight) = _getVoteData(_initialVotes);
+    bytes memory _initialVoteData = _getVoteData(_initialVotes);
+    uint128 _initialTotalWeight = uint128(_getTotalWeight(_initialVotes));
 
     vm.assume(_initialTotalWeight != 0);
 
@@ -267,7 +271,7 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
       _proposalId, _account, uint128(_initialTotalWeight), _initialVoteData
     );
 
-    (bytes memory _additionalVoteData,) = _getVoteData(_additionalVotes);
+    bytes memory _additionalVoteData = _getVoteData(_additionalVotes);
 
     // Use the same total weight for both votes to ensure the second vote exceeds the weight
     uint128 totalAllowedWeight = uint128(_initialTotalWeight);
