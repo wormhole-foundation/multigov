@@ -131,3 +131,17 @@ export async function expectFail(
   }
 }
 
+/**
+ * Awaits the api request and checks whether the error message matches the provided string
+ * @param promise : api promise
+ * @param error : expected string
+ */
+export async function expectFailApi(promise: Promise<any>, error: string) {
+  try {
+    await promise;
+    assert(false, "Operation should fail");
+  } catch (err) {
+    assert.equal(err.message, error);
+  }
+}
+

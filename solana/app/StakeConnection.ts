@@ -151,6 +151,22 @@ export class StakeConnection {
     );
   }
 
+  /** Gets the user's stake account with the most tokens or undefined if it doesn't exist */
+  public async getMainAccount(
+    user: PublicKey
+  ): Promise<StakeAccount | undefined> {
+    const accounts = await this.getStakeAccounts(user);
+    if (accounts.length == 0) {
+      return undefined;
+    } else {
+      return accounts.reduce(
+        (prev: StakeAccount, curr: StakeAccount): StakeAccount => {
+          return prev.tokenBalance.lt(curr.tokenBalance) ? curr : prev;
+        }
+      );
+    }
+  }
+
   /** Stake accounts are loaded by a StakeConnection object */
   public async loadStakeAccount(address: PublicKey): Promise<StakeAccount> {
     const metadataAddress = (
@@ -227,6 +243,10 @@ export class StakeConnection {
   }
 }
 
+export interface BalanceSummary {
+  balance: WHTokenBalance;
+}
+
 export class StakeAccount {
   address: PublicKey;
   stakeAccountMetadata: StakeAccountMetadata;
@@ -249,5 +269,13 @@ export class StakeAccount {
     this.authorityAddress = authorityAddress;
     this.totalSupply = totalSupply;
     this.config = config;
+  }
+
+  public getBalanceSummary(unixTime: BN): BalanceSummary {
+    let balanceBN = new BN(this.tokenBalance.toString());
+
+    return {
+      balance: new WHTokenBalance(balanceBN),
+    };
   }
 }
