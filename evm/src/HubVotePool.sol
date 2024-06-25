@@ -86,7 +86,9 @@ contract HubVotePool is QueryResponse, Ownable {
 
     // verify contract and chain is correct
     bytes32 addr = spokeRegistry[perChainResp.chainId];
-    if (addr != bytes32(uint256(uint160(_ethCalls.result[0].contractAddress)))) revert UnknownMessageEmitter();
+    if (addr != bytes32(uint256(uint160(_ethCalls.result[0].contractAddress))) || addr == bytes32("")) {
+      revert UnknownMessageEmitter();
+    }
 
     if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 

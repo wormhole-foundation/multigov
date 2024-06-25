@@ -5,15 +5,18 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Test, console2} from "forge-std/Test.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
+import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {HubVotePool} from "src/HubVotePool.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
+import {AddressUtils} from "test/helpers/AddressUtils.sol";
 
 import {GovernorMock} from "test/mocks/GovernorMock.sol";
 
-contract HubVotePoolTest is WormholeEthQueryTest {
+contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
   HubVotePool hubVotePool;
   GovernorMock governor;
   uint16 QUERY_CHAIN_ID = 2;
@@ -31,7 +34,7 @@ contract HubVotePoolTest is WormholeEthQueryTest {
     hubVotePool = new HubVotePool(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
   }
 
-  function _buildAddVoteQuery(VoteParams memory _voteParams, uint16 _responseChainId, address _governance)
+  function _buildArbitraryQuery(VoteParams memory _voteParams, uint16 _responseChainId, address _governance)
     internal
     view
     returns (bytes memory)
@@ -79,19 +82,158 @@ contract HubVotePoolTest is WormholeEthQueryTest {
       OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(
-        _responseChainId, // eth mainnet
-        hubVotePool.QT_ETH_CALL(),
-        ethCallResp
-      )
+      QueryTest.buildPerChainResponseBytes(_responseChainId, hubVotePool.QT_ETH_CALL(), ethCallResp)
     );
     return _resp;
+  }
+
+  function _getSignatures(bytes memory _resp) internal view returns (IWormhole.Signature[] memory) {
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
+    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
+    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+    return signatures;
+  }
+
+  function _sendCrossChainVote(VoteParams memory _voteParams, uint16 _queryChainId, address _spokeContract)
+    internal
+    returns (VoteParams memory, uint16)
+  {
+    bytes memory _resp = _buildArbitraryQuery(_voteParams, _queryChainId, _spokeContract);
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+
+    (uint128 existingAgainstVotes, uint128 existingForVotes, uint128 existingAbstainVotes) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
+
+    hubVotePool.crossChainEVMVote(_resp, signatures);
+
+    return (_voteParams, _queryChainId);
+  }
+
+  function _assertVotesEq(
+    VoteParams memory _voteParams,
+    uint16 _queryChainId,
+    SpokeCountingFractional.ProposalVote memory _proposalVotes
+  ) internal view {
+    assertEq(_proposalVotes.againstVotes, _voteParams.againstVotes);
+    assertEq(_proposalVotes.forVotes, _voteParams.forVotes);
+    assertEq(_proposalVotes.abstainVotes, _voteParams.abstainVotes);
+  }
+}
+
+contract Constructor is Test, AddressUtils {
+  mapping(uint16 => bool) public initialSpokeRegistrySeen;
+
+  function _isUnique(HubVotePool.SpokeVoteAggregator[] memory _array) internal returns (bool) {
+    for (uint256 i = 0; i < _array.length; i++) {
+      uint16 chainId = _array[i].wormholeChainId;
+      if (initialSpokeRegistrySeen[chainId]) return false;
+      initialSpokeRegistrySeen[chainId] = true;
+    }
+    return true;
+  }
+
+  function _assertSpokesRegistered(
+    function(uint16) external view returns (bytes32) spokeRegistryFunc,
+    HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry
+  ) internal view {
+    for (uint256 i = 0; i < _spokeRegistry.length; i++) {
+      uint16 chainId = _spokeRegistry[i].wormholeChainId;
+      bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
+      bytes32 storedAddress = spokeRegistryFunc(chainId);
+      assertEq(storedAddress, expectedAddress);
+    }
+  }
+
+  function testFuzz_CorrectlySetConstructorArgs(
+    address _core,
+    address _hubGovernor,
+    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
+  ) public {
+    vm.assume(_core != address(0));
+    vm.assume(_hubGovernor != address(0));
+    vm.assume(_isUnique(_initialSpokeRegistry));
+
+    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
+
+    _assertSpokesRegistered(hubVotePool.spokeRegistry, _initialSpokeRegistry);
+    assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
+    assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
+  }
+
+  function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(
+    address _core,
+    address _hubGovernor,
+    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
+  ) public {
+    vm.assume(_core != address(0));
+    vm.assume(_hubGovernor != address(0));
+    vm.assume(_isUnique(_initialSpokeRegistry));
+
+    for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
+      vm.expectEmit();
+      emit HubVotePool.SpokeRegistered(
+        _initialSpokeRegistry[i].wormholeChainId,
+        addressToBytes32(address(0)),
+        addressToBytes32(_initialSpokeRegistry[i].addr)
+      );
+    }
+
+    new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
+  }
+
+  function testFuzz_ConstructorWithEmptySpokeRegistry(address _core, address _hubGovernor, uint16 _spokeChainId) public {
+    vm.assume(_core != address(0));
+    vm.assume(_hubGovernor != address(0));
+
+    HubVotePool.SpokeVoteAggregator[] memory emptyRegistry = new HubVotePool.SpokeVoteAggregator[](0);
+
+    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, emptyRegistry);
+
+    assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
+    assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
+    assertEq(hubVotePool.spokeRegistry(_spokeChainId), addressToBytes32(address(0)));
+  }
+
+  function testFuzz_ConstructorWithNonEmptySpokeRegistry(
+    address _core,
+    address _hubGovernor,
+    HubVotePool.SpokeVoteAggregator[] memory _nonEmptyInitialSpokeRegistry
+  ) public {
+    vm.assume(_nonEmptyInitialSpokeRegistry.length != 0);
+    vm.assume(_core != address(0));
+    vm.assume(_hubGovernor != address(0));
+    vm.assume(_isUnique(_nonEmptyInitialSpokeRegistry));
+
+    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _nonEmptyInitialSpokeRegistry);
+
+    _assertSpokesRegistered(hubVotePool.spokeRegistry, _nonEmptyInitialSpokeRegistry);
+
+    assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
+    assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
+  }
+
+  function testFuzz_RevertIf_CoreIsZeroAddress(
+    address _hubGovernor,
+    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
+  ) public {
+    vm.assume(_hubGovernor != address(0));
+    vm.expectRevert(EmptyWormholeAddress.selector);
+    new HubVotePool(address(0), _hubGovernor, _initialSpokeRegistry);
+  }
+
+  function testFuzz_RevertIf_HubGovernorIsZeroAddress(
+    address _core,
+    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
+  ) public {
+    vm.assume(_core != address(0));
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
+    new HubVotePool(_core, address(0), _initialSpokeRegistry);
   }
 }
 
 contract RegisterSpoke is HubVotePoolTest {
   function testFuzz_RegisterNewSpoke(uint16 _wormholeChainId, address _spokeContract) public {
-    bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
+    bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
     bytes32 wormholeAddress = hubVotePool.spokeRegistry(_wormholeChainId);
@@ -99,7 +241,7 @@ contract RegisterSpoke is HubVotePoolTest {
   }
 
   function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(uint16 _wormholeChainId, address _spokeContract) public {
-    bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
+    bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.expectEmit();
     emit HubVotePool.SpokeRegistered(
       _wormholeChainId, hubVotePool.spokeRegistry(_wormholeChainId), spokeWormholeAddress
@@ -110,120 +252,210 @@ contract RegisterSpoke is HubVotePoolTest {
 
   function testFuzz_RevertIf_NotCalledByOwner(uint16 _wormholeChainId, address _spokeContract, address _caller) public {
     vm.assume(_caller != address(governor));
-    bytes32 spokeWormholeAddress = bytes32(uint256(uint160(_spokeContract)));
+    bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
   }
 }
 
+contract SetGovernor is HubVotePoolTest {
+  function testFuzz_CorrectlySetsGovernor(address _newGovernor) public {
+    vm.prank(address(governor));
+    hubVotePool.setGovernor(_newGovernor);
+    assertEq(address(hubVotePool.hubGovernor()), _newGovernor);
+  }
+
+  function testFuzz_RevertIf_NotCalledByOwner(address _newGovernor, address _caller) public {
+    vm.assume(_caller != address(governor));
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    hubVotePool.setGovernor(_newGovernor);
+  }
+}
+
 contract CrossChainEVMVote is HubVotePoolTest {
-  function testFuzz_CorrectlyAddNewVote(
-    uint256 _proposalId,
-    uint64 _againstVotes,
-    uint64 _forVotes,
-    uint64 _abstainVotes
-  ) public {
-    vm.assume(_againstVotes != 0);
-    vm.assume(_proposalId != 0);
+  function testFuzz_CorrectlyAddNewVote(VoteParams memory _voteParams, address _spokeContract, uint16 _queryChainId)
+    public
+  {
+    vm.assume(_spokeContract != address(0));
 
     vm.prank(address(governor));
-    hubVotePool.registerSpoke(2, bytes32(uint256(uint160(GOVERNANCE_CONTRACT))));
+    hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
-    bytes memory _resp = _buildAddVoteQuery(
-      VoteParams({
-        proposalId: _proposalId,
+    _sendCrossChainVote(_voteParams, _queryChainId, _spokeContract);
+
+    assertEq(governor.proposalId(), _voteParams.proposalId);
+    assertEq(governor.support(), 1);
+    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
+    assertEq(
+      governor.params(), abi.encodePacked(_voteParams.againstVotes, _voteParams.forVotes, _voteParams.abstainVotes)
+    );
+
+    (uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
+    _assertVotesEq(
+      _voteParams,
+      _queryChainId,
+      SpokeCountingFractional.ProposalVote({
         againstVotes: _againstVotes,
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
-      }),
-      QUERY_CHAIN_ID,
-      GOVERNANCE_CONTRACT
+      })
+    );
+  }
+
+  function testFuzz_CorrectlyAddNewVoteMultipleQueries(
+    VoteParams memory _voteParams1,
+    VoteParams memory _voteParams2,
+    address _spokeContract,
+    uint16 _queryChainId
+  ) public {
+    vm.assume(_spokeContract != address(0));
+
+    _voteParams2.forVotes = uint128(bound(_voteParams2.forVotes, _voteParams1.forVotes, type(uint128).max));
+    _voteParams2.againstVotes = uint128(bound(_voteParams2.againstVotes, _voteParams1.againstVotes, type(uint128).max));
+    _voteParams2.abstainVotes = uint128(bound(_voteParams2.abstainVotes, _voteParams1.abstainVotes, type(uint128).max));
+
+    vm.prank(address(governor));
+    hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
+
+    _sendCrossChainVote(_voteParams1, _queryChainId, _spokeContract);
+
+    (uint128 _againstVotes1, uint128 _forVotes1, uint128 _abstainVotes1) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams1.proposalId)));
+    _assertVotesEq(
+      _voteParams1,
+      _queryChainId,
+      SpokeCountingFractional.ProposalVote({
+        againstVotes: _againstVotes1,
+        forVotes: _forVotes1,
+        abstainVotes: _abstainVotes1
+      })
     );
 
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+    _sendCrossChainVote(_voteParams2, _queryChainId, _spokeContract);
+    (uint128 _againstVotes2, uint128 _forVotes2, uint128 _abstainVotes2) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams2.proposalId)));
+    _assertVotesEq(
+      _voteParams2,
+      _queryChainId,
+      SpokeCountingFractional.ProposalVote({
+        againstVotes: _againstVotes2,
+        forVotes: _forVotes2,
+        abstainVotes: _abstainVotes2
+      })
+    );
+  }
 
-    hubVotePool.crossChainEVMVote(_resp, signatures);
+  function testFuzz_CorrectlyAddNewVoteMultipleChains(
+    VoteParams memory _voteParams1,
+    VoteParams memory _voteParams2,
+    address _spokeContract1,
+    address _spokeContract2,
+    uint16 _queryChainId1,
+    uint16 _queryChainId2
+  ) public {
+    vm.assume(_spokeContract1 != address(0) && _spokeContract2 != address(0));
+    vm.assume(_queryChainId1 != _queryChainId2);
 
-    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
-      hubVotePool.spokeProposalVotes(keccak256(abi.encode(2, _proposalId)));
+    vm.startPrank(address(governor));
+    hubVotePool.registerSpoke(_queryChainId1, addressToBytes32(_spokeContract1));
+    hubVotePool.registerSpoke(_queryChainId2, addressToBytes32(_spokeContract2));
+    vm.stopPrank();
 
-    assertEq(governor.proposalId(), _proposalId);
-    assertEq(governor.support(), 1);
-    assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
-    assertEq(governor.params(), abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes)));
-    assertEq(againstVotes, _againstVotes);
-    assertEq(forVotes, _forVotes);
-    assertEq(abstainVotes, _abstainVotes);
+    _sendCrossChainVote(_voteParams1, _queryChainId1, _spokeContract1);
+    (uint128 _againstVotes1, uint128 _forVotes1, uint128 _abstainVotes1) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId1, _voteParams1.proposalId)));
+    _assertVotesEq(
+      _voteParams1,
+      _queryChainId1,
+      SpokeCountingFractional.ProposalVote({
+        againstVotes: _againstVotes1,
+        forVotes: _forVotes1,
+        abstainVotes: _abstainVotes1
+      })
+    );
+
+    _sendCrossChainVote(_voteParams2, _queryChainId2, _spokeContract2);
+    (uint128 _againstVotes2, uint128 _forVotes2, uint128 _abstainVotes2) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId2, _voteParams2.proposalId)));
+    _assertVotesEq(
+      _voteParams2,
+      _queryChainId2,
+      SpokeCountingFractional.ProposalVote({
+        againstVotes: _againstVotes2,
+        forVotes: _forVotes2,
+        abstainVotes: _abstainVotes2
+      })
+    );
   }
 
   function testFuzz_RevertIf_QueriedVotesAreLessThanOnHubVotePoolForSpoke(
     uint256 _proposalId,
     uint64 _againstVotes,
     uint64 _forVotes,
-    uint64 _abstainVotes
+    uint64 _abstainVotes,
+    address _spokeContract,
+    uint16 _queryChainId
   ) public {
+    vm.assume(_spokeContract != address(0));
     vm.assume(_againstVotes != 0);
-    vm.assume(_proposalId != 0);
 
     vm.prank(address(governor));
-    hubVotePool.registerSpoke(2, bytes32(uint256(uint160(GOVERNANCE_CONTRACT))));
+    hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
-    bytes memory _resp = _buildAddVoteQuery(
+    bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
         againstVotes: _againstVotes,
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
       }),
-      QUERY_CHAIN_ID,
-      GOVERNANCE_CONTRACT
+      _queryChainId,
+      _spokeContract
     );
 
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
-    bytes memory _invalidResp = _buildAddVoteQuery(
+    bytes memory _invalidResp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
         againstVotes: _againstVotes - 1,
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
       }),
-      QUERY_CHAIN_ID,
-      GOVERNANCE_CONTRACT
+      _queryChainId,
+      _spokeContract
     );
-    (uint8 invalidSigV, bytes32 invalidSigR, bytes32 invalidSigS) = getSignature(_invalidResp, address(hubVotePool));
-    signatures[0] = IWormhole.Signature({r: invalidSigR, s: invalidSigS, v: invalidSigV, guardianIndex: 0});
+
+    IWormhole.Signature[] memory signatureForInvalidResp = _getSignatures(_invalidResp);
 
     vm.expectRevert(HubVotePool.InvalidProposalVote.selector);
-    hubVotePool.crossChainEVMVote(_invalidResp, signatures);
+    hubVotePool.crossChainEVMVote(_invalidResp, signatureForInvalidResp);
   }
 
   function testFuzz_RevertIf_SpokeIsNotRegistered(
     uint256 _proposalId,
     uint64 _againstVotes,
     uint64 _forVotes,
-    uint64 _abstainVotes
+    uint64 _abstainVotes,
+    address _spokeContract,
+    uint16 _queryChainId
   ) public {
-    bytes memory _resp = _buildAddVoteQuery(
+    bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
         againstVotes: _againstVotes,
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
       }),
-      QUERY_CHAIN_ID,
-      GOVERNANCE_CONTRACT
+      _queryChainId,
+      _spokeContract
     );
 
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
     hubVotePool.crossChainEVMVote(_resp, signatures);
@@ -236,7 +468,8 @@ contract CrossChainEVMVote is HubVotePoolTest {
     uint128 _abstainVotes
   ) public {
     vm.prank(address(governor));
-    hubVotePool.registerSpoke(2, bytes32(uint256(uint160(GOVERNANCE_CONTRACT))));
+    hubVotePool.registerSpoke(2, addressToBytes32(GOVERNANCE_CONTRACT));
+
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
       bytes("0x1296c33"), // blockId
       1, // numCallData
@@ -286,37 +519,31 @@ contract CrossChainEVMVote is HubVotePoolTest {
       _queryRequestBytes, // query request
       2, // num per chain responses
       abi.encodePacked(
-        QueryTest.buildPerChainResponseBytes(
-          2, // eth mainnet
-          hubVotePool.QT_ETH_CALL(),
-          ethCallResp
-        ),
-        QueryTest.buildPerChainResponseBytes(
-          2, // eth mainnet
-          hubVotePool.QT_ETH_CALL(),
-          ethCallResp
-        )
+        QueryTest.buildPerChainResponseBytes(2, hubVotePool.QT_ETH_CALL(), ethCallResp),
+        QueryTest.buildPerChainResponseBytes(2, hubVotePool.QT_ETH_CALL(), ethCallResp)
       )
     );
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyQueryResponses.selector, 2));
     hubVotePool.crossChainEVMVote(_resp, signatures);
   }
 
-  function test_RevertIf_TooManyCalls() public {
+  function testFuzz_RevertIf_TooManyCalls(uint16 _queryChainId, address _spokeContract) public {
+    vm.assume(_spokeContract != address(0));
+
     vm.prank(address(governor));
-    hubVotePool.registerSpoke(2, bytes32(uint256(uint160(GOVERNANCE_CONTRACT))));
+    hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
+
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
       bytes("0x1296c33"), // blockId
       2, // numCallData
       abi.encodePacked(
         QueryTest.buildEthCallDataBytes(
-          GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
+          _spokeContract, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
         ),
-        QueryTest.buildEthCallDataBytes(GOVERNANCE_CONTRACT, abi.encodeWithSignature("proposalVotes(uint256)", 1))
+        QueryTest.buildEthCallDataBytes(_spokeContract, abi.encodeWithSignature("proposalVotes(uint256)", 1))
       )
     );
 
@@ -324,11 +551,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
       VERSION, // version
       0, // nonce
       1, // num per chain requests
-      QueryTest.buildPerChainRequestBytes(
-        2, // chainId: (Ethereum mainnet)
-        hubVotePool.QT_ETH_CALL(),
-        ethCall
-      )
+      QueryTest.buildPerChainRequestBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), ethCall)
     );
 
     bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
@@ -348,17 +571,21 @@ contract CrossChainEVMVote is HubVotePoolTest {
       OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(
-        2, // eth mainnet
-        hubVotePool.QT_ETH_CALL(),
-        ethCallResp
-      )
+      QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), ethCallResp)
     );
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(hubVotePool));
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyEthCallResults.selector, 2));
+    hubVotePool.crossChainEVMVote(_resp, signatures);
+  }
+
+  function testFuzz_RevertIf_SpokeContractIsZeroAddress(VoteParams memory _voteParams, uint16 _queryChainId) public {
+    bytes memory _resp = _buildArbitraryQuery(_voteParams, _queryChainId, address(0));
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+
+    vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
     hubVotePool.crossChainEVMVote(_resp, signatures);
   }
 }
