@@ -105,7 +105,7 @@ contract ProposalVotes is SpokeCountingFractionalTest {
 }
 
 contract _CountVote is SpokeCountingFractionalTest {
-  function testFuzz_CorrectlyCountVote(
+  function testFuzz_CorrectlySetsProposalVotes(
     uint256 _proposalId,
     address _account,
     uint8 _support,
