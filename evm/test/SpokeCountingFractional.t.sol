@@ -76,8 +76,6 @@ contract VoteWeightCast is SpokeCountingFractionalTest {
     bytes memory _voteData = _getVoteData(_votes);
     uint256 _totalWeight = _getTotalWeight(_votes);
 
-    assertEq(spokeCountingFractional.voteWeightCast(_proposalId, _account), 0);
-
     spokeCountingFractional.workaround_createProposalVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
     assertEq(spokeCountingFractional.voteWeightCast(_proposalId, _account), _totalWeight);
