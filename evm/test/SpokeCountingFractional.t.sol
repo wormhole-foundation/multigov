@@ -13,10 +13,15 @@ contract SpokeCountingFractionalTest is Test {
   }
 
   function _getVoteData(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (bytes memory) {
-    uint128 maxVoteValue = type(uint128).max / 3;
-    _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, maxVoteValue));
-    _votes.forVotes = uint128(bound(_votes.forVotes, 0, maxVoteValue));
-    _votes.abstainVotes = uint128(bound(_votes.abstainVotes, 0, maxVoteValue));
+    uint128 remainingVotes = type(uint128).max;
+
+    _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, remainingVotes));
+    remainingVotes -= _votes.againstVotes;
+
+    _votes.forVotes = uint128(bound(_votes.forVotes, 0, remainingVotes));
+    remainingVotes -= _votes.forVotes;
+
+    _votes.abstainVotes = uint128(bound(_votes.abstainVotes, 0, remainingVotes));
 
     bytes memory _voteData =
       abi.encodePacked(uint128(_votes.againstVotes), uint128(_votes.forVotes), uint128(_votes.abstainVotes));
