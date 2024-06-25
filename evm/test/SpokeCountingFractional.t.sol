@@ -39,11 +39,11 @@ contract COUNTING_MODE is SpokeCountingFractionalTest {
 }
 
 contract HasVoted is SpokeCountingFractionalTest {
-  function testFuzz_HasVotedReturnsFalseBeforeVoting(uint256 _proposalId, address _account) public view {
+  function testFuzz_ReturnsFalseBeforeVoting(uint256 _proposalId, address _account) public view {
     assertEq(spokeCountingFractional.hasVoted(_proposalId, _account), false);
   }
 
-  function testFuzz_HasVotedReturnsTrueAfterVoting(
+  function testFuzz_ReturnsTrueAfterVoting(
     uint256 _proposalId,
     address _account,
     uint8 _support,
@@ -61,11 +61,11 @@ contract HasVoted is SpokeCountingFractionalTest {
 }
 
 contract VoteWeightCast is SpokeCountingFractionalTest {
-  function testFuzz_VoteWeightCastReturnsZeroBeforeVoting(uint256 _proposalId, address _account) public view {
+  function testFuzz_ReturnsZeroBeforeVoting(uint256 _proposalId, address _account) public view {
     assertEq(spokeCountingFractional.voteWeightCast(_proposalId, _account), 0);
   }
 
-  function testFuzz_VoteWeightCastReturnsTotalWeightAfterVoting(
+  function testFuzz_ReturnsTotalWeightAfterVoting(
     uint256 _proposalId,
     address _account,
     uint8 _support,
