@@ -351,11 +351,14 @@ export async function initConfig(
 }
 
 export function makeDefaultConfig(
+  whMint: PublicKey,
   governanceProgram: PublicKey = PublicKey.unique(),
   pdaAuthority: PublicKey = PublicKey.unique()
 ): GlobalConfig {
   return {
     governanceAuthority: null,
+    whGovernanceRealm: null,
+    whTokenMint: whMint,
     epochDuration: new BN(3600),
     freeze: true,
     mockClockTime: new BN(10),

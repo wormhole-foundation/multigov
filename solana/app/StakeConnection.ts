@@ -10,12 +10,14 @@ import {
   PublicKey,
   Connection,
   Keypair,
+  TransactionInstruction,
   SYSVAR_CLOCK_PUBKEY,
 } from "@solana/web3.js";
 import * as wasm2 from "@wormhole/staking-wasm";
 import {
   Token,
   TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
   u64,
 } from "@solana/spl-token";
 import BN from "bn.js";
@@ -23,14 +25,26 @@ import { Staking } from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
 import { WHTokenBalance } from "./whTokenBalance";
 import {
+  getTokenOwnerRecordAddress,
+  PROGRAM_VERSION_V2,
+  withCreateTokenOwnerRecord,
+} from "@solana/spl-governance";
+import {
   EPOCH_DURATION,
   GOVERNANCE_ADDRESS,
   STAKING_ADDRESS,
 } from "./constants";
+import {
+  PriorityFeeConfig,
+  TransactionBuilder,
+  sendTransactions,
+} from "@pythnetwork/solana-utils";
+import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 let wasm = wasm2;
 export { wasm };
 
 export type GlobalConfig = IdlAccounts<Staking>["globalConfig"];
+type CheckpointData = IdlAccounts<Staking>["checkpointData"];
 type StakeAccountMetadata = IdlAccounts<Staking>["stakeAccountMetadata"];
 
 export class StakeConnection {
@@ -40,6 +54,7 @@ export class StakeConnection {
   configAddress: PublicKey;
   governanceAddress: PublicKey;
   addressLookupTable: PublicKey | undefined;
+  priorityFeeConfig: PriorityFeeConfig;
 
   private constructor(
     program: Program<Staking>,
@@ -47,6 +62,7 @@ export class StakeConnection {
     config: GlobalConfig,
     configAddress: PublicKey,
     addressLookupTable: PublicKey | undefined,
+    priorityFeeConfig: PriorityFeeConfig | undefined
   ) {
     this.program = program;
     this.provider = provider;
@@ -54,6 +70,7 @@ export class StakeConnection {
     this.configAddress = configAddress;
     this.governanceAddress = GOVERNANCE_ADDRESS();
     this.addressLookupTable = addressLookupTable;
+    this.priorityFeeConfig = priorityFeeConfig ?? {};
   }
 
   public static async connect(
@@ -75,6 +92,7 @@ export class StakeConnection {
     wallet: Wallet,
     stakingProgramAddress: PublicKey,
     addressLookupTable?: PublicKey,
+    priorityFeeConfig?: PriorityFeeConfig
   ): Promise<StakeConnection> {
     const provider = new AnchorProvider(connection, wallet, {});
     const program = new Program(
@@ -103,6 +121,34 @@ export class StakeConnection {
       config,
       configAddress,
       addressLookupTable,
+      priorityFeeConfig
+    );
+  }
+
+  private async sendAndConfirmAsVersionedTransaction(
+    instructions: TransactionInstruction[]
+  ) {
+    const addressLookupTableAccount = this.addressLookupTable
+      ? (
+          await this.provider.connection.getAddressLookupTable(
+            this.addressLookupTable
+          )
+        ).value
+      : undefined;
+    const transactions =
+      await TransactionBuilder.batchIntoVersionedTransactions(
+        this.userPublicKey(),
+        this.provider.connection,
+        instructions.map((instruction) => {
+          return { instruction, signers: [] };
+        }),
+        this.priorityFeeConfig,
+        addressLookupTableAccount
+      );
+    return sendTransactions(
+      transactions,
+      this.provider.connection,
+      this.provider.wallet as NodeWallet
     );
   }
 
@@ -240,6 +286,178 @@ export class StakeConnection {
       );
       return new BN(wasm.getUnixTime(clockBuf!.data).toString());
     }
+  }
+
+  public async withCreateAccount(
+    instructions: TransactionInstruction[],
+    owner: PublicKey,
+  ): Promise<PublicKey> {
+    const nonce = crypto.randomBytes(16).toString("hex");
+    const stakeAccountAddress = await PublicKey.createWithSeed(
+      this.userPublicKey(),
+      nonce,
+      this.program.programId
+    );
+
+    instructions.push(
+      SystemProgram.createAccountWithSeed({
+        fromPubkey: this.userPublicKey(),
+        newAccountPubkey: stakeAccountAddress,
+        basePubkey: this.userPublicKey(),
+        seed: nonce,
+        lamports:
+          await this.program.provider.connection.getMinimumBalanceForRentExemption(
+            wasm.Constants.CHECKPOINT_DATA_SIZE()
+          ),
+        space: wasm.Constants.CHECKPOINT_DATA_SIZE(),
+        programId: this.program.programId,
+      })
+    );
+
+    instructions.push(
+      await this.program.methods
+        .createStakeAccount(owner)
+        .accounts({
+          stakeAccountCheckpoints: stakeAccountAddress,
+          mint: this.config.whTokenMint,
+        })
+        .instruction()
+    );
+
+    return stakeAccountAddress;
+  }
+
+  public async isLlcMember(stakeAccount: StakeAccount) {
+    return (
+      JSON.stringify(stakeAccount.stakeAccountMetadata.signedAgreementHash) ==
+      JSON.stringify(this.config.agreementHash)
+    );
+  }
+
+  public async withJoinDaoLlc(
+    instructions: TransactionInstruction[],
+    stakeAccountAddress: PublicKey
+  ) {
+    instructions.push(
+      await this.program.methods
+        .joinDaoLlc(this.config.agreementHash)
+        .accounts({
+          stakeAccountCheckpoints: stakeAccountAddress,
+        })
+        .instruction()
+    );
+  }
+
+  public async buildTransferInstruction(
+    stakeAccountCheckpointsAddress: PublicKey,
+    amount: BN
+  ): Promise<TransactionInstruction> {
+    const from_account = await Token.getAssociatedTokenAddress(
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      this.config.whTokenMint,
+      this.provider.wallet.publicKey,
+      true
+    );
+
+    const toAccount = (
+      await PublicKey.findProgramAddress(
+        [
+          utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
+          stakeAccountCheckpointsAddress.toBuffer(),
+        ],
+        this.program.programId
+      )
+    )[0];
+
+    const ix = Token.createTransferInstruction(
+      TOKEN_PROGRAM_ID,
+      from_account,
+      toAccount,
+      this.provider.wallet.publicKey,
+      [],
+      new u64(amount.toString())
+    );
+
+    return ix;
+  }
+
+  public async hasGovernanceRecord(user: PublicKey): Promise<boolean> {
+    const voterAccountInfo =
+      await this.program.provider.connection.getAccountInfo(
+        await this.getTokenOwnerRecordAddress(user)
+      );
+
+    return Boolean(voterAccountInfo);
+  }
+
+  public async getTokenOwnerRecordAddress(user: PublicKey) {
+    return getTokenOwnerRecordAddress(
+      this.governanceAddress,
+      this.config.whGovernanceRealm,
+      this.config.whTokenMint,
+      user
+    );
+  }
+
+  public async delegate(
+    stakeAccount: StakeAccount | undefined,
+    delegateeStakeAccount: StakeAccount | undefined,
+    amount: WHTokenBalance
+  ) {
+    let stakeAccountAddress: PublicKey;
+    let delegateeStakeAccountAddress: PublicKey;
+    const owner = this.provider.wallet.publicKey;
+
+    const instructions: TransactionInstruction[] = [];
+    const signers: Signer[] = [];
+
+    if (!stakeAccount) {
+      stakeAccountAddress = await this.withCreateAccount(instructions, owner);
+    } else {
+      stakeAccountAddress = stakeAccount.address;
+    }
+
+    if (!delegateeStakeAccount) {
+      delegateeStakeAccountAddress = await this.withCreateAccount(instructions, owner);
+    } else {
+      delegateeStakeAccountAddress = stakeAccount.address;
+    }
+
+    if (!(await this.hasGovernanceRecord(owner))) {
+      await withCreateTokenOwnerRecord(
+        instructions,
+        this.governanceAddress,
+        PROGRAM_VERSION_V2,
+        this.config.whGovernanceRealm,
+        owner,
+        this.config.whTokenMint,
+        owner
+      );
+    }
+
+    if (!stakeAccount || !(await this.isLlcMember(stakeAccount))) {
+      await this.withJoinDaoLlc(instructions, stakeAccountAddress);
+    }
+
+    if (!delegateeStakeAccount || !(await this.isLlcMember(delegateeStakeAccount))) {
+      await this.withJoinDaoLlc(instructions, delegateeStakeAccountAddress);
+    }
+
+    instructions.push(
+      await this.buildTransferInstruction(stakeAccountAddress, amount.toBN())
+    );
+
+    instructions.push(
+      await this.program.methods
+        .delegate(delegateeStakeAccountAddress)
+        .accounts({
+          delegateeStakeAccountCheckpoints: delegateeStakeAccountAddress
+        })
+        .instruction()
+    );
+
+    await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 }
 

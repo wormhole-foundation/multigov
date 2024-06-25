@@ -44,6 +44,18 @@ describe("api", async () => {
     owner = stakeConnection.provider.wallet.publicKey;
   });
 
+  it("Delegate", async () => {
+    await stakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("600")
+    );
+
+    await stakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("100")
+    );
+  });
+  
   it("Find and parse stake accounts", async () => {
     const res = await stakeConnection.getStakeAccounts(owner);
     assert.equal(res.length, 2);

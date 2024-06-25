@@ -21,6 +21,8 @@ pub enum ErrorCode {
     CheckpointNotFound,
     #[msg("Invalid timestamp")] //6008
     InvalidTimestamp,
-    #[msg("Other")] //6009
+    #[msg("Invalid LLC agreement")] // 6009
+    InvalidLlcAgreement,
+    #[msg("Other")] //6010
     Other,
 }

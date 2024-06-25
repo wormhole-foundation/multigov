@@ -1,5 +1,6 @@
 use {
     crate::{
+        error::ErrorCode,
         state::*,
     },
     anchor_lang::prelude::*,
@@ -37,7 +38,7 @@ pub struct InitConfig<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(owner : Pubkey, delegatee : Pubkey)]
+#[instruction(delegatee : Pubkey)]
 pub struct Delegate<'info> {
     // Native payer:
     #[account( address = stake_account_metadata.owner)]
@@ -143,6 +144,29 @@ pub struct CreateStakeAccount<'info> {
     pub rent:                    Sysvar<'info, Rent>,
     pub token_program:           Program<'info, Token>,
     pub system_program:          Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(agreement_hash : [u8; 32])]
+pub struct JoinDaoLlc<'info> {
+    // Native payer:
+    #[account(mut, address = stake_account_metadata.owner)]
+    pub payer:                   Signer<'info>,
+    // Stake program accounts:
+    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    #[account(mut,
+        seeds = [
+            STAKE_ACCOUNT_METADATA_SEED.as_bytes(), 
+            stake_account_checkpoints.key().as_ref()
+        ],
+        bump = stake_account_metadata.metadata_bump
+    )]
+    pub stake_account_metadata:  Account<'info, stake_account::StakeAccountMetadata>,
+    #[account(
+        seeds = [CONFIG_SEED.as_bytes()],
+        bump = config.bump, constraint = config.agreement_hash == agreement_hash @ ErrorCode::InvalidLlcAgreement
+    )]
+    pub config:                  Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]

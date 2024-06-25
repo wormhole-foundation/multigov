@@ -153,6 +153,17 @@ pub mod staking {
         Ok(())
     }
 
+    /**
+     * Accept to join the DAO LLC
+     * This must happen before delegate
+     * The user signs a hash of the agreement and the program checks that the hash matches the agreement
+     */
+    pub fn join_dao_llc(ctx: Context<JoinDaoLlc>, _agreement_hash: [u8; 32]) -> Result<()> {
+        ctx.accounts.stake_account_metadata.signed_agreement_hash =
+            Some(ctx.accounts.config.agreement_hash);
+        Ok(())
+    }
+
     /** Recovers a user's `stake account` ownership by transferring ownership
      * from a token account to the `owner` of that token account.
      *
