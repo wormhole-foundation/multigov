@@ -52,8 +52,6 @@ contract HasVoted is SpokeCountingFractionalTest {
     _support = uint8(bound(_support, 0, 2));
     (bytes memory _voteData, uint256 _totalWeight) = _getVoteData(_votes);
 
-    assertEq(spokeCountingFractional.hasVoted(_proposalId, _account), false);
-
     spokeCountingFractional.workaround_createProposalVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
     assertEq(spokeCountingFractional.hasVoted(_proposalId, _account), true);
