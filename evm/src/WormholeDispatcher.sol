@@ -28,8 +28,8 @@ contract WormholeDispatcher is Ownable {
   }
 
   function _setConsistencyLevel(uint8 _consistencyLevel) internal {
-    consistencyLevel = _consistencyLevel;
     emit ConsistencyLevelUpdated(consistencyLevel, _consistencyLevel);
+    consistencyLevel = _consistencyLevel;
   }
 
   function _setWormholeCore(address _core) internal virtual {
