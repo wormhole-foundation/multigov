@@ -254,6 +254,32 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     assertEq(abstain, _amount, "Abstained votes are not correct");
   }
 
+  function testFuzz_EmitsVoteCast(
+    uint128 _amount,
+    uint256 _proposalId,
+    uint8 _support,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason
+  ) public {
+    vm.assume(_amount != 0);
+    vm.assume(_caller != address(0));
+    _support = uint8(bound(_support, 0, 2));
+    _voteStart = _boundProposalTime(_voteStart);
+
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+    vm.expectEmit();
+    emit SpokeVoteAggregator.VoteCast(_caller, _proposalId, _support, _amount, _reason);
+    vm.prank(_caller);
+    spokeVoteAggregator.castVoteWithReason(_proposalId, _support, _reason);
+  }
+
   function testFuzz_RevertWhen_BeforeProposalStart(
     uint8 _support,
     uint256 _proposalId,
