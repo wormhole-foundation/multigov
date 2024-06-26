@@ -761,3 +761,30 @@ contract SetVoteWeightWindow is SpokeVoteAggregatorTest {
     spokeVoteAggregator.setVoteWeightWindow(_window);
   }
 }
+
+contract VoteActiveInternal is SpokeVoteAggregatorTest {
+  function testFuzz_VoteActiveInternalBeforeStart(uint256 _proposalId, uint48 _voteStart) public {
+    _voteStart = _boundProposalTime(_voteStart);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart - 1);
+    assertFalse(spokeVoteAggregator.voteActiveInternal(_proposalId), "Vote should not be active before start");
+  }
+
+  function testFuzz_VoteActiveInternalAtStart(uint256 _proposalId, uint48 _voteStart) public {
+    _voteStart = _boundProposalTime(_voteStart);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart);
+    assertTrue(spokeVoteAggregator.voteActiveInternal(_proposalId), "Vote should be active at start");
+  }
+
+  function testFuzz_VoteActiveInternalAfterStart(uint256 _proposalId, uint48 _voteStart, uint48 _timeDelta) public {
+    _voteStart = _boundProposalTime(_voteStart);
+    _timeDelta = uint48(bound(_timeDelta, 1, type(uint48).max - _voteStart));
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + _timeDelta);
+    assertTrue(spokeVoteAggregator.voteActiveInternal(_proposalId), "Vote should be active after start");
+  }
+}
