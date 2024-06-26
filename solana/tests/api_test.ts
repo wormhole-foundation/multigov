@@ -47,10 +47,12 @@ describe("api", async () => {
   it("Delegate", async () => {
     await stakeConnection.delegate(
       undefined,
+      undefined,
       WHTokenBalance.fromString("600")
     );
 
     await stakeConnection.delegate(
+      undefined,
       undefined,
       WHTokenBalance.fromString("100")
     );

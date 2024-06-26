@@ -285,14 +285,69 @@
           "isSigner": true
         },
         {
-          "name": "stakeAccountMetadata",
-          "isMut": false,
+          "name": "stakeAccountCheckpoints",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "stakeAccountCustody",
+          "name": "stakeAccountMetadata",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custodyAuthority",
           "isMut": false,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "CHECK : This AccountInfo is safe because it's a checked PDA"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "authority"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stakeAccountCustody",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "custody"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
+              }
+            ]
+          }
         },
         {
           "name": "currentDelegateStakeAccountCheckpoints",
@@ -355,6 +410,11 @@
               }
             ]
           }
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [

@@ -41,12 +41,32 @@ pub struct InitConfig<'info> {
 #[instruction(delegatee : Pubkey)]
 pub struct Delegate<'info> {
     // Native payer:
-    #[account( address = stake_account_metadata.owner)]
+    #[account(address = stake_account_metadata.owner)]
     pub payer:                   Signer<'info>,
 
     // User stake account:
-    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
-    pub stake_account_custody:       Box<Account<'info, TokenAccount>>,
+    #[account(zero)]
+    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    #[account(
+        mut,
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        bump = stake_account_metadata.metadata_bump
+    )]
+    pub stake_account_metadata:  Box<Account<'info, stake_account::StakeAccountMetadata>>,
+    /// CHECK : This AccountInfo is safe because it's a checked PDA
+    #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
+    pub custody_authority:       AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [
+            CUSTODY_SEED.as_bytes(),
+            stake_account_checkpoints.key().as_ref()
+        ],
+        bump,
+        token::mint = mint,
+        token::authority = custody_authority,
+    )]
+    pub stake_account_custody:   Box<Account<'info, TokenAccount>>,
 
     // Current delegate stake account:
     #[account(mut)]
@@ -70,6 +90,9 @@ pub struct Delegate<'info> {
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config:                  Box<Account<'info, global_config::GlobalConfig>>,
+    // Wormhole token mint:
+    #[account(address = config.wh_token_mint)]
+    pub mint:                    Account<'info, Mint>,
 }
 
 #[derive(Accounts)]

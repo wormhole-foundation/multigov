@@ -14,12 +14,13 @@
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
     "@pythnetwork/solana-utils": "^0.4.1",
-    "@wormhole/staking-wasm": "file:./wasm",
     "@solana/spl-governance": "0.3.26",
     "@solana/spl-token": "^0.1.8",
     "@solana/web3.js": "^1.87.5",
+    "@wormhole/staking-wasm": "file:./wasm",
     "encoding": "^0.1.13",
     "ethers": "^6.10.0",
+    "rpc-websockets": "^7.8.0",
     "ts-node": "^10.7.0"
   },
   "devDependencies": {

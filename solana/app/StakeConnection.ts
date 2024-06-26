@@ -12,6 +12,7 @@ import {
   Keypair,
   TransactionInstruction,
   SYSVAR_CLOCK_PUBKEY,
+  SystemProgram
 } from "@solana/web3.js";
 import * as wasm2 from "@wormhole/staking-wasm";
 import {
@@ -34,6 +35,7 @@ import {
   GOVERNANCE_ADDRESS,
   STAKING_ADDRESS,
 } from "./constants";
+import * as crypto from "crypto";
 import {
   PriorityFeeConfig,
   TransactionBuilder,
@@ -421,7 +423,7 @@ export class StakeConnection {
     if (!delegateeStakeAccount) {
       delegateeStakeAccountAddress = await this.withCreateAccount(instructions, owner);
     } else {
-      delegateeStakeAccountAddress = stakeAccount.address;
+      delegateeStakeAccountAddress = delegateeStakeAccount.address;
     }
 
     if (!(await this.hasGovernanceRecord(owner))) {
@@ -452,7 +454,10 @@ export class StakeConnection {
       await this.program.methods
         .delegate(delegateeStakeAccountAddress)
         .accounts({
-          delegateeStakeAccountCheckpoints: delegateeStakeAccountAddress
+          stakeAccountCheckpoints: stakeAccountAddress,
+          currentDelegateStakeAccountCheckpoints: stakeAccountAddress,
+          delegateeStakeAccountCheckpoints: delegateeStakeAccountAddress,
+          mint: this.config.whTokenMint,
         })
         .instruction()
     );
