@@ -522,13 +522,13 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     uint48 _voteStart,
     address _caller,
     string memory _reason,
-    bytes memory _params
+    SpokeCountingFractional.ProposalVote memory _votes
   ) public {
-    vm.assume(_params.length == 48);
     vm.assume(_caller != address(0));
 
     _support = uint8(bound(_support, 0, 2));
     _voteStart = _boundProposalTime(_voteStart);
+    bytes memory _params = _getVoteData(_votes);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
