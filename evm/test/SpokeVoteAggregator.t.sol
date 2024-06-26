@@ -87,7 +87,6 @@ contract CastVote is SpokeVoteAggregatorTest {
     public
   {
     vm.assume(_amount != 0);
-    vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
@@ -108,7 +107,6 @@ contract CastVote is SpokeVoteAggregatorTest {
     public
   {
     vm.assume(_amount != 0);
-    vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
@@ -131,7 +129,6 @@ contract CastVote is SpokeVoteAggregatorTest {
     public
   {
     vm.assume(_amount != 0);
-    vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
@@ -155,7 +152,6 @@ contract CastVote is SpokeVoteAggregatorTest {
     uint48 _voteStart,
     address _caller
   ) public {
-    vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
     _voteStart = uint32(bound(_voteStart, 2, type(uint32).max));
     _support = uint8(bound(_support, 0, 2));
@@ -178,7 +174,6 @@ contract CastVote is SpokeVoteAggregatorTest {
     address _caller
   ) public {
     vm.assume(_amount != 0);
-    vm.assume(_proposalId != 0);
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
