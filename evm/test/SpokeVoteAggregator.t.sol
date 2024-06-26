@@ -358,6 +358,221 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
   }
 }
 
+contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
+  function _getVoteData(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (bytes memory) {
+    uint128 remainingVotes = type(uint128).max;
+
+    _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, remainingVotes));
+    remainingVotes -= _votes.againstVotes;
+
+    _votes.forVotes = uint128(bound(_votes.forVotes, 0, remainingVotes));
+    remainingVotes -= _votes.forVotes;
+
+    _votes.abstainVotes = uint128(bound(_votes.abstainVotes, 0, remainingVotes));
+
+    bytes memory _voteData =
+      abi.encodePacked(uint128(_votes.againstVotes), uint128(_votes.forVotes), uint128(_votes.abstainVotes));
+
+    return _voteData;
+  }
+
+  function _getTotalWeight(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (uint256) {
+    return uint128(_votes.againstVotes) + _votes.forVotes + _votes.abstainVotes;
+  }
+
+  function testFuzz_CorrectlyCastVoteAgainst(
+    uint128 _amount,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason
+  ) public {
+    vm.assume(_amount != 0);
+    vm.assume(_caller != address(0));
+    _voteStart = _boundProposalTime(_voteStart);
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_amount, 0, 0));
+
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+    vm.prank(_caller);
+    spokeVoteAggregator.castVoteWithReasonAndParams(
+      _proposalId, uint8(SpokeCountingFractional.VoteType.Against), _reason, _params
+    );
+
+    (uint256 against,,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    assertEq(against, _amount, "Votes against are not correct");
+  }
+
+  function testFuzz_CorrectlyCastVoteFor(
+    uint128 _amount,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason
+  ) public {
+    vm.assume(_amount != 0);
+    vm.assume(_caller != address(0));
+    _voteStart = _boundProposalTime(_voteStart);
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, _amount, 0));
+
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+    vm.prank(_caller);
+    spokeVoteAggregator.castVoteWithReasonAndParams(
+      _proposalId, uint8(SpokeCountingFractional.VoteType.For), _reason, _params
+    );
+
+    (, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    assertEq(forVotes, _amount, "Votes for are not correct");
+  }
+
+  function testFuzz_CorrectlyCastVoteAbstain(
+    uint128 _amount,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason
+  ) public {
+    vm.assume(_amount != 0);
+    vm.assume(_caller != address(0));
+    _voteStart = _boundProposalTime(_voteStart);
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, 0, _amount));
+
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+    vm.prank(_caller);
+    spokeVoteAggregator.castVoteWithReasonAndParams(
+      _proposalId, uint8(SpokeCountingFractional.VoteType.Abstain), _reason, _params
+    );
+
+    (,, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
+    assertEq(abstain, _amount, "Abstained votes are not correct");
+  }
+
+  function testFuzz_EmitsVoteCastWithParams(
+    uint256 _proposalId,
+    uint8 _support,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason,
+    SpokeCountingFractional.ProposalVote memory _votes
+  ) public {
+    vm.assume(_caller != address(0));
+    _support = uint8(bound(_support, 0, 2));
+    _voteStart = _boundProposalTime(_voteStart);
+    bytes memory _params = _getVoteData(_votes);
+    uint256 _totalWeight = _getTotalWeight(_votes);
+
+    deal(address(token), _caller, _totalWeight);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+    vm.expectEmit();
+    emit SpokeVoteAggregator.VoteCastWithParams(_caller, _proposalId, _support, _totalWeight, _reason, _params);
+    vm.prank(_caller);
+    spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
+  }
+
+  function testFuzz_RevertWhen_BeforeProposalStart(
+    uint8 _support,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason,
+    bytes memory _params
+  ) public {
+    vm.assume(_params.length == 48);
+    vm.assume(_caller != address(0));
+
+    _support = uint8(bound(_support, 0, 2));
+    _voteStart = _boundProposalTime(_voteStart);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart - 1);
+    vm.prank(_caller);
+    vm.expectRevert(SpokeVoteAggregator.ProposalInactive.selector);
+    spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
+  }
+
+  function testFuzz_RevertWhen_VoterHasAlreadyVoted(
+    uint8 _support,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason,
+    SpokeCountingFractional.ProposalVote memory _votes
+  ) public {
+    vm.assume(_caller != address(0));
+
+    _support = uint8(bound(_support, 0, 2));
+    _voteStart = _boundProposalTime(_voteStart);
+    bytes memory _params = _getVoteData(_votes);
+    uint256 _totalWeight = _getTotalWeight(_votes);
+
+    deal(address(token), _caller, _totalWeight);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+
+    vm.startPrank(_caller);
+    spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
+
+    vm.expectRevert("SpokeCountingFractional: all weight cast");
+    spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
+    vm.stopPrank();
+  }
+
+  function testFuzz_RevertIf_InvalidVoteData(
+    uint128 _amount,
+    uint256 _proposalId,
+    uint8 _support,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason,
+    bytes memory _params
+  ) public {
+    vm.assume(_params.length != 0 && _params.length != 48);
+    vm.assume(_amount != 0);
+    vm.assume(_caller != address(0));
+    _support = uint8(bound(_support, 0, 2));
+    _voteStart = _boundProposalTime(_voteStart);
+
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+
+    vm.expectRevert("SpokeCountingFractional: invalid voteData");
+    vm.prank(_caller);
+    spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
+  }
+}
+
 contract SetSafeWindow is SpokeVoteAggregatorTest {
   function testFuzz_CorrectlySetSafeWindow(uint48 _safeWindow) public {
     vm.prank(owner);
