@@ -330,7 +330,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.stopPrank();
   }
 
-  function testFuzz_RevertWhen_InvalidVoteTypeWithReason(
+  function testFuzz_RevertWhen_InvalidVoteType(
     uint128 _amount,
     uint256 _proposalId,
     uint48 _voteStart,
