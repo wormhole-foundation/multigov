@@ -197,6 +197,18 @@ contract CastVote is SpokeVoteAggregatorTest {
     spokeVoteAggregator.castVote(_proposalId, _support);
     vm.stopPrank();
   }
+
+  function testFuzz_RevertIf_NoWeight(uint8 _support, uint256 _proposalId, uint48 _voteStart, address _caller) public {
+    vm.assume(_caller != address(0));
+    _voteStart = _boundProposalTime(_voteStart);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(SpokeVoteAggregator.NoWeight.selector));
+    spokeVoteAggregator.castVote(_proposalId, _support);
+  }
 }
 
 contract CastVoteWithReason is SpokeVoteAggregatorTest {
@@ -376,6 +388,24 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.expectRevert("SpokeCountingFractional: invalid support value, must be included in VoteType enum");
     vm.prank(_caller);
     spokeVoteAggregator.castVoteWithReason(_proposalId, _invalidVoteType, _reason);
+  }
+
+  function testFuzz_RevertIf_NoWeight(
+    uint8 _support,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason
+  ) public {
+    vm.assume(_caller != address(0));
+    _voteStart = _boundProposalTime(_voteStart);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(SpokeVoteAggregator.NoWeight.selector));
+    spokeVoteAggregator.castVoteWithReason(_proposalId, _support, _reason);
   }
 }
 
@@ -569,6 +599,25 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
 
     vm.expectRevert("SpokeCountingFractional: invalid voteData");
     vm.prank(_caller);
+    spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
+  }
+
+  function testFuzz_RevertIf_NoWeight(
+    uint8 _support,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason,
+    bytes memory _params
+  ) public {
+    vm.assume(_caller != address(0));
+    _voteStart = _boundProposalTime(_voteStart);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(SpokeVoteAggregator.NoWeight.selector));
     spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
   }
 }
