@@ -20,7 +20,6 @@ pub mod tests {
     use {
         crate::{
             state::checkpoints::{
-                Checkpoint,
                 CheckpointData,
             },
             utils::voter_votes::get_votes,
@@ -31,34 +30,15 @@ pub mod tests {
     fn test_get_votes() {
         let mut checkpointData = CheckpointData::default();
 
-        checkpointData.write_checkpoint(
-            0,
-            &Checkpoint {
-                timestamp:             1,
-                value:                 7,
-            },
-        )
-        .unwrap();
+        checkpointData.push(1, 7).unwrap();
+        checkpointData.push(2, 13).unwrap();
 
-        checkpointData.write_checkpoint(
-            1,
-            &Checkpoint {
-                timestamp:             2,
-                value:                 13,
-            },
-        )
-        .unwrap();
+        let mut votes = get_votes(&checkpointData).unwrap();
+        assert_eq!(votes, 13);
 
-        checkpointData.write_checkpoint(
-            2,
-            &Checkpoint {
-                timestamp:             3,
-                value:                 15,
-            },
-        )
-        .unwrap();
+        checkpointData.push(3, 15).unwrap();
 
-        let votes = get_votes(&checkpointData).unwrap();
+        votes = get_votes(&checkpointData).unwrap();
         assert_eq!(votes, 15);
     }
 }
