@@ -282,6 +282,8 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
     );
 
     bytes memory _additionalVoteData = _getVoteData(_additionalVotes);
+    uint256 _additionalTotalWeight = _getTotalWeight(_additionalVotes);
+    vm.assume(_additionalTotalWeight != 0);
 
     // Use the same total weight for both votes to ensure the second vote exceeds the weight
     uint128 totalAllowedWeight = uint128(_initialTotalWeight);
