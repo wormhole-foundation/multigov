@@ -41,6 +41,27 @@ contract SpokeVoteAggregatorTest is Test {
     _safeWindow = uint48(bound(_safeWindow, 1, type(uint48).max - _voteStart - 2));
     return (_voteStart, _safeWindow);
   }
+
+  function _getVoteData(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (bytes memory) {
+    uint128 remainingVotes = type(uint128).max;
+
+    _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, remainingVotes));
+    remainingVotes -= _votes.againstVotes;
+
+    _votes.forVotes = uint128(bound(_votes.forVotes, 0, remainingVotes));
+    remainingVotes -= _votes.forVotes;
+
+    _votes.abstainVotes = uint128(bound(_votes.abstainVotes, 0, remainingVotes));
+
+    bytes memory _voteData =
+      abi.encodePacked(uint128(_votes.againstVotes), uint128(_votes.forVotes), uint128(_votes.abstainVotes));
+
+    return _voteData;
+  }
+
+  function _getTotalWeight(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (uint256) {
+    return uint128(_votes.againstVotes) + _votes.forVotes + _votes.abstainVotes;
+  }
 }
 
 contract Constructor is SpokeVoteAggregatorTest {
@@ -359,27 +380,6 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
 }
 
 contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
-  function _getVoteData(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (bytes memory) {
-    uint128 remainingVotes = type(uint128).max;
-
-    _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, remainingVotes));
-    remainingVotes -= _votes.againstVotes;
-
-    _votes.forVotes = uint128(bound(_votes.forVotes, 0, remainingVotes));
-    remainingVotes -= _votes.forVotes;
-
-    _votes.abstainVotes = uint128(bound(_votes.abstainVotes, 0, remainingVotes));
-
-    bytes memory _voteData =
-      abi.encodePacked(uint128(_votes.againstVotes), uint128(_votes.forVotes), uint128(_votes.abstainVotes));
-
-    return _voteData;
-  }
-
-  function _getTotalWeight(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (uint256) {
-    return uint128(_votes.againstVotes) + _votes.forVotes + _votes.abstainVotes;
-  }
-
   function testFuzz_CorrectlyCastVoteAgainst(
     uint128 _amount,
     uint256 _proposalId,
@@ -570,6 +570,100 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     vm.expectRevert("SpokeCountingFractional: invalid voteData");
     vm.prank(_caller);
     spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
+  }
+}
+
+contract CastVoteBySig is SpokeVoteAggregatorTest {
+  function generateSignature(
+    uint256 _proposalId,
+    uint8 _support,
+    address _voter,
+    uint256 _nonce,
+    uint256 _voterPrivateKey
+  ) public view returns (bytes memory) {
+    bytes32 structHash =
+      keccak256(abi.encode(spokeVoteAggregator.BALLOT_TYPEHASH(), _proposalId, _support, _voter, _nonce));
+    bytes32 digest = spokeVoteAggregator.exposed_hashTypedDataV4(structHash);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(_voterPrivateKey, digest);
+    return abi.encodePacked(r, s, v);
+  }
+
+  function testFuzz_CastVoteBySig_Against(
+    uint128 _amount,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    string memory _callerName
+  ) public {
+    vm.assume(_amount != 0);
+    _voteStart = _boundProposalTime(_voteStart);
+    (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
+
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+    vm.warp(_voteStart + 1);
+
+    uint256 nonce = spokeVoteAggregator.nonces(_caller);
+    uint8 _support = uint8(SpokeCountingFractional.VoteType.Against);
+    bytes memory signature = generateSignature(_proposalId, _support, _caller, nonce, _callerPrivateKey);
+
+    spokeVoteAggregator.castVoteBySig(_proposalId, _support, _caller, signature);
+
+    (uint256 againstVotes,,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    assertEq(againstVotes, _amount, "Against votes not counted correctly");
+  }
+
+  function testFuzz_CastVoteBySig_For(
+    uint128 _amount,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    string memory _callerName
+  ) public {
+    vm.assume(_amount != 0);
+    _voteStart = _boundProposalTime(_voteStart);
+    (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
+
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+    vm.warp(_voteStart + 1);
+
+    uint256 nonce = spokeVoteAggregator.nonces(_caller);
+    uint8 _support = uint8(SpokeCountingFractional.VoteType.For);
+    bytes memory signature = generateSignature(_proposalId, _support, _caller, nonce, _callerPrivateKey);
+
+    spokeVoteAggregator.castVoteBySig(_proposalId, _support, _caller, signature);
+
+    (, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    assertEq(forVotes, _amount, "For votes not counted correctly");
+  }
+
+  function testFuzz_CastVoteBySig_Abstain(
+    uint128 _amount,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    string memory _callerName
+  ) public {
+    vm.assume(_amount != 0);
+    _voteStart = _boundProposalTime(_voteStart);
+    (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
+
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+    vm.warp(_voteStart + 1);
+
+    uint256 nonce = spokeVoteAggregator.nonces(_caller);
+    uint8 _support = uint8(SpokeCountingFractional.VoteType.Abstain);
+    bytes memory signature = generateSignature(_proposalId, _support, _caller, nonce, _callerPrivateKey);
+
+    spokeVoteAggregator.castVoteBySig(_proposalId, _support, _caller, signature);
+
+    (,, uint256 abstainVotes) = spokeVoteAggregator.proposalVotes(_proposalId);
+    assertEq(abstainVotes, _amount, "Abstain votes not counted correctly");
   }
 }
 
