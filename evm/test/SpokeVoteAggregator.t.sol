@@ -601,7 +601,9 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
+
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
     vm.warp(_voteStart + 1);
 
     uint256 nonce = spokeVoteAggregator.nonces(_caller);
@@ -627,7 +629,9 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
+
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
     vm.warp(_voteStart + 1);
 
     uint256 nonce = spokeVoteAggregator.nonces(_caller);
@@ -653,7 +657,9 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     deal(address(token), _caller, _amount);
     vm.prank(_caller);
     token.delegate(_caller);
+
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
     vm.warp(_voteStart + 1);
 
     uint256 nonce = spokeVoteAggregator.nonces(_caller);
@@ -664,6 +670,34 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
 
     (,, uint256 abstainVotes) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(abstainVotes, _amount, "Abstain votes not counted correctly");
+  }
+
+  function testFuzz_RevertIf_InvalidSignature(
+    uint128 _amount,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    string memory _callerName,
+    bytes memory _invalidSignature
+  ) public {
+    vm.assume(_amount != 0);
+    _voteStart = _boundProposalTime(_voteStart);
+    (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
+
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+
+    vm.warp(_voteStart + 1);
+
+    uint256 nonce = spokeVoteAggregator.nonces(_caller);
+    uint8 _support = uint8(SpokeCountingFractional.VoteType.For);
+    bytes memory validSignature = generateSignature(_proposalId, _support, _caller, nonce, _callerPrivateKey);
+
+    vm.assume(keccak256(_invalidSignature) != keccak256(validSignature));
+    vm.expectRevert(abi.encodeWithSelector(SpokeVoteAggregator.InvalidSignature.selector, _caller));
+    spokeVoteAggregator.castVoteBySig(_proposalId, _support, _caller, _invalidSignature);
   }
 }
 
