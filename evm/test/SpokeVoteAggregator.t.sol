@@ -634,7 +634,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     return abi.encodePacked(r, s, v);
   }
 
-  function testFuzz_CorrectlyCastVoteBySig_Against(
+  function testFuzz_CorrectlyCastVoteBySigAgainst(
     uint128 _amount,
     uint256 _proposalId,
     uint48 _voteStart,
@@ -662,7 +662,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     assertEq(againstVotes, _amount, "Against votes not counted correctly");
   }
 
-  function testFuzz_CorrectlyCastVoteBySig_For(
+  function testFuzz_CorrectlyCastVoteBySigFor(
     uint128 _amount,
     uint256 _proposalId,
     uint48 _voteStart,
@@ -690,7 +690,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     assertEq(forVotes, _amount, "For votes not counted correctly");
   }
 
-  function testFuzz_CorrectlyCastVoteBySig_Abstain(
+  function testFuzz_CorrectlyCastVoteBySigAbstain(
     uint128 _amount,
     uint256 _proposalId,
     uint48 _voteStart,
