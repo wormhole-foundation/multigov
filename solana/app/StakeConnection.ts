@@ -498,7 +498,7 @@ export class StakeAccount {
 
   constructor(
     address: PublicKey,
-    stakeAccountCheckpointsWasm: any;
+    stakeAccountCheckpointsWasm: any,
     stakeAccountMetadata: StakeAccountMetadata,
     tokenBalance: u64,
     authorityAddress: PublicKey,

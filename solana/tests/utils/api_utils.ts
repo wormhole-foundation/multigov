@@ -22,3 +22,14 @@ export async function assertBalanceMatches(
     "Balance"
   );
 }
+
+async function assertVoterVotesEquals(
+  stakeConnection: StakeConnection,
+  owner: PublicKey,
+  expectedVoterVotes: BN,
+) {
+  const stakeAccount = await stakeConnection.getMainAccount(owner);
+
+  const currentActual = await stakeAccount.getVoterWeight();
+  assert.equal(currentActual.toBN().toString(), expectedVoterVotes.toString());
+}
