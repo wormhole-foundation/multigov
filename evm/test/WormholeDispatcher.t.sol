@@ -77,7 +77,7 @@ contract SetWormholeCore is WormholeDispatcherTest {
     dispatcher.setWormholeCore(_core);
   }
 
-  function testFuzz_RevertIf_NotOwner(address _caller, address _core) public {
+  function testFuzz_RevertIf_CallerIsNotOwner(address _caller, address _core) public {
     vm.assume(_caller != owner);
 
     vm.prank(_caller);
