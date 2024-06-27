@@ -43,7 +43,7 @@ contract SetConsistencyLevel is WormholeDispatcherTest {
     assertEq(dispatcher.consistencyLevel(), _consistencyLevel);
   }
 
-  function testFuzz_EmitsConsistencyLevelUpdated(uint8 _consistencyLevel) public {
+  function testFuzz_EmitsConsistencyLevelUpdatedEvent(uint8 _consistencyLevel) public {
     uint8 oldConsistencyLevel = dispatcher.consistencyLevel();
 
     vm.expectEmit();
