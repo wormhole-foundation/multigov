@@ -52,7 +52,7 @@ contract SetConsistencyLevel is WormholeDispatcherTest {
     dispatcher.setConsistencyLevel(_consistencyLevel);
   }
 
-  function testFuzz_RevertIf_NotOwner(address _caller, uint8 _consistencyLevel) public {
+  function testFuzz_RevertIf_CallerIsNotOwner(address _caller, uint8 _consistencyLevel) public {
     vm.assume(_caller != owner);
 
     vm.prank(_caller);
