@@ -30,7 +30,7 @@ contract Constructor is Test {
     assertEq(dispatcher.consistencyLevel(), _consistencyLevel);
   }
 
-  function testFuzz_RevertIf_ZeroAddressOwner(address _core, uint8 _consistencyLevel) public {
+  function testFuzz_RevertIf_OwnerIsZeroAddress(address _core, uint8 _consistencyLevel) public {
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
     new WormholeDispatcher(address(0), _core, _consistencyLevel);
   }
