@@ -407,7 +407,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
 }
 
 contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
-  function _assertVotes(
+  function _assertVotesEq(
     uint256 _proposalId,
     uint128 _totalVotes,
     uint128 _againstVotes,
@@ -588,7 +588,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
 
     vm.stopPrank();
 
-    _assertVotes(
+    _assertVotesEq(
       _proposalId,
       _totalVotes,
       _vote1.againstVotes + _vote2.againstVotes,
