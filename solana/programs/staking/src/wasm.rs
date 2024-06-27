@@ -15,6 +15,23 @@ use {
     wasm_bindgen::prelude::*,
 };
 
+#[wasm_bindgen]
+pub struct WasmCheckpointData {
+    wrapped: CheckpointData,
+}
+
+#[wasm_bindgen]
+impl WasmCheckpointData {
+    #[wasm_bindgen(js_name=getVoterVotes)]
+    pub fn get_voter_votes(
+        &self,
+    ) -> Result<u64, JsValue> {
+        convert_error(crate::utils::voter_votes::get_votes(
+            &self.wrapped,
+        ))
+    }
+}
+
 #[wasm_bindgen(js_name=getUnixTime)]
 /// Deserializes the contents of the SYSVAR_CLOCK account (onChainSerialized), returning the
 /// Unix time field
