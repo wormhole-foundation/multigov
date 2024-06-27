@@ -407,6 +407,20 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
 }
 
 contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
+  function _assertVotes(
+    uint256 _proposalId,
+    uint128 _totalVotes,
+    uint128 _againstVotes,
+    uint128 _forVotes,
+    uint128 _abstainVotes
+  ) internal view {
+    (uint256 against, uint256 forVotes, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
+    assertEq(against, _againstVotes, "Votes against are not correct");
+    assertEq(forVotes, _forVotes, "Votes for are not correct");
+    assertEq(abstain, _abstainVotes, "Abstained votes are not correct");
+    assertEq(against + forVotes + abstain, _totalVotes, "Total votes should equal the total weight");
+  }
+
   function testFuzz_CorrectlyCastVoteAgainst(
     uint128 _amount,
     uint256 _proposalId,
@@ -517,6 +531,70 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     emit SpokeVoteAggregator.VoteCastWithParams(_caller, _proposalId, _support, _totalWeight, _reason, _params);
     vm.prank(_caller);
     spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
+  }
+
+  function testFuzz_CorrectlyCastMultipleVotes(
+    uint128 _totalVotes,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    address _caller,
+    string memory _reason,
+    SpokeCountingFractional.ProposalVote memory _vote1
+  ) public {
+    SpokeCountingFractional.ProposalVote memory _vote2;
+
+    vm.assume(_totalVotes != 0);
+    vm.assume(_caller != address(0));
+    _voteStart = _boundProposalTime(_voteStart);
+
+    // Ensure vote1 votes don't exceed total votes
+    _vote1.againstVotes = uint128(bound(_vote1.againstVotes, 0, _totalVotes));
+    _vote1.forVotes = uint128(bound(_vote1.forVotes, 0, _totalVotes - _vote1.againstVotes));
+    _vote1.abstainVotes = uint128(bound(_vote1.abstainVotes, 0, _totalVotes - _vote1.againstVotes - _vote1.forVotes));
+
+    uint128 vote1Total = _vote1.againstVotes + _vote1.forVotes + _vote1.abstainVotes;
+    uint128 remainingVotes = _totalVotes - vote1Total;
+
+    // Ensure vote2 votes don't exceed remaining votes
+    _vote2.againstVotes = uint128(bound(_vote2.againstVotes, 0, remainingVotes));
+    _vote2.forVotes = uint128(bound(_vote2.forVotes, 0, remainingVotes - _vote2.againstVotes));
+    _vote2.abstainVotes = remainingVotes - _vote2.againstVotes - _vote2.forVotes;
+
+    uint128 vote2Total = _vote2.againstVotes + _vote2.forVotes + _vote2.abstainVotes;
+    vm.assume(vote2Total != 0); // Ensure vote2 votes are not all 0 to prevent an "all weight cast" revert
+
+    deal(address(token), _caller, _totalVotes);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
+    vm.warp(_voteStart + 1);
+
+    vm.startPrank(_caller);
+
+    spokeVoteAggregator.castVoteWithReasonAndParams(
+      _proposalId,
+      0, // unused support param when fractional voting
+      _reason,
+      _getVoteData(_vote1)
+    );
+
+    spokeVoteAggregator.castVoteWithReasonAndParams(
+      _proposalId,
+      0, // unused support param when fractional voting
+      _reason,
+      _getVoteData(_vote2)
+    );
+
+    vm.stopPrank();
+
+    _assertVotes(
+      _proposalId,
+      _totalVotes,
+      _vote1.againstVotes + _vote2.againstVotes,
+      _vote1.forVotes + _vote2.forVotes,
+      _vote1.abstainVotes + _vote2.abstainVotes
+    );
   }
 
   function testFuzz_RevertWhen_BeforeProposalStart(
