@@ -193,7 +193,9 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.stopPrank();
   }
 
-  function testFuzz_RevertIf_NoWeight(uint8 _support, uint256 _proposalId, uint48 _voteStart, address _caller) public {
+  function testFuzz_RevertIf_CallerHasNoWeight(uint8 _support, uint256 _proposalId, uint48 _voteStart, address _caller)
+    public
+  {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
@@ -385,7 +387,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     spokeVoteAggregator.castVoteWithReason(_proposalId, _invalidVoteType, _reason);
   }
 
-  function testFuzz_RevertIf_NoWeight(
+  function testFuzz_RevertIf_CallerHasNoWeight(
     uint8 _support,
     uint256 _proposalId,
     uint48 _voteStart,
@@ -597,7 +599,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     spokeVoteAggregator.castVoteWithReasonAndParams(_proposalId, _support, _reason, _params);
   }
 
-  function testFuzz_RevertIf_NoWeight(
+  function testFuzz_RevertIf_CallerHasNoWeight(
     uint8 _support,
     uint256 _proposalId,
     uint48 _voteStart,
