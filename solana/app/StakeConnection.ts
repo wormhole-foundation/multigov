@@ -215,8 +215,20 @@ export class StakeConnection {
     }
   }
 
+  async fetchCheckpointAccount(address: PublicKey) {
+    const inbuf = await this.program.provider.connection.getAccountInfo(
+      address
+    );
+    const stakeAccountCheckpointsWasm = new wasm.WasmCheckpointData(inbuf!.data);
+
+    return { stakeAccountCheckpointsWasm };
+  }
+
   /** Stake accounts are loaded by a StakeConnection object */
   public async loadStakeAccount(address: PublicKey): Promise<StakeAccount> {
+    const { stakeAccountCheckpointsWasm } =
+      await this.fetchCheckpointAccount(address);
+
     const metadataAddress = (
       await PublicKey.findProgramAddress(
         [
@@ -264,6 +276,7 @@ export class StakeConnection {
 
     return new StakeAccount(
       address,
+      stakeAccountCheckpointsWasm,
       stakeAccountMetadata,
       tokenBalance,
       authorityAddress,
@@ -464,6 +477,11 @@ export class StakeConnection {
 
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
+
+  /** Gets the current votes balance of the delegate's stake account. */
+  public async getVotes(delegateStakeAccount: StakeAccount): Promise<BN> {
+     return delegateStakeAccount.getVotes();
+  }
 }
 
 export interface BalanceSummary {
@@ -480,6 +498,7 @@ export class StakeAccount {
 
   constructor(
     address: PublicKey,
+    stakeAccountCheckpointsWasm: any;
     stakeAccountMetadata: StakeAccountMetadata,
     tokenBalance: u64,
     authorityAddress: PublicKey,
@@ -487,11 +506,19 @@ export class StakeAccount {
     config: GlobalConfig
   ) {
     this.address = address;
+    this.stakeAccountCheckpointsWasm = stakeAccountCheckpointsWasm;
     this.stakeAccountMetadata = stakeAccountMetadata;
     this.tokenBalance = tokenBalance;
     this.authorityAddress = authorityAddress;
     this.totalSupply = totalSupply;
     this.config = config;
+  }
+
+  /** Gets the current votes balance. */
+  public async getVotes(): Promise<BN> {
+    const voterVotes = this.stakeAccountCheckpointsWasm.getVoterVotes();
+
+    return new BN(voterVotes.toString());
   }
 
   public getBalanceSummary(unixTime: BN): BalanceSummary {
