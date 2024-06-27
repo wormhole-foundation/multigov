@@ -68,7 +68,7 @@ contract SetWormholeCore is WormholeDispatcherTest {
     assertEq(address(dispatcher.wormholeCore()), _core);
   }
 
-  function testFuzz_EmitsWormholeCoreUpdated(address _core) public {
+  function testFuzz_EmitsWormholeCoreUpdatedEvent(address _core) public {
     address oldCore = address(dispatcher.wormholeCore());
 
     vm.expectEmit();
