@@ -633,6 +633,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     _voteStart = _boundProposalTime(_voteStart);
     bytes memory _params = _getVoteData(_votes);
     uint256 _totalWeight = _getTotalWeight(_votes);
+    vm.assume(_totalWeight != 0);
 
     deal(address(token), _caller, _totalWeight);
     vm.prank(_caller);
