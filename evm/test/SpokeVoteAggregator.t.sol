@@ -226,8 +226,8 @@ contract SetVoteWeightWindow is SpokeVoteAggregatorTest {
     vm.prank(owner);
     spokeVoteAggregator.setVoteWeightWindow(_window);
 
-    // uint48 setWindow = spokeVoteAggregator.voteWeightWindowLength();
-    // assertEq(setWindow, _window);
+    uint48 setWindow = spokeVoteAggregator.getVoteWeightWindowLength(uint96(block.timestamp));
+    assertEq(setWindow, _window);
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(address _caller, uint16 _window) public {

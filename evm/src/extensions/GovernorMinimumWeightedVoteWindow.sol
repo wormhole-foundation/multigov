@@ -21,6 +21,10 @@ abstract contract GovernorMinimumWeightedVoteWindow {
     _setVoteWeightWindow(_initialVoteWeightWindowLength);
   }
 
+  function getVoteWeightWindowLength(uint96 _timepoint) external view returns (uint48) {
+    return SafeCast.toUint48(voteWeightWindowLengths.upperLookup(_timepoint));
+  }
+
   function token() public view virtual returns (IERC5805);
 
   function _setVoteWeightWindow(uint48 _windowLength) internal {
