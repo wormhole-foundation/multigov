@@ -85,7 +85,7 @@ contract HubGovernor is
     _setWhitelistedProposer(_proposer);
   }
 
-  function setVoteWeightWindow(uint48 _weightWindow) public {
+  function setVoteWeightWindow(uint48 _weightWindow) external {
     _checkGovernance();
     _setVoteWeightWindow(_weightWindow);
   }
