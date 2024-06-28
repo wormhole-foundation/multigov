@@ -623,7 +623,6 @@ contract _GetVotes is HubGovernorTest {
     governor.exposed_setVoteWeightWindow(2);
     _createIncreasingCheckpointArray(1000);
     uint256 _votes = governor.exposed_getVotes(attacker, _start);
-    console2.logUint(_start);
     assertEq(_votes, (_start - 3) * 100);
   }
 
