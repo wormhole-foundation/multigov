@@ -7,7 +7,6 @@ import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {Test, console2} from "forge-std/Test.sol";
 
 /// @title GovernorMinimumWeightedVoteWindow
 /// @author [ScopeLift](https://scopelift.co)
@@ -33,13 +32,8 @@ abstract contract GovernorMinimumWeightedVoteWindow {
 
   function _getVotes(address _account, uint256 _timepoint, bytes memory) internal view virtual returns (uint256) {
     uint160 voteWeightWindowLength = voteWeightWindowLengths.upperLookup(SafeCast.toUint96(_timepoint));
-    console2.logString("Here");
-    console2.logUint(_timepoint);
-    console2.logUint(SafeCast.toUint48(voteWeightWindowLength));
     uint256 windowStart = _timepoint - SafeCast.toUint48(voteWeightWindowLength);
-    console2.logString("Here 1");
     ERC20Votes _token = ERC20Votes(address(token()));
-    console2.logString("Here 2");
     uint256 numCheckpoints = _token.numCheckpoints(_account);
     uint256 startPos = _upperLookupRecent(_account, uint32(windowStart), numCheckpoints);
     if (startPos == 0) return 0;
