@@ -10,7 +10,7 @@ contract DeploySpokeContractsOptimismSepolia is DeploySpokeContractsBaseImpl {
       hubChainId: 10_002,
       hubProposalMetadata: 0xe139982C9f0810C110a386eAd2A153217eCcB9D6,
       votingToken: 0x74f00907CFC6E44Fb72535cdD1eC52a37EacAbE4,
-      safeWindow: 180,
+      safeWindow: 3 minutes,
       voteWeightWindow: 10 minutes
     });
   }
