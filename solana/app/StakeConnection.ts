@@ -482,6 +482,11 @@ export class StakeConnection {
   public async getVotes(delegateStakeAccount: StakeAccount): Promise<BN> {
      return delegateStakeAccount.getVotes();
   }
+
+  /** Gets the voting power of the delegate's stake account at a specified past timestamp. */
+  public async getPastVotes(delegateStakeAccount: StakeAccount, timestamp: BN): Promise<BN> {
+     return delegateStakeAccount.getPastVotes(timestamp);
+  }
 }
 
 export interface BalanceSummary {
@@ -517,6 +522,13 @@ export class StakeAccount {
   /** Gets the current votes balance. */
   public async getVotes(): Promise<BN> {
     const voterVotes = this.stakeAccountCheckpointsWasm.getVoterVotes();
+
+    return new BN(voterVotes.toString());
+  }
+
+  /** Gets the voting power at a specified past timestamp. */
+  public async getPastVotes(timestamp: BN): Promise<BN> {
+    const voterVotes = this.stakeAccountCheckpointsWasm.getVoterPastVotes(timestamp);
 
     return new BN(voterVotes.toString());
   }

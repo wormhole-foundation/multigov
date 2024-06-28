@@ -30,6 +30,17 @@ impl WasmCheckpointData {
             &self.wrapped,
         ))
     }
+
+    #[wasm_bindgen(js_name=getVoterPastVotes)]
+    pub fn get_voter_past_votes(
+        &self,
+        timestamp: u64
+    ) -> Result<u64, JsValue> {
+        convert_error(crate::utils::voter_votes::get_past_votes(
+            &self.wrapped,
+            timestamp
+        ))
+    }
 }
 
 #[wasm_bindgen(js_name=getUnixTime)]
