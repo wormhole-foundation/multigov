@@ -38,7 +38,7 @@ impl Default for CheckpointData {
 }
 
 impl CheckpointData {
-    pub const LEN: usize = 8 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
+    pub const LEN: usize = 8 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
 
     pub fn initialize(&mut self, owner: &Pubkey) {
         self.owner = *owner;
@@ -227,7 +227,7 @@ pub mod tests {
         );
         assert_eq!(
             CheckpointData::LEN,
-            32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+            8 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
         );
         // Checks that the checkpoint struct fits in the individual checkpoint buffer
         assert!(get_packed_len::<Checkpoint>() < CHECKPOINT_BUFFER_SIZE);
