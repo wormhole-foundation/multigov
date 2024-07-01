@@ -138,6 +138,8 @@ describe("staking", async () => {
     const stake_account_metadata_data =
       await program.account.stakeAccountMetadata.fetch(metadataAccount);
 
+    const expectedRecordedBalance = (0).toString(16).padStart(2, '0');
+
     assert.equal(
       JSON.stringify(stake_account_metadata_data),
       JSON.stringify({
@@ -146,7 +148,8 @@ describe("staking", async () => {
         authorityBump,
         voterBump,
         owner,
-        nextIndex: 0,
+        delegate: owner,
+        recordedBalance: expectedRecordedBalance,
         transferEpoch: null,
         signedAgreementHash: null,
       })
