@@ -1,19 +1,7 @@
 #![allow(non_snake_case)]
-use {
-    crate::{
-        state::{
-            checkpoints::{
-                CheckpointData,
-            },
-        },
-    },
-    anchor_lang::{
-        prelude::{
-            Clock,
-        },
-    },
-    wasm_bindgen::prelude::*,
-};
+use crate::state::checkpoints::CheckpointData;
+use anchor_lang::prelude::Clock;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct WasmCheckpointData {
@@ -23,22 +11,15 @@ pub struct WasmCheckpointData {
 #[wasm_bindgen]
 impl WasmCheckpointData {
     #[wasm_bindgen(js_name=getVoterVotes)]
-    pub fn get_voter_votes(
-        &self,
-    ) -> Result<u64, JsValue> {
-        convert_error(crate::utils::voter_votes::get_votes(
-            &self.wrapped,
-        ))
+    pub fn get_voter_votes(&self) -> Result<u64, JsValue> {
+        convert_error(crate::utils::voter_votes::get_votes(&self.wrapped))
     }
 
     #[wasm_bindgen(js_name=getVoterPastVotes)]
-    pub fn get_voter_past_votes(
-        &self,
-        timestamp: u64
-    ) -> Result<u64, JsValue> {
+    pub fn get_voter_past_votes(&self, timestamp: u64) -> Result<u64, JsValue> {
         convert_error(crate::utils::voter_votes::get_past_votes(
             &self.wrapped,
-            timestamp
+            timestamp,
         ))
     }
 }

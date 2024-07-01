@@ -15,7 +15,8 @@ pub enum ErrorCode {
     CheckpointOutOfBounds,
     #[msg("You need to be an LLC member to perform this action")] //6005
     NotLlcMember,
-    #[msg("Can't recover account with a non-zero staking balance. Unstake your tokens first.")] // 6006
+    #[msg("Can't recover account with a non-zero staking balance. Unstake your tokens first.")]
+    // 6006
     RecoverWithStake,
     #[msg("Checkpoint not found")] //6007
     CheckpointNotFound,

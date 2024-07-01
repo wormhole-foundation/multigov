@@ -1,15 +1,9 @@
-use {
-    crate::{
-        error::ErrorCode,
-    },
-    anchor_lang::prelude::{
-        borsh::BorshSchema,
-        *,
-    },
-};
+use crate::error::ErrorCode;
+use anchor_lang::prelude::borsh::BorshSchema;
+use anchor_lang::prelude::*;
 
 /// This is the metadata account for each staker
-/// It is derived from the checkpoints account with seeds "stake_metadata" 
+/// It is derived from the checkpoints account with seeds "stake_metadata"
 /// and the checkpoints account pubkey
 /// It stores some PDA bumps, owner and delegate accounts
 
@@ -23,7 +17,8 @@ pub struct StakeAccountMetadata {
     pub owner:                 Pubkey,
     pub delegate:              Pubkey,
     pub recorded_balance:      u64,
-    pub transfer_epoch:        Option<u64>, // null if the account was created, some epoch if the account received a transfer
+    pub transfer_epoch:        Option<u64>, /* null if the account was created, some epoch if
+                                             * the account received a transfer */
     pub signed_agreement_hash: Option<[u8; 32]>,
 }
 
@@ -64,13 +59,9 @@ impl StakeAccountMetadata {
 
 #[cfg(test)]
 pub mod tests {
-    use {
-        crate::state::{
-            stake_account::StakeAccountMetadata,
-        },
-        anchor_lang::Discriminator,
-        solana_program::pubkey::Pubkey,
-    };
+    use crate::state::stake_account::StakeAccountMetadata;
+    use anchor_lang::Discriminator;
+    use solana_program::pubkey::Pubkey;
 
     #[test]
     fn check_size() {

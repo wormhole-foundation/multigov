@@ -1,18 +1,8 @@
-  use {
-    crate::error::ErrorCode,
-    anchor_lang::{
-        prelude::{
-            borsh::BorshSchema,
-            *,
-        },
-        solana_program::{
-            borsh::try_from_slice_unchecked,
-        },
-    },
-    std::fmt::{
-        Debug,
-    },
-};
+use crate::error::ErrorCode;
+use anchor_lang::prelude::borsh::BorshSchema;
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::borsh::try_from_slice_unchecked;
+use std::fmt::Debug;
 
 pub const MAX_CHECKPOINTS: usize = 210;
 pub const CHECKPOINT_BUFFER_SIZE: usize = 48;
@@ -20,9 +10,9 @@ pub const CHECKPOINT_BUFFER_SIZE: usize = 48;
 #[account(zero_copy)]
 #[repr(C)]
 pub struct CheckpointData {
-    pub owner: Pubkey,
+    pub owner:      Pubkey,
     pub next_index: u64,
-    checkpoints: [[u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
+    checkpoints:    [[u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
 }
 
 #[cfg(test)]
@@ -30,7 +20,7 @@ impl Default for CheckpointData {
     // Only used for testing, so unwrap is acceptable
     fn default() -> Self {
         CheckpointData {
-            owner:    Pubkey::default(),
+            owner:       Pubkey::default(),
             next_index:  0,
             checkpoints: [[0u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
         }
@@ -72,7 +62,9 @@ impl CheckpointData {
         if self.next_index == 0 {
             Ok(None)
         } else {
-            Ok(self.read_checkpoint((self.next_index - 1) as usize)?.map(|cp| cp.value))
+            Ok(self
+                .read_checkpoint((self.next_index - 1) as usize)?
+                .map(|cp| cp.value))
         }
     }
 
@@ -88,7 +80,8 @@ impl CheckpointData {
 
     pub fn push(&mut self, timestamp: u64, value: u64) -> Result<(u64, u64)> {
         if self.next_index > 0 {
-            let last_checkpoint = self.read_checkpoint((self.next_index - 1) as usize)?
+            let last_checkpoint = self
+                .read_checkpoint((self.next_index - 1) as usize)?
                 .ok_or(ErrorCode::CheckpointNotFound)?;
 
             require!(
@@ -97,26 +90,17 @@ impl CheckpointData {
             );
 
             if last_checkpoint.timestamp == timestamp {
-                let new_checkpoint = Checkpoint {
-                    timestamp,
-                    value,
-                };
+                let new_checkpoint = Checkpoint { timestamp, value };
                 self.write_checkpoint((self.next_index - 1) as usize, &new_checkpoint)?;
                 Ok((last_checkpoint.value, value))
             } else {
-                let new_checkpoint = Checkpoint {
-                    timestamp,
-                    value,
-                };
+                let new_checkpoint = Checkpoint { timestamp, value };
                 let i = self.reserve_new_index().unwrap();
                 self.write_checkpoint(i, &new_checkpoint)?;
                 Ok((last_checkpoint.value, value))
             }
         } else {
-            let new_checkpoint = Checkpoint {
-                timestamp,
-                value,
-            };
+            let new_checkpoint = Checkpoint { timestamp, value };
             let i = self.reserve_new_index().unwrap();
             self.write_checkpoint(i, &new_checkpoint)?;
             Ok((0, value))
@@ -147,11 +131,18 @@ impl CheckpointData {
         if pos == 0 {
             Ok(None)
         } else {
-            self.read_checkpoint(pos - 1)?.map(|cp| Ok(Some(cp.value))).unwrap_or(Ok(None))
+            self.read_checkpoint(pos - 1)?
+                .map(|cp| Ok(Some(cp.value)))
+                .unwrap_or(Ok(None))
         }
     }
 
-    fn upper_binary_lookup(&self, timestamp: u64, mut low: usize, mut high: usize) -> Result<usize> {
+    fn upper_binary_lookup(
+        &self,
+        timestamp: u64,
+        mut low: usize,
+        mut high: usize,
+    ) -> Result<usize> {
         while low < high {
             let mid = (low + high) / 2;
             if let Some(checkpoint) = self.read_checkpoint(mid)? {
@@ -199,25 +190,21 @@ pub struct Checkpoint {
 
 #[cfg(test)]
 pub mod tests {
-    use {
-        crate::state::checkpoints::{
-            Checkpoint,
-            CheckpointData,
-            MAX_CHECKPOINTS,
-            CHECKPOINT_BUFFER_SIZE,
-            TryBorsh
-        },
-        anchor_lang::{
-            solana_program::borsh::get_packed_len,
-        },
-        quickcheck::{
-            Arbitrary,
-            Gen,
-        },
-        quickcheck_macros::quickcheck,
-        rand::Rng,
-        std::collections::HashSet,
+    use crate::state::checkpoints::{
+        Checkpoint,
+        CheckpointData,
+        TryBorsh,
+        CHECKPOINT_BUFFER_SIZE,
+        MAX_CHECKPOINTS,
     };
+    use anchor_lang::solana_program::borsh::get_packed_len;
+    use quickcheck::{
+        Arbitrary,
+        Gen,
+    };
+    use quickcheck_macros::quickcheck;
+    use rand::Rng;
+    use std::collections::HashSet;
 
     #[test]
     fn test_serialized_size() {
@@ -319,7 +306,8 @@ pub mod tests {
                 DataOperation::Modify(checkpoint) => {
                     if next_index != 0 {
                         let i: usize = rng.gen_range(0..(next_index as usize));
-                        let current_checkpoint = checkpoint_data.read_checkpoint(i).unwrap().unwrap();
+                        let current_checkpoint =
+                            checkpoint_data.read_checkpoint(i).unwrap().unwrap();
                         checkpoint_data.write_checkpoint(i, &checkpoint).unwrap();
                         set.remove(&current_checkpoint);
                         set.insert(checkpoint);
@@ -335,11 +323,11 @@ pub mod tests {
         }
         return set == checkpoint_data.to_set(next_index);
     }
-    
+
     #[test]
     fn test_get_at_probably_recent_timestamp() {
         let mut checkpoint_data = CheckpointData::default();
-        
+
         // Add some checkpoints
         checkpoint_data.push(100, 1000).unwrap();
         checkpoint_data.push(200, 2000).unwrap();
@@ -348,26 +336,66 @@ pub mod tests {
         checkpoint_data.push(500, 5000).unwrap();
 
         // Test exact matches
-        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(100).unwrap(), Some(1000));
-        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(300).unwrap(), Some(3000));
-        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(500).unwrap(), Some(5000));
+        assert_eq!(
+            checkpoint_data
+                .get_at_probably_recent_timestamp(100)
+                .unwrap(),
+            Some(1000)
+        );
+        assert_eq!(
+            checkpoint_data
+                .get_at_probably_recent_timestamp(300)
+                .unwrap(),
+            Some(3000)
+        );
+        assert_eq!(
+            checkpoint_data
+                .get_at_probably_recent_timestamp(500)
+                .unwrap(),
+            Some(5000)
+        );
 
         // Test timestamps between checkpoints
-        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(150).unwrap(), Some(1000));
-        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(250).unwrap(), Some(2000));
-        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(450).unwrap(), Some(4000));
+        assert_eq!(
+            checkpoint_data
+                .get_at_probably_recent_timestamp(150)
+                .unwrap(),
+            Some(1000)
+        );
+        assert_eq!(
+            checkpoint_data
+                .get_at_probably_recent_timestamp(250)
+                .unwrap(),
+            Some(2000)
+        );
+        assert_eq!(
+            checkpoint_data
+                .get_at_probably_recent_timestamp(450)
+                .unwrap(),
+            Some(4000)
+        );
 
         // Test timestamp before first checkpoint
-        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(50).unwrap(), None);
+        assert_eq!(
+            checkpoint_data
+                .get_at_probably_recent_timestamp(50)
+                .unwrap(),
+            None
+        );
 
         // Test timestamp after last checkpoint
-        assert_eq!(checkpoint_data.get_at_probably_recent_timestamp(600).unwrap(), Some(5000));
+        assert_eq!(
+            checkpoint_data
+                .get_at_probably_recent_timestamp(600)
+                .unwrap(),
+            Some(5000)
+        );
     }
 
     #[test]
     fn test_upper_binary_lookup() {
         let mut checkpoint_data = CheckpointData::default();
-        
+
         // Add some checkpoints
         checkpoint_data.push(100, 1000).unwrap();
         checkpoint_data.push(200, 2000).unwrap();
@@ -395,7 +423,10 @@ pub mod tests {
     #[quickcheck]
     fn prop_get_at_probably_recent_timestamp(timestamps: Vec<u64>) -> bool {
         let mut checkpoint_data = CheckpointData::default();
-        let mut sorted_timestamps: Vec<u64> = timestamps.into_iter().filter(|&t| t < u64::MAX / 2).collect();
+        let mut sorted_timestamps: Vec<u64> = timestamps
+            .into_iter()
+            .filter(|&t| t < u64::MAX / 2)
+            .collect();
         sorted_timestamps.sort();
         sorted_timestamps.dedup();
 
@@ -411,7 +442,11 @@ pub mod tests {
             if i >= MAX_CHECKPOINTS {
                 break;
             }
-            if checkpoint_data.get_at_probably_recent_timestamp(timestamp).unwrap() != Some(i as u64) {
+            if checkpoint_data
+                .get_at_probably_recent_timestamp(timestamp)
+                .unwrap()
+                != Some(i as u64)
+            {
                 return false;
             }
         }
@@ -431,7 +466,11 @@ pub mod tests {
                 .rev()
                 .find(|(_, &t)| t <= random_timestamp)
                 .map(|(i, _)| i as u64);
-            if checkpoint_data.get_at_probably_recent_timestamp(random_timestamp).unwrap() != expected {
+            if checkpoint_data
+                .get_at_probably_recent_timestamp(random_timestamp)
+                .unwrap()
+                != expected
+            {
                 return false;
             }
         }

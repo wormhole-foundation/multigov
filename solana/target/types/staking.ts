@@ -427,7 +427,7 @@ export type Staking = {
     {
       "name": "joinDaoLlc",
       "docs": [
-        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the agreement"
+        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
       ],
       "accounts": [
         {
@@ -1312,7 +1312,7 @@ export const IDL: Staking = {
     {
       "name": "joinDaoLlc",
       "docs": [
-        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the agreement"
+        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
       ],
       "accounts": [
         {

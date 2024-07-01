@@ -1,10 +1,6 @@
-use {
-    super::global_config::GlobalConfig,
-    anchor_lang::prelude::{
-        borsh::BorshSchema,
-        *,
-    },
-};
+use super::global_config::GlobalConfig;
+use anchor_lang::prelude::borsh::BorshSchema;
+use anchor_lang::prelude::*;
 
 /// The governance action VoterWeight is evaluated for
 #[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone, Copy, BorshSchema)]
@@ -66,10 +62,8 @@ impl VoterWeightRecord {
 
 #[cfg(test)]
 pub mod tests {
-    use {
-        crate::state::voter_weight_record::VoterWeightRecord,
-        anchor_lang::Discriminator,
-    };
+    use crate::state::voter_weight_record::VoterWeightRecord;
+    use anchor_lang::Discriminator;
 
     #[test]
     fn check_size() {

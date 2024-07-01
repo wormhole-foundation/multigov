@@ -6,15 +6,11 @@
 // Objects of type Result must be used, otherwise we might
 // call a function that returns a Result and not handle the error
 
-use {
-    crate::error::ErrorCode,
-    anchor_lang::prelude::*,
-    context::*,
-    state::{
-        global_config::GlobalConfig,
-    },
-    std::convert::TryInto,
-};
+use crate::error::ErrorCode;
+use anchor_lang::prelude::*;
+use context::*;
+use state::global_config::GlobalConfig;
+use std::convert::TryInto;
 
 mod context;
 mod error;
@@ -81,10 +77,7 @@ pub mod staking {
 
     /// Trustless instruction that creates a stake account for a user
     #[inline(never)]
-    pub fn create_stake_account(
-        ctx: Context<CreateStakeAccount>,
-        owner: Pubkey,
-    ) -> Result<()> {
+    pub fn create_stake_account(ctx: Context<CreateStakeAccount>, owner: Pubkey) -> Result<()> {
         let config = &ctx.accounts.config;
 
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
@@ -116,23 +109,33 @@ pub mod staking {
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
 
-        let current_delegate_stake_account_checkpoints = &mut ctx.accounts.current_delegate_stake_account_checkpoints.load_mut()?;
-        let delegatee_stake_account_checkpoints = &mut ctx.accounts.delegatee_stake_account_checkpoints.load_mut()?;
+        let current_delegate_stake_account_checkpoints = &mut ctx
+            .accounts
+            .current_delegate_stake_account_checkpoints
+            .load_mut()?;
+        let delegatee_stake_account_checkpoints = &mut ctx
+            .accounts
+            .delegatee_stake_account_checkpoints
+            .load_mut()?;
 
         if current_delegate != delegatee {
             if current_delegate != Pubkey::default() {
-                let latest_current_delegate_checkpoint_value = current_delegate_stake_account_checkpoints.latest()?.unwrap_or(0);
+                let latest_current_delegate_checkpoint_value =
+                    current_delegate_stake_account_checkpoints
+                        .latest()?
+                        .unwrap_or(0);
                 if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
                     current_timestamp,
-                    latest_current_delegate_checkpoint_value - recorded_balance
+                    latest_current_delegate_checkpoint_value - recorded_balance,
                 ) {};
             }
 
             if delegatee != Pubkey::default() {
-                let latest_delegatee_checkpoint_value = delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
+                let latest_delegatee_checkpoint_value =
+                    delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
                 if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
                     current_timestamp,
-                    latest_delegatee_checkpoint_value + *current_stake_balance
+                    latest_delegatee_checkpoint_value + *current_stake_balance,
                 ) {};
             }
 
@@ -141,10 +144,11 @@ pub mod staking {
             }
         } else {
             if *current_stake_balance != recorded_balance {
-                let latest_delegatee_checkpoint_value = delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
+                let latest_delegatee_checkpoint_value =
+                    delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
                 if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
                     current_timestamp,
-                    latest_delegatee_checkpoint_value + *current_stake_balance - recorded_balance
+                    latest_delegatee_checkpoint_value + *current_stake_balance - recorded_balance,
                 ) {};
                 stake_account_metadata.recorded_balance = *current_stake_balance;
             }
@@ -156,7 +160,8 @@ pub mod staking {
     /**
      * Accept to join the DAO LLC
      * This must happen before delegate
-     * The user signs a hash of the agreement and the program checks that the hash matches the agreement
+     * The user signs a hash of the agreement and the program checks that the hash matches the
+     * agreement
      */
     pub fn join_dao_llc(ctx: Context<JoinDaoLlc>, _agreement_hash: [u8; 32]) -> Result<()> {
         ctx.accounts.stake_account_metadata.signed_agreement_hash =

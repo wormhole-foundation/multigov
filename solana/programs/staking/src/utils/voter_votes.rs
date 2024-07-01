@@ -1,41 +1,24 @@
-use {
-    crate::{
-        state::checkpoints::{
-            CheckpointData,
-        },
-    },
-    anchor_lang::prelude::*,
-};
+use crate::state::checkpoints::CheckpointData;
+use anchor_lang::prelude::*;
 
-pub fn get_votes(
-    stake_account_checkpoints: &CheckpointData,
-) -> Result<u64> {
-    let votes: u64 = stake_account_checkpoints.latest()?
-        .unwrap_or(0);
+pub fn get_votes(stake_account_checkpoints: &CheckpointData) -> Result<u64> {
+    let votes: u64 = stake_account_checkpoints.latest()?.unwrap_or(0);
     Ok(votes)
 }
 
-pub fn get_past_votes(
-    stake_account_checkpoints: &CheckpointData,
-    timestamp: u64
-) -> Result<u64> {
-    let votes: u64 = stake_account_checkpoints.get_at_probably_recent_timestamp(timestamp)?
+pub fn get_past_votes(stake_account_checkpoints: &CheckpointData, timestamp: u64) -> Result<u64> {
+    let votes: u64 = stake_account_checkpoints
+        .get_at_probably_recent_timestamp(timestamp)?
         .unwrap_or(0);
     Ok(votes)
 }
 
 #[cfg(test)]
 pub mod tests {
-    use {
-        crate::{
-            state::checkpoints::{
-                CheckpointData,
-            },
-            utils::voter_votes::{
-                get_votes,
-                get_past_votes,
-            }
-        },
+    use crate::state::checkpoints::CheckpointData;
+    use crate::utils::voter_votes::{
+        get_past_votes,
+        get_votes,
     };
 
     #[test]
