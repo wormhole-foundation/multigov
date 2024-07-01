@@ -12,7 +12,7 @@ import {
   Keypair,
   TransactionInstruction,
   SYSVAR_CLOCK_PUBKEY,
-  SystemProgram
+  SystemProgram,
 } from "@solana/web3.js";
 import * as wasm2 from "@wormhole/staking-wasm";
 import {
@@ -219,15 +219,18 @@ export class StakeConnection {
     const inbuf = await this.program.provider.connection.getAccountInfo(
       address
     );
-    const stakeAccountCheckpointsWasm = new wasm.WasmCheckpointData(inbuf!.data);
+    const stakeAccountCheckpointsWasm = new wasm.WasmCheckpointData(
+      inbuf!.data
+    );
 
     return { stakeAccountCheckpointsWasm };
   }
 
   /** Stake accounts are loaded by a StakeConnection object */
   public async loadStakeAccount(address: PublicKey): Promise<StakeAccount> {
-    const { stakeAccountCheckpointsWasm } =
-      await this.fetchCheckpointAccount(address);
+    const { stakeAccountCheckpointsWasm } = await this.fetchCheckpointAccount(
+      address
+    );
 
     const metadataAddress = (
       await PublicKey.findProgramAddress(
@@ -305,7 +308,7 @@ export class StakeConnection {
 
   public async withCreateAccount(
     instructions: TransactionInstruction[],
-    owner: PublicKey,
+    owner: PublicKey
   ): Promise<PublicKey> {
     const nonce = crypto.randomBytes(16).toString("hex");
     const stakeAccountAddress = await PublicKey.createWithSeed(
@@ -434,7 +437,10 @@ export class StakeConnection {
     }
 
     if (!delegateeStakeAccount) {
-      delegateeStakeAccountAddress = await this.withCreateAccount(instructions, owner);
+      delegateeStakeAccountAddress = await this.withCreateAccount(
+        instructions,
+        owner
+      );
     } else {
       delegateeStakeAccountAddress = delegateeStakeAccount.address;
     }
@@ -455,7 +461,10 @@ export class StakeConnection {
       await this.withJoinDaoLlc(instructions, stakeAccountAddress);
     }
 
-    if (!delegateeStakeAccount || !(await this.isLlcMember(delegateeStakeAccount))) {
+    if (
+      !delegateeStakeAccount ||
+      !(await this.isLlcMember(delegateeStakeAccount))
+    ) {
       await this.withJoinDaoLlc(instructions, delegateeStakeAccountAddress);
     }
 
@@ -479,10 +488,8 @@ export class StakeConnection {
   }
 
   /** Gets the current votes balance of the delegate's stake account. */
-  public async getVotes(
-    delegateStakeAccount: StakeAccount
-  ): Promise<BN> {
-     return delegateStakeAccount.getVotes();
+  public async getVotes(delegateStakeAccount: StakeAccount): Promise<BN> {
+    return delegateStakeAccount.getVotes();
   }
 
   /** Gets the voting power of the delegate's stake account at a specified past timestamp. */
@@ -490,14 +497,12 @@ export class StakeConnection {
     delegateStakeAccount: StakeAccount,
     timestamp: BN
   ): Promise<BN> {
-     return delegateStakeAccount.getPastVotes(timestamp);
+    return delegateStakeAccount.getPastVotes(timestamp);
   }
 
   /** Gets the current delegate's stake account associated with the specified stake account. */
-  public async delegates(
-    stakeAccount: StakeAccount,
-  ): Promise<PublicKey> {
-     return stakeAccount.delegates();
+  public async delegates(stakeAccount: StakeAccount): Promise<PublicKey> {
+    return stakeAccount.delegates();
   }
 }
 
@@ -540,13 +545,14 @@ export class StakeAccount {
 
   /** Gets the voting power at a specified past timestamp. */
   public async getPastVotes(timestamp: BN): Promise<BN> {
-    const voterVotes = this.stakeAccountCheckpointsWasm.getVoterPastVotes(timestamp);
+    const voterVotes =
+      this.stakeAccountCheckpointsWasm.getVoterPastVotes(timestamp);
 
     return new BN(voterVotes.toString());
   }
 
   public async delegates(): Promise<PublicKey> {
-     return this.stakeAccountMetadata.delegate();
+    return this.stakeAccountMetadata.delegate();
   }
 
   public getBalanceSummary(unixTime: BN): BalanceSummary {

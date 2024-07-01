@@ -76,14 +76,18 @@ describe("api", async () => {
 
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 
-    assert(stakeAccount.tokenBalance.eq(WHTokenBalance.fromString("600").toBN()));
+    assert(
+      stakeAccount.tokenBalance.eq(WHTokenBalance.fromString("600").toBN())
+    );
 
     assert.equal(
       stakeAccount.stakeAccountMetadata.owner.toBase58(),
       owner.toBase58()
     );
 
-    assert(stakeAccount.tokenBalance.eq(WHTokenBalance.fromString("600").toBN()));
+    assert(
+      stakeAccount.tokenBalance.eq(WHTokenBalance.fromString("600").toBN())
+    );
     await assertBalanceMatches(
       stakeConnection,
       owner,

@@ -35,10 +35,7 @@ import path from "path";
 import os from "os";
 import { StakeConnection, WHTokenBalance, WH_TOKEN_DECIMALS } from "../../app";
 import { GlobalConfig } from "../../app/StakeConnection";
-import {
-  createMint,
-  initAddressLookupTable,
-} from "./utils";
+import { createMint, initAddressLookupTable } from "./utils";
 import { loadKeypair } from "./keys";
 
 export const ANCHOR_CONFIG_PATH = "./Anchor.toml";

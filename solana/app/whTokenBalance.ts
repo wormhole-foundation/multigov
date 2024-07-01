@@ -32,7 +32,9 @@ export class WHTokenBalance {
     amount = amount.split(" ").join("");
 
     if (amount.match(INTEGER_REGEXP)) {
-      return new WHTokenBalance(new BN(amount).mul(new BN(10 ** WH_TOKEN_DECIMALS)));
+      return new WHTokenBalance(
+        new BN(amount).mul(new BN(10 ** WH_TOKEN_DECIMALS))
+      );
     } else if (amount.match(DECIMAL_REGEXP)) {
       const integerPart = amount.split(".")[0];
       const decimalPart = amount.split(".")[1];
@@ -40,7 +42,9 @@ export class WHTokenBalance {
 
       let resBN = new BN(integerPart).mul(new BN(10 ** WH_TOKEN_DECIMALS));
       resBN = resBN.add(
-        new BN(decimalPart).mul(new BN(10 ** (WH_TOKEN_DECIMALS - decimalLength)))
+        new BN(decimalPart).mul(
+          new BN(10 ** (WH_TOKEN_DECIMALS - decimalLength))
+        )
       );
 
       return new WHTokenBalance(resBN);

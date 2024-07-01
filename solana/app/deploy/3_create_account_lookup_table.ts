@@ -9,7 +9,10 @@ async function main() {
     new Wallet(AUTHORITY_KEYPAIR),
     {}
   );
-  const lookupTableAddress = await initAddressLookupTable(provider, WORMHOLE_TOKEN);
+  const lookupTableAddress = await initAddressLookupTable(
+    provider,
+    WORMHOLE_TOKEN
+  );
   console.log("Lookup table address: ", lookupTableAddress.toBase58());
 }
 

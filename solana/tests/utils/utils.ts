@@ -144,4 +144,3 @@ export async function expectFailApi(promise: Promise<any>, error: string) {
     assert.equal(err.message, error);
   }
 }
-

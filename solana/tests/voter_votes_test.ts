@@ -47,13 +47,8 @@ describe("voter_votes_test", async () => {
       WHTokenBalance.fromString("100")
     );
 
-    await assertVoterVotesEquals(
-      stakeConnection,
-      owner,
-      new BN(100),
-    );
+    await assertVoterVotesEquals(stakeConnection, owner, new BN(100));
   });
-
 
   after(async () => {
     controller.abort();
