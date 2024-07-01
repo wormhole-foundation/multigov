@@ -479,13 +479,25 @@ export class StakeConnection {
   }
 
   /** Gets the current votes balance of the delegate's stake account. */
-  public async getVotes(delegateStakeAccount: StakeAccount): Promise<BN> {
+  public async getVotes(
+    delegateStakeAccount: StakeAccount
+  ): Promise<BN> {
      return delegateStakeAccount.getVotes();
   }
 
   /** Gets the voting power of the delegate's stake account at a specified past timestamp. */
-  public async getPastVotes(delegateStakeAccount: StakeAccount, timestamp: BN): Promise<BN> {
+  public async getPastVotes(
+    delegateStakeAccount: StakeAccount,
+    timestamp: BN
+  ): Promise<BN> {
      return delegateStakeAccount.getPastVotes(timestamp);
+  }
+
+  /** Gets the current delegate's stake account associated with the specified stake account. */
+  public async delegates(
+    stakeAccount: StakeAccount,
+  ): Promise<PublicKey> {
+     return stakeAccount.delegates();
   }
 }
 
@@ -531,6 +543,10 @@ export class StakeAccount {
     const voterVotes = this.stakeAccountCheckpointsWasm.getVoterPastVotes(timestamp);
 
     return new BN(voterVotes.toString());
+  }
+
+  public async delegates(): Promise<PublicKey> {
+     return this.stakeAccountMetadata.delegate();
   }
 
   public getBalanceSummary(unixTime: BN): BalanceSummary {

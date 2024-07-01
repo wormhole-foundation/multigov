@@ -57,10 +57,22 @@ describe("api", async () => {
       WHTokenBalance.fromString("100")
     );
   });
-  
+
+  it("Default delegates", async () => {
+    await stakeConnection.delegate(
+      undefined,
+      undefined,
+      WHTokenBalance.fromString("200")
+    );
+
+    const stakeAccount = await stakeConnection.getMainAccount(owner);
+    const delegate = await stakeConnection.delegates(stakeAccount);
+    assert(delegate.eq(owner));
+  });
+
   it("Find and parse stake accounts", async () => {
     const res = await stakeConnection.getStakeAccounts(owner);
-    assert.equal(res.length, 2);
+    assert.equal(res.length, 3);
 
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 

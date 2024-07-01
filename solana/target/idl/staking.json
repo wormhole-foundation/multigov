@@ -570,7 +570,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "delegate",
+            "name": "owner",
             "type": "publicKey"
           },
           {

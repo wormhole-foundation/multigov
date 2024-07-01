@@ -570,7 +570,7 @@ export type Staking = {
         "kind": "struct",
         "fields": [
           {
-            "name": "delegate",
+            "name": "owner",
             "type": "publicKey"
           },
           {
@@ -1455,7 +1455,7 @@ export const IDL: Staking = {
         "kind": "struct",
         "fields": [
           {
-            "name": "delegate",
+            "name": "owner",
             "type": "publicKey"
           },
           {

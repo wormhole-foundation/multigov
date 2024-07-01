@@ -20,7 +20,7 @@ pub const CHECKPOINT_BUFFER_SIZE: usize = 48;
 #[account(zero_copy)]
 #[repr(C)]
 pub struct CheckpointData {
-    pub delegate: Pubkey,
+    pub owner: Pubkey,
     pub next_index: u64,
     checkpoints: [[u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
 }
@@ -30,7 +30,7 @@ impl Default for CheckpointData {
     // Only used for testing, so unwrap is acceptable
     fn default() -> Self {
         CheckpointData {
-            delegate:    Pubkey::default(),
+            owner:    Pubkey::default(),
             next_index:  0,
             checkpoints: [[0u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
         }
@@ -40,8 +40,8 @@ impl Default for CheckpointData {
 impl CheckpointData {
     pub const LEN: usize = 8 + 32 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
 
-    pub fn initialize(&mut self, delegate: &Pubkey) {
-        self.delegate = *delegate;
+    pub fn initialize(&mut self, owner: &Pubkey) {
+        self.owner = *owner;
         self.next_index = 0;
     }
 
