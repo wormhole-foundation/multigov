@@ -161,7 +161,7 @@ contract SetProposalExtension is HubGovernorProposalExtenderTest {
     assertEq(hubExtender.proposalExtension(), _extensionTime);
   }
 
-  function testFuzz_ChangingExtensionTimeEmitsProposalExtensionTImeUpdeatedEvent(uint48 _extensionTime) public {
+  function testFuzz_ChangingExtensionTimeEmitsProposalExtensionTimeUpdatedEvent(uint48 _extensionTime) public {
     _extensionTime = uint48(bound(_extensionTime, minimumTime, governor.votingPeriod()));
     (, address[] memory delegates) = _setGovernorAndDelegates();
     vm.warp(vm.getBlockTimestamp() + 7 days);
@@ -211,7 +211,7 @@ contract SetWhitelistedVoteExtender is HubGovernorProposalExtenderTest {
     assertEq(hubExtender.whitelistedVoteExtender(), _voteExtender);
   }
 
-  function testFuzz_ChangingExtensionTimeEmitsProposalExtensionTImeUpdeatedEvent(address _voteExtender) public {
+  function testFuzz_ChangingExtensionTimeEmitsWhitelistedVotedExtenderUpdatedEvent(address _voteExtender) public {
     vm.assume(_voteExtender != address(timelock));
     (, address[] memory delegates) = _setGovernorAndDelegates();
     ProposalBuilder builder = _createProposal(
