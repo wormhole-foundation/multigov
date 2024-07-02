@@ -54,6 +54,7 @@ contract HasVoted is SpokeCountingFractionalTest {
     _support = uint8(bound(_support, 0, 2));
     bytes memory _voteData = _getVoteData(_votes);
     uint256 _totalWeight = _getTotalWeight(_votes);
+    vm.assume(_totalWeight != 0);
 
     spokeCountingFractional.workaround_createProposalVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
@@ -75,6 +76,7 @@ contract VoteWeightCast is SpokeCountingFractionalTest {
     _support = uint8(bound(_support, 0, 2));
     bytes memory _voteData = _getVoteData(_votes);
     uint256 _totalWeight = _getTotalWeight(_votes);
+    vm.assume(_totalWeight != 0);
 
     spokeCountingFractional.workaround_createProposalVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
@@ -93,6 +95,7 @@ contract ProposalVotes is SpokeCountingFractionalTest {
 
     bytes memory _voteData = _getVoteData(_votes);
     uint256 _totalWeight = _getTotalWeight(_votes);
+    vm.assume(_totalWeight != 0);
 
     spokeCountingFractional.workaround_createProposalVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
@@ -115,6 +118,7 @@ contract _CountVote is SpokeCountingFractionalTest {
 
     bytes memory _voteData = _getVoteData(_votes);
     uint256 _totalWeight = _getTotalWeight(_votes);
+    vm.assume(_totalWeight != 0);
 
     spokeCountingFractional.exposed_countVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
@@ -149,6 +153,7 @@ contract _CountVote is SpokeCountingFractionalTest {
 
     bytes memory _voteData = _getVoteData(_votes);
     uint256 _totalWeight = _getTotalWeight(_votes);
+    vm.assume(_totalWeight != 0);
 
     uint128 TOTAL_WEIGHT_LESS_THAN_CAST = uint128(_totalWeight - 1);
 
@@ -267,8 +272,10 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
   ) public {
     bytes memory _initialVoteData = _getVoteData(_initialVotes);
     uint128 _initialTotalWeight = uint128(_getTotalWeight(_initialVotes));
+    uint128 _additionalTotalVoteWeight = uint128(_getTotalWeight(_additionalVotes));
 
     vm.assume(_initialTotalWeight != 0);
+    vm.assume(_additionalTotalVoteWeight != 0);
 
     spokeCountingFractional.exposed_countVoteFractional(
       _proposalId, _account, uint128(_initialTotalWeight), _initialVoteData

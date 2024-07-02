@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
+import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
@@ -18,7 +20,7 @@ import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 // TODO revert if voter has no vote weight
 // TODO Compatible with Flexible voting on the L2
 // TODO Message can only be bridged during the cast vote window period (Is this what we want)
-contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional {
+contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional, GovernorMinimumWeightedVoteWindow {
   bytes32 public constant BALLOT_TYPEHASH =
     keccak256("Ballot(uint256 proposalId,uint8 support,address voter,uint256 nonce)");
 
@@ -38,10 +40,17 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason, bytes params
   );
 
-  constructor(address _spokeMetadataCollector, address _votingToken, uint32 _safeWindow, address _owner)
+  constructor(
+    address _spokeMetadataCollector,
+    address _votingToken,
+    uint32 _safeWindow,
+    address _owner,
+    uint48 _initialVoteWindow
+  )
     // TODO: name, version
     EIP712("SpokeVoteAggregator", "1")
     Ownable(_owner)
+    GovernorMinimumWeightedVoteWindow(_initialVoteWindow)
   {
     VOTING_TOKEN = ERC20Votes(_votingToken);
     _setSafeWindow(_safeWindow);
@@ -51,6 +60,11 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   function setSafeWindow(uint48 _safeWindow) external {
     _checkOwner();
     _setSafeWindow(_safeWindow);
+  }
+
+  function setVoteWeightWindow(uint48 _weightWindow) public {
+    _checkOwner();
+    _setVoteWeightWindow(_weightWindow);
   }
 
   function isVotingSafe(uint256 _proposalId) external view returns (bool) {
@@ -88,6 +102,10 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     if (!valid) revert InvalidSignature(_voter);
 
     return _castVote(_proposalId, _voter, _support, "");
+  }
+
+  function token() public view virtual override returns (IERC5805) {
+    return VOTING_TOKEN;
   }
 
   function _castVote(uint256 _proposalId, address _voter, uint8 _support, string memory _reason)
