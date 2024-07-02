@@ -15,10 +15,11 @@ contract HubGovernorProposalExtenderTest is Test, HubGovernorTest {
   HubGovernorProposalExtender hubExtender;
   address whitelistedExtender = makeAddr("Whitelisted Extender");
   uint48 extensionTime = 3 hours;
+  uint48 minimumTime = 1 hours;
 
   function setUp() public virtual override {
     HubGovernorTest.setUp();
-    hubExtender = new HubGovernorProposalExtender(whitelistedExtender, extensionTime, initialOwner);
+    hubExtender = new HubGovernorProposalExtender(whitelistedExtender, extensionTime, initialOwner, minimumTime);
     hubExtender.initialize(payable(address(governor)));
     vm.prank(initialOwner);
     hubExtender.transferOwnership(address(timelock));
@@ -29,13 +30,16 @@ contract Constructor is HubGovernorProposalExtenderTest {
   function testFuzz_CorrectlySetConstructorArgs(
     address _whitelistedVoteExtender,
     uint48 _voteTimeExtension,
-    address _owner
+    address _owner,
+    uint48 _minimumExtensionTime
   ) public {
     vm.assume(_owner != address(0));
-    hubExtender = new HubGovernorProposalExtender(_whitelistedVoteExtender, _voteTimeExtension, _owner);
+    hubExtender =
+      new HubGovernorProposalExtender(_whitelistedVoteExtender, _voteTimeExtension, _owner, _minimumExtensionTime);
     assertEq(hubExtender.whitelistedVoteExtender(), _whitelistedVoteExtender);
     assertEq(hubExtender.proposalExtension(), _voteTimeExtension);
     assertEq(hubExtender.owner(), _owner);
+    assertEq(hubExtender.minimumExtensionTime(), _minimumExtensionTime);
   }
 }
 
@@ -43,9 +47,11 @@ contract Initialize is HubGovernorProposalExtenderTest {
   function testFuzz_CorrectlyInitializeGovernor(
     address _whitelistedVoteExtender,
     uint48 _voteTimeExtension,
-    address _governor
+    address _governor,
+    uint48 _minimumExtensionTime
   ) public {
-    hubExtender = new HubGovernorProposalExtender(_whitelistedVoteExtender, _voteTimeExtension, initialOwner);
+    hubExtender =
+      new HubGovernorProposalExtender(_whitelistedVoteExtender, _voteTimeExtension, initialOwner, _minimumExtensionTime);
     hubExtender.initialize(payable(_governor));
     assertEq(address(hubExtender.governor()), _governor);
   }
@@ -53,9 +59,11 @@ contract Initialize is HubGovernorProposalExtenderTest {
   function testFuzz_RevertIf_InitializedTwice(
     address _whitelistedVoteExtender,
     uint48 _voteTimeExtension,
-    address _governor
+    address _governor,
+    uint48 _minimumExtensionTime
   ) public {
-    hubExtender = new HubGovernorProposalExtender(_whitelistedVoteExtender, _voteTimeExtension, initialOwner);
+    hubExtender =
+      new HubGovernorProposalExtender(_whitelistedVoteExtender, _voteTimeExtension, initialOwner, _minimumExtensionTime);
     hubExtender.initialize(payable(_governor));
 
     vm.expectRevert(HubGovernorProposalExtender.AlreadyInitialized.selector);
@@ -142,6 +150,7 @@ contract ExtendProposal is HubGovernorProposalExtenderTest {
 
 contract SetProposalExtension is HubGovernorProposalExtenderTest {
   function testFuzz_CorrectlyChangeExtensionTime(uint48 _extensionTime) public {
+    _extensionTime = uint48(bound(_extensionTime, minimumTime, governor.votingPeriod() - 1));
     _setGovernorAndDelegates();
     vm.warp(block.timestamp + 1 days);
     ProposalBuilder builder =
@@ -153,6 +162,7 @@ contract SetProposalExtension is HubGovernorProposalExtenderTest {
   }
 
   function testFuzz_ChangingExtensionTimeEmitsProposalExtensionTImeUpdeatedEvent(uint48 _extensionTime) public {
+    _extensionTime = uint48(bound(_extensionTime, minimumTime, governor.votingPeriod()));
     (, address[] memory delegates) = _setGovernorAndDelegates();
     vm.warp(vm.getBlockTimestamp() + 7 days);
     ProposalBuilder builder =

@@ -15,9 +15,11 @@ contract HubVotePool is QueryResponse, Ownable {
   IWormhole public immutable WORMHOLE_CORE;
   IGovernor public hubGovernor;
   uint48 public safeWindow;
+  uint48 public minimumDecisionWindow;
   uint8 constant UNUSED_SUPPORT_PARAM = 1;
 
   error InvalidWormholeMessage(string);
+  error InvalidUnsafeWindow();
   error UnknownMessageEmitter();
   error InvalidProposalVote();
   error TooManyEthCallResults(uint256);
@@ -50,11 +52,13 @@ contract HubVotePool is QueryResponse, Ownable {
     address _core,
     address _hubGovernor,
     SpokeVoteAggregator[] memory _initialSpokeRegistry,
-    uint32 _safeWindow
+    uint32 _safeWindow,
+    uint48 _minimumDecisionWindow
   ) QueryResponse(_core) Ownable(_hubGovernor) {
     WORMHOLE_CORE = IWormhole(_core);
     hubGovernor = IGovernor(_hubGovernor);
     _setSafeWindow(_safeWindow);
+    minimumDecisionWindow = _minimumDecisionWindow;
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
       SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
       spokeRegistry[aggregator.wormholeChainId] = bytes32(uint256(uint160(aggregator.addr)));
@@ -81,6 +85,10 @@ contract HubVotePool is QueryResponse, Ownable {
 
   function setSafeWindow(uint48 _safeWindow) external {
     _checkOwner();
+    uint256 decisionPeriod = hubGovernor.votingPeriod() - _safeWindow;
+    if (decisionPeriod < minimumDecisionWindow || decisionPeriod >= hubGovernor.votingPeriod()) {
+      revert InvalidUnsafeWindow();
+    }
     _setSafeWindow(_safeWindow);
   }
 
