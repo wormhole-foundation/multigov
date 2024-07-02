@@ -23,7 +23,6 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
   HubVotePoolHarness public hubVotePool;
-  // WormholeMock public wormhole;
   address initialOwner;
 
   uint48 VOTE_WINDOW = 1 days;
