@@ -13,7 +13,8 @@ contract DeployHubContractsSepolia is DeployHubContractsBaseImpl {
       initialVotingPeriod: 1800,
       initialProposalThreshold: 500_000e18,
       initialQuorum: 1_000_000e18,
-      wormholeCore: 0x31377888146f3253211EFEf5c676D41ECe7D58Fe
+      wormholeCore: 0x31377888146f3253211EFEf5c676D41ECe7D58Fe,
+      voteWeightWindow: 10 minutes
     });
   }
 }

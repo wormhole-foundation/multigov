@@ -17,6 +17,7 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     address hubProposalMetadata;
     address votingToken;
     uint32 safeWindow;
+    uint48 voteWeightWindow;
   }
 
   error InvalidAddressConfiguration();
@@ -38,8 +39,9 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     vm.startBroadcast(wallet.privateKey);
     SpokeMetadataCollector spokeMetadataCollector =
       new SpokeMetadataCollector(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
-    SpokeVoteAggregator aggregator =
-      new SpokeVoteAggregator(address(spokeMetadataCollector), config.votingToken, config.safeWindow, wallet.addr);
+    SpokeVoteAggregator aggregator = new SpokeVoteAggregator(
+      address(spokeMetadataCollector), config.votingToken, config.safeWindow, wallet.addr, config.voteWeightWindow
+    );
 
     vm.stopBroadcast();
     return (aggregator, spokeMetadataCollector);

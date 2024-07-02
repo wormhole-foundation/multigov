@@ -4,54 +4,57 @@ pragma solidity ^0.8.23;
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import {GovernorCountingFractional} from "flexible-voting/GovernorCountingFractional.sol";
+import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {GovernorCountingFractional} from "flexible-voting/GovernorCountingFractional.sol";
 
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
+import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
+import {HubVotePool} from "src/HubVotePool.sol";
 
 contract HubGovernor is
   GovernorCountingFractional,
   GovernorSettings,
   GovernorVotes,
   GovernorTimelockControl,
-  GovernorSettableFixedQuorum
+  GovernorSettableFixedQuorum,
+  GovernorMinimumWeightedVoteWindow
 {
   address public whitelistedProposer;
-  mapping(address votingAddress => bool enabled) public whitelistedVotingAddresses;
+  HubVotePool public hubVotePool;
 
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
 
   constructor(
     string memory _name,
-    IVotes _token,
+    ERC20Votes _token,
     TimelockController _timelock,
     uint48 _initialVotingDelay,
     uint32 _initialVotingPeriod,
     uint256 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _whitelistedVotingAddress
+    address _hubVotePool,
+    uint48 _initialVoteWindow
   )
     Governor(_name)
     GovernorSettings(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold)
     GovernorVotes(_token)
     GovernorTimelockControl(_timelock)
     GovernorSettableFixedQuorum(_initialQuorum)
+    GovernorMinimumWeightedVoteWindow(_initialVoteWindow)
   {
-    _enableWhitelistedVotingAddress(_whitelistedVotingAddress);
+    _setHubVotePool(_hubVotePool);
   }
 
-  function enableWhitelistedVotingAddress(address _whitelistedAddress) external {
+  function setHubVotePool(address _hubVotePool) external {
     _checkGovernance();
-    _enableWhitelistedVotingAddress(_whitelistedAddress);
-  }
-
-  function disableWhitelistedVotingAddress(address _whitelistedAddress) external {
-    _checkGovernance();
-    _disableWhitelistedVotingAddress(_whitelistedAddress);
+    _setHubVotePool(_hubVotePool);
   }
 
   function propose(
@@ -82,6 +85,15 @@ contract HubGovernor is
     _setWhitelistedProposer(_proposer);
   }
 
+  function setVoteWeightWindow(uint48 _weightWindow) external {
+    _checkGovernance();
+    _setVoteWeightWindow(_weightWindow);
+  }
+
+  function token() public view virtual override(GovernorMinimumWeightedVoteWindow, GovernorVotes) returns (IERC5805) {
+    return GovernorVotes.token();
+  }
+
   function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
     internal
     virtual
@@ -91,12 +103,8 @@ contract HubGovernor is
     return GovernorTimelockControl._cancel(targets, values, calldatas, descriptionHash);
   }
 
-  function _disableWhitelistedVotingAddress(address _whitelistedAddress) internal {
-    whitelistedVotingAddresses[_whitelistedAddress] = false;
-  }
-
-  function _enableWhitelistedVotingAddress(address _whitelistedAddress) internal {
-    whitelistedVotingAddresses[_whitelistedAddress] = true;
+  function _setHubVotePool(address _hubVotePool) internal {
+    hubVotePool = HubVotePool(_hubVotePool);
   }
 
   function _executeOperations(
@@ -157,7 +165,7 @@ contract HubGovernor is
     virtual
     override(Governor, GovernorCountingFractional)
   {
-    if (!whitelistedVotingAddresses[account]) {
+    if (address(hubVotePool) != account) {
       require(totalWeight > 0, "GovernorCountingFractional: no weight");
       if (voteWeightCast(proposalId, account) >= totalWeight) revert("GovernorCountingFractional: all weight cast");
     }
@@ -166,5 +174,15 @@ contract HubGovernor is
 
     if (voteData.length == 0) _countVoteNominal(proposalId, account, safeTotalWeight, support);
     else _countVoteFractional(proposalId, account, safeTotalWeight, voteData);
+  }
+
+  function _getVotes(address _account, uint256 _timepoint, bytes memory _params)
+    internal
+    view
+    virtual
+    override(Governor, GovernorVotes, GovernorMinimumWeightedVoteWindow)
+    returns (uint256)
+  {
+    return GovernorMinimumWeightedVoteWindow._getVotes(_account, _timepoint, _params);
   }
 }

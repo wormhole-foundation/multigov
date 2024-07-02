@@ -3,7 +3,7 @@ pragma solidity ^0.8.23;
 
 import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
 import {HubGovernor} from "src/HubGovernor.sol";
@@ -25,6 +25,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint256 initialProposalThreshold;
     uint208 initialQuorum;
     address wormholeCore;
+    uint48 voteWeightWindow;
   }
 
   error InvalidAddressConfiguration();
@@ -51,13 +52,14 @@ abstract contract DeployHubContractsBaseImpl is Script {
     // DeployHub Governor
     HubGovernor gov = new HubGovernor(
       config.name,
-      IVotes(config.token),
+      ERC20Votes(config.token),
       timelock,
       config.initialVotingDelay,
       config.initialVotingPeriod,
       config.initialProposalThreshold,
       config.initialQuorum,
-      address(pool)
+      address(pool),
+      config.voteWeightWindow
     );
 
     // Ownership will be transferred during configuration
