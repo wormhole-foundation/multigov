@@ -9,3 +9,4 @@ lib
 snapshots
 /artifacts
 package-lock.json
+yarn.lock
