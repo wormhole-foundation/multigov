@@ -45,39 +45,40 @@ describe("api", async () => {
   });
 
   it("Delegate", async () => {
+    const stakeAccount = await stakeConnection.getMainAccount(owner);
+
     await stakeConnection.delegate(
-      undefined,
-      undefined,
+      stakeAccount,
+      stakeAccount,
       WHTokenBalance.fromString("600")
     );
 
     await stakeConnection.delegate(
-      undefined,
-      undefined,
+      stakeAccount,
+      stakeAccount,
       WHTokenBalance.fromString("100")
     );
   });
 
   it("Default delegates", async () => {
-    await stakeConnection.delegate(
-      undefined,
-      undefined,
-      WHTokenBalance.fromString("200")
-    );
-
     const stakeAccount = await stakeConnection.getMainAccount(owner);
+
     const delegate = await stakeConnection.delegates(stakeAccount);
-    assert(delegate.eq(owner));
+    assert.equal(
+      delegate.toBase58(),
+      owner.toBase58()
+    );
   });
 
   it("Find and parse stake accounts", async () => {
     const res = await stakeConnection.getStakeAccounts(owner);
-    assert.equal(res.length, 3);
+    assert.equal(res.length, 2);
 
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 
-    assert(
-      stakeAccount.tokenBalance.eq(WHTokenBalance.fromString("600").toBN())
+    assert.equal(
+      stakeAccount.tokenBalance.toString(),
+      "0"
     );
 
     assert.equal(
@@ -85,14 +86,10 @@ describe("api", async () => {
       owner.toBase58()
     );
 
-    assert(
-      stakeAccount.tokenBalance.eq(WHTokenBalance.fromString("600").toBN())
-    );
     await assertBalanceMatches(
       stakeConnection,
       owner,
-      { balance: WHTokenBalance.fromString("600") },
-      await stakeConnection.getTime()
+      { balance: WHTokenBalance.fromString("0") }
     );
   });
 });

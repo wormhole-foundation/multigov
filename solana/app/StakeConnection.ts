@@ -552,10 +552,10 @@ export class StakeAccount {
   }
 
   public async delegates(): Promise<PublicKey> {
-    return this.stakeAccountMetadata.delegate();
+    return this.stakeAccountMetadata.delegate;
   }
 
-  public getBalanceSummary(unixTime: BN): BalanceSummary {
+  public getBalanceSummary(): BalanceSummary {
     let balanceBN = new BN(this.tokenBalance.toString());
 
     return {

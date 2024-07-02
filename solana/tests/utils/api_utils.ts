@@ -2,6 +2,7 @@ import { StakeConnection } from "../../app/StakeConnection";
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { WHTokenBalance } from "../../app";
+import assert from "assert";
 
 /**
  * Asserts that `owner` has 1 single stake account and its balance summary is equal to an `expected` value
@@ -9,15 +10,13 @@ import { WHTokenBalance } from "../../app";
 export async function assertBalanceMatches(
   stakeConnection: StakeConnection,
   owner: PublicKey,
-  expected: WHTokenBalance,
-  currentTime: BN
+  expected: WHTokenBalance
 ) {
   const stakeAccount = await stakeConnection.getMainAccount(owner);
-  const balanceSummary = stakeAccount.getBalanceSummary(currentTime);
+  const balanceSummary = stakeAccount.getBalanceSummary();
   assert.equal(
     balanceSummary.balance.toString(),
-    expected.toString(),
-    "Balance"
+    expected.balance.toString()
   );
 }
 
