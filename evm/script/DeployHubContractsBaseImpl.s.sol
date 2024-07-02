@@ -29,6 +29,8 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint48 voteWeightWindow;
     address whitelistedVoteExtender;
     uint48 voteTimeExtension;
+    uint48 minimumDecisionWindow;
+    uint48 minimumExtensionTime;
   }
 
   error InvalidAddressConfiguration();
@@ -50,11 +52,15 @@ abstract contract DeployHubContractsBaseImpl is Script {
     TimelockController timelock =
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
-    HubVotePool pool =
-      new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0), 1 days);
+    HubVotePool pool = new HubVotePool(
+      config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0), 1 days, config.minimumDecisionWindow
+    );
 
     HubGovernorProposalExtender extender = new HubGovernorProposalExtender(
-      config.whitelistedVoteExtender, config.voteTimeExtension, config.whitelistedVoteExtender
+      config.whitelistedVoteExtender,
+      config.voteTimeExtension,
+      config.whitelistedVoteExtender,
+      config.minimumExtensionTime
     );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({

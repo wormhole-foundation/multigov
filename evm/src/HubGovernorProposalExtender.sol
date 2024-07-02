@@ -13,9 +13,11 @@ contract HubGovernorProposalExtender is Ownable {
   error ProposalAlreadyExtended();
   error ProposalCannotBeExtended();
   error ProposalDoesNotExist();
+  error InvalidExtensionTime();
 
   address public whitelistedVoteExtender;
   uint48 public proposalExtension;
+  uint48 public minimumExtensionTime;
   HubGovernor public governor;
   bool public initialized;
 
@@ -24,9 +26,12 @@ contract HubGovernorProposalExtender is Ownable {
   event WhitelistedVoteExtenderUpdated(address oldExtender, address newExtended);
   event ProposalExtensionTimeUpdated(uint48 oldExtension, uint48 newExtension);
 
-  constructor(address _whitelistedVoteExtender, uint48 _voteTimeExtension, address _owner) Ownable(_owner) {
+  constructor(address _whitelistedVoteExtender, uint48 _voteTimeExtension, address _owner, uint48 _minimumExtensionTime)
+    Ownable(_owner)
+  {
     _setProposalExtension(_voteTimeExtension);
     _setWhitelistedVoteExtender(_whitelistedVoteExtender);
+    minimumExtensionTime = _minimumExtensionTime;
   }
 
   function initialize(address payable _governor) external {
@@ -51,6 +56,9 @@ contract HubGovernorProposalExtender is Ownable {
 
   function setProposalExtension(uint48 _extensionTime) external {
     _checkOwner();
+    if (_extensionTime >= governor.votingPeriod() || _extensionTime < minimumExtensionTime) {
+      revert InvalidExtensionTime();
+    }
     _setProposalExtension(_extensionTime);
   }
 

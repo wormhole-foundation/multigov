@@ -18,7 +18,9 @@ contract DeployHubContractsSepolia is DeployHubContractsBaseImpl {
       wormholeCore: 0x31377888146f3253211EFEf5c676D41ECe7D58Fe,
       voteWeightWindow: 10 minutes,
       whitelistedVoteExtender: wallet.addr,
-      voteTimeExtension: 30
+      voteTimeExtension: 30,
+      minimumDecisionWindow: 1,
+      minimumExtensionTime: 1
     });
   }
 }

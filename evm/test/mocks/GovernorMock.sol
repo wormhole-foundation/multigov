@@ -28,4 +28,8 @@ contract GovernorMock {
   function proposalSnapshot(uint256) public view virtual returns (uint256) {
     return voteStart;
   }
+
+  function votingPeriod() public pure returns (uint256) {
+    return 7 days;
+  }
 }

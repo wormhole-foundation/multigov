@@ -16,26 +16,27 @@ import {HubGovernorHarness} from "test/harnesses/HubGovernorHarness.sol";
 import {HubVotePoolHarness} from "test/harnesses/HubVotePoolHarness.sol";
 import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
+import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 
-contract HubGovernorTest is Test, ProposalTest {
+contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
   HubGovernorHarness public governor;
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
   HubVotePoolHarness public hubVotePool;
-  WormholeMock public wormhole;
+  // WormholeMock public wormhole;
   address initialOwner;
 
   uint48 VOTE_WINDOW = 1 days;
 
   function setUp() public virtual {
+    _setupWormhole();
     initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    wormhole = new WormholeMock();
-    HubGovernorProposalExtender extender = new HubGovernorProposalExtender(initialOwner, 1 days, initialOwner);
+    HubGovernorProposalExtender extender = new HubGovernorProposalExtender(initialOwner, 1 days, initialOwner, 1 hours);
 
     hubVotePool =
-      new HubVotePoolHarness(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1), 1 days);
+      new HubVotePoolHarness(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1), 1 days, 1 hours);
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",
