@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {Test, console2} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -142,11 +141,6 @@ contract HubVotePool is QueryResponse, Ownable {
 
   function _isVotingSafe(uint256 _proposalId) internal view returns (bool) {
     uint256 voteStart = hubGovernor.proposalSnapshot(_proposalId);
-    console2.logUint(block.timestamp);
-    console2.logUint(voteStart + safeWindow);
-    console2.logUint(voteStart);
-    console2.logUint(safeWindow);
-    console2.logBool((voteStart + safeWindow) >= block.timestamp);
     return (voteStart + safeWindow) >= block.timestamp;
   }
 
