@@ -48,14 +48,20 @@ describe("api", async () => {
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 
     await stakeConnection.delegate(
+      undefined,
       stakeAccount,
-      stakeAccount,
-      WHTokenBalance.fromString("600")
+      WHTokenBalance.fromString("100")
     );
 
     await stakeConnection.delegate(
       stakeAccount,
       stakeAccount,
+      WHTokenBalance.fromString("100")
+    );
+
+    await stakeConnection.delegate(
+      stakeAccount,
+      undefined,
       WHTokenBalance.fromString("100")
     );
   });

@@ -41,7 +41,7 @@ pub struct Delegate<'info> {
     pub payer: Signer<'info>,
 
     // User stake account:
-    #[account(zero)]
+    #[account(mut)]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
