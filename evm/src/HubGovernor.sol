@@ -37,9 +37,6 @@ contract HubGovernor is
   HubVotePool public hubVotePool;
   IVoteExtender public governorProposalExtender;
 
-  // Should we remove this mapping and add the hubVotePool
-  mapping(address votingAddress => bool enabled) public whitelistedVotingAddresses;
-
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
 
   struct ConstructorParams {
@@ -65,10 +62,6 @@ contract HubGovernor is
   {
     _setHubVotePool(_params.hubVotePool);
     _setGovernorProposalExtender(_params.whitelistedVoteExtender);
-  }
-
-  function checkGovernance() external {
-    _checkGovernance();
   }
 
   function setHubVotePool(address _hubVotePool) external {
