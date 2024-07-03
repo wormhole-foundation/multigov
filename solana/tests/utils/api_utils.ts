@@ -1,4 +1,4 @@
-import { StakeConnection } from "../../app/StakeConnection";
+import { StakeAccount, StakeConnection } from "../../app/StakeConnection";
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { WHTokenBalance } from "../../app";
@@ -20,13 +20,10 @@ export async function assertBalanceMatches(
   );
 }
 
-async function assertVoterVotesEquals(
-  stakeConnection: StakeConnection,
-  owner: PublicKey,
+export async function assertVoterVotesEquals(
+  stakeAccount: StakeAccount,
   expectedVoterVotes: BN
 ) {
-  const stakeAccount = await stakeConnection.getMainAccount(owner);
-
-  const currentActual = await stakeAccount.getVoterWeight();
-  assert.equal(currentActual.toBN().toString(), expectedVoterVotes.toString());
+  const currentActual = await stakeAccount.getVotes();
+  assert.equal(currentActual.toString(), expectedVoterVotes.toString());
 }

@@ -109,10 +109,6 @@ pub mod staking {
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
 
-        let current_delegate_stake_account_checkpoints = &mut ctx
-            .accounts
-            .current_delegate_stake_account_checkpoints
-            .load_mut()?;
         let delegatee_stake_account_checkpoints = &mut ctx
             .accounts
             .delegatee_stake_account_checkpoints
@@ -120,10 +116,16 @@ pub mod staking {
 
         if current_delegate != delegatee {
             if current_delegate != Pubkey::default() {
+                let current_delegate_stake_account_checkpoints = &mut ctx
+                    .accounts
+                    .current_delegate_stake_account_checkpoints
+                    .load_mut()?;
+
                 let latest_current_delegate_checkpoint_value =
                     current_delegate_stake_account_checkpoints
                         .latest()?
                         .unwrap_or(0);
+
                 if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
                     current_timestamp,
                     latest_current_delegate_checkpoint_value - recorded_balance,

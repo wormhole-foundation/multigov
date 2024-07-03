@@ -424,6 +424,7 @@ export class StakeConnection {
     amount: WHTokenBalance
   ) {
     let stakeAccountAddress: PublicKey;
+    let currentDelegateStakeAccountAddress: PublicKey;
     let delegateeStakeAccountAddress: PublicKey;
     const owner = this.provider.wallet.publicKey;
 
@@ -432,15 +433,14 @@ export class StakeConnection {
 
     if (!stakeAccount) {
       stakeAccountAddress = await this.withCreateAccount(instructions, owner);
+      currentDelegateStakeAccountAddress = stakeAccountAddress;
     } else {
       stakeAccountAddress = stakeAccount.address;
+      currentDelegateStakeAccountAddress = await this.delegates(stakeAccount);
     }
 
     if (!delegateeStakeAccount) {
-      delegateeStakeAccountAddress = await this.withCreateAccount(
-        instructions,
-        owner
-      );
+      delegateeStakeAccountAddress = currentDelegateStakeAccountAddress;
     } else {
       delegateeStakeAccountAddress = delegateeStakeAccount.address;
     }
@@ -462,8 +462,8 @@ export class StakeConnection {
     }
 
     if (
-      !delegateeStakeAccount ||
-      !(await this.isLlcMember(delegateeStakeAccount))
+      delegateeStakeAccount &&
+        !(await this.isLlcMember(delegateeStakeAccount))
     ) {
       await this.withJoinDaoLlc(instructions, delegateeStakeAccountAddress);
     }
@@ -477,7 +477,7 @@ export class StakeConnection {
         .delegate(delegateeStakeAccountAddress)
         .accounts({
           stakeAccountCheckpoints: stakeAccountAddress,
-          currentDelegateStakeAccountCheckpoints: stakeAccountAddress,
+          currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccountAddress,
           delegateeStakeAccountCheckpoints: delegateeStakeAccountAddress,
           mint: this.config.whTokenMint,
         })
@@ -488,12 +488,12 @@ export class StakeConnection {
   }
 
   /** Gets the current votes balance of the delegate's stake account. */
-  public async getVotes(delegateStakeAccount: StakeAccount): Promise<BN> {
+  public getVotes(delegateStakeAccount: StakeAccount): Promise<BN> {
     return delegateStakeAccount.getVotes();
   }
 
   /** Gets the voting power of the delegate's stake account at a specified past timestamp. */
-  public async getPastVotes(
+  public getPastVotes(
     delegateStakeAccount: StakeAccount,
     timestamp: BN
   ): Promise<BN> {
@@ -501,7 +501,7 @@ export class StakeConnection {
   }
 
   /** Gets the current delegate's stake account associated with the specified stake account. */
-  public async delegates(stakeAccount: StakeAccount): Promise<PublicKey> {
+  public delegates(stakeAccount: StakeAccount): Promise<PublicKey> {
     return stakeAccount.delegates();
   }
 }
@@ -537,21 +537,21 @@ export class StakeAccount {
   }
 
   /** Gets the current votes balance. */
-  public async getVotes(): Promise<BN> {
+  public getVotes(): Promise<BN> {
     const voterVotes = this.stakeAccountCheckpointsWasm.getVoterVotes();
 
     return new BN(voterVotes.toString());
   }
 
   /** Gets the voting power at a specified past timestamp. */
-  public async getPastVotes(timestamp: BN): Promise<BN> {
+  public getPastVotes(timestamp: BN): Promise<BN> {
     const voterVotes =
       this.stakeAccountCheckpointsWasm.getVoterPastVotes(timestamp);
 
     return new BN(voterVotes.toString());
   }
 
-  public async delegates(): Promise<PublicKey> {
+  public delegates(): Promise<PublicKey> {
     return this.stakeAccountMetadata.delegate;
   }
 

@@ -1,6 +1,12 @@
 #![allow(non_snake_case)]
 use crate::state::checkpoints::CheckpointData;
-use anchor_lang::prelude::Clock;
+use anchor_lang::{
+        prelude::{
+            Clock,
+            Error,
+        },
+        AccountDeserialize,
+};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -10,6 +16,20 @@ pub struct WasmCheckpointData {
 
 #[wasm_bindgen]
 impl WasmCheckpointData {
+    #[wasm_bindgen(constructor)]
+    pub fn from_buffer(buffer: &[u8]) -> Result<WasmCheckpointData, JsValue> {
+        convert_error(WasmCheckpointData::from_buffer_impl(
+            &buffer[..CheckpointData::LEN],
+        ))
+    }
+    fn from_buffer_impl(buffer: &[u8]) -> Result<WasmCheckpointData, Error> {
+        let mut ptr = buffer;
+        let checkpoint_data = CheckpointData::try_deserialize(&mut ptr)?;
+        Ok(WasmCheckpointData {
+            wrapped: checkpoint_data,
+        })
+    }
+
     #[wasm_bindgen(js_name=getVoterVotes)]
     pub fn get_voter_votes(&self) -> Result<u64, JsValue> {
         convert_error(crate::utils::voter_votes::get_votes(&self.wrapped))

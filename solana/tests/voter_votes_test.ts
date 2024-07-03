@@ -44,10 +44,11 @@ describe("voter_votes_test", async () => {
     await stakeConnection.delegate(
       undefined,
       undefined,
-      WHTokenBalance.fromString("100")
+      WHTokenBalance.fromString("50")
     );
+    const stakeAccount = await stakeConnection.getMainAccount(owner);
 
-    await assertVoterVotesEquals(stakeConnection, owner, new BN(100));
+    await assertVoterVotesEquals(stakeAccount, new BN(50));
   });
 
   after(async () => {

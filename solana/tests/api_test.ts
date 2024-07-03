@@ -78,13 +78,24 @@ describe("api", async () => {
 
   it("Find and parse stake accounts", async () => {
     const res = await stakeConnection.getStakeAccounts(owner);
-    assert.equal(res.length, 2);
+    assert.equal(res.length, 6);
 
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "0"
+      "300"
+    );
+    
+    await stakeConnection.delegate(
+      stakeAccount,
+      stakeAccount,
+      WHTokenBalance.fromString("100")
+    );
+
+    assert.equal(
+      stakeAccount.tokenBalance.toString(),
+      "400"
     );
 
     assert.equal(
@@ -95,7 +106,7 @@ describe("api", async () => {
     await assertBalanceMatches(
       stakeConnection,
       owner,
-      { balance: WHTokenBalance.fromString("0") }
+      { balance: WHTokenBalance.fromString("400") }
     );
   });
 });
