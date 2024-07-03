@@ -38,6 +38,7 @@ contract HubGovernor is
   IVoteExtender public governorProposalExtender;
 
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
+  event GovernorProposalExtenderUpdated(address oldExtender, address newExtender);
 
   struct ConstructorParams {
     string name;
@@ -125,6 +126,7 @@ contract HubGovernor is
   }
 
   function _setGovernorProposalExtender(address _extender) internal {
+    emit GovernorProposalExtenderUpdated(address(governorProposalExtender), _extender);
     governorProposalExtender = IVoteExtender(_extender);
   }
 

@@ -238,6 +238,59 @@ contract SetHubVotePool is HubGovernorTest {
   }
 }
 
+contract SetGovernorProposalExtender is HubGovernorTest {
+  function _createGovernorProposalExtender(address _governorProposalExtender) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setGovernorProposalExtender(address)", _governorProposalExtender));
+  }
+
+  function testFuzz_SetANewGovernorProposalExtender(
+    address _newGovernorProposalExtender,
+    string memory _proposalDescription
+  ) public {
+    _setGovernorAndDelegates();
+
+    ProposalBuilder builder = _createGovernorProposalExtender(_newGovernorProposalExtender);
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
+
+    assertEq(address(governor.governorProposalExtender()), _newGovernorProposalExtender);
+  }
+
+  function testFuzz_SetANewGovernorProposalEmitsGovernorProposalExtenderUpdatedEvent(
+    address _newGovernorProposalExtender,
+    string memory _proposalDescription
+  ) public {
+    (, address[] memory delegates) = _setGovernorAndDelegates();
+
+    ProposalBuilder builder = _createGovernorProposalExtender(_newGovernorProposalExtender);
+    vm.startPrank(delegates[0]);
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
+    vm.stopPrank();
+
+    _jumpToActiveProposal(_proposalId);
+
+    _delegatesVote(_proposalId, uint8(VoteType.For));
+    _jumpPastVoteComplete(_proposalId);
+
+    governor.queue(builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes(_proposalDescription)));
+
+    _jumpPastProposalEta(_proposalId);
+    vm.expectEmit();
+    emit HubGovernor.GovernorProposalExtenderUpdated(
+      address(governor.governorProposalExtender()), _newGovernorProposalExtender
+    );
+    governor.execute(builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes(_proposalDescription)));
+  }
+
+  function testFuzz_RevertIf_CallerIsNotAuthorized(address _governorProposalExtender, address _caller) public {
+    vm.assume(_caller != address(timelock));
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
+    governor.setGovernorProposalExtender(_governorProposalExtender);
+  }
+}
+
 contract Propose is HubGovernorTest {
   function _createSetWhitelistedProposerProposal(address _newWhitelistedProposer) public returns (ProposalBuilder) {
     return _createProposal(abi.encodeWithSignature("setWhitelistedProposer(address)", _newWhitelistedProposer));
