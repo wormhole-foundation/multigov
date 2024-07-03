@@ -25,7 +25,7 @@ jobs:
       - name: Build contracts
         run: |
           forge --version
-          cd evm && forge build --skip "test/**" --sizes
+          cd evm && FOUNDRY_PROFILE=ir forge build --skip "test/**" --sizes
 
   test:
     runs-on: ubuntu-latest
