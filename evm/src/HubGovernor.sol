@@ -23,6 +23,7 @@ import {HubVotePool} from "src/HubVotePool.sol";
 
 interface IVoteExtender {
   function extendedDeadlines(uint256 _proposalId) external view returns (uint48 _newVoteEnd);
+  function minimumExtensionTime() external view returns (uint48);
 }
 
 contract HubGovernor is
@@ -211,5 +212,13 @@ contract HubGovernor is
     returns (uint256)
   {
     return GovernorMinimumWeightedVoteWindow._getVotes(_account, _timepoint, _params);
+  }
+
+  function _setVotingPeriod(uint32 newVotingPeriod) internal virtual override {
+    if (
+      address(governorProposalExtender) != address(0)
+        && newVotingPeriod < governorProposalExtender.minimumExtensionTime()
+    ) revert GovernorInvalidVotingPeriod(newVotingPeriod);
+    super._setVotingPeriod(newVotingPeriod);
   }
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import {Test, console2} from "forge-std/Test.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 
@@ -26,16 +27,22 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
   address initialOwner;
 
   uint48 VOTE_WINDOW = 1 days;
+  uint48 MINIMUM_VOTE_EXTENSION = 1 hours;
+  uint48 VOTE_TIME_EXTENSION = 1 days;
+  uint48 MINIMUM_DESCISION_WINDOW = 1 hours;
+  uint32 SAFE_WINDOW = 1 days;
 
   function setUp() public virtual {
     _setupWormhole();
     initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    HubGovernorProposalExtender extender = new HubGovernorProposalExtender(initialOwner, 1 days, initialOwner, 1 hours);
+    HubGovernorProposalExtender extender =
+      new HubGovernorProposalExtender(initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION);
 
-    hubVotePool =
-      new HubVotePoolHarness(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1), 1 days, 1 hours);
+    hubVotePool = new HubVotePoolHarness(
+      address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1), SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
+    );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",
@@ -776,5 +783,29 @@ contract _GetVotes is HubGovernorTest {
     _createAlternatingCheckpointArray(1000);
     uint256 _votes = governor.exposed_getVotes(attacker, _start);
     assertEq(_votes, 0);
+  }
+}
+
+contract _SetVotingPeriod is HubGovernorTest {
+  function testFuzz_CorrectlySetNewVotingPeriodIfAboveExtenderMinimum(uint32 _newVotingPeriod) public {
+    _newVotingPeriod = uint32(bound(_newVotingPeriod, MINIMUM_VOTE_EXTENSION, type(uint32).max));
+
+    governor.exposed_setVotingPeriod(_newVotingPeriod);
+    assertEq(governor.votingPeriod(), _newVotingPeriod);
+  }
+
+  function testFuzz_CorrectlySetNewVotingPeriodIfExtextenderIsTheZeroAddress(uint32 _newVotingPeriod) public {
+    _newVotingPeriod = uint32(bound(_newVotingPeriod, 1, MINIMUM_VOTE_EXTENSION));
+
+    governor.exposed_setGovernorProposalExtender(address(0));
+    governor.exposed_setVotingPeriod(_newVotingPeriod);
+    assertEq(governor.votingPeriod(), _newVotingPeriod);
+  }
+
+  function testFuzz_RevertsIf_NewVotingPeriodIsLessThanTheMinimumExtensionTime(uint32 _newVotingPeriod) public {
+    _newVotingPeriod = uint32(bound(_newVotingPeriod, 0, MINIMUM_VOTE_EXTENSION));
+
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorInvalidVotingPeriod.selector, _newVotingPeriod));
+    governor.exposed_setVotingPeriod(_newVotingPeriod);
   }
 }
