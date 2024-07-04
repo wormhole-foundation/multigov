@@ -133,7 +133,7 @@ contract ExtendProposal is HubGovernorProposalExtenderTest {
     hubExtender.extendProposal(_proposalId);
   }
 
-  function testFuzz_RevertIf_ProposalCannotBeExtendedIfVotingIsNotSafe(address _proposer) public {
+  function testFuzz_RevertIf_ProposalCannotBeExtendedIfVotingIsSafe(address _proposer) public {
     (, address[] memory delegates) = _setGovernorAndDelegates();
     vm.startPrank(delegates[0]);
     ProposalBuilder builder = _createProposal(abi.encodeWithSignature("setHubVotePool(address)", _proposer));
@@ -142,6 +142,8 @@ contract ExtendProposal is HubGovernorProposalExtenderTest {
     vm.stopPrank();
 
     vm.warp(governor.proposalSnapshot(_proposalId) + HubVotePool(hubVotePool).safeWindow());
+    assertTrue(hubVotePool.isVotingSafe(_proposalId));
+
     vm.prank(whitelistedExtender);
     vm.expectRevert(HubGovernorProposalExtender.ProposalCannotBeExtended.selector);
     hubExtender.extendProposal(_proposalId);
