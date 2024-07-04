@@ -175,31 +175,35 @@ pub mod staking {
             .voter_checkpoints
             .load_mut()?;
 
-        let totalWeight = utils::voter_votes::get_past_votes(voter_checkpoints, proposal.voteStart);
+        let totalWeight = utils::voter_votes::get_past_votes(voter_checkpoints, proposal.voteStart)?;
 
         require!(
-            totalWeight.unwrap_or(0) > 0,
+            totalWeight.clone() > 0,
             ErrorCode::NoWeight
         );
 
-        let proposalVotersWeightCast = &mut ctx
+        let proposal_voters_weight_cast = &mut ctx
             .accounts
-            .proposalVotersWeightCast
-            .load_mut()?;
+            .proposal_voters_weight_cast;
+
+        // Initialize proposal_voters_weight_cast if it hasn't been initialized yet
+        if proposal_voters_weight_cast.value == 0 {
+            proposal_voters_weight_cast.initialize(proposal.id, &ctx.accounts.payer.key());
+        }
 
         require!(
-            proposalVotersWeightCast.value >= totalWeight,
+            proposal_voters_weight_cast.value >= totalWeight.clone(),
             ErrorCode::AllWeightCast
         );
 
-        let newWeight = against_votes + for_votes + abstain_votes + proposalVotersWeightCast.value;
+        let newWeight = against_votes + for_votes + abstain_votes + proposal_voters_weight_cast.value;
 
         require!(
-            newWeight <= totalWeight?,
+            newWeight <= totalWeight,
             ErrorCode::VoteWouldExceedWeight
         );
 
-        proposalVotersWeightCast.set(proposal.id, newWeight);
+        proposal_voters_weight_cast.set(newWeight);
 
         proposal.against_votes += against_votes;
         proposal.for_votes += for_votes;

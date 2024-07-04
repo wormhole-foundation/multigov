@@ -1,3 +1,8 @@
+use anchor_lang::prelude::borsh::BorshSchema;
+use anchor_lang::prelude::*;
+use anchor_lang::account;
+use crate::Pubkey;
+
 #[account]
 #[derive(BorshSchema)]
 pub struct ProposalVotersWeightCast {
@@ -17,5 +22,12 @@ impl ProposalVotersWeightCast {
         self.proposal_id = proposal_id;
         self.voter = *voter;
         self.value = 0;
+    }
+
+    pub fn set(
+        &mut self,
+        new_value: u64
+    ) {
+        self.value = new_value;
     }
 }

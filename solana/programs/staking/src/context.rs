@@ -102,8 +102,18 @@ pub struct CastVote<'info> {
     #[account(mut)]
     pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
 
+    #[account(
+        init_if_needed,
+        payer = payer,
+        space = proposal_voters_weight_cast::ProposalVotersWeightCast::LEN,
+        seeds = [b"proposal_voters_weight_cast", proposal.key().as_ref(), voter_checkpoints.key().as_ref()],
+        bump
+    )]
+    pub proposal_voters_weight_cast: Account<'info, proposal_voters_weight_cast::ProposalVotersWeightCast>,
     #[account(mut)]
-    pub proposalVotersWeightCast: AccountLoader<'info, proposalVotersWeightCast::ProposalVotersWeightCast>,
+    pub payer: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
