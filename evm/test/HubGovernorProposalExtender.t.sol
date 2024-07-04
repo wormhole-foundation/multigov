@@ -190,7 +190,6 @@ contract SetProposalExtension is HubGovernorProposalExtenderTest {
     governor.execute(builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes(_description)));
   }
 
-  // 1. Caller is not governor
   function testFuzz_RevertIf_CallerIsNotTheTimelock(address _caller, uint48 _extensionTime) public {
     vm.assume(_caller != address(timelock));
     vm.prank(_caller);
