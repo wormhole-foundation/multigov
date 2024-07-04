@@ -25,6 +25,7 @@ contract HubVotePool is QueryResponse, Ownable {
   error TooManyEthCallResults(uint256);
   error TooManyQueryResponses(uint256);
 
+  event SafeWindowUpdated(uint48 oldSafeWindow, uint48 newSafeWindow);
   event SpokeVoteCast(
     uint16 indexed emitterChainId, uint256 proposalId, uint256 voteAgainst, uint256 voteFor, uint256 voteAbstain
   );
@@ -153,6 +154,7 @@ contract HubVotePool is QueryResponse, Ownable {
   }
 
   function _setSafeWindow(uint48 _safeWindow) internal {
+    emit SafeWindowUpdated(safeWindow, _safeWindow);
     safeWindow = _safeWindow;
   }
 }
