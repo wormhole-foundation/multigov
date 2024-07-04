@@ -629,6 +629,14 @@ contract SetSafeWindow is HubVotePoolTest {
     assertEq(hubVotePool.safeWindow(), _safeWindow);
   }
 
+  function testFuzz_UpdatingSafeWindowEmitsASetSafeWindowUpdatedEvent(uint48 _safeWindow) public {
+    _safeWindow = uint48(bound(_safeWindow, minimumTime, governor.votingPeriod() - 1 hours));
+    vm.expectEmit();
+    emit HubVotePool.SafeWindowUpdated(hubVotePool.safeWindow(), _safeWindow);
+    vm.prank(address(governor));
+    hubVotePool.setSafeWindow(_safeWindow);
+  }
+
   function testFuzz_RevertIf_NotCalledByOwner(uint48 _safeWindow, address _caller) public {
     vm.assume(address(governor) != _caller);
 
