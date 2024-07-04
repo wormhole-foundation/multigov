@@ -67,10 +67,6 @@ contract HubGovernorProposalExtender is Ownable {
     _setWhitelistedVoteExtender(_voteExtender);
   }
 
-  function _setInitialized() internal {
-    initialized = true;
-  }
-
   function _setProposalExtension(uint48 _extensionTime) internal {
     emit ProposalExtensionTimeUpdated(proposalExtension, _extensionTime);
     proposalExtension = _extensionTime;
