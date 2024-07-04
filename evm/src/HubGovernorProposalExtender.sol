@@ -56,7 +56,7 @@ contract HubGovernorProposalExtender is Ownable {
 
   function setProposalExtension(uint48 _extensionTime) external {
     _checkOwner();
-    if (_extensionTime >= governor.votingPeriod() || _extensionTime < minimumExtensionTime) {
+    if (_extensionTime > governor.votingPeriod() || _extensionTime < minimumExtensionTime) {
       revert InvalidExtensionTime();
     }
     _setProposalExtension(_extensionTime);
