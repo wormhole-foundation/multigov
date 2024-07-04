@@ -23,7 +23,7 @@ contract HubGovernorProposalExtender is Ownable {
 
   mapping(uint256 proposalId => uint48 newVoteEnd) public extendedDeadlines;
 
-  event WhitelistedVoteExtenderUpdated(address oldExtender, address newExtended);
+  event WhitelistedVoteExtenderUpdated(address oldExtender, address newExtender);
   event ProposalExtensionTimeUpdated(uint48 oldExtension, uint48 newExtension);
 
   constructor(address _whitelistedVoteExtender, uint48 _voteTimeExtension, address _owner, uint48 _minimumExtensionTime)
