@@ -159,6 +159,55 @@ pub mod staking {
         Ok(())
     }
 
+    pub fn cast_vote(
+        ctx: Context<CastVote>,
+        against_votes: u64,
+        for_votes: u64,
+        abstain_votes: u64
+    ) -> Result<()> {
+        let proposal = &mut ctx
+            .accounts
+            .proposal
+            .load_mut()?;
+
+        let voter_checkpoints = &mut ctx
+            .accounts
+            .voter_checkpoints
+            .load_mut()?;
+
+        let totalWeight = utils::voter_votes::get_past_votes(voter_checkpoints, proposal.voteStart);
+
+        require!(
+            totalWeight.unwrap_or(0) > 0,
+            ErrorCode::NoWeight
+        );
+
+        let proposalVotersWeightCast = &mut ctx
+            .accounts
+            .proposalVotersWeightCast
+            .load_mut()?;
+
+        require!(
+            proposalVotersWeightCast.value >= totalWeight,
+            ErrorCode::AllWeightCast
+        );
+
+        let newWeight = against_votes + for_votes + abstain_votes + proposalVotersWeightCast.value;
+
+        require!(
+            newWeight <= totalWeight?,
+            ErrorCode::VoteWouldExceedWeight
+        );
+
+        proposalVotersWeightCast.set(proposal.id, newWeight);
+
+        proposal.against_votes += against_votes;
+        proposal.for_votes += for_votes;
+        proposal.abstain_votes += abstain_votes;
+
+        Ok(())
+    }
+
     /**
      * Accept to join the DAO LLC
      * This must happen before delegate

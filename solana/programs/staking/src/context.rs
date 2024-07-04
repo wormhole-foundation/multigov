@@ -94,6 +94,19 @@ pub struct Delegate<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(against_votes : u64, for_votes: u64, abstain_votes: u64)]
+pub struct CastVote<'info> {
+    #[account(mut)]
+    pub proposal: AccountLoader<'info, proposal::ProposalData>,
+
+    #[account(mut)]
+    pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+
+    #[account(mut)]
+    pub proposalVotersWeightCast: AccountLoader<'info, proposalVotersWeightCast::ProposalVotersWeightCast>,
+}
+
+#[derive(Accounts)]
 #[instruction(new_authority : Pubkey)]
 pub struct UpdateGovernanceAuthority<'info> {
     #[account(address = config.governance_authority)]
