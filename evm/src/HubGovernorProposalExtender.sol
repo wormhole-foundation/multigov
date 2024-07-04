@@ -45,10 +45,10 @@ contract HubGovernorProposalExtender is Ownable {
     if (msg.sender != whitelistedVoteExtender) revert AddressCannotExtendProposal();
     if (exists == 0) revert ProposalDoesNotExist();
     if (extendedDeadlines[_proposalId] != 0) revert ProposalAlreadyExtended();
-    if (
-      governor.state(_proposalId) != IGovernor.ProposalState.Active
-        && governor.state(_proposalId) != IGovernor.ProposalState.Pending
-    ) revert ProposalCannotBeExtended();
+    IGovernor.ProposalState state = governor.state(_proposalId);
+    if (state != IGovernor.ProposalState.Active && state != IGovernor.ProposalState.Pending) {
+      revert ProposalCannotBeExtended();
+    }
     if (HubVotePool(address(governor.hubVotePool())).isVotingSafe(_proposalId)) revert ProposalCannotBeExtended();
 
     extendedDeadlines[_proposalId] = uint48(governor.proposalDeadline(_proposalId)) + proposalExtension;
