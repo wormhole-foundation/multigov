@@ -28,8 +28,7 @@ contract SpokeVoteAggregatorTest is Test {
     token = new ERC20VotesFake();
     spokeMetadataCollector =
       new SpokeMetadataCollectorHarness(address(wormhole), HUB_CHAIN_ID, _hubProposalMetadataSender);
-    spokeVoteAggregator =
-      new SpokeVoteAggregatorHarness(address(spokeMetadataCollector), address(token), owner, 1 days);
+    spokeVoteAggregator = new SpokeVoteAggregatorHarness(address(spokeMetadataCollector), address(token), owner, 1 days);
   }
 
   function _boundProposalTime(uint48 _voteStart) internal pure returns (uint48) {
