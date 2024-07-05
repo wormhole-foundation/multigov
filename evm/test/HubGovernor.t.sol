@@ -803,7 +803,7 @@ contract _SetVotingPeriod is HubGovernorTest {
   }
 
   function testFuzz_RevertIf_NewVotingPeriodIsLessThanTheMinimumExtensionTime(uint32 _newVotingPeriod) public {
-    _newVotingPeriod = uint32(bound(_newVotingPeriod, 0, MINIMUM_VOTE_EXTENSION));
+    _newVotingPeriod = uint32(bound(_newVotingPeriod, 0, MINIMUM_VOTE_EXTENSION - 1));
 
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorInvalidVotingPeriod.selector, _newVotingPeriod));
     governor.exposed_setVotingPeriod(_newVotingPeriod);
