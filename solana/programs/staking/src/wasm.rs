@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 use crate::state::checkpoints::CheckpointData;
+use crate::state::proposal::ProposalData;
 use anchor_lang::{
         prelude::{
             Clock,
@@ -41,6 +42,34 @@ impl WasmCheckpointData {
             &self.wrapped,
             timestamp,
         ))
+    }
+}
+
+#[wasm_bindgen]
+pub struct WasmProposalData {
+    wrapped: ProposalData,
+}
+
+#[wasm_bindgen]
+impl WasmProposalData {
+    #[wasm_bindgen(constructor)]
+    pub fn from_buffer(buffer: &[u8]) -> Result<WasmProposalData, JsValue> {
+        convert_error(WasmProposalData::from_buffer_impl(
+            &buffer[..ProposalData::LEN],
+        ))
+    }
+
+    fn from_buffer_impl(buffer: &[u8]) -> Result<WasmProposalData, Error> {
+        let mut ptr = buffer;
+        let proposal_data = ProposalData::try_deserialize(&mut ptr)?;
+        Ok(WasmProposalData {
+            wrapped: proposal_data,
+        })
+    }
+
+    #[wasm_bindgen(js_name=proposalVotes)]
+    pub fn proposal_votes(&self) -> Result<u64, u64, u64, JsValue> {
+        convert_error(crate::state::proposal::proposal_votes(&self.wrapped))
     }
 }
 

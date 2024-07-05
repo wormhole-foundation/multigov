@@ -8,7 +8,7 @@ use crate::Pubkey;
 pub struct ProposalVotersWeightCast {
     pub proposal_id: u64,
     pub voter:       Pubkey,
-    pub value:      u64,
+    pub value:       u64,
 }
 
 impl ProposalVotersWeightCast {
