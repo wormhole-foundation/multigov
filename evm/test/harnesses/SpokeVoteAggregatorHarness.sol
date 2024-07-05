@@ -7,8 +7,7 @@ contract SpokeVoteAggregatorHarness is SpokeVoteAggregator {
   constructor(
     address _spokeMetadataCollector,
     address _votingToken,
-    uint32 _safeWindow,
     address _owner,
     uint48 _voteWeightWindow
-  ) SpokeVoteAggregator(_spokeMetadataCollector, _votingToken, _safeWindow, _owner, _voteWeightWindow) {}
+  ) SpokeVoteAggregator(_spokeMetadataCollector, _votingToken, _owner, _voteWeightWindow) {}
 }

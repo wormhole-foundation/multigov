@@ -29,7 +29,7 @@ contract SpokeVoteAggregatorTest is Test {
     spokeMetadataCollector =
       new SpokeMetadataCollectorHarness(address(wormhole), HUB_CHAIN_ID, _hubProposalMetadataSender);
     spokeVoteAggregator =
-      new SpokeVoteAggregatorHarness(address(spokeMetadataCollector), address(token), 1 days, owner, 1 days);
+      new SpokeVoteAggregatorHarness(address(spokeMetadataCollector), address(token), owner, 1 days);
   }
 
   function _boundProposalTime(uint48 _voteStart) internal pure returns (uint48) {
@@ -41,14 +41,13 @@ contract SpokeVoteAggregatorTest is Test {
 contract Constructor is SpokeVoteAggregatorTest {
   function testFuzz_CorrectlySetConstructorArgs(
     address _token,
-    uint32 _safeWindow,
     address _spokeMetadataCollector,
     address _owner,
     uint48 _voteWeightWindow
   ) public {
     vm.assume(_owner != address(0));
     SpokeVoteAggregator spokeVoteAggregator =
-      new SpokeVoteAggregator(_spokeMetadataCollector, _token, _safeWindow, _owner, _voteWeightWindow);
+      new SpokeVoteAggregator(_spokeMetadataCollector, _token, _owner, _voteWeightWindow);
     assertEq(address(spokeVoteAggregator.VOTING_TOKEN()), _token);
     assertEq(address(spokeVoteAggregator.spokeMetadataCollector()), _spokeMetadataCollector);
   }
