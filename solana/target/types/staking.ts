@@ -425,6 +425,69 @@ export type Staking = {
       ]
     },
     {
+      "name": "castVote",
+      "accounts": [
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "voterCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proposalVotersWeightCast",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "proposal_voters_weight_cast"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "proposal"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "voter_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "againstVotes",
+          "type": "u64"
+        },
+        {
+          "name": "forVotes",
+          "type": "u64"
+        },
+        {
+          "name": "abstainVotes",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "joinDaoLlc",
       "docs": [
         "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
@@ -643,6 +706,54 @@ export type Staking = {
           {
             "name": "mockClockTime",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "proposalVotersWeightCast",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposalId",
+            "type": "u64"
+          },
+          {
+            "name": "voter",
+            "type": "publicKey"
+          },
+          {
+            "name": "value",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "proposalData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "againstVotes",
+            "type": "u64"
+          },
+          {
+            "name": "forVotes",
+            "type": "u64"
+          },
+          {
+            "name": "abstainVotes",
+            "type": "u64"
+          },
+          {
+            "name": "voteStart",
+            "type": "u64"
           }
         ]
       }
@@ -877,6 +988,21 @@ export type Staking = {
     },
     {
       "code": 6010,
+      "name": "NoWeight",
+      "msg": "No Weight"
+    },
+    {
+      "code": 6011,
+      "name": "AllWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6012,
+      "name": "VoteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6013,
       "name": "Other",
       "msg": "Other"
     }
@@ -1310,6 +1436,69 @@ export const IDL: Staking = {
       ]
     },
     {
+      "name": "castVote",
+      "accounts": [
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "voterCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proposalVotersWeightCast",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "proposal_voters_weight_cast"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "proposal"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "voter_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "againstVotes",
+          "type": "u64"
+        },
+        {
+          "name": "forVotes",
+          "type": "u64"
+        },
+        {
+          "name": "abstainVotes",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "joinDaoLlc",
       "docs": [
         "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
@@ -1528,6 +1717,54 @@ export const IDL: Staking = {
           {
             "name": "mockClockTime",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "proposalVotersWeightCast",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposalId",
+            "type": "u64"
+          },
+          {
+            "name": "voter",
+            "type": "publicKey"
+          },
+          {
+            "name": "value",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "proposalData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "againstVotes",
+            "type": "u64"
+          },
+          {
+            "name": "forVotes",
+            "type": "u64"
+          },
+          {
+            "name": "abstainVotes",
+            "type": "u64"
+          },
+          {
+            "name": "voteStart",
+            "type": "u64"
           }
         ]
       }
@@ -1762,6 +1999,21 @@ export const IDL: Staking = {
     },
     {
       "code": 6010,
+      "name": "NoWeight",
+      "msg": "No Weight"
+    },
+    {
+      "code": 6011,
+      "name": "AllWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6012,
+      "name": "VoteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6013,
       "name": "Other",
       "msg": "Other"
     }

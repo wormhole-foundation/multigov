@@ -487,6 +487,29 @@ export class StakeConnection {
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
+  public async castVote(
+    proposal: PublicKey,
+    stakeAccount: StakeAccount,
+    againstVotes: BN,
+    forVotes: BN,
+    abstainVotes: BN,
+  ): Promise<void> {
+    const instructions: TransactionInstruction[] = [];
+    const signers: Signer[] = [];
+
+    instructions.push(
+      await this.program.methods
+        .castVote(againstVotes, forVotes, abstainVotes)
+        .accounts({
+          proposal: proposal,
+          voter_checkpoints: stakeAccount.address,
+        })
+        .instruction()
+    );
+
+    await this.sendAndConfirmAsVersionedTransaction(instructions);
+  }
+
   /** Gets the current votes balance of the delegate's stake account. */
   public getVotes(delegateStakeAccount: StakeAccount): Promise<BN> {
     return delegateStakeAccount.getVotes();
