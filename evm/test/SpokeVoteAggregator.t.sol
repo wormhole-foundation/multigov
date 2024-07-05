@@ -914,3 +914,18 @@ contract VoteActiveInternal is SpokeVoteAggregatorTest {
     assertTrue(spokeVoteAggregator.voteActiveInternal(_proposalId), "Vote should be active after start");
   }
 }
+
+contract Token is Test {
+  function testFuzz_CorrectlyGetToken(
+    address _token,
+    address _spokeMetadataCollector,
+    address _owner,
+    uint32 _safeWindow,
+    uint16 _voteWeightWindow
+  ) public {
+    vm.assume(_owner != address(0));
+    SpokeVoteAggregator spokeVoteAggregator =
+      new SpokeVoteAggregator(_spokeMetadataCollector, _token, _safeWindow, _owner, _voteWeightWindow);
+    assertEq(address(spokeVoteAggregator.token()), _token);
+  }
+}
