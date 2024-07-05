@@ -7,7 +7,7 @@ pub struct ProposalData {
     pub against_votes: u64,
     pub for_votes:     u64,
     pub abstain_votes: u64,
-    pub voteStart:     u64,
+    pub vote_start:     u64,
 }
 
 impl ProposalData {
@@ -15,12 +15,12 @@ impl ProposalData {
 
     pub fn initialize(
         &mut self,
-        voteStart: u64,
+        vote_start: u64,
     ) {
         self.id = 0;
         self.against_votes = 0;
         self.for_votes = 0;
         self.abstain_votes = 0;
-        self.voteStart = voteStart;
+        self.vote_start = vote_start;
     }
 }
