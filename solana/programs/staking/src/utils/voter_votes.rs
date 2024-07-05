@@ -23,49 +23,49 @@ pub mod tests {
 
     #[test]
     fn test_get_votes() {
-        let mut checkpointData = CheckpointData::default();
+        let mut checkpoint_data = CheckpointData::default();
 
-        let mut votes = get_votes(&checkpointData).unwrap();
+        let mut votes = get_votes(&checkpoint_data).unwrap();
         assert_eq!(votes, 0);
 
-        checkpointData.push(1, 7).unwrap();
-        checkpointData.push(2, 13).unwrap();
+        checkpoint_data.push(1, 7).unwrap();
+        checkpoint_data.push(2, 13).unwrap();
 
-        votes = get_votes(&checkpointData).unwrap();
+        votes = get_votes(&checkpoint_data).unwrap();
         assert_eq!(votes, 13);
 
-        checkpointData.push(3, 15).unwrap();
+        checkpoint_data.push(3, 15).unwrap();
 
-        votes = get_votes(&checkpointData).unwrap();
+        votes = get_votes(&checkpoint_data).unwrap();
         assert_eq!(votes, 15);
     }
 
     #[test]
     fn test_get_past_votes() {
-        let mut checkpointData = CheckpointData::default();
+        let mut checkpoint_data = CheckpointData::default();
 
-        let mut votes = get_past_votes(&checkpointData, 100).unwrap();
+        let mut votes = get_past_votes(&checkpoint_data, 100).unwrap();
         assert_eq!(votes, 0);
 
-        checkpointData.push(1, 7).unwrap();
-        checkpointData.push(3, 13).unwrap();
-        checkpointData.push(5, 16).unwrap();
-        checkpointData.push(10, 17).unwrap();
-        checkpointData.push(12, 20).unwrap();
-        checkpointData.push(20, 34).unwrap();
+        checkpoint_data.push(1, 7).unwrap();
+        checkpoint_data.push(3, 13).unwrap();
+        checkpoint_data.push(5, 16).unwrap();
+        checkpoint_data.push(10, 17).unwrap();
+        checkpoint_data.push(12, 20).unwrap();
+        checkpoint_data.push(20, 34).unwrap();
 
-        votes = get_past_votes(&checkpointData, 8).unwrap();
+        votes = get_past_votes(&checkpoint_data, 8).unwrap();
         assert_eq!(votes, 16);
-        votes = get_past_votes(&checkpointData, 12).unwrap();
+        votes = get_past_votes(&checkpoint_data, 12).unwrap();
         assert_eq!(votes, 20);
 
-        checkpointData.push(21, 19).unwrap();
-        checkpointData.push(21, 50).unwrap();
-        checkpointData.push(25, 44).unwrap();
+        checkpoint_data.push(21, 19).unwrap();
+        checkpoint_data.push(21, 50).unwrap();
+        checkpoint_data.push(25, 44).unwrap();
 
-        votes = get_past_votes(&checkpointData, 21).unwrap();
+        votes = get_past_votes(&checkpoint_data, 21).unwrap();
         assert_eq!(votes, 50);
-        votes = get_past_votes(&checkpointData, 26).unwrap();
+        votes = get_past_votes(&checkpoint_data, 26).unwrap();
         assert_eq!(votes, 44);
     }
 }
