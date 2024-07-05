@@ -12,7 +12,7 @@ contract SpokeMessageExecutor {
   uint16 public immutable HUB_CHAIN_ID;
   IWormhole public immutable WORMHOLE_CORE;
   uint16 public immutable SPOKE_CHAIN_ID;
-  bool private _initialized = false;
+  bool public initialized = false;
   SpokeAirlock public airlock;
 
   error AlreadyProcessedMessage();
@@ -34,9 +34,9 @@ contract SpokeMessageExecutor {
   }
 
   function initialize(address payable _airlock) external {
-    if (_initialized) revert AlreadyInitialized();
+    if (initialized) revert AlreadyInitialized();
     airlock = SpokeAirlock(_airlock);
-    _initialized = true;
+    initialized = true;
   }
 
   function _onlyAirlock() internal view {

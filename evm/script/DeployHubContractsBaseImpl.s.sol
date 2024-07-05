@@ -10,6 +10,7 @@ import {HubGovernor} from "src/HubGovernor.sol";
 import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
+import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
 
 abstract contract DeployHubContractsBaseImpl is Script {
   // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
@@ -31,6 +32,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint48 voteTimeExtension;
     uint48 minimumDecisionWindow;
     uint48 minimumExtensionTime;
+    uint8 consistencyLevel;
   }
 
   error InvalidAddressConfiguration();
@@ -45,7 +47,17 @@ abstract contract DeployHubContractsBaseImpl is Script {
     return wallet;
   }
 
-  function run() public returns (TimelockController, HubVotePool, HubGovernor, HubProposalMetadata) {
+  function run()
+    public
+    returns (
+      TimelockController,
+      HubVotePool,
+      HubGovernor,
+      HubProposalMetadata,
+      HubMessageDispatcher,
+      HubGovernorProposalExtender
+    )
+  {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
     vm.startBroadcast(wallet.privateKey);
@@ -76,8 +88,15 @@ abstract contract DeployHubContractsBaseImpl is Script {
       initialVoteWindow: config.voteWeightWindow
     });
 
-    // DeployHub Governor
+    // Deploy Hub Governor
     HubGovernor gov = new HubGovernor(params);
+
+    // Deploy HubProposalMetadata
+    HubProposalMetadata hubProposalMetadata = new HubProposalMetadata(address(gov));
+
+    // Deploy Hub Discptacher
+    HubMessageDispatcher hubMessageDispatcher =
+      new HubMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
 
     // Ownership will be transferred during configuration
     pool.setGovernor(address(gov));
@@ -92,9 +111,8 @@ abstract contract DeployHubContractsBaseImpl is Script {
     timelock.grantRole(timelock.DEFAULT_ADMIN_ROLE(), address(timelock));
     timelock.renounceRole(timelock.DEFAULT_ADMIN_ROLE(), wallet.addr);
 
-    HubProposalMetadata proposalMetadata = new HubProposalMetadata(address(gov));
     vm.stopBroadcast();
 
-    return (timelock, pool, gov, proposalMetadata);
+    return (timelock, pool, gov, hubProposalMetadata, hubMessageDispatcher, extender);
   }
 }

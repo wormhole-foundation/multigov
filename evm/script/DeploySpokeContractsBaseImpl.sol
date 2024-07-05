@@ -3,8 +3,12 @@ pragma solidity ^0.8.23;
 
 import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
+import {SpokeMessageExecutor} from "src/SpokeMessageExecutor.sol";
+import {SpokeAirlock} from "src/SpokeAirlock.sol";
 
 abstract contract DeploySpokeContractsBaseImpl is Script {
   // This should not be used for a production deploy the correct address will be set as an environment variable.
@@ -16,8 +20,9 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     uint16 hubChainId;
     address hubProposalMetadata;
     address votingToken;
-    uint32 safeWindow;
     uint48 voteWeightWindow;
+    bytes32 hubDispatcher;
+    uint16 spokeChainId;
   }
 
   error InvalidAddressConfiguration();
@@ -33,7 +38,7 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     return wallet;
   }
 
-  function run() public returns (SpokeVoteAggregator, SpokeMetadataCollector) {
+  function run() public returns (SpokeVoteAggregator, SpokeMetadataCollector, SpokeMessageExecutor, SpokeAirlock) {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
     vm.startBroadcast(wallet.privateKey);
@@ -42,7 +47,14 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     SpokeVoteAggregator aggregator =
       new SpokeVoteAggregator(address(spokeMetadataCollector), config.votingToken, wallet.addr, config.voteWeightWindow);
 
+    SpokeMessageExecutor executor = new SpokeMessageExecutor(
+      config.hubDispatcher, config.hubChainId, IWormhole(config.wormholeCore), config.spokeChainId
+    );
+
+    SpokeAirlock airlock = new SpokeAirlock(address(executor));
+    executor.initialize(payable(airlock));
+
     vm.stopBroadcast();
-    return (aggregator, spokeMetadataCollector);
+    return (aggregator, spokeMetadataCollector, executor, airlock);
   }
 }
