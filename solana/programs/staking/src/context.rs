@@ -5,6 +5,7 @@ use anchor_spl::token::{
     Mint,
     Token,
     TokenAccount,
+    Transfer
 };
 
 pub const AUTHORITY_SEED: &str = "authority";
@@ -189,6 +190,49 @@ pub struct CreateStakeAccount<'info> {
     pub rent:                      Sysvar<'info, Rent>,
     pub token_program:             Program<'info, Token>,
     pub system_program:            Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(amount : u64)]
+pub struct WithdrawTokens<'info> {
+    // Native payer:
+    #[account( address = stake_account_metadata.owner)]
+    pub payer:                   Signer<'info>,
+    // Destination
+    #[account(mut)]
+    pub destination:             Account<'info, TokenAccount>,
+    // Stake program accounts:
+    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    #[account(seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump = stake_account_metadata.metadata_bump)]
+    pub stake_account_metadata:  Account<'info, stake_account::StakeAccountMetadata>,
+    #[account(
+        mut,
+        seeds = [CUSTODY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        bump = stake_account_metadata.custody_bump,
+    )]
+    pub stake_account_custody:   Account<'info, TokenAccount>,
+    /// CHECK : This AccountInfo is safe because it's a checked PDA
+    #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump = stake_account_metadata.authority_bump)]
+    pub custody_authority:       AccountInfo<'info>,
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config:                  Account<'info, global_config::GlobalConfig>,
+    // Primitive accounts :
+    pub token_program:           Program<'info, Token>,
+}
+
+
+impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
+    for CpiContext<'a, 'b, 'c, 'info, Transfer<'info>>
+{
+    fn from(accounts: &WithdrawTokens<'info>) -> CpiContext<'a, 'b, 'c, 'info, Transfer<'info>> {
+        let cpi_accounts = Transfer {
+            from:      accounts.stake_account_custody.to_account_info(),
+            to:        accounts.destination.to_account_info(),
+            authority: accounts.custody_authority.to_account_info(),
+        };
+        let cpi_program = accounts.token_program.to_account_info();
+        CpiContext::new(cpi_program, cpi_accounts)
+    }
 }
 
 #[derive(Accounts)]

@@ -29,6 +29,10 @@ pub enum ErrorCode {
     AllWeightCast,
     #[msg("Vote would exceed weight")] // 6012
     VoteWouldExceedWeight,
-    #[msg("Other")] //6013
+    #[msg("Owner needs to own destination account")] //6013
+    WithdrawToUnauthorizedAccount,
+    #[msg("Insufficient balance to cover the withdrawal")] //6014
+    InsufficientWithdrawableBalance,
+    #[msg("Other")] //6015
     Other,
 }

@@ -565,6 +565,55 @@ export class StakeConnection {
   public delegates(stakeAccount: StakeAccount): Promise<PublicKey> {
     return stakeAccount.delegates();
   }
+
+  /** Withdraws tokens */
+  public async withdrawTokens(stakeAccount: StakeAccount, amount: WHTokenBalance) {
+    if (
+      amount
+        .toBN()
+        .gt(
+          stakeAccount
+            .getBalanceSummary()
+            .balance.toBN()
+        )
+    ) {
+      throw new Error("Amount exceeds withdrawable.");
+    }
+
+    const toAccount = await Token.getAssociatedTokenAddress(
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      this.config.whTokenMint,
+      this.provider.wallet.publicKey,
+      true
+    );
+
+    const instructions: TransactionInstruction[] = [];
+    if ((await this.provider.connection.getAccountInfo(toAccount)) == null) {
+      instructions.push(
+        Token.createAssociatedTokenAccountInstruction(
+          ASSOCIATED_TOKEN_PROGRAM_ID,
+          TOKEN_PROGRAM_ID,
+          this.config.whTokenMint,
+          toAccount,
+          this.provider.wallet.publicKey,
+          this.provider.wallet.publicKey
+        )
+      );
+    }
+
+    instructions.push(
+      await this.program.methods
+        .withdrawTokens(amount.toBN())
+        .accounts({
+          stakeAccountCheckpoints: stakeAccount.address,
+          destination: toAccount,
+        })
+        .instruction()
+    );
+
+    await this.sendAndConfirmAsVersionedTransaction(instructions);
+  }
 }
 
 export interface BalanceSummary {

@@ -8,6 +8,7 @@
 
 use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
+use anchor_spl::token::transfer;
 use context::*;
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
@@ -155,6 +156,36 @@ pub mod staking {
                 stake_account_metadata.recorded_balance = *current_stake_balance;
             }
         }
+
+        Ok(())
+    }
+
+    pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, amount: u64) -> Result<()> {
+        let stake_account_checkpoints = &ctx.accounts.stake_account_checkpoints.load()?;
+        let stake_account_metadata = &ctx.accounts.stake_account_metadata;
+        let stake_account_custody = &ctx.accounts.stake_account_custody;
+
+        let destination_account = &ctx.accounts.destination;
+        let signer = &ctx.accounts.payer;
+
+        if destination_account.owner != *signer.key {
+            return Err(error!(ErrorCode::WithdrawToUnauthorizedAccount));
+        }
+
+        // Pre-check
+        let remaining_balance = stake_account_custody
+            .amount
+            .checked_sub(amount)
+            .ok_or_else(|| error!(ErrorCode::InsufficientWithdrawableBalance))?;
+
+        transfer(
+            CpiContext::from(&*ctx.accounts).with_signer(&[&[
+                AUTHORITY_SEED.as_bytes(),
+                ctx.accounts.stake_account_checkpoints.key().as_ref(),
+                &[stake_account_metadata.authority_bump],
+            ]]),
+            amount,
+        )?;
 
         Ok(())
     }

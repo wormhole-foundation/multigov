@@ -184,4 +184,16 @@ describe("staking", async () => {
       skipPreflight: DEBUG,
     });
   });
+
+  it("withdraws tokens", async () => {
+    const toAccount = userAta;
+
+    await program.methods
+      .withdrawTokens(new BN(1))
+      .accounts({
+        stakeAccountCheckpoints: stakeAccountSecret.publicKey,
+        destination: toAccount,
+      })
+      .rpc({ skipPreflight: DEBUG });
+  });
 });

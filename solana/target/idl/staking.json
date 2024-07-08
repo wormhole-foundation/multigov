@@ -425,6 +425,111 @@
       ]
     },
     {
+      "name": "withdrawTokens",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "destination",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakeAccountCheckpoints",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeAccountMetadata",
+          "isMut": false,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stakeAccountCustody",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "custody"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custodyAuthority",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "CHECK : This AccountInfo is safe because it's a checked PDA"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "authority"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "config"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "castVote",
       "accounts": [
         {
@@ -1003,6 +1108,16 @@
     },
     {
       "code": 6013,
+      "name": "WithdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
+    },
+    {
+      "code": 6014,
+      "name": "InsufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
+    },
+    {
+      "code": 6015,
       "name": "Other",
       "msg": "Other"
     }
