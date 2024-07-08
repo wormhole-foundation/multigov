@@ -7,6 +7,7 @@ contract GovernorMock {
   string public reason;
   bytes public params;
   uint256 voteStart;
+  uint256 public proposalThreshold;
 
   function castVoteWithReasonAndParams(
     uint256 _proposalId,
@@ -32,5 +33,9 @@ contract GovernorMock {
 
   function votingPeriod() public pure returns (uint256) {
     return 7 days;
+  }
+
+  function setProposalThreshold(uint256 _proposalThreshold) public virtual {
+    proposalThreshold = _proposalThreshold;
   }
 }
