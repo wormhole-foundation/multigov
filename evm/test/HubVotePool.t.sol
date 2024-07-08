@@ -5,9 +5,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Test, console2} from "forge-std/Test.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
+import {QueryResponse} from "wormhole/query/QueryResponse.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {HubCrossChainEVMVote} from "src/HubCrossChainEvmVote.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
@@ -22,6 +24,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
   GovernorMock governor;
   uint16 QUERY_CHAIN_ID = 2;
   uint48 minimumTime = 1 hours;
+  uint8 ethCallQuery;
 
   struct VoteParams {
     uint256 proposalId;
@@ -34,6 +37,13 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     _setupWormhole();
     governor = new GovernorMock();
     hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
+
+    HubCrossChainEVMVote hubCrossChainEvmVote = new HubCrossChainEVMVote(address(wormhole), address(hubVotePool));
+
+    ethCallQuery = hubVotePool.QT_ETH_CALL();
+    vm.startPrank(address(governor));
+    hubVotePool.registerQueryType(ethCallQuery, address(hubCrossChainEvmVote));
+    vm.stopPrank();
   }
 
   function _buildArbitraryQuery(VoteParams memory _voteParams, uint16 _responseChainId, address _governance)
@@ -105,7 +115,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
 
     hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
 
-    hubVotePool.crossChainEVMVote(_resp, signatures);
+    hubVotePool.crossChainVote(hubVotePool.QT_ETH_CALL(), _resp, signatures);
 
     return (_voteParams, _queryChainId);
   }
@@ -393,7 +403,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     );
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
-    hubVotePool.crossChainEVMVote(_resp, signatures);
+    hubVotePool.crossChainVote(hubVotePool.QT_ETH_CALL(), _resp, signatures);
 
     (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams1.proposalId)));
@@ -471,7 +481,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
       )
     );
 
-    hubVotePool.crossChainEVMVote(_resp, _getSignatures(_resp));
+    hubVotePool.crossChainVote(hubVotePool.QT_ETH_CALL(), _resp, _getSignatures(_resp));
 
     (uint128 againstVotes1, uint128 forVotes1, uint128 abstainVotes1) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
@@ -556,7 +566,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    hubVotePool.crossChainEVMVote(_resp, signatures);
+    hubVotePool.crossChainVote(hubVotePool.QT_ETH_CALL(), _resp, signatures);
     bytes memory _invalidResp = _buildArbitraryQuery(
       VoteParams({
         proposalId: _proposalId,
@@ -571,7 +581,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     IWormhole.Signature[] memory signatureForInvalidResp = _getSignatures(_invalidResp);
 
     vm.expectRevert(HubVotePool.InvalidProposalVote.selector);
-    hubVotePool.crossChainEVMVote(_invalidResp, signatureForInvalidResp);
+    hubVotePool.crossChainVote(ethCallQuery, _invalidResp, signatureForInvalidResp);
   }
 
   function testFuzz_RevertIf_SpokeIsNotRegistered(
@@ -595,8 +605,9 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
+    uint8 queryType = hubVotePool.QT_ETH_CALL();
     vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
-    hubVotePool.crossChainEVMVote(_resp, signatures);
+    hubVotePool.crossChainVote(queryType, _resp, signatures);
   }
 
   function testFuzz_RevertIf_TooManyCalls(uint16 _queryChainId, address _spokeContract) public {
@@ -646,7 +657,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyEthCallResults.selector, 0, 2));
-    hubVotePool.crossChainEVMVote(_resp, signatures);
+    hubVotePool.crossChainVote(ethCallQuery, _resp, signatures);
   }
 
   function testFuzz_RevertIf_SpokeContractIsZeroAddress(VoteParams memory _voteParams, uint16 _queryChainId) public {
@@ -655,6 +666,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
-    hubVotePool.crossChainEVMVote(_resp, signatures);
+    hubVotePool.crossChainVote(ethCallQuery, _resp, signatures);
   }
 }
