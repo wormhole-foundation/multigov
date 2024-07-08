@@ -6,7 +6,6 @@ import {Test, console2} from "forge-std/Test.sol";
 import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 
 import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 
 contract WormholeDispatcherTest is Test {
   WormholeDispatcher dispatcher;
