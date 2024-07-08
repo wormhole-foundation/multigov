@@ -35,7 +35,6 @@ contract HubProposalPool is QueryResponse, Ownable {
     bytes memory _queryResponseRaw,
     IWormhole.Signature[] memory _signatures
   ) external returns (uint256) {
-    _checkOwner();
     if (targets.length != values.length || targets.length != calldatas.length) revert InvalidProposalLength();
     if (targets.length == 0) revert EmptyProposal();
 
