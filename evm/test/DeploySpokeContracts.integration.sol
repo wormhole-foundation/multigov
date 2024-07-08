@@ -33,7 +33,7 @@ contract DeploySpokeContractsTest is DeploySpokeContractsBase {
 
     assertEq(address(spokeMetadataCollector.WORMHOLE_CORE()), 0x31377888146f3253211EFEf5c676D41ECe7D58Fe);
     assertEq(spokeMetadataCollector.HUB_CHAIN_ID(), 10_002);
-    assertEq(spokeMetadataCollector.HUB_PROPOSAL_METADATA(), 0xe139982C9f0810C110a386eAd2A153217eCcB9D6);
+    assertEq(spokeMetadataCollector.HUB_PROPOSAL_METADATA(), 0x336Ac4C729F5E3696508460B40c12B065D86E612);
 
     assertEq(address(aggregator.VOTING_TOKEN()), 0x74f00907CFC6E44Fb72535cdD1eC52a37EacAbE4);
     assertEq(address(aggregator.spokeMetadataCollector()), address(spokeMetadataCollector));
