@@ -103,7 +103,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     bytes memory _resp = _buildArbitraryQuery(_voteParams, _queryChainId, _spokeContract);
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
+    //hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
 
@@ -304,45 +304,192 @@ contract CrossChainEVMVote is HubVotePoolTest {
     );
   }
 
-  function testFuzz_CorrectlyAddNewVoteMultipleQueries(
+  function testFuzz_CorrectlyAddNewVoteMultipleQueriesSameChain(
     VoteParams memory _voteParams1,
     VoteParams memory _voteParams2,
     address _spokeContract,
     uint16 _queryChainId
   ) public {
     vm.assume(_spokeContract != address(0));
+    _queryChainId = uint16(bound(_queryChainId, 5, type(uint16).max));
 
-    _voteParams2.forVotes = uint128(bound(_voteParams2.forVotes, _voteParams1.forVotes, type(uint128).max));
-    _voteParams2.againstVotes = uint128(bound(_voteParams2.againstVotes, _voteParams1.againstVotes, type(uint128).max));
-    _voteParams2.abstainVotes = uint128(bound(_voteParams2.abstainVotes, _voteParams1.abstainVotes, type(uint128).max));
-
-    vm.prank(address(governor));
+    vm.startPrank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
+    hubVotePool.registerSpoke(_queryChainId - 1, addressToBytes32(_spokeContract));
+    hubVotePool.registerSpoke(_queryChainId - 2, addressToBytes32(_spokeContract));
+    hubVotePool.registerSpoke(_queryChainId - 3, addressToBytes32(_spokeContract));
+    hubVotePool.registerSpoke(_queryChainId - 4, addressToBytes32(_spokeContract));
+    vm.stopPrank();
 
-    _sendCrossChainVote(_voteParams1, _queryChainId, _spokeContract);
+    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+      bytes("0x1296c33"), // random blockId: a hash of the block number
+      1, // numCallData
+      QueryTest.buildEthCallDataBytes(
+        _spokeContract, abi.encodeWithSignature("proposalVotes(uint256)", _voteParams1.proposalId)
+      )
+    );
 
-    (uint128 _againstVotes1, uint128 _forVotes1, uint128 _abstainVotes1) =
+    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      1, // numResults
+      QueryTest.buildEthCallResultBytes(
+        abi.encode(
+          _voteParams1.proposalId,
+          SpokeCountingFractional.ProposalVote({
+            againstVotes: uint128(_voteParams1.againstVotes),
+            forVotes: uint128(_voteParams1.forVotes),
+            abstainVotes: uint128(_voteParams1.abstainVotes)
+          })
+        )
+      ) // results
+    );
+
+    _voteParams2.againstVotes = uint128(bound(_voteParams2.againstVotes, _voteParams1.againstVotes, type(uint128).max));
+    _voteParams2.forVotes = uint128(bound(_voteParams2.forVotes, _voteParams1.forVotes, type(uint128).max));
+    _voteParams2.abstainVotes = uint128(bound(_voteParams2.abstainVotes, _voteParams1.abstainVotes, type(uint128).max));
+    bytes memory secondEthCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      1, // numResults
+      QueryTest.buildEthCallResultBytes(
+        abi.encode(
+          _voteParams1.proposalId,
+          SpokeCountingFractional.ProposalVote({
+            againstVotes: uint128(_voteParams2.againstVotes),
+            forVotes: uint128(_voteParams2.forVotes),
+            abstainVotes: uint128(_voteParams2.abstainVotes)
+          })
+        )
+      ) // results
+    );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      2, // num per chain requests
+      abi.encodePacked(
+        QueryTest.buildPerChainRequestBytes(
+          _queryChainId, // chainId
+          hubVotePool.QT_ETH_CALL(),
+          ethCall
+        ),
+        QueryTest.buildPerChainRequestBytes(
+          _queryChainId, // chainId
+          hubVotePool.QT_ETH_CALL(),
+          ethCall
+        )
+      )
+    );
+
+    bytes memory _resp = QueryTest.buildQueryResponseBytes(
+      VERSION, // version
+      OFF_CHAIN_SENDER, // sender chain id
+      OFF_CHAIN_SIGNATURE, // signature
+      _queryRequestBytes, // query request
+      2, // num per chain responses
+      abi.encodePacked(
+        QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), ethCallResp),
+        QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), secondEthCallResp)
+      )
+    );
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+    hubVotePool.crossChainEVMVote(_resp, signatures);
+
+    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams1.proposalId)));
-    _assertVotesEq(
-      _voteParams1,
-      SpokeCountingFractional.ProposalVote({
-        againstVotes: _againstVotes1,
-        forVotes: _forVotes1,
-        abstainVotes: _abstainVotes1
-      })
+
+    assertEq(forVotes, _voteParams2.forVotes);
+    assertEq(againstVotes, _voteParams2.againstVotes);
+    assertEq(abstainVotes, _voteParams2.abstainVotes);
+  }
+
+  function testFuzz_CorrectlyAddNewVoteMultipleQueriesSameDifferentChains(
+    VoteParams memory _voteParams,
+    address _spokeContract,
+    uint16 _queryChainId
+  ) public {
+    vm.assume(_spokeContract != address(0));
+    _queryChainId = uint16(bound(_queryChainId, 2, type(uint16).max));
+
+    vm.startPrank(address(governor));
+    hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
+    hubVotePool.registerSpoke(_queryChainId - 1, addressToBytes32(_spokeContract));
+    vm.stopPrank();
+
+    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+      bytes("0x1296c33"), // random blockId: a hash of the block number
+      1, // numCallData
+      QueryTest.buildEthCallDataBytes(
+        _spokeContract, abi.encodeWithSignature("proposalVotes(uint256)", _voteParams.proposalId)
+      )
     );
 
-    _sendCrossChainVote(_voteParams2, _queryChainId, _spokeContract);
-    (uint128 _againstVotes2, uint128 _forVotes2, uint128 _abstainVotes2) =
-      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams2.proposalId)));
-    _assertVotesEq(
-      _voteParams2,
-      SpokeCountingFractional.ProposalVote({
-        againstVotes: _againstVotes2,
-        forVotes: _forVotes2,
-        abstainVotes: _abstainVotes2
-      })
+    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      1, // numResults
+      QueryTest.buildEthCallResultBytes(
+        abi.encode(
+          _voteParams.proposalId,
+          SpokeCountingFractional.ProposalVote({
+            againstVotes: uint128(_voteParams.againstVotes),
+            forVotes: uint128(_voteParams.forVotes),
+            abstainVotes: uint128(_voteParams.abstainVotes)
+          })
+        )
+      ) // results
     );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      2, // num per chain requests
+      abi.encodePacked(
+        QueryTest.buildPerChainRequestBytes(
+          _queryChainId, // chainId
+          hubVotePool.QT_ETH_CALL(),
+          ethCall
+        ),
+        QueryTest.buildPerChainRequestBytes(
+          _queryChainId - 1, // chainId
+          hubVotePool.QT_ETH_CALL(),
+          ethCall
+        )
+      )
+    );
+
+    bytes memory _resp = QueryTest.buildQueryResponseBytes(
+      VERSION, // version
+      OFF_CHAIN_SENDER, // sender chain id
+      OFF_CHAIN_SIGNATURE, // signature
+      _queryRequestBytes, // query request
+      2, // num per chain responses
+      abi.encodePacked(
+        QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), ethCallResp),
+        QueryTest.buildPerChainResponseBytes(_queryChainId - 1, hubVotePool.QT_ETH_CALL(), ethCallResp)
+      )
+    );
+
+    hubVotePool.crossChainEVMVote(_resp, _getSignatures(_resp));
+
+    (uint128 againstVotes1, uint128 forVotes1, uint128 abstainVotes1) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
+
+    assertEq(forVotes1, _voteParams.forVotes);
+    assertEq(againstVotes1, _voteParams.againstVotes);
+    assertEq(abstainVotes1, _voteParams.abstainVotes);
+
+    (uint128 againstVotes2, uint128 forVotes2, uint128 abstainVotes2) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId - 1, _voteParams.proposalId)));
+
+    assertEq(forVotes2, _voteParams.forVotes);
+    assertEq(againstVotes2, _voteParams.againstVotes);
+    assertEq(abstainVotes2, _voteParams.abstainVotes);
   }
 
   function testFuzz_CorrectlyAddNewVoteMultipleChains(
@@ -453,75 +600,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
-    hubVotePool.crossChainEVMVote(_resp, signatures);
-  }
-
-  function test_RevertIf_TooManyResponseItemsInResponseBytes(
-    uint256 _proposalId,
-    uint128 _againstVotes,
-    uint128 _forVotes,
-    uint128 _abstainVotes
-  ) public {
-    vm.prank(address(governor));
-    hubVotePool.registerSpoke(2, addressToBytes32(GOVERNANCE_CONTRACT));
-
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
-      bytes("0x1296c33"), // blockId
-      1, // numCallData
-      QueryTest.buildEthCallDataBytes(address(governor), abi.encodeWithSignature("proposalVotes(uint256)", _proposalId))
-    );
-
-    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
-      VERSION, // version
-      0, // nonce
-      2, // num per chain requests
-      abi.encodePacked(
-        QueryTest.buildPerChainRequestBytes(
-          2, // chainId: (Ethereum mainnet)
-          hubVotePool.QT_ETH_CALL(),
-          ethCall
-        ),
-        QueryTest.buildPerChainRequestBytes(
-          2, // chainId: (Ethereum mainnet)
-          hubVotePool.QT_ETH_CALL(),
-          ethCall
-        )
-      )
-    );
-
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
-      uint64(block.number), // block number
-      blockhash(block.number), // block hash
-      uint64(block.timestamp), // block time US
-      1, // numResults
-      QueryTest.buildEthCallResultBytes(
-        abi.encode(
-          _proposalId,
-          SpokeCountingFractional.ProposalVote({
-            againstVotes: uint128(_againstVotes),
-            forVotes: uint128(_forVotes),
-            abstainVotes: uint128(_abstainVotes)
-          })
-        )
-      )
-    );
-
-    // version and nonce are arbitrary
-    bytes memory _resp = QueryTest.buildQueryResponseBytes(
-      VERSION, // version
-      OFF_CHAIN_SENDER, // sender chain id
-      OFF_CHAIN_SIGNATURE, // signature
-      _queryRequestBytes, // query request
-      2, // num per chain responses
-      abi.encodePacked(
-        QueryTest.buildPerChainResponseBytes(2, hubVotePool.QT_ETH_CALL(), ethCallResp),
-        QueryTest.buildPerChainResponseBytes(2, hubVotePool.QT_ETH_CALL(), ethCallResp)
-      )
-    );
-
-    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
-
-    vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyQueryResponses.selector, 2));
     hubVotePool.crossChainEVMVote(_resp, signatures);
   }
 
