@@ -12,6 +12,7 @@ pub const CUSTODY_SEED: &str = "custody";
 pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
 pub const CONFIG_SEED: &str = "config";
 pub const VOTER_WEIGHT_RECORD_SEED: &str = "voter_weight_record";
+pub const PROPOSAL_SEED: &str = "proposal";
 
 #[derive(Accounts)]
 #[instruction(config_data : global_config::GlobalConfig)]

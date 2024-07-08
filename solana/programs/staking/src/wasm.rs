@@ -46,6 +46,13 @@ impl WasmCheckpointData {
 }
 
 #[wasm_bindgen]
+pub struct VotesSummary {
+    pub against_votes: u64,
+    pub for_votes:     u64,
+    pub abstain_votes: u64,
+}
+
+#[wasm_bindgen]
 pub struct WasmProposalData {
     wrapped: ProposalData,
 }
@@ -68,8 +75,15 @@ impl WasmProposalData {
     }
 
     #[wasm_bindgen(js_name=proposalVotes)]
-    pub fn proposal_votes(&self) -> Result<u64, u64, u64, JsValue> {
-        convert_error(crate::state::proposal::proposal_votes(&self.wrapped))
+    pub fn proposal_votes(&self) -> Result<VotesSummary, JsValue> {
+        let Ok(Some((against_votes, for_votes, abstain_votes))) = self.wrapped.proposal_votes() else {
+            return Err("Failed to get proposal votes".into());
+        };
+        convert_error::<_, std::convert::Infallible>(Ok(VotesSummary {
+            against_votes,
+            for_votes,
+            abstain_votes
+        }))
     }
 }
 
@@ -120,6 +134,7 @@ reexport_seed_const!(CUSTODY_SEED);
 reexport_seed_const!(STAKE_ACCOUNT_METADATA_SEED);
 reexport_seed_const!(CONFIG_SEED);
 reexport_seed_const!(VOTER_WEIGHT_RECORD_SEED);
+reexport_seed_const!(PROPOSAL_SEED);
 
 #[wasm_bindgen]
 impl Constants {

@@ -215,6 +215,26 @@ export class StakeConnection {
     }
   }
 
+  async fetchProposaAccount(proposal: BN) {
+    const proposalAccountAddress = (
+      await PublicKey.findProgramAddress(
+        [utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()), proposal],
+        this.program.programId
+      )
+    )[0];
+
+    const inbuf =
+      await this.program.provider.connection.getAccountInfo(
+        proposalAccountAddress
+      );
+
+    const proposalAccountWasm = new wasm.WasmProposalData(
+      inbuf!.data
+    );
+
+    return { proposalAccountWasm };
+  }
+
   async fetchCheckpointAccount(address: PublicKey) {
     const inbuf = await this.program.provider.connection.getAccountInfo(
       address
@@ -510,6 +530,24 @@ export class StakeConnection {
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
+  public async proposalVotes(proposal: BN): Promise<{
+    againstVotes: BN;
+    forVotes: BN;
+    abstainVotes: BN;
+  }> {
+    const { proposalAccountWasm } = await this.fetchProposaAccount(
+      proposal
+    );
+
+    const proposalData = await this.proposalAccountWasm.proposalVotes();
+
+    return {
+      againstVotes: new BN(proposalData.againstVotes),
+      forVotes: new BN(proposalData.forVotes),
+      abstainVotes: new BN(proposalData.abstainVotes),
+    };
+  }
+
   /** Gets the current votes balance of the delegate's stake account. */
   public getVotes(delegateStakeAccount: StakeAccount): Promise<BN> {
     return delegateStakeAccount.getVotes();
@@ -535,6 +573,7 @@ export interface BalanceSummary {
 
 export class StakeAccount {
   address: PublicKey;
+  stakeAccountCheckpointsWasm: any;
   stakeAccountMetadata: StakeAccountMetadata;
   tokenBalance: u64;
   authorityAddress: PublicKey;

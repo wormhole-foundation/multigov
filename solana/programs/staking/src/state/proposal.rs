@@ -28,3 +28,24 @@ impl ProposalData {
         Ok(Some((self.against_votes, self.for_votes, self.abstain_votes)))
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use crate::state::proposal::ProposalData;
+
+    #[test]
+    fn proposal_votes_test() {
+        let proposal = &mut ProposalData {
+            id:             1,
+            against_votes:  50,
+            for_votes:      40,
+            abstain_votes:  30,
+            vote_start:     10,
+        };
+
+        assert_eq!(
+          proposal.proposal_votes().unwrap(),
+          Some((50, 40, 30))
+        );
+    }
+}
