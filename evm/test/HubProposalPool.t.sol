@@ -26,41 +26,49 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils {
     hubProposalPool = new HubProposalPool(address(wormhole), address(hubGovernor));
   }
 
-  function _mockQueryResponse(uint256 totalVoteWeight, uint16 responseChainId, address governance)
+  function _mockQueryResponse(uint256[] memory voteWeights, uint16[] memory chainIds, address governance)
     internal
     view
     returns (bytes memory)
   {
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
-      bytes("0x1296c33"), // random blockId
-      1, // numCallData
-      QueryTest.buildEthCallDataBytes(
-        governance, abi.encodeWithSignature("getVotes(address,uint256)", address(this), block.number)
-      )
-    );
+    require(voteWeights.length == chainIds.length, "Mismatched input lengths");
 
-    bytes memory queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
-      VERSION,
-      0, // nonce
-      1, // num per chain requests
-      QueryTest.buildPerChainRequestBytes(responseChainId, hubProposalPool.QT_ETH_CALL(), ethCall)
-    );
+    bytes memory queryRequestBytes = "";
+    bytes memory perChainResponses = "";
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
-      uint64(block.number), // block number
-      blockhash(block.number), // block hash
-      uint64(block.timestamp), // block time
-      1, // numResults
-      QueryTest.buildEthCallResultBytes(abi.encode(totalVoteWeight))
-    );
+    for (uint256 i = 0; i < chainIds.length; i++) {
+      bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+        bytes("0x1296c33"),
+        1,
+        QueryTest.buildEthCallDataBytes(
+          governance, abi.encodeWithSignature("getVotes(address,uint256)", address(this), block.number)
+        )
+      );
+
+      queryRequestBytes = abi.encodePacked(
+        queryRequestBytes, QueryTest.buildPerChainRequestBytes(chainIds[i], hubProposalPool.QT_ETH_CALL(), ethCall)
+      );
+
+      bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+        uint64(block.number),
+        blockhash(block.number),
+        uint64(block.timestamp),
+        1,
+        QueryTest.buildEthCallResultBytes(abi.encode(voteWeights[i]))
+      );
+
+      perChainResponses = abi.encodePacked(
+        perChainResponses, QueryTest.buildPerChainResponseBytes(chainIds[i], hubProposalPool.QT_ETH_CALL(), ethCallResp)
+      );
+    }
 
     bytes memory response = QueryTest.buildQueryResponseBytes(
       VERSION,
       OFF_CHAIN_SENDER,
       OFF_CHAIN_SIGNATURE,
-      queryRequestBytes,
-      1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(responseChainId, hubProposalPool.QT_ETH_CALL(), ethCallResp)
+      QueryTest.buildOffChainQueryRequestBytes(VERSION, 0, chainIds.length, queryRequestBytes),
+      chainIds.length,
+      perChainResponses
     );
 
     return response;
