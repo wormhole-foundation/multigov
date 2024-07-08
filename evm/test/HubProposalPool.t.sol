@@ -107,7 +107,7 @@ contract Constructor is Test {
 }
 
 contract CheckAndProposeIfEligible is HubProposalPoolTest {
-  function testFuzz_CorrectlyCheckAndProposeIfEligible(address _caller) public {
+  function testFuzz_CorrectlyCheckAndProposeIfEligible() public {
     bytes memory queryResponse = _mockQueryResponse(PROPOSAL_THRESHOLD, MAINNET_CHAIN_ID, address(hubGovernor));
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
@@ -170,13 +170,14 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
     string memory description = "Test Proposal";
 
-    vm.expectRevert("Ownable: caller is not the owner");
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     vm.prank(_caller);
-    hubProposalPool.checkAndProposeIfEligible(
-      builder.targets(), builder.values(), builder.calldatas(), description, queryResponse, signatures
-    );
+    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, description, queryResponse, signatures);
   }
 
   function testFuzz_EmitsProposalCreatedEvent() public {

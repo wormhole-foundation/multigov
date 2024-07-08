@@ -35,6 +35,7 @@ contract HubProposalPool is QueryResponse, Ownable {
     bytes memory _queryResponseRaw,
     IWormhole.Signature[] memory _signatures
   ) external returns (uint256) {
+    _checkOwner();
     if (targets.length != values.length || targets.length != calldatas.length) revert InvalidProposalLength();
     if (targets.length == 0) revert EmptyProposal();
 
@@ -66,6 +67,10 @@ contract HubProposalPool is QueryResponse, Ownable {
       uint256 voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
       totalVoteWeight += voteWeight;
     }
+
+    // Include the hub vote weight
+    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, block.number);
+    totalVoteWeight += hubVoteWeight;
 
     return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
   }
