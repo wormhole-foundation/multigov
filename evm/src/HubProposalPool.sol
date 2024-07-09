@@ -15,6 +15,8 @@ contract HubProposalPool is QueryResponse, Ownable {
   IGovernor public immutable HUB_GOVERNOR;
   IWormhole public immutable WORMHOLE_CORE;
 
+  // mapping of wormhole chain id to token contract address
+
   error EmptyProposal();
   error InsufficientVoteWeight();
   error InvalidProposalLength();
@@ -52,6 +54,8 @@ contract HubProposalPool is QueryResponse, Ownable {
     view
     returns (bool)
   {
+    // verify the query token address matches what we have registered
+
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
 
     uint256 totalVoteWeight = 0;
@@ -61,6 +65,8 @@ contract HubProposalPool is QueryResponse, Ownable {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
       EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
 
+      // parse the request to check if the request addr matches msg.sender
+
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
       uint256 voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
@@ -68,7 +74,7 @@ contract HubProposalPool is QueryResponse, Ownable {
     }
 
     // Include the hub vote weight
-    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, block.number);
+    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, block.timestamp);
     totalVoteWeight += hubVoteWeight;
 
     return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();

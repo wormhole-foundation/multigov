@@ -8,40 +8,74 @@ import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 
 import {HubProposalPool} from "src/HubProposalPool.sol";
+import {HubVotePool} from "src/HubVotePool.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
-import {GovernorMock} from "test/mocks/GovernorMock.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
+import {HubGovernorHarness} from "test/harnesses/HubGovernorHarness.sol";
+import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
+import {ProposalTest} from "test/helpers/ProposalTest.sol";
 
-contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils {
+contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest {
   HubProposalPool public hubProposalPool;
-  GovernorMock public hubGovernor;
+  HubGovernorHarness public hubGovernor;
+  HubVotePool public hubVotePool;
   ERC20VotesFake public token;
+  TimelockControllerFake public timelock;
 
+  uint48 public constant INITIAL_VOTING_DELAY = 1 days;
+  uint32 public constant INITIAL_VOTING_PERIOD = 1 days;
+  uint208 public constant INITIAL_QUORUM = 100e18;
   uint256 public constant PROPOSAL_THRESHOLD = 1000e18;
+  uint48 public constant VOTE_WINDOW = 1 days;
+
+  struct VoteWeight {
+    uint256 voteWeight;
+    uint16 chainId;
+  }
 
   function setUp() public {
     _setupWormhole();
-    hubGovernor = new GovernorMock();
-    hubGovernor.setProposalThreshold(PROPOSAL_THRESHOLD);
-    hubProposalPool = new HubProposalPool(address(wormhole), address(hubGovernor));
+
+    address initialOwner = makeAddr("Initial Owner");
+    timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    hubGovernor.setToken(address(token));
+
+    hubVotePool = new HubVotePool(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
+
+    hubGovernor = new HubGovernorHarness(
+      "Example Gov",
+      token,
+      timelock,
+      INITIAL_VOTING_DELAY,
+      INITIAL_VOTING_PERIOD,
+      PROPOSAL_THRESHOLD,
+      INITIAL_QUORUM,
+      address(hubVotePool),
+      VOTE_WINDOW
+    );
+
+    hubProposalPool = new HubProposalPool(address(wormhole), address(hubGovernor));
+
+    vm.prank(initialOwner);
+    timelock.grantRole(keccak256("PROPOSER_ROLE"), address(hubGovernor));
+
+    vm.prank(initialOwner);
+    timelock.grantRole(keccak256("EXECUTOR_ROLE"), address(hubGovernor));
+
+    vm.prank(initialOwner);
+    hubVotePool.transferOwnership(address(hubGovernor));
   }
 
-  function _mockQueryResponse(uint256[] memory voteWeights, uint16[] memory chainIds, address governance)
-    internal
-    view
-    returns (bytes memory)
-  {
-    require(voteWeights.length == chainIds.length, "Mismatched input lengths");
-    require(chainIds.length <= type(uint8).max, "Too many chains");
-
+  function _mockQueryResponse(VoteWeight[] memory voteWeights, address governance) internal view returns (bytes memory) {
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
 
-    for (uint256 i = 0; i < chainIds.length; i++) {
+    for (uint256 i = 0; i < voteWeights.length; i++) {
+      uint256 voteWeight = voteWeights[i].voteWeight;
+      uint16 chainId = voteWeights[i].chainId;
+
       bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
         bytes("0x1296c33"),
         1,
@@ -51,7 +85,7 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils {
       );
 
       queryRequestBytes = abi.encodePacked(
-        queryRequestBytes, QueryTest.buildPerChainRequestBytes(chainIds[i], hubProposalPool.QT_ETH_CALL(), ethCall)
+        queryRequestBytes, QueryTest.buildPerChainRequestBytes(chainId, hubProposalPool.QT_ETH_CALL(), ethCall)
       );
 
       bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
@@ -59,11 +93,11 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils {
         blockhash(block.number),
         uint64(block.timestamp),
         1,
-        QueryTest.buildEthCallResultBytes(abi.encode(voteWeights[i]))
+        QueryTest.buildEthCallResultBytes(abi.encode(voteWeight))
       );
 
       perChainResponses = abi.encodePacked(
-        perChainResponses, QueryTest.buildPerChainResponseBytes(chainIds[i], hubProposalPool.QT_ETH_CALL(), ethCallResp)
+        perChainResponses, QueryTest.buildPerChainResponseBytes(chainId, hubProposalPool.QT_ETH_CALL(), ethCallResp)
       );
     }
 
@@ -71,8 +105,8 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils {
       VERSION,
       OFF_CHAIN_SENDER,
       OFF_CHAIN_SIGNATURE,
-      QueryTest.buildOffChainQueryRequestBytes(VERSION, 0, uint8(chainIds.length), queryRequestBytes),
-      uint8(chainIds.length),
+      QueryTest.buildOffChainQueryRequestBytes(VERSION, 0, uint8(voteWeights.length), queryRequestBytes),
+      uint8(voteWeights.length),
       perChainResponses
     );
 
@@ -92,16 +126,16 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils {
     return builder;
   }
 
-  function _createArbitraryProposal() internal returns (ProposalBuilder) {
-    return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", 100));
-  }
-
   function _mintAndDelegate(address user, uint256 _amount) public returns (address) {
     token.mint(user, _amount);
     vm.prank(user);
     token.delegate(user);
     vm.warp(vm.getBlockTimestamp() + 1);
     return user;
+  }
+
+  function _createArbitraryProposal() internal returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", 100));
   }
 }
 
@@ -128,39 +162,64 @@ contract Constructor is Test {
 }
 
 contract CheckAndProposeIfEligible is HubProposalPoolTest {
+  function _getFirstNItems(VoteWeight[] memory array, uint256 n) internal pure returns (VoteWeight[] memory) {
+    uint256 length = n < array.length ? n : array.length;
+    VoteWeight[] memory result = new VoteWeight[](length);
+    for (uint256 i = 0; i < length; i++) {
+      result[i] = array[i];
+    }
+    return result;
+  }
+
+  function _boundVoteWeight(uint256 voteWeight) internal pure returns (uint128) {
+    uint128 maxVoteWeight = type(uint128).max; // Maximum value for uint128
+    if (voteWeight > maxVoteWeight) return maxVoteWeight;
+    return uint128(voteWeight);
+  }
+
+  function _boundVoteWeights(VoteWeight[] memory voteWeights) internal pure returns (VoteWeight[] memory) {
+    VoteWeight[] memory result = new VoteWeight[](voteWeights.length);
+    for (uint256 i = 0; i < voteWeights.length; i++) {
+      result[i] = VoteWeight({voteWeight: _boundVoteWeight(voteWeights[i].voteWeight), chainId: voteWeights[i].chainId});
+    }
+    return result;
+  }
+
   function testFuzz_CorrectlyCheckAndProposeIfEligible(
-    uint256[] calldata _voteWeights,
-    uint16[] calldata _chainIds,
+    VoteWeight[] memory _voteWeights,
     uint256 _hubVoteWeight,
     string memory _description,
     address _caller
   ) public {
     vm.assume(_caller != address(0));
-    vm.assume(_voteWeights.length == _chainIds.length);
-    vm.assume(_voteWeights.length > 0 && _voteWeights.length <= 5); // Limit to 5 chains for practical testing
-    _hubVoteWeight = bound(_hubVoteWeight, 0, PROPOSAL_THRESHOLD); // Ensure hub vote weight is within reasonable range
+    uint8 numWeightsToUse = 3;
+    VoteWeight[] memory truncatedVoteWeights = _getFirstNItems(_voteWeights, numWeightsToUse);
+    truncatedVoteWeights = _boundVoteWeights(truncatedVoteWeights);
 
-    uint256 totalVoteWeight = 0;
-    for (uint256 i = 0; i < _voteWeights.length; i++) {
-      totalVoteWeight += _voteWeights[i];
-      vm.assume(_chainIds[i] != 0); // Ensure no chain ID is 0
-    }
+    _hubVoteWeight = bound(_hubVoteWeight, 1, PROPOSAL_THRESHOLD); // Ensure hub vote weight is within reasonable range
 
-    // Set hub governor whitelisted proposer
-    vm.prank(address(hubGovernor));
-    hubGovernor.setWhitelistedProposer(_caller);
+    hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
 
-    // mint and delagate
     _mintAndDelegate(_caller, _hubVoteWeight);
 
-    vm.warp(vm.getBlockTimestamp() + 1);
+    // Start check and propose if eligible
+    uint256 totalVoteWeight = 0;
+
+    for (uint256 i = 0; i < truncatedVoteWeights.length; i++) {
+      totalVoteWeight += truncatedVoteWeights[i].voteWeight;
+    }
 
     totalVoteWeight += _hubVoteWeight;
 
     vm.assume(totalVoteWeight >= PROPOSAL_THRESHOLD);
 
-    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _chainIds, address(hubGovernor));
+    bytes memory queryResponse = _mockQueryResponse(truncatedVoteWeights, address(hubGovernor));
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
+
+    // Need to warp past the window if the current timestamp is less than the vote weight window length
+    vm.warp(vm.getBlockTimestamp() + windowLength);
 
     ProposalBuilder builder = _createArbitraryProposal();
 
@@ -170,6 +229,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     );
     vm.stopPrank();
 
+    // use proposal snpashot func to get expected vote start
     assertTrue(proposalId > 0, "Proposal should be created");
   }
 
