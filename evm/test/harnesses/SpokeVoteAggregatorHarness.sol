@@ -15,4 +15,8 @@ contract SpokeVoteAggregatorHarness is SpokeVoteAggregator {
   function exposed_setSafeWindow(uint48 _safeWindow) public {
     _setSafeWindow(_safeWindow);
   }
+
+  function exposed_hashTypedDataV4(bytes32 structHash) external view returns (bytes32) {
+    return _hashTypedDataV4(structHash);
+  }
 }
