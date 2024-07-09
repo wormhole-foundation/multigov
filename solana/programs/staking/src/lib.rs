@@ -20,6 +20,23 @@ mod utils;
 #[cfg(feature = "wasm")]
 pub mod wasm;
 
+#[event]
+pub struct DelegateChanged {
+  pub delegator: Pubkey,
+  pub fromDelegate: Pubkey,
+  pub toDelegate: Pubkey,
+}
+
+#[event]
+pub struct VoteCast {
+  pub voter: Pubkey,
+  pub proposalId: u64,
+  pub weight: u64,
+  pub againstVotes: u64,
+  pub forVotes: u64,
+  pub abstainVotes: u64,
+}
+
 declare_id!("pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ");
 #[program]
 pub mod staking {
@@ -103,6 +120,12 @@ pub mod staking {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
         let current_delegate = stake_account_metadata.delegate;
         stake_account_metadata.delegate = delegatee;
+
+        emit!(DelegateChanged {
+            delegator: ctx.accounts.stake_account_checkpoints.key(),
+            fromDelegate: current_delegate,
+            toDelegate: delegatee
+        });
 
         let recorded_balance = stake_account_metadata.recorded_balance;
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
@@ -239,6 +262,15 @@ pub mod staking {
         proposal.against_votes += against_votes;
         proposal.for_votes += for_votes;
         proposal.abstain_votes += abstain_votes;
+
+        emit!(VoteCast {
+            voter: ctx.accounts.voter_checkpoints.key(),
+            proposalId: proposal.id,
+            weight: total_weight,
+            againstVotes: against_votes,
+            forVotes: for_votes,
+            abstainVotes: abstain_votes
+        });
 
         Ok(())
     }

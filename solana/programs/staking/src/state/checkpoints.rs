@@ -27,6 +27,13 @@ impl Default for CheckpointData {
     }
 }
 
+#[event]
+pub struct DelegateVotesChanged {
+  pub delegate: Pubkey,
+  pub previousBalance: u64,
+  pub newBalance: u64,
+}
+
 impl CheckpointData {
     pub const LEN: usize = 8 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
 
@@ -83,6 +90,7 @@ impl CheckpointData {
             let last_checkpoint = self
                 .read_checkpoint((self.next_index - 1) as usize)?
                 .ok_or(ErrorCode::CheckpointNotFound)?;
+            let last_value = last_checkpoint.value;
 
             require!(
                 last_checkpoint.timestamp <= timestamp,
@@ -92,17 +100,30 @@ impl CheckpointData {
             if last_checkpoint.timestamp == timestamp {
                 let new_checkpoint = Checkpoint { timestamp, value };
                 self.write_checkpoint((self.next_index - 1) as usize, &new_checkpoint)?;
-                Ok((last_checkpoint.value, value))
             } else {
                 let new_checkpoint = Checkpoint { timestamp, value };
                 let i = self.reserve_new_index().unwrap();
                 self.write_checkpoint(i, &new_checkpoint)?;
-                Ok((last_checkpoint.value, value))
             }
+
+            emit!(DelegateVotesChanged {
+                delegate: self.owner,
+                previousBalance: last_value,
+                newBalance: value
+            });
+            
+            Ok((last_value, value))
         } else {
             let new_checkpoint = Checkpoint { timestamp, value };
             let i = self.reserve_new_index().unwrap();
             self.write_checkpoint(i, &new_checkpoint)?;
+
+            emit!(DelegateVotesChanged {
+                delegate: self.owner,
+                previousBalance: 0,
+                newBalance: value
+            });
+
             Ok((0, value))
         }
     }
