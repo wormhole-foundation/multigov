@@ -19,10 +19,10 @@ contract HubGovernorProposalExtenderTest is Test, HubGovernorTest {
 
   function setUp() public virtual override {
     HubGovernorTest.setUp();
-    hubExtender = new HubGovernorProposalExtender(whitelistedExtender, extensionTime, initialOwner, minimumTime);
+    hubExtender = new HubGovernorProposalExtender(whitelistedExtender, extensionTime, address(timelock), minimumTime);
+
+    vm.prank(address(timelock));
     hubExtender.initialize(payable(address(governor)));
-    vm.prank(initialOwner);
-    hubExtender.transferOwnership(address(timelock));
   }
 }
 
@@ -44,7 +44,7 @@ contract Constructor is HubGovernorProposalExtenderTest {
 }
 
 contract Initialize is HubGovernorProposalExtenderTest {
-  function testFuzz_CorrectlyInitializeGovernor(
+  function testFuzz_CorrectlySetGovernor(
     address _whitelistedVoteExtender,
     uint48 _voteTimeExtension,
     address _governor,
@@ -119,7 +119,7 @@ contract ExtendProposal is HubGovernorProposalExtenderTest {
     hubExtender.extendProposal(_proposalId);
   }
 
-  function testFuzz_RevertIf_ProposalCannotBeExtendedIfNotActive(address _proposer) public {
+  function testFuzz_RevertIf_ProposalNotActive(address _proposer) public {
     (, address[] memory delegates) = _setGovernorAndDelegates();
     vm.startPrank(delegates[0]);
     ProposalBuilder builder = _createProposal(abi.encodeWithSignature("setHubVotePool(address)", _proposer));
@@ -133,7 +133,7 @@ contract ExtendProposal is HubGovernorProposalExtenderTest {
     hubExtender.extendProposal(_proposalId);
   }
 
-  function testFuzz_RevertIf_ProposalCannotBeExtendedIfVotingIsSafe(address _proposer) public {
+  function testFuzz_RevertIf_ProposalVotingIsSafe(address _proposer) public {
     (, address[] memory delegates) = _setGovernorAndDelegates();
     vm.startPrank(delegates[0]);
     ProposalBuilder builder = _createProposal(abi.encodeWithSignature("setHubVotePool(address)", _proposer));
@@ -242,6 +242,7 @@ contract SetWhitelistedVoteExtender is HubGovernorProposalExtenderTest {
   }
 
   function testFuzz_RevertIf_CallerIsNotTheTimelock(address _caller, address _voteExtender) public {
+    vm.assume(_caller != address(timelock));
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     hubExtender.setWhitelistedVoteExtender(_voteExtender);
