@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {console} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
@@ -63,19 +64,25 @@ contract HubProposalPool is QueryResponse, Ownable {
     uint256 numResponses = _queryResponse.responses.length;
 
     for (uint256 i = 0; i < numResponses; i++) {
+      // TODO: need to check that the query time is a reasonalbe time against the hub time; reflect current state mostly
+      // TODO: need to check that the address calling is in the data being parsed
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
       EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
+      if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
       // Verify that the token address in the query matches what we have registered
+      // registerdVotingWeightAddress; this could be the spokeVoteAggregator or could be the token address on the spoke
       address registeredTokenAddress = tokenAddresses[perChainResp.chainId];
+
       if (registeredTokenAddress == address(0)) revert InvalidTokenAddress(perChainResp.chainId, address(0));
 
       // Parse the request to check if the request address matches the registered token address
       address queriedAddress = _ethCalls.result[0].contractAddress;
+
       if (queriedAddress != registeredTokenAddress) revert InvalidTokenAddress(perChainResp.chainId, queriedAddress);
 
-      if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
       uint256 voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
+
       totalVoteWeight += voteWeight;
     }
 
