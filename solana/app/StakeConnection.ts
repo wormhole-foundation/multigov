@@ -511,7 +511,7 @@ export class StakeConnection {
   }
 
   public async castVote(
-    proposal: PublicKey,
+    proposal: BN,
     stakeAccount: StakeAccount,
     againstVotes: BN,
     forVotes: BN,
@@ -522,9 +522,8 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .castVote(againstVotes, forVotes, abstainVotes)
+        .castVote(proposal, againstVotes, forVotes, abstainVotes)
         .accounts({
-          proposal: proposal,
           voter_checkpoints: stakeAccount.address,
         })
         .instruction()
@@ -549,6 +548,24 @@ export class StakeConnection {
       forVotes: new BN(proposalData.forVotes),
       abstainVotes: new BN(proposalData.abstainVotes),
     };
+  }
+
+  public async addProposal(
+    proposal: BN,
+    vote_start: BN,
+    safe_window: BN,
+  ): Promise<void> {
+    const instructions: TransactionInstruction[] = [];
+    const signers: Signer[] = [];
+
+    instructions.push(
+      await this.program.methods
+        .add_proposal(proposal, vote_start, safe_window)
+        .accounts({})
+        .instruction()
+    );
+
+    await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
   /** Gets the current votes balance of the delegate's stake account. */
