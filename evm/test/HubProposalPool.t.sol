@@ -348,49 +348,28 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  // function testFuzz_RevertIf_EmptyProposal() public {
-  //   bytes memory queryResponse = _mockQueryResponse(PROPOSAL_THRESHOLD, MAINNET_CHAIN_ID, address(hubGovernor));
-  //   IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+  function testFuzz_RevertIf_EmptyProposal(
+    VoteWeight[] memory _voteWeights,
+    address _caller,
+    string memory _description
+  ) public {
+    vm.assume(_voteWeights.length > 0);
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
 
-  //   address[] memory targets = new address[](0);
-  //   uint256[] memory values = new uint256[](0);
-  //   bytes[] memory calldatas = new bytes[](0);
-  //   string memory description = "Test Proposal";
+    _voteWeights = _setupVoteWeights(_voteWeights);
 
-  //   vm.expectRevert(HubProposalPool.EmptyProposal.selector);
-  //   hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, description, queryResponse, signatures);
-  // }
+    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
-  // function testFuzz_RevertIf_NotCalledByOwner(address _caller) public {
-  //   vm.assume(_caller != address(0));
-  //   vm.assume(_caller != address(hubProposalPool.owner()));
+    // Create empty proposal builder
+    ProposalBuilder builder = new ProposalBuilder();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
 
-  //   bytes memory queryResponse = _mockQueryResponse(PROPOSAL_THRESHOLD, MAINNET_CHAIN_ID, address(hubGovernor));
-  //   IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
-
-  //   ProposalBuilder builder = _createArbitraryProposal();
-  //   address[] memory targets = builder.targets();
-  //   uint256[] memory values = builder.values();
-  //   bytes[] memory calldatas = builder.calldatas();
-  //   string memory description = "Test Proposal";
-
-  //   vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
-  //   vm.prank(_caller);
-  //   hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, description, queryResponse, signatures);
-  // }
-
-  // function testFuzz_EmitsProposalCreatedEvent() public {
-  //   bytes memory queryResponse = _mockQueryResponse(PROPOSAL_THRESHOLD, MAINNET_CHAIN_ID, address(hubGovernor));
-  //   IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
-
-  //   ProposalBuilder builder = _createArbitraryProposal();
-  //   string memory description = "Test Proposal";
-
-  //   vm.expectEmit();
-  //   emit HubProposalPool.ProposalCreated(1); // Assuming first proposal ID is 1
-
-  //   hubProposalPool.checkAndProposeIfEligible(
-  //     builder.targets(), builder.values(), builder.calldatas(), description, queryResponse, signatures
-  //   );
-  // }
+    vm.expectRevert(HubProposalPool.EmptyProposal.selector);
+    vm.prank(_caller);
+    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
+  }
 }
