@@ -173,18 +173,27 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     return result;
   }
 
-  function _boundVoteWeight(uint256 voteWeight) internal pure returns (uint256) {
-    return voteWeight > type(uint128).max ? type(uint128).max : voteWeight;
+  function _boundVoteWeight(uint256 voteWeight, uint256 maxVoteWeight) internal pure returns (uint256) {
+    return voteWeight > maxVoteWeight ? maxVoteWeight : voteWeight;
   }
 
   function _boundVoteWeights(VoteWeight[] memory voteWeights) internal pure returns (VoteWeight[] memory) {
+    uint256 remainingVoteWeight = type(uint128).max;
     VoteWeight[] memory result = new VoteWeight[](voteWeights.length);
+
     for (uint256 i = 0; i < voteWeights.length; i++) {
-      result[i] = VoteWeight({
-        voteWeight: _boundVoteWeight(voteWeights[i].voteWeight),
-        chainId: voteWeights[i].chainId,
-        tokenAddress: voteWeights[i].tokenAddress
-      });
+      if (remainingVoteWeight == 0) {
+        result[i] =
+          VoteWeight({voteWeight: 0, chainId: voteWeights[i].chainId, tokenAddress: voteWeights[i].tokenAddress});
+      } else {
+        uint256 boundedWeight = _boundVoteWeight(voteWeights[i].voteWeight, remainingVoteWeight);
+        result[i] = VoteWeight({
+          voteWeight: boundedWeight,
+          chainId: voteWeights[i].chainId,
+          tokenAddress: voteWeights[i].tokenAddress
+        });
+        remainingVoteWeight = remainingVoteWeight > boundedWeight ? remainingVoteWeight - boundedWeight : 0;
+      }
     }
     return result;
   }
@@ -192,8 +201,17 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
   function _ensureUniqueChainIds(VoteWeight[] memory voteWeights) internal pure returns (VoteWeight[] memory) {
     uint16 lastChainId = 0;
     for (uint256 i = 0; i < voteWeights.length; i++) {
-      if (voteWeights[i].chainId <= lastChainId) voteWeights[i].chainId = uint16(lastChainId + 1);
-      lastChainId = voteWeights[i].chainId;
+      if (voteWeights[i].chainId <= lastChainId) {
+        if (lastChainId == type(uint16).max) {
+          // If we've reached the maximum uint16 value, wrap around to 1
+          lastChainId = 1;
+        } else {
+          lastChainId++;
+        }
+        voteWeights[i].chainId = lastChainId;
+      } else {
+        lastChainId = voteWeights[i].chainId;
+      }
     }
     return voteWeights;
   }
@@ -238,41 +256,84 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     string memory _description,
     address _caller
   ) public {
+    console2.log("Starting test with caller:", _caller);
     vm.assume(_caller != address(0));
+
     uint8 numWeightsToUse = 3;
     VoteWeight[] memory truncatedVoteWeights = _getFirstNItems(_voteWeights, numWeightsToUse);
+    console2.log("Truncated vote weights length:", truncatedVoteWeights.length);
+
     truncatedVoteWeights = _boundVoteWeights(truncatedVoteWeights);
+    console2.log("Bounded vote weights");
+    for (uint256 i = 0; i < truncatedVoteWeights.length; i++) {
+      console2.log("Weight", i, ":", truncatedVoteWeights[i].voteWeight);
+    }
+
     truncatedVoteWeights = _ensureUniqueChainIds(truncatedVoteWeights);
+    console2.log("Ensured unique chain IDs");
+    for (uint256 i = 0; i < truncatedVoteWeights.length; i++) {
+      console2.log("ChainID", i, ":", truncatedVoteWeights[i].chainId);
+    }
 
     _hubVoteWeight = bound(_hubVoteWeight, 1, PROPOSAL_THRESHOLD);
+    console2.log("Hub vote weight:", _hubVoteWeight);
 
     hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
+    console2.log("Set whitelisted proposer");
 
     _mintAndDelegate(_caller, _hubVoteWeight);
+    console2.log("Minted and delegated tokens");
 
     truncatedVoteWeights = _ensureUniqueTokenAddresses(truncatedVoteWeights);
-    _setTokenAddresses(truncatedVoteWeights);
+    console2.log("Ensured unique token addresses");
+    for (uint256 i = 0; i < truncatedVoteWeights.length; i++) {
+      console2.log("TokenAddress", i, ":", truncatedVoteWeights[i].tokenAddress);
+    }
 
-    vm.assume(_checkThresholdMet(truncatedVoteWeights, _hubVoteWeight, PROPOSAL_THRESHOLD));
+    _setTokenAddresses(truncatedVoteWeights);
+    console2.log("Set token addresses");
+
+    bool thresholdMet = _checkThresholdMet(truncatedVoteWeights, _hubVoteWeight, PROPOSAL_THRESHOLD);
+    console2.log("Threshold met:", thresholdMet);
+    vm.assume(thresholdMet);
 
     bytes memory queryResponse = _mockQueryResponse(truncatedVoteWeights, _caller);
-    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+    console2.log("Mocked query response");
 
-    // Need to warp past the window if the current timestamp is less than the vote weight window length
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+    console2.log("Got signatures");
+
     uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
+    console2.log("Window length:", windowLength);
 
     vm.warp(vm.getBlockTimestamp() + windowLength);
+    console2.log("Warped time");
 
     ProposalBuilder builder = _createArbitraryProposal();
+    console2.log("Created arbitrary proposal");
 
     vm.startPrank(_caller);
-    uint256 proposalId = hubProposalPool.checkAndProposeIfEligible(
-      builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
-    );
-    vm.stopPrank();
+    console2.log("Started prank as caller");
 
-    // Use proposal snapshot func to get expected vote start
+    uint256 proposalId;
+    try hubProposalPool.checkAndProposeIfEligible(
+      builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
+    ) returns (uint256 _proposalId) {
+      proposalId = _proposalId;
+      console2.log("Proposal created successfully with ID:", proposalId);
+    } catch Error(string memory reason) {
+      console2.log("Error creating proposal:", reason);
+      revert(reason);
+    } catch (bytes memory lowLevelData) {
+      console2.log("Low-level error creating proposal");
+      revert();
+    }
+
+    vm.stopPrank();
+    console2.log("Stopped prank");
+
     assertTrue(proposalId > 0, "Proposal should be created");
+    console2.log("Test completed successfully");
   }
 
   // function testFuzz_RevertIf_InsufficientVoteWeight(uint256[] memory voteWeights, uint16[] memory chainIds) public {
