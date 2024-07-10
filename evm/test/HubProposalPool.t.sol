@@ -325,20 +325,30 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  // function testFuzz_RevertIf_InvalidProposalLength() public {
-  //   bytes memory queryResponse = _mockQueryResponse(PROPOSAL_THRESHOLD, MAINNET_CHAIN_ID, address(hubGovernor));
-  //   IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+  function testFuzz_RevertIf_InvalidProposalLength(
+    VoteWeight[] memory _voteWeights,
+    address _caller,
+    string memory _description
+  ) public {
+    vm.assume(_voteWeights.length > 0);
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
 
-  //   ProposalBuilder builder = _createProposal(hex"");
-  //   builder.push(address(0x456), 2 ether, hex""); // Adding extra data to mismatch length
-  //   address[] memory targets = builder.targets();
-  //   uint256[] memory values = new uint256[](1); // Mismatched length
-  //   bytes[] memory calldatas = builder.calldatas();
-  //   string memory description = "Test Proposal";
+    _voteWeights = _setupVoteWeights(_voteWeights);
+    uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
+    vm.warp(vm.getBlockTimestamp() + windowLength);
 
-  //   vm.expectRevert(HubProposalPool.InvalidProposalLength.selector);
-  //   hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, description, queryResponse, signatures);
-  // }
+    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = new uint256[](2); // Mismatched length
+    bytes[] memory calldatas = builder.calldatas();
+    vm.expectRevert(HubProposalPool.InvalidProposalLength.selector);
+    vm.prank(_caller);
+    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
+  }
 
   // function testFuzz_RevertIf_EmptyProposal() public {
   //   bytes memory queryResponse = _mockQueryResponse(PROPOSAL_THRESHOLD, MAINNET_CHAIN_ID, address(hubGovernor));
