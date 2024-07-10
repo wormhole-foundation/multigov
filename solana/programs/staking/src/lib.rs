@@ -37,6 +37,12 @@ pub struct VoteCast {
   pub abstainVotes: u64,
 }
 
+#[event]
+pub struct ProposalCreated {
+  pub proposalId: u64,
+  pub voteStart: u64,
+}
+
 declare_id!("pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ");
 #[program]
 pub mod staking {
@@ -221,6 +227,11 @@ pub mod staking {
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
         let _ = proposal.add_proposal(proposal_id, vote_start, safe_window);
+
+        emit!(ProposalCreated {
+            proposalId: proposal_id,
+            voteStart: vote_start
+        });
 
         Ok(())
     }

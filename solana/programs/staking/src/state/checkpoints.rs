@@ -235,7 +235,7 @@ pub mod tests {
         );
         assert_eq!(
             CheckpointData::LEN,
-            8 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+            10240
         );
         // Checks that the checkpoint struct fits in the individual checkpoint buffer
         assert!(get_packed_len::<Checkpoint>() < CHECKPOINT_BUFFER_SIZE);

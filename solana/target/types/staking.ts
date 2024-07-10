@@ -1186,6 +1186,21 @@ export type Staking = {
           "index": false
         }
       ]
+    },
+    {
+      "name": "ProposalCreated",
+      "fields": [
+        {
+          "name": "proposalId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "voteStart",
+          "type": "u64",
+          "index": false
+        }
+      ]
     }
   ],
   "errors": [
@@ -2461,6 +2476,21 @@ export const IDL: Staking = {
         },
         {
           "name": "abstainVotes",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "ProposalCreated",
+      "fields": [
+        {
+          "name": "proposalId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "voteStart",
           "type": "u64",
           "index": false
         }

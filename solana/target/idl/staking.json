@@ -1186,6 +1186,21 @@
           "index": false
         }
       ]
+    },
+    {
+      "name": "ProposalCreated",
+      "fields": [
+        {
+          "name": "proposalId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "voteStart",
+          "type": "u64",
+          "index": false
+        }
+      ]
     }
   ],
   "errors": [
