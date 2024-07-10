@@ -281,32 +281,49 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     );
     vm.stopPrank();
 
+    // use snapshot to check that the proposal was created
     assertTrue(proposalId > 0, "Proposal should be created");
   }
 
-  // function testFuzz_RevertIf_InsufficientVoteWeight(uint256[] memory voteWeights, uint16[] memory chainIds) public {
-  //   vm.assume(voteWeights.length == chainIds.length);
-  //   vm.assume(voteWeights.length > 0 && voteWeights.length <= 5);
+  function testFuzz_RevertIf_InsufficientVoteWeight(
+    VoteWeight[] memory _voteWeights,
+    uint256 _hubVoteWeight,
+    string memory _description,
+    address _caller
+  ) public {
+    vm.assume(_voteWeights.length > 0);
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
+    vm.assume(_hubVoteWeight != 0);
 
-  //   uint256 totalVoteWeight = 0;
-  //   for (uint256 i = 0; i < voteWeights.length; i++) {
-  //     totalVoteWeight += voteWeights[i];
-  //     vm.assume(chainIds[i] != 0);
-  //   }
+    _voteWeights = _setupVoteWeights(_voteWeights);
+    _hubVoteWeight = bound(_hubVoteWeight, 1, hubGovernor.proposalThreshold() - 1);
+    _mintAndDelegate(_caller, _hubVoteWeight);
+    hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
 
-  //   vm.assume(totalVoteWeight < PROPOSAL_THRESHOLD);
+    uint256 totalVoteWeight = 0;
+    for (uint256 i = 0; i < _voteWeights.length; i++) {
+      totalVoteWeight += _voteWeights[i].voteWeight;
+    }
+    totalVoteWeight += _hubVoteWeight;
 
-  //   bytes memory queryResponse = _mockQueryResponse(voteWeights, chainIds, address(hubGovernor));
-  //   IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+    vm.assume(totalVoteWeight < hubGovernor.proposalThreshold());
 
-  //   ProposalBuilder builder = _createArbitraryProposal();
-  //   string memory description = "Test Proposal";
+    uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
+    vm.warp(vm.getBlockTimestamp() + windowLength);
 
-  //   vm.expectRevert(HubProposalPool.InsufficientVoteWeight.selector);
-  //   hubProposalPool.checkAndProposeIfEligible(
-  //     builder.targets(), builder.values(), builder.calldatas(), description, queryResponse, signatures
-  //   );
-  // }
+    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.expectRevert(HubProposalPool.InsufficientVoteWeight.selector);
+    vm.prank(_caller);
+    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
+  }
 
   // function testFuzz_RevertIf_InvalidProposalLength() public {
   //   bytes memory queryResponse = _mockQueryResponse(PROPOSAL_THRESHOLD, MAINNET_CHAIN_ID, address(hubGovernor));
