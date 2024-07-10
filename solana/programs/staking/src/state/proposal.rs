@@ -5,7 +5,7 @@ use std::convert::TryInto;
 use crate::error::ErrorCode;
 
 #[account]
-#[derive(BorshSchema)]
+#[derive(Debug, BorshSchema)]
 pub struct ProposalData {
     pub id:            u64,
     pub against_votes: u64,
@@ -16,7 +16,7 @@ pub struct ProposalData {
 }
 
 impl ProposalData {
-    pub const LEN: usize = 8 + 4 * 8;
+    pub const LEN: usize = 10240; // 8 + 6 * 8;
 
     fn initialize(
         &mut self,

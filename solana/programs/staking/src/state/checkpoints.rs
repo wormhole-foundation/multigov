@@ -35,7 +35,7 @@ pub struct DelegateVotesChanged {
 }
 
 impl CheckpointData {
-    pub const LEN: usize = 8 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
+    pub const LEN: usize = 10240; // 8 + 32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE;
 
     pub fn initialize(&mut self, owner: &Pubkey) {
         self.owner = *owner;

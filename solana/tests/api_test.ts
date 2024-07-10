@@ -51,10 +51,14 @@ describe("api", async () => {
 
     await stakeConnection.addProposal(proposal, voteStart, safeWindow);
 
-    const { againstVotes, forVotes, abstainVotes } = await stakeConnection.proposalVotes(proposal);
-    assert.equal(againstVotes, 0);
-    assert.equal(forVotes, 0);
-    assert.equal(abstainVotes, 0);
+    const { proposalAccountData } = await stakeConnection.fetchProposalAccountData(proposal);
+
+    assert.equal(proposalAccountData.id.toString(), proposal.toString());
+    assert.equal(proposalAccountData.voteStart.toString(), voteStart.toString());
+    assert.equal(proposalAccountData.safeWindow.toString(), safeWindow.toString());
+    assert.equal(proposalAccountData.againstVotes.toString(), '0');
+    assert.equal(proposalAccountData.forVotes.toString(), '0');
+    assert.equal(proposalAccountData.abstainVotes.toString(), '0');
   });
 
   it("Delegate", async () => {

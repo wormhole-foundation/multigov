@@ -215,7 +215,7 @@ export class StakeConnection {
     }
   }
 
-  async fetchProposaAccount(proposal: BN) {
+  async fetchProposalAccountAddress(proposal: BN) {
     const proposalAccountAddress = (
       await PublicKey.findProgramAddress(
         [
@@ -225,6 +225,12 @@ export class StakeConnection {
         this.program.programId
       )
     )[0];
+
+    return { proposalAccountAddress };
+  }
+
+  async fetchProposalAccountWasm(proposal: BN) {
+    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposal);
 
     const inbuf =
       await this.program.provider.connection.getAccountInfo(
@@ -236,6 +242,15 @@ export class StakeConnection {
     );
 
     return { proposalAccountWasm };
+  }
+
+  async fetchProposalAccountData(proposal: BN) {
+    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposal);
+
+    const proposalAccountData =
+      await this.program.account.proposalData.fetch(proposalAccountAddress);
+
+    return { proposalAccountData };
   }
 
   async fetchCheckpointAccount(address: PublicKey) {
@@ -537,7 +552,7 @@ export class StakeConnection {
     forVotes: BN;
     abstainVotes: BN;
   }> {
-    const { proposalAccountWasm } = await this.fetchProposaAccount(
+    const { proposalAccountWasm } = await this.fetchProposalAccountWasm(
       proposal
     );
 
@@ -558,10 +573,14 @@ export class StakeConnection {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
 
+    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposal);
+
     instructions.push(
       await this.program.methods
         .addProposal(proposal, vote_start, safe_window)
-        .accounts({})
+        .accounts({
+          proposal: proposalAccountAddress,
+        })
         .instruction()
     );
 
