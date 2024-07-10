@@ -33,6 +33,7 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
   struct VoteWeight {
     uint256 voteWeight;
     uint16 chainId;
+    address tokenAddress;
   }
 
   function setUp() public {
@@ -68,19 +69,20 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
     hubVotePool.transferOwnership(address(hubGovernor));
   }
 
-  function _mockQueryResponse(VoteWeight[] memory voteWeights, address governance) internal view returns (bytes memory) {
+  function _mockQueryResponse(VoteWeight[] memory voteWeights, address proposer) internal view returns (bytes memory) {
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
 
     for (uint256 i = 0; i < voteWeights.length; i++) {
       uint256 voteWeight = voteWeights[i].voteWeight;
       uint16 chainId = voteWeights[i].chainId;
+      address tokenAddress = voteWeights[i].tokenAddress;
 
       bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
         bytes("0x1296c33"),
         1,
         QueryTest.buildEthCallDataBytes(
-          governance, abi.encodeWithSignature("getVotes(address,uint256)", address(this), block.number)
+          tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", proposer, block.number)
         )
       );
 
@@ -171,18 +173,63 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     return result;
   }
 
-  function _boundVoteWeight(uint256 voteWeight) internal pure returns (uint128) {
-    uint128 maxVoteWeight = type(uint128).max; // Maximum value for uint128
-    if (voteWeight > maxVoteWeight) return maxVoteWeight;
-    return uint128(voteWeight);
+  function _boundVoteWeight(uint256 voteWeight) internal pure returns (uint256) {
+    return voteWeight > type(uint128).max ? type(uint128).max : voteWeight;
   }
 
   function _boundVoteWeights(VoteWeight[] memory voteWeights) internal pure returns (VoteWeight[] memory) {
     VoteWeight[] memory result = new VoteWeight[](voteWeights.length);
     for (uint256 i = 0; i < voteWeights.length; i++) {
-      result[i] = VoteWeight({voteWeight: _boundVoteWeight(voteWeights[i].voteWeight), chainId: voteWeights[i].chainId});
+      result[i] = VoteWeight({
+        voteWeight: _boundVoteWeight(voteWeights[i].voteWeight),
+        chainId: voteWeights[i].chainId,
+        tokenAddress: voteWeights[i].tokenAddress
+      });
     }
     return result;
+  }
+
+  function _ensureUniqueChainIds(VoteWeight[] memory voteWeights) internal pure returns (VoteWeight[] memory) {
+    uint16 lastChainId = 0;
+    for (uint256 i = 0; i < voteWeights.length; i++) {
+      if (voteWeights[i].chainId <= lastChainId) voteWeights[i].chainId = uint16(lastChainId + 1);
+      lastChainId = voteWeights[i].chainId;
+    }
+    return voteWeights;
+  }
+
+  function _ensureUniqueTokenAddresses(VoteWeight[] memory voteWeights) internal returns (VoteWeight[] memory) {
+    for (uint256 i = 0; i < voteWeights.length; i++) {
+      address tokenAddress =
+        voteWeights[i].tokenAddress == address(0) ? address(new ERC20VotesFake()) : voteWeights[i].tokenAddress;
+      voteWeights[i].tokenAddress = tokenAddress;
+    }
+    return voteWeights;
+  }
+
+  function _setTokenAddresses(VoteWeight[] memory voteWeights) internal {
+    for (uint256 i = 0; i < voteWeights.length; i++) {
+      vm.prank(hubProposalPool.owner());
+      hubProposalPool.setTokenAddress(voteWeights[i].chainId, voteWeights[i].tokenAddress);
+    }
+  }
+
+  function _checkThresholdMet(VoteWeight[] memory voteWeights, uint256 hubVoteWeight, uint256 threshold)
+    internal
+    pure
+    returns (bool)
+  {
+    if (hubVoteWeight >= threshold) return true;
+
+    uint256 remainingThreshold = threshold - hubVoteWeight;
+    uint256 accumulator = 0;
+
+    for (uint256 i = 0; i < voteWeights.length; i++) {
+      accumulator += voteWeights[i].voteWeight;
+      if (accumulator >= remainingThreshold) return true;
+    }
+
+    return false;
   }
 
   function testFuzz_CorrectlyCheckAndProposeIfEligible(
@@ -195,30 +242,25 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     uint8 numWeightsToUse = 3;
     VoteWeight[] memory truncatedVoteWeights = _getFirstNItems(_voteWeights, numWeightsToUse);
     truncatedVoteWeights = _boundVoteWeights(truncatedVoteWeights);
+    truncatedVoteWeights = _ensureUniqueChainIds(truncatedVoteWeights);
 
-    _hubVoteWeight = bound(_hubVoteWeight, 1, PROPOSAL_THRESHOLD); // Ensure hub vote weight is within reasonable range
+    _hubVoteWeight = bound(_hubVoteWeight, 1, PROPOSAL_THRESHOLD);
 
     hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
 
     _mintAndDelegate(_caller, _hubVoteWeight);
 
-    // Start check and propose if eligible
-    uint256 totalVoteWeight = 0;
+    truncatedVoteWeights = _ensureUniqueTokenAddresses(truncatedVoteWeights);
+    _setTokenAddresses(truncatedVoteWeights);
 
-    for (uint256 i = 0; i < truncatedVoteWeights.length; i++) {
-      totalVoteWeight += truncatedVoteWeights[i].voteWeight;
-    }
+    vm.assume(_checkThresholdMet(truncatedVoteWeights, _hubVoteWeight, PROPOSAL_THRESHOLD));
 
-    totalVoteWeight += _hubVoteWeight;
-
-    vm.assume(totalVoteWeight >= PROPOSAL_THRESHOLD);
-
-    bytes memory queryResponse = _mockQueryResponse(truncatedVoteWeights, address(hubGovernor));
+    bytes memory queryResponse = _mockQueryResponse(truncatedVoteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
+    // Need to warp past the window if the current timestamp is less than the vote weight window length
     uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
 
-    // Need to warp past the window if the current timestamp is less than the vote weight window length
     vm.warp(vm.getBlockTimestamp() + windowLength);
 
     ProposalBuilder builder = _createArbitraryProposal();
@@ -229,7 +271,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     );
     vm.stopPrank();
 
-    // use proposal snpashot func to get expected vote start
+    // Use proposal snapshot func to get expected vote start
     assertTrue(proposalId > 0, "Proposal should be created");
   }
 
