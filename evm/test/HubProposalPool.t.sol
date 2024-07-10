@@ -335,8 +335,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     vm.assume(_caller != address(hubProposalPool.owner()));
 
     _voteWeights = _setupVoteWeights(_voteWeights);
-    uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
-    vm.warp(vm.getBlockTimestamp() + windowLength);
 
     bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
