@@ -280,12 +280,11 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     ProposalBuilder builder = _createArbitraryProposal();
+
     vm.startPrank(_caller);
-    uint256 proposalId;
-    hubProposalPool.checkAndProposeIfEligible(
+    uint256 proposalId = hubProposalPool.checkAndProposeIfEligible(
       builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
     );
-
     vm.stopPrank();
 
     assertTrue(proposalId > 0, "Proposal should be created");
