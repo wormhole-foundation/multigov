@@ -15,14 +15,18 @@ contract HubProposalPool is QueryResponse, Ownable {
   IGovernor public immutable HUB_GOVERNOR;
   IWormhole public immutable WORMHOLE_CORE;
 
-  // mapping of wormhole chain id to token contract address
+  mapping(uint16 => address) public tokenAddresses;
 
   error EmptyProposal();
   error InsufficientVoteWeight();
   error InvalidProposalLength();
+  error InvalidTokenAddress(uint16 chainId, address tokenAddress);
+  error NoEthCallResults();
   error TooManyEthCallResults(uint256);
+  error ZeroTokenAddress();
 
   event ProposalCreated(uint256 proposalId);
+  event TokenAddressSet(uint16 chainId, address tokenAddress);
 
   constructor(address _core, address _hubGovernor) QueryResponse(_core) Ownable(_hubGovernor) {
     WORMHOLE_CORE = IWormhole(_core);
@@ -54,10 +58,7 @@ contract HubProposalPool is QueryResponse, Ownable {
     view
     returns (bool)
   {
-    // verify the query token address matches what we have registered
-
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
-
     uint256 totalVoteWeight = 0;
     uint256 numResponses = _queryResponse.responses.length;
 
@@ -65,10 +66,15 @@ contract HubProposalPool is QueryResponse, Ownable {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
       EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
 
-      // parse the request to check if the request addr matches msg.sender
+      // Verify that the token address in the query matches what we have registered
+      address registeredTokenAddress = tokenAddresses[perChainResp.chainId];
+      if (registeredTokenAddress == address(0)) revert InvalidTokenAddress(perChainResp.chainId, address(0));
+
+      // Parse the request to check if the request address matches the registered token address
+      address queriedAddress = _ethCalls.result[0].contractAddress;
+      if (queriedAddress != registeredTokenAddress) revert InvalidTokenAddress(perChainResp.chainId, queriedAddress);
 
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
-
       uint256 voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
       totalVoteWeight += voteWeight;
     }
@@ -78,5 +84,16 @@ contract HubProposalPool is QueryResponse, Ownable {
     totalVoteWeight += hubVoteWeight;
 
     return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
+  }
+
+  function setTokenAddress(uint16 chainId, address tokenAddress) external {
+    _checkOwner();
+    _setTokenAddress(chainId, tokenAddress);
+  }
+
+  function _setTokenAddress(uint16 chainId, address tokenAddress) internal {
+    if (tokenAddress == address(0)) revert ZeroTokenAddress();
+    tokenAddresses[chainId] = tokenAddress;
+    emit TokenAddressSet(chainId, tokenAddress);
   }
 }
