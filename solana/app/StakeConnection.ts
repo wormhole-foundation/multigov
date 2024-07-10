@@ -560,7 +560,7 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .add_proposal(proposal, vote_start, safe_window)
+        .addProposal(proposal, vote_start, safe_window)
         .accounts({})
         .instruction()
     );

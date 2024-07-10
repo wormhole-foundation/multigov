@@ -44,6 +44,19 @@ describe("api", async () => {
     owner = stakeConnection.provider.wallet.publicKey;
   });
 
+  it("Add Proposal", async () => {
+    const proposal = new BN(1);
+    const voteStart = new BN(Math.floor(Date.now() / 1000));
+    const safeWindow = new BN(24*60*60); // 24 hour
+
+    await stakeConnection.addProposal(proposal, voteStart, safeWindow);
+
+    const { againstVotes, forVotes, abstainVotes } = await stakeConnection.proposalVotes(proposal);
+    assert.equal(againstVotes, 0);
+    assert.equal(forVotes, 0);
+    assert.equal(abstainVotes, 0);
+  });
+
   it("Delegate", async () => {
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 
