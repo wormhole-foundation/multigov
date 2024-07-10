@@ -213,16 +213,26 @@ pub mod staking {
         Ok(())
     }
 
+    pub fn add_proposal(
+        ctx: Context<AddProposal>,
+        proposal_id:  u64,
+        vote_start:  u64,
+        safe_window: u64,
+    ) -> Result<()> {
+        let proposal = &mut ctx.accounts.proposal;
+        let _ = proposal.add_proposal(proposal_id, vote_start, safe_window);
+
+        Ok(())
+    }
+
     pub fn cast_vote(
         ctx: Context<CastVote>,
+        proposal_id: u64,
         against_votes: u64,
         for_votes: u64,
         abstain_votes: u64
     ) -> Result<()> {
-        let proposal = &mut ctx
-            .accounts
-            .proposal
-            .load_mut()?;
+        let proposal = &mut ctx.accounts.proposal;
 
         let voter_checkpoints = &mut ctx
             .accounts
@@ -242,7 +252,7 @@ pub mod staking {
 
         // Initialize proposal_voters_weight_cast if it hasn't been initialized yet
         if proposal_voters_weight_cast.value == 0 {
-            proposal_voters_weight_cast.initialize(proposal.id, &ctx.accounts.payer.key());
+            proposal_voters_weight_cast.initialize(proposal_id, &ctx.accounts.payer.key());
         }
 
         require!(
@@ -265,7 +275,7 @@ pub mod staking {
 
         emit!(VoteCast {
             voter: ctx.accounts.voter_checkpoints.key(),
-            proposalId: proposal.id,
+            proposalId: proposal_id,
             weight: total_weight,
             againstVotes: against_votes,
             forVotes: for_votes,

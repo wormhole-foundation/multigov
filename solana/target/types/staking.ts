@@ -530,12 +530,79 @@ export type Staking = {
       ]
     },
     {
-      "name": "castVote",
+      "name": "addProposal",
       "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
         {
           "name": "proposal",
           "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "proposal"
+              },
+              {
+                "kind": "arg",
+                "type": "u64",
+                "path": "proposal_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "proposalId",
+          "type": "u64"
+        },
+        {
+          "name": "voteStart",
+          "type": "u64"
+        },
+        {
+          "name": "safeWindow",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "castVote",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "proposal"
+              },
+              {
+                "kind": "arg",
+                "type": "u64",
+                "path": "proposal_id"
+              }
+            ]
+          }
         },
         {
           "name": "voterCheckpoints",
@@ -556,6 +623,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "type": "publicKey",
+                "account": "ProposalData",
                 "path": "proposal"
               },
               {
@@ -567,17 +635,16 @@ export type Staking = {
           }
         },
         {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         }
       ],
       "args": [
+        {
+          "name": "proposalId",
+          "type": "u64"
+        },
         {
           "name": "againstVotes",
           "type": "u64"
@@ -859,6 +926,10 @@ export type Staking = {
           {
             "name": "voteStart",
             "type": "u64"
+          },
+          {
+            "name": "safeWindow",
+            "type": "u64"
           }
         ]
       }
@@ -1040,6 +1111,83 @@ export type Staking = {
       }
     }
   ],
+  "events": [
+    {
+      "name": "DelegateVotesChanged",
+      "fields": [
+        {
+          "name": "delegate",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "previousBalance",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "newBalance",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "DelegateChanged",
+      "fields": [
+        {
+          "name": "delegator",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "fromDelegate",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "toDelegate",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "VoteCast",
+      "fields": [
+        {
+          "name": "voter",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "proposalId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "weight",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "againstVotes",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "forVotes",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "abstainVotes",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    }
+  ],
   "errors": [
     {
       "code": 6000,
@@ -1118,6 +1266,11 @@ export type Staking = {
     },
     {
       "code": 6015,
+      "name": "ProposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6016,
       "name": "Other",
       "msg": "Other"
     }
@@ -1656,12 +1809,79 @@ export const IDL: Staking = {
       ]
     },
     {
-      "name": "castVote",
+      "name": "addProposal",
       "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
         {
           "name": "proposal",
           "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "proposal"
+              },
+              {
+                "kind": "arg",
+                "type": "u64",
+                "path": "proposal_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "proposalId",
+          "type": "u64"
+        },
+        {
+          "name": "voteStart",
+          "type": "u64"
+        },
+        {
+          "name": "safeWindow",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "castVote",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "proposal"
+              },
+              {
+                "kind": "arg",
+                "type": "u64",
+                "path": "proposal_id"
+              }
+            ]
+          }
         },
         {
           "name": "voterCheckpoints",
@@ -1682,6 +1902,7 @@ export const IDL: Staking = {
               {
                 "kind": "account",
                 "type": "publicKey",
+                "account": "ProposalData",
                 "path": "proposal"
               },
               {
@@ -1693,17 +1914,16 @@ export const IDL: Staking = {
           }
         },
         {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         }
       ],
       "args": [
+        {
+          "name": "proposalId",
+          "type": "u64"
+        },
         {
           "name": "againstVotes",
           "type": "u64"
@@ -1985,6 +2205,10 @@ export const IDL: Staking = {
           {
             "name": "voteStart",
             "type": "u64"
+          },
+          {
+            "name": "safeWindow",
+            "type": "u64"
           }
         ]
       }
@@ -2166,6 +2390,83 @@ export const IDL: Staking = {
       }
     }
   ],
+  "events": [
+    {
+      "name": "DelegateVotesChanged",
+      "fields": [
+        {
+          "name": "delegate",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "previousBalance",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "newBalance",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "DelegateChanged",
+      "fields": [
+        {
+          "name": "delegator",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "fromDelegate",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "toDelegate",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "VoteCast",
+      "fields": [
+        {
+          "name": "voter",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "proposalId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "weight",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "againstVotes",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "forVotes",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "abstainVotes",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    }
+  ],
   "errors": [
     {
       "code": 6000,
@@ -2244,6 +2545,11 @@ export const IDL: Staking = {
     },
     {
       "code": 6015,
+      "name": "ProposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6016,
       "name": "Other",
       "msg": "Other"
     }

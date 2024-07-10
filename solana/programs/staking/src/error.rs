@@ -33,6 +33,8 @@ pub enum ErrorCode {
     WithdrawToUnauthorizedAccount,
     #[msg("Insufficient balance to cover the withdrawal")] //6014
     InsufficientWithdrawableBalance,
-    #[msg("Other")] //6015
+    #[msg("Proposal already exists")] //6015
+    ProposalAlreadyExists,
+    #[msg("Other")] //6016
     Other,
 }

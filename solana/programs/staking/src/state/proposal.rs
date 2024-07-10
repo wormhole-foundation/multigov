@@ -1,9 +1,11 @@
 use anchor_lang::prelude::*;
+use anchor_lang::prelude::borsh::BorshSchema;
 use super::global_config::GlobalConfig;
 use std::convert::TryInto;
+use crate::error::ErrorCode;
 
-#[account(zero_copy)]
-#[repr(C)]
+#[account]
+#[derive(BorshSchema)]
 pub struct ProposalData {
     pub id:            u64,
     pub against_votes: u64,
@@ -16,17 +18,32 @@ pub struct ProposalData {
 impl ProposalData {
     pub const LEN: usize = 8 + 4 * 8;
 
-    pub fn initialize(
+    fn initialize(
         &mut self,
+        proposal_id: u64,
         vote_start:  u64,
         safe_window: u64,
     ) {
-        self.id = 0;
+        self.id = proposal_id;
         self.against_votes = 0;
         self.for_votes = 0;
         self.abstain_votes = 0;
         self.vote_start = vote_start;
         self.safe_window = safe_window;
+    }
+
+    pub fn add_proposal(
+        &mut self,
+        proposal_id: u64,
+        vote_start:  u64,
+        safe_window: u64,
+    ) -> anchor_lang::Result<()> {
+        require!(
+            self.vote_start == 0,
+            ErrorCode::ProposalAlreadyExists
+        );
+        self.initialize(proposal_id, vote_start, safe_window);
+        Ok(())
     }
 
     pub fn proposal_votes(&self) -> Result<Option<(u64, u64, u64)>> {

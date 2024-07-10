@@ -27,7 +27,6 @@ js-sys = { version = "0.3.56", optional = true }
 bincode = { version = "1.3.3", optional = true }
 solana-program = "*"
 
-
 [dev-dependencies]
 rand = "0.8.5"
 quickcheck = "1"

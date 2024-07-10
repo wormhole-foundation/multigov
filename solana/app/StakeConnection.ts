@@ -218,7 +218,10 @@ export class StakeConnection {
   async fetchProposaAccount(proposal: BN) {
     const proposalAccountAddress = (
       await PublicKey.findProgramAddress(
-        [utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()), proposal],
+        [
+          utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()),
+          proposal.toArrayLike(Buffer, "be", 8)
+        ],
         this.program.programId
       )
     )[0];

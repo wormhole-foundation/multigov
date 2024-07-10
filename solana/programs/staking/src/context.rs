@@ -96,10 +96,17 @@ pub struct Delegate<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(against_votes : u64, for_votes: u64, abstain_votes: u64)]
+#[instruction(proposal_id: u64, against_votes : u64, for_votes: u64, abstain_votes: u64)]
 pub struct CastVote<'info> {
     #[account(mut)]
-    pub proposal: AccountLoader<'info, proposal::ProposalData>,
+    pub payer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [PROPOSAL_SEED.as_bytes(), &proposal_id.to_be_bytes()],
+        bump
+    )]
+    pub proposal: Account<'info, proposal::ProposalData>,
 
     #[account(mut)]
     pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
@@ -112,8 +119,24 @@ pub struct CastVote<'info> {
         bump
     )]
     pub proposal_voters_weight_cast: Account<'info, proposal_voters_weight_cast::ProposalVotersWeightCast>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(proposal_id : u64, vote_start: u64, safe_window: u64)]
+pub struct AddProposal<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = proposal::ProposalData::LEN,
+        seeds = [PROPOSAL_SEED.as_bytes(), &proposal_id.to_be_bytes()],
+        bump
+    )]
+    pub proposal: Account<'info, proposal::ProposalData>,
 
     pub system_program: Program<'info, System>,
 }
