@@ -200,19 +200,8 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
   }
 
   function _ensureUniqueChainIds(VoteWeight[] memory voteWeights) internal pure returns (VoteWeight[] memory) {
-    uint16 lastChainId = 0;
     for (uint256 i = 0; i < voteWeights.length; i++) {
-      if (voteWeights[i].chainId <= lastChainId) {
-        if (lastChainId == type(uint16).max) {
-          // If we've reached the maximum uint16 value, wrap around to 1
-          lastChainId = 1;
-        } else {
-          lastChainId++;
-        }
-        voteWeights[i].chainId = lastChainId;
-      } else {
-        lastChainId = voteWeights[i].chainId;
-      }
+      voteWeights[i].chainId = uint16(i + 1);
     }
     return voteWeights;
   }
@@ -227,10 +216,11 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
   }
 
   function _setTokenAddresses(VoteWeight[] memory voteWeights) internal {
+    vm.startPrank(hubProposalPool.owner());
     for (uint256 i = 0; i < voteWeights.length; i++) {
-      vm.prank(hubProposalPool.owner());
       hubProposalPool.setTokenAddress(voteWeights[i].chainId, voteWeights[i].tokenAddress);
     }
+    vm.stopPrank();
   }
 
   function _checkThresholdMet(VoteWeight[] memory voteWeights, uint256 hubVoteWeight, uint256 threshold)
@@ -251,6 +241,14 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     return false;
   }
 
+  function _setupVoteWeights(VoteWeight[] memory voteWeights) internal returns (VoteWeight[] memory) {
+    voteWeights = _boundVoteWeights(voteWeights);
+    voteWeights = _ensureUniqueChainIds(voteWeights);
+    voteWeights = _ensureUniqueTokenAddresses(voteWeights);
+    _setTokenAddresses(voteWeights);
+    return voteWeights;
+  }
+
   function testFuzz_CorrectlyCheckAndProposeIfEligible(
     VoteWeight[] memory _voteWeights,
     uint256 _hubVoteWeight,
@@ -259,24 +257,20 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
   ) public {
     vm.assume(_caller != address(0));
 
-    VoteWeight[] memory truncatedVoteWeights = _getFirstNItems(_voteWeights, NUM_WEIGHTS_TO_USE);
-    truncatedVoteWeights = _boundVoteWeights(truncatedVoteWeights);
-    truncatedVoteWeights = _ensureUniqueChainIds(truncatedVoteWeights);
-    truncatedVoteWeights = _ensureUniqueTokenAddresses(truncatedVoteWeights);
-    _setTokenAddresses(truncatedVoteWeights);
+    VoteWeight[] memory voteWeights = _setupVoteWeights(_voteWeights);
 
     _hubVoteWeight = bound(_hubVoteWeight, 1, PROPOSAL_THRESHOLD);
     _mintAndDelegate(_caller, _hubVoteWeight);
 
     hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
 
-    bool thresholdMet = _checkThresholdMet(truncatedVoteWeights, _hubVoteWeight, PROPOSAL_THRESHOLD);
+    bool thresholdMet = _checkThresholdMet(voteWeights, _hubVoteWeight, PROPOSAL_THRESHOLD);
     vm.assume(thresholdMet);
 
     uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
     vm.warp(vm.getBlockTimestamp() + windowLength);
 
-    bytes memory queryResponse = _mockQueryResponse(truncatedVoteWeights, _caller);
+    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     ProposalBuilder builder = _createArbitraryProposal();
