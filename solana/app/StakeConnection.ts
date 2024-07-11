@@ -556,7 +556,7 @@ export class StakeConnection {
       proposal
     );
 
-    const proposalData = await this.proposalAccountWasm.proposalVotes();
+    const proposalData = await proposalAccountWasm.proposalVotes();
 
     return {
       againstVotes: new BN(proposalData.againstVotes),

@@ -61,6 +61,19 @@ describe("api", async () => {
     assert.equal(proposalAccountData.abstainVotes.toString(), '0');
   });
 
+  it("proposalVotes", async () => {
+    const proposal = new BN(2);
+    const voteStart = new BN(Math.floor(Date.now() / 1000));
+    const safeWindow = new BN(24*60*60); // 24 hour
+
+    await stakeConnection.addProposal(proposal, voteStart, safeWindow);
+
+    const { againstVotes, forVotes, abstainVotes } = await stakeConnection.proposalVotes(proposal);
+    assert.equal(againstVotes.toString(), '0');
+    assert.equal(forVotes.toString(), '0');
+    assert.equal(abstainVotes.toString(), '0');
+  });
+
   it("Delegate", async () => {
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 
