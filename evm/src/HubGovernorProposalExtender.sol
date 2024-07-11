@@ -78,10 +78,9 @@ contract HubGovernorProposalExtender is Ownable {
 
   function setSafeWindow(uint48 _safeWindow) external {
     _checkOwner();
+    if (_safeWindow > governor.votingPeriod()) revert InvalidUnsafeWindow();
     uint256 decisionPeriod = governor.votingPeriod() - _safeWindow;
-    if (decisionPeriod < minimumDecisionWindow || decisionPeriod >= governor.votingPeriod()) {
-      revert InvalidUnsafeWindow();
-    }
+    if (decisionPeriod < minimumDecisionWindow) revert InvalidUnsafeWindow();
     _setSafeWindow(_safeWindow);
   }
 

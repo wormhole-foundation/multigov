@@ -13,7 +13,6 @@ import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
-
 import {HubVotePoolHarness} from "test/harnesses/HubVotePoolHarness.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 import {GovernorMock} from "test/mocks/GovernorMock.sol";
@@ -192,7 +191,6 @@ contract Constructor is Test, AddressUtils {
 
     assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
-    assertEq(hubVotePool.spokeRegistry(_spokeChainId), addressToBytes32(address(0)));
     assertEq(hubVotePool.spokeRegistry(_spokeChainId), addressToBytes32(address(0)));
   }
 

@@ -15,7 +15,7 @@ contract HubGovernorProposalExtenderTest is Test, HubGovernorTest {
   address whitelistedExtender = makeAddr("Whitelisted Extender");
   uint48 extensionTime = 3 hours;
   uint48 minimumTime = 1 hours;
-  uint48 voteWeightWindow = 1 days;
+  uint32 voteWeightWindow = 1 days;
 
   function _boundProposalSafeWindow(uint48 _voteStart, uint48 _safeWindow) internal view returns (uint48, uint48) {
     _voteStart = uint48(bound(_voteStart, VOTE_WINDOW + block.timestamp, type(uint48).max - governor.votingPeriod()));
@@ -190,7 +190,7 @@ contract SetProposalExtension is HubGovernorProposalExtenderTest {
     assertEq(hubExtender.proposalExtension(), _extensionTime);
   }
 
-  function testFuzz_ChangingExtensionTimeEmitsProposalExtensionTimeUpdatedEvent(uint48 _extensionTime) public {
+  function testFuzz_EmitsProposalExtensionTimeUpdatedEvent(uint48 _extensionTime) public {
     _extensionTime = uint48(bound(_extensionTime, minimumTime, governor.votingPeriod()));
     (, address[] memory delegates) = _setGovernorAndDelegates();
     vm.warp(vm.getBlockTimestamp() + 7 days);
@@ -239,7 +239,7 @@ contract SetWhitelistedVoteExtender is HubGovernorProposalExtenderTest {
     assertEq(hubExtender.whitelistedVoteExtender(), _voteExtender);
   }
 
-  function testFuzz_ChangingExtensionTimeEmitsWhitelistedVotedExtenderUpdatedEvent(address _voteExtender) public {
+  function testFuzz_EmitsWhitelistedVotedExtenderUpdatedEvent(address _voteExtender) public {
     vm.assume(_voteExtender != address(timelock));
     (, address[] memory delegates) = _setGovernorAndDelegates();
     ProposalBuilder builder = _createProposal(
@@ -282,7 +282,7 @@ contract IsVotingSafe is HubGovernorProposalExtenderTest {
     (, address[] memory delegates) = _setGovernorAndDelegates();
 
     hubExtender.exposed_setSafeWindow(_safeWindow);
-	// Create fake proposal
+    // Create fake proposal
     ProposalBuilder builder = new ProposalBuilder();
     builder.push(makeAddr("Hi"), 0, abi.encode(1));
 
@@ -306,7 +306,7 @@ contract IsVotingSafe is HubGovernorProposalExtenderTest {
     (_voteStart, _safeWindow) = _boundProposalSafeWindow(_voteStart, _safeWindow);
     hubExtender.exposed_setSafeWindow(_safeWindow);
 
-	// Create fake proposal
+    // Create fake proposal
     ProposalBuilder builder = new ProposalBuilder();
     builder.push(makeAddr("Hi"), 0, abi.encode(1));
 
@@ -329,8 +329,8 @@ contract SetSafeWindow is HubGovernorProposalExtenderTest {
     assertEq(hubExtender.safeWindow(), _safeWindow);
   }
 
-  function testFuzz_UpdatingSafeWindowEmitsASetSafeWindowUpdatedEvent(uint48 _safeWindow) public {
-    _safeWindow = uint48(bound(_safeWindow, minimumTime, governor.votingPeriod() - 1 hours));
+  function testFuzz_EmitsASetSafeWindowUpdatedEvent(uint48 _safeWindow) public {
+    _safeWindow = uint48(bound(_safeWindow, 0, governor.votingPeriod() - minimumTime));
     vm.expectEmit();
     emit HubGovernorProposalExtender.SafeWindowUpdated(hubExtender.safeWindow(), _safeWindow);
     vm.prank(address(timelock));
@@ -342,6 +342,14 @@ contract SetSafeWindow is HubGovernorProposalExtenderTest {
 
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    hubExtender.setSafeWindow(_safeWindow);
+  }
+
+  // Invalid extension time
+  function testFuzz_RevertIf_SafeWindowIsGreaterThanMinimumDecisionWindow(uint48 _safeWindow) public {
+    _safeWindow = uint48(bound(_safeWindow, governor.votingPeriod() - minimumTime + 1, type(uint48).max));
+    vm.expectRevert(HubGovernorProposalExtender.InvalidUnsafeWindow.selector);
+    vm.prank(address(timelock));
     hubExtender.setSafeWindow(_safeWindow);
   }
 }

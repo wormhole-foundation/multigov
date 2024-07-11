@@ -245,7 +245,7 @@ contract SetHubVotePool is HubGovernorTest {
 }
 
 contract SetGovernorProposalExtender is HubGovernorTest {
-  function _createGovernorProposalExtender(address _governorProposalExtender) public returns (ProposalBuilder) {
+  function _proposeNewGovernorProposalExtender(address _governorProposalExtender) public returns (ProposalBuilder) {
     return _createProposal(abi.encodeWithSignature("setGovernorProposalExtender(address)", _governorProposalExtender));
   }
 
@@ -255,19 +255,19 @@ contract SetGovernorProposalExtender is HubGovernorTest {
   ) public {
     _setGovernorAndDelegates();
 
-    ProposalBuilder builder = _createGovernorProposalExtender(_newGovernorProposalExtender);
+    ProposalBuilder builder = _proposeNewGovernorProposalExtender(_newGovernorProposalExtender);
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
 
     assertEq(address(governor.governorProposalExtender()), _newGovernorProposalExtender);
   }
 
-  function testFuzz_SetANewGovernorProposalEmitsGovernorProposalExtenderUpdatedEvent(
+  function testFuzz_EmitsGovernorProposalExtenderUpdatedEvent(
     address _newGovernorProposalExtender,
     string memory _proposalDescription
   ) public {
     (, address[] memory delegates) = _setGovernorAndDelegates();
 
-    ProposalBuilder builder = _createGovernorProposalExtender(_newGovernorProposalExtender);
+    ProposalBuilder builder = _proposeNewGovernorProposalExtender(_newGovernorProposalExtender);
     vm.startPrank(delegates[0]);
     uint256 _proposalId =
       governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
@@ -793,8 +793,8 @@ contract _SetVotingPeriod is HubGovernorTest {
     assertEq(governor.votingPeriod(), _newVotingPeriod);
   }
 
-  function testFuzz_CorrectlySetNewVotingPeriodIfExtextenderIsTheZeroAddress(uint32 _newVotingPeriod) public {
-    _newVotingPeriod = uint32(bound(_newVotingPeriod, 1, MINIMUM_VOTE_EXTENSION));
+  function testFuzz_CorrectlySetNewVotingPeriodIfExtenderIsTheZeroAddress(uint32 _newVotingPeriod) public {
+    _newVotingPeriod = uint32(bound(_newVotingPeriod, MINIMUM_VOTE_EXTENSION, type(uint32).max));
 
     governor.exposed_setGovernorProposalExtender(address(0));
     governor.exposed_setVotingPeriod(_newVotingPeriod);
