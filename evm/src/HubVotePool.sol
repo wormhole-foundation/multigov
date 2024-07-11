@@ -15,10 +15,12 @@ contract HubVotePool is QueryResponse, Ownable {
   IWormhole public immutable WORMHOLE_CORE;
   IGovernor public hubGovernor;
   uint8 constant UNUSED_SUPPORT_PARAM = 1;
+  uint16 public constant SOLANA_CHAIN_ID = 1;
 
   error InvalidWormholeMessage(string);
   error UnknownMessageEmitter();
   error InvalidProposalVote();
+  error InvalidChainId();
   error TooManyEthCallResults(uint256);
   error TooManyQueryResponses(uint256);
 
@@ -71,7 +73,25 @@ contract HubVotePool is QueryResponse, Ownable {
     hubGovernor = IGovernor(_newGovernor);
   }
 
-  // TODO we will need a Solana method as well
+  // get data offset
+  // Data length I think is lenght of account fields, data offset is where the data beigns from. I don't know what it is for us to start
+  // 
+  //
+  // function crossChainSolanaVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
+  //   	  ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
+  //   	  if (r.responses.length != 1) {
+  //   			  revert TooManyQueryResponses(r.responses.length);
+  //   	  }
+  //   	  ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[0];
+  //   	  if (perChainResp.chainId != SOLANA_CHAIN_ID ) {
+  //   			  revert InvalidChainId();
+  //   	  }
+  //   	  bytes32 addr = spokeRegistry[perChainResp.chainId];
+  //   if (addr != bytes32(uint256(uint160(_ethCalls.result[0].contractAddress))) ) {
+  //     revert UnknownMessageEmitter();
+  //   }
+  // }
+
   function crossChainEVMVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     // Validate the query response signatures
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
