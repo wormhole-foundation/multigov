@@ -400,7 +400,42 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  function testFuzz_RevertIf_InvalidTokenAddress(uint16 _chainId, address _tokenAddress, address _caller) public {}
+  function testFuzz_RevertIf_InvalidTokenAddress(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _expectedRegisteredTokenAddress,
+    address _invalidTokenAddress,
+    address _caller,
+    string memory _description
+  ) public {
+    vm.assume(_chainId != 0);
+    vm.assume(_expectedRegisteredTokenAddress != address(0));
+    vm.assume(_invalidTokenAddress != address(0));
+    vm.assume(_expectedRegisteredTokenAddress != _invalidTokenAddress);
+    vm.assume(_caller != address(0));
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] =
+      VoteWeight({voteWeight: uint256(_voteWeight), chainId: _chainId, tokenAddress: _expectedRegisteredTokenAddress});
+
+    vm.prank(hubProposalPool.owner());
+    hubProposalPool.setTokenAddress(_chainId, _invalidTokenAddress);
+
+    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.expectRevert(
+      abi.encodeWithSelector(HubProposalPool.InvalidTokenAddress.selector, _chainId, _expectedRegisteredTokenAddress)
+    );
+    vm.prank(_caller);
+    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
+  }
+
   function testFuzz_RevertIf_NoEthCallResults(uint16 _chainId, address _tokenAddress, address _caller) public {}
   function testFuzz_RevertIf_TooManyEthCallResults(uint16 _chainId, address _tokenAddress, address _caller) public {}
   function testFuzz_RevertIf_ZeroTokenAddress(uint16 _chainId, address _caller) public {}
