@@ -24,7 +24,6 @@ contract HubProposalPool is QueryResponse, Ownable {
   error InvalidCaller(address expected, address actual);
   error InvalidProposalLength();
   error InvalidTokenAddress(uint16 chainId, address tokenAddress);
-  error NoEthCallResults();
   error TooManyEthCallResults(uint256);
   error ZeroTokenAddress();
 
