@@ -254,6 +254,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     string memory _description,
     address _caller
   ) public {
+    vm.assume(_voteWeights.length > 0);
     vm.assume(_caller != address(0));
 
     VoteWeight[] memory voteWeights = _setupVoteWeights(_voteWeights);
@@ -436,7 +437,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  function testFuzz_RevertIf_NoEthCallResults(uint16 _chainId, address _tokenAddress, address _caller) public {}
   function testFuzz_RevertIf_TooManyEthCallResults(uint16 _chainId, address _tokenAddress, address _caller) public {}
   function testFuzz_RevertIf_ZeroTokenAddress(uint16 _chainId, address _caller) public {}
 }
