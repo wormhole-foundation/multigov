@@ -37,12 +37,11 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    HubGovernorProposalExtender extender =
-      new HubGovernorProposalExtender(initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION);
-
-    hubVotePool = new HubVotePoolHarness(
-      address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1), SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
+    HubGovernorProposalExtender extender = new HubGovernorProposalExtender(
+      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
     );
+
+    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",

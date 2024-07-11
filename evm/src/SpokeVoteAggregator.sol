@@ -31,13 +31,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason, bytes params
   );
 
-  constructor(
-    address _spokeMetadataCollector,
-    address _votingToken,
-    uint32 _safeWindow,
-    address _owner,
-    uint48 _initialVoteWindow
-  )
+  constructor(address _spokeMetadataCollector, address _votingToken, address _owner, uint48 _initialVoteWindow)
     // TODO: name, version
     EIP712("SpokeVoteAggregator", "1")
     Ownable(_owner)

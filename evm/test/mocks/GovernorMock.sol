@@ -23,6 +23,7 @@ contract GovernorMock {
 
   function propose(address[] memory, uint256[] memory, bytes[] memory, string memory) public virtual returns (uint256) {
     voteStart = block.timestamp;
+    return voteStart;
   }
 
   function proposalSnapshot(uint256) public view virtual returns (uint256) {

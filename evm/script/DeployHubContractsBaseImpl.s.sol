@@ -52,15 +52,15 @@ abstract contract DeployHubContractsBaseImpl is Script {
     TimelockController timelock =
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
-    HubVotePool pool = new HubVotePool(
-      config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0), 1 days, config.minimumDecisionWindow
-    );
+    HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0));
 
     HubGovernorProposalExtender extender = new HubGovernorProposalExtender(
       config.whitelistedVoteExtender,
       config.voteTimeExtension,
       config.whitelistedVoteExtender,
-      config.minimumExtensionTime
+      config.minimumExtensionTime,
+      1 days,
+      config.minimumDecisionWindow
     );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({

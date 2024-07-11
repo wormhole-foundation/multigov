@@ -39,9 +39,8 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     vm.startBroadcast(wallet.privateKey);
     SpokeMetadataCollector spokeMetadataCollector =
       new SpokeMetadataCollector(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
-    SpokeVoteAggregator aggregator = new SpokeVoteAggregator(
-      address(spokeMetadataCollector), config.votingToken, config.safeWindow, wallet.addr, config.voteWeightWindow
-    );
+    SpokeVoteAggregator aggregator =
+      new SpokeVoteAggregator(address(spokeMetadataCollector), config.votingToken, wallet.addr, config.voteWeightWindow);
 
     vm.stopBroadcast();
     return (aggregator, spokeMetadataCollector);
