@@ -44,7 +44,7 @@ describe("api", async () => {
     owner = stakeConnection.provider.wallet.publicKey;
   });
 
-  it("Add Proposal", async () => {
+  it("addProposal", async () => {
     const proposal = new BN(1);
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24*60*60); // 24 hour
@@ -74,14 +74,14 @@ describe("api", async () => {
     assert.equal(abstainVotes.toString(), '0');
   });
 
-  it("Delegate", async () => {
-    const stakeAccount = await stakeConnection.getMainAccount(owner);
-
+  it("delegate", async () => {
     await stakeConnection.delegate(
       undefined,
-      stakeAccount,
+      undefined,
       WHTokenBalance.fromString("100")
     );
+
+    const stakeAccount = await stakeConnection.getMainAccount(owner);
 
     await stakeConnection.delegate(
       stakeAccount,
@@ -96,25 +96,30 @@ describe("api", async () => {
     );
   });
 
-  it("Default delegates", async () => {
-    const stakeAccount = await stakeConnection.getMainAccount(owner);
+  it("default delegates", async () => {
+    await stakeConnection.delegate(
+      undefined,
+      undefined,
+      WHTokenBalance.fromString("100")
+    );
 
+    const stakeAccount = await stakeConnection.getMainAccount(owner);
     const delegate = await stakeConnection.delegates(stakeAccount);
     assert.equal(
       delegate.toBase58(),
-      owner.toBase58()
+      stakeAccount.address.toBase58()
     );
   });
 
-  it("Find and parse stake accounts", async () => {
+  it("find and parse stake accounts", async () => {
     const res = await stakeConnection.getStakeAccounts(owner);
-    assert.equal(res.length, 6);
+    assert.equal(res.length, 2);
 
-    const stakeAccount = await stakeConnection.getMainAccount(owner);
+    let stakeAccount = await stakeConnection.getMainAccount(owner);
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "300"
+      "300000000" // 300 * 10**6
     );
     
     await stakeConnection.delegate(
@@ -123,9 +128,11 @@ describe("api", async () => {
       WHTokenBalance.fromString("100")
     );
 
+    stakeAccount = await stakeConnection.getMainAccount(owner);
+
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "400"
+      "400000000" // 400 * 10**6
     );
 
     assert.equal(

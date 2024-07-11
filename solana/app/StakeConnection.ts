@@ -514,9 +514,9 @@ export class StakeConnection {
       await this.program.methods
         .delegate(delegateeStakeAccountAddress)
         .accounts({
-          stakeAccountCheckpoints: stakeAccountAddress,
           currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccountAddress,
           delegateeStakeAccountCheckpoints: delegateeStakeAccountAddress,
+          stakeAccountCheckpoints: stakeAccountAddress,
           mint: this.config.whTokenMint,
         })
         .instruction()

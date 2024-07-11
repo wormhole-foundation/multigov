@@ -40,7 +40,7 @@ describe("voter_votes_test", async () => {
     owner = stakeConnection.provider.wallet.publicKey;
   });
 
-  it("Delegate votes appear after delegation", async () => {
+  it("delegate votes appear after delegation", async () => {
     await stakeConnection.delegate(
       undefined,
       undefined,
@@ -48,7 +48,7 @@ describe("voter_votes_test", async () => {
     );
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 
-    await assertVoterVotesEquals(stakeAccount, new BN(50));
+    await assertVoterVotesEquals(stakeAccount, new BN("50000000")); // 50 * 10**6
   });
 
   after(async () => {

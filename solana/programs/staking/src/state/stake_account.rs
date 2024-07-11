@@ -50,7 +50,7 @@ impl StakeAccountMetadata {
         self.authority_bump = authority_bump;
         self.voter_bump = voter_bump;
         self.owner = *owner;
-        self.delegate = *owner;
+        self.delegate = Pubkey::default();
         self.recorded_balance = 0;
         self.transfer_epoch = None;
         self.signed_agreement_hash = None;

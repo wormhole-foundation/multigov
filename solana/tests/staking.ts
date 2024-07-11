@@ -45,6 +45,7 @@ describe("staking", async () => {
   const stakeAccountSecret = new Keypair();
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const zeroPubkey = new PublicKey(0);
   let EPOCH_DURATION: BN;
 
   let userAta: PublicKey;
@@ -148,7 +149,7 @@ describe("staking", async () => {
         authorityBump,
         voterBump,
         owner,
-        delegate: owner,
+        delegate: zeroPubkey,
         recordedBalance: expectedRecordedBalance,
         transferEpoch: null,
         signedAgreementHash: null,
