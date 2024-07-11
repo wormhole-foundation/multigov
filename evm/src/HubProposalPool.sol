@@ -20,6 +20,8 @@ contract HubProposalPool is QueryResponse, Ownable {
 
   error EmptyProposal();
   error InsufficientVoteWeight();
+  error InvalidCallDataLength();
+  error InvalidCaller(address expected, address actual);
   error InvalidProposalLength();
   error InvalidTokenAddress(uint16 chainId, address tokenAddress);
   error NoEthCallResults();
@@ -65,24 +67,27 @@ contract HubProposalPool is QueryResponse, Ownable {
 
     for (uint256 i = 0; i < numResponses; i++) {
       // TODO: need to check that the query time is a reasonalbe time against the hub time; reflect current state mostly
-      // TODO: need to check that the address calling is in the data being parsed
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
       EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
       // Verify that the token address in the query matches what we have registered
-      // registerdVotingWeightAddress; this could be the spokeVoteAggregator or could be the token address on the spoke
       address registeredTokenAddress = tokenAddresses[perChainResp.chainId];
-
       if (registeredTokenAddress == address(0)) revert InvalidTokenAddress(perChainResp.chainId, address(0));
 
       // Parse the request to check if the request address matches the registered token address
       address queriedAddress = _ethCalls.result[0].contractAddress;
-
       if (queriedAddress != registeredTokenAddress) revert InvalidTokenAddress(perChainResp.chainId, queriedAddress);
 
-      uint256 voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
+      bytes memory callData = _ethCalls.result[0].callData;
 
+      // Extract the address from callData (skip first 4 bytes of function selector)
+      address queriedAccount = _extractAccountFromCalldata(callData);
+
+      // Check that the address being queried is the caller
+      if (queriedAccount != msg.sender) revert InvalidCaller(msg.sender, queriedAccount);
+
+      uint256 voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
       totalVoteWeight += voteWeight;
     }
 
@@ -102,5 +107,17 @@ contract HubProposalPool is QueryResponse, Ownable {
     if (tokenAddress == address(0)) revert ZeroTokenAddress();
     tokenAddresses[chainId] = tokenAddress;
     emit TokenAddressSet(chainId, tokenAddress);
+  }
+
+  function _extractAccountFromCalldata(bytes memory callData) internal pure returns (address) {
+    // Ensure callData is long enough to contain function selector (4 bytes) and an address (20 bytes)
+    if (callData.length < 24) revert InvalidCallDataLength();
+
+    address extractedAccount;
+    assembly {
+      extractedAccount := mload(add(add(callData, 0x20), 4))
+    }
+
+    return extractedAccount;
   }
 }
