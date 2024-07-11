@@ -9,6 +9,7 @@ import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 
 import {HubProposalPool} from "src/HubProposalPool.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
+import {HubProposalPoolHarness} from "test/harnesses/HubProposalPoolHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
@@ -18,7 +19,7 @@ import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {ProposalTest} from "test/helpers/ProposalTest.sol";
 
 contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest {
-  HubProposalPool public hubProposalPool;
+  HubProposalPoolHarness public hubProposalPool;
   HubGovernorHarness public hubGovernor;
   HubVotePool public hubVotePool;
   ERC20VotesFake public token;
@@ -58,7 +59,7 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
       VOTE_WINDOW
     );
 
-    hubProposalPool = new HubProposalPool(address(wormhole), address(hubGovernor));
+    hubProposalPool = new HubProposalPoolHarness(address(wormhole), address(hubGovernor));
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("PROPOSER_ROLE"), address(hubGovernor));
@@ -82,9 +83,7 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
       bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
         bytes("0x1296c33"),
         1,
-        QueryTest.buildEthCallDataBytes(
-          tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", proposer, block.number)
-        )
+        QueryTest.buildEthCallDataBytes(tokenAddress, abi.encodeWithSignature("getVotes(address)", proposer))
       );
 
       queryRequestBytes = abi.encodePacked(
@@ -285,6 +284,31 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     assertTrue(proposalId > 0, "Proposal should be created");
   }
 
+  function testFuzz_RevertIf_EmptyProposal(
+    VoteWeight[] memory _voteWeights,
+    address _caller,
+    string memory _description
+  ) public {
+    vm.assume(_voteWeights.length > 0);
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
+
+    _voteWeights = _setupVoteWeights(_voteWeights);
+
+    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    // Create empty proposal builder
+    ProposalBuilder builder = new ProposalBuilder();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.expectRevert(HubProposalPool.EmptyProposal.selector);
+    vm.prank(_caller);
+    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
+  }
+
   function testFuzz_RevertIf_InsufficientVoteWeight(
     VoteWeight[] memory _voteWeights,
     uint256 _hubVoteWeight,
@@ -325,6 +349,34 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
+  function testFuzz_RevertIf_InvalidCaller(
+    VoteWeight[] memory _voteWeights,
+    address _account,
+    address _caller,
+    string memory _description
+  ) public {
+    vm.assume(_voteWeights.length > 0);
+    vm.assume(_account != address(0));
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != _account);
+    vm.assume(_caller != address(hubProposalPool.owner()));
+
+    _voteWeights = _setupVoteWeights(_voteWeights);
+
+    // Create mock query response with _account as the queried account
+    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _account);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.InvalidCaller.selector, _caller, _account));
+    vm.prank(_caller);
+    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
+  }
+
   function testFuzz_RevertIf_InvalidProposalLength(
     VoteWeight[] memory _voteWeights,
     address _caller,
@@ -348,28 +400,25 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  function testFuzz_RevertIf_EmptyProposal(
-    VoteWeight[] memory _voteWeights,
-    address _caller,
-    string memory _description
-  ) public {
-    vm.assume(_voteWeights.length > 0);
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != address(hubProposalPool.owner()));
+  function testFuzz_RevertIf_InvalidTokenAddress(uint16 _chainId, address _tokenAddress, address _caller) public {}
+  function testFuzz_RevertIf_NoEthCallResults(uint16 _chainId, address _tokenAddress, address _caller) public {}
+  function testFuzz_RevertIf_TooManyEthCallResults(uint16 _chainId, address _tokenAddress, address _caller) public {}
+  function testFuzz_RevertIf_ZeroTokenAddress(uint16 _chainId, address _caller) public {}
+}
 
-    _voteWeights = _setupVoteWeights(_voteWeights);
+contract _ExtractAccountFromCalldata is HubProposalPoolTest {
+  function testFuzz_CorrectlyExtractsAccountFromCalldata(address _account) public {
+    // Simulate the calldata for a getVotes(address) function call
+    bytes4 selector = bytes4(keccak256("getVotes(address)"));
+    bytes memory callData = abi.encodeWithSelector(selector, _account);
 
-    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
-    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+    address extractedAccount = hubProposalPool.exposed_extractAccountFromCalldata(callData);
+    assertEq(extractedAccount, _account, "Extracted account should match the input account");
+  }
 
-    // Create empty proposal builder
-    ProposalBuilder builder = new ProposalBuilder();
-    address[] memory targets = builder.targets();
-    uint256[] memory values = builder.values();
-    bytes[] memory calldatas = builder.calldatas();
-
-    vm.expectRevert(HubProposalPool.EmptyProposal.selector);
-    vm.prank(_caller);
-    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
+  function testFuzz_RevertIf_InvalidCallDataLength(address _account, bytes memory _callData) public {
+    vm.assume(_callData.length < 24);
+    vm.expectRevert(HubProposalPool.InvalidCallDataLength.selector);
+    hubProposalPool.exposed_extractAccountFromCalldata(_callData);
   }
 }
