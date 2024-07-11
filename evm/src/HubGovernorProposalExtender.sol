@@ -2,10 +2,9 @@
 pragma solidity ^0.8.23;
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract HubGovernorProposalExtender is Ownable {
   error AddressCannotExtendProposal();

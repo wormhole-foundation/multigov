@@ -16,15 +16,10 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {GovernorCountingFractional} from "flexible-voting/GovernorCountingFractional.sol";
 
-import {HubVotePool} from "src/HubVotePool.sol";
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
-
-interface IVoteExtender {
-  function extendedDeadlines(uint256 _proposalId) external view returns (uint48 _newVoteEnd);
-  function minimumExtensionTime() external view returns (uint48);
-}
+import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
 
 contract HubGovernor is
   GovernorCountingFractional,
