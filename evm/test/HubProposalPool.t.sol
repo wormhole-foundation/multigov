@@ -483,7 +483,8 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     address _tokenAddress,
     address _caller,
     uint256 _proposalId,
-    uint128 _voteWeight
+    uint128 _voteWeight,
+    string memory _description
   ) public {
     vm.assume(_chainId != 0);
     vm.assume(_tokenAddress != address(0));
@@ -504,7 +505,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
 
     vm.expectRevert(abi.encodeWithSelector(HubProposalPool.TooManyEthCallResults.selector, 2));
     vm.prank(_caller);
-    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, "Test proposal", _resp, signatures);
+    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, _resp, signatures);
   }
 
   function testFuzz_RevertIf_ZeroTokenAddress(uint16 _chainId, address _caller) public {}
