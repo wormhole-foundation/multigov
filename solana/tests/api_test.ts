@@ -64,7 +64,7 @@ describe("api", async () => {
   it("proposalVotes", async () => {
     const proposal = new BN(2);
     const voteStart = new BN(Math.floor(Date.now() / 1000));
-    const safeWindow = new BN(24*60*60); // 24 hour
+    const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
     await stakeConnection.addProposal(proposal, voteStart, safeWindow);
 
@@ -145,5 +145,31 @@ describe("api", async () => {
       owner,
       { balance: WHTokenBalance.fromString("400") }
     );
+  });
+
+  it("castVote", async () => {
+    await stakeConnection.delegate(
+      undefined,
+      undefined,
+      WHTokenBalance.fromString("100")
+    );
+
+    const proposal = new BN(3);
+    const voteStart = new BN(Math.floor(Date.now()) - 100);
+    const safeWindow = new BN(24 * 60 * 60); // 24 hour
+
+    await stakeConnection.addProposal(proposal, voteStart, safeWindow);
+
+    let stakeAccount = await stakeConnection.getMainAccount(owner);
+
+    await stakeConnection.castVote(proposal, stakeAccount, new BN(10), new BN(20), new BN(12));
+    await stakeConnection.castVote(proposal, stakeAccount, new BN(10), new BN(10), new BN(0));
+    await stakeConnection.castVote(proposal, stakeAccount, new BN(0), new BN(7), new BN(10));
+
+    const { againstVotes, forVotes, abstainVotes } = await stakeConnection.proposalVotes(proposal);
+
+    assert.equal(againstVotes.toString(), '20');
+    assert.equal(forVotes.toString(), '37');
+    assert.equal(abstainVotes.toString(), '22');
   });
 });

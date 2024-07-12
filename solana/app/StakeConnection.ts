@@ -535,11 +535,14 @@ export class StakeConnection {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
 
+    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposal);
+
     instructions.push(
       await this.program.methods
         .castVote(proposal, againstVotes, forVotes, abstainVotes)
         .accounts({
-          voter_checkpoints: stakeAccount.address,
+          proposal: proposalAccountAddress,
+          voterCheckpoints: stakeAccount.address,
         })
         .instruction()
     );

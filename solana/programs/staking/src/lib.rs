@@ -267,7 +267,7 @@ pub mod staking {
         }
 
         require!(
-            proposal_voters_weight_cast.value >= total_weight.clone(),
+            proposal_voters_weight_cast.value <= total_weight.clone(),
             ErrorCode::AllWeightCast
         );
 
