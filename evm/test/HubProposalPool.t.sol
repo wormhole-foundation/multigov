@@ -495,13 +495,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
 
     bytes memory _resp = _mockQueryResponseWithMultipleResults(_chainId, _tokenAddress, _caller, _voteWeight);
 
-    // console2.log("Chain ID:", _chainId);
-    // console2.log("Token Address:", _tokenAddress);
-    // console2.log("Caller:", _caller);
-    // console2.log("Query response length:", _resp.length);
-    // console2.log("Number of per-chain responses:", 2);
-    // console2.log("Vote weight:", _voteWeight1);
-
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     ProposalBuilder builder = _createArbitraryProposal();
