@@ -310,7 +310,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  // forge-config: default.fuzz.runs = 2500
   function testFuzz_RevertIf_InsufficientVoteWeight(
     VoteWeight[] memory _voteWeights,
     uint256 _hubVoteWeight,
