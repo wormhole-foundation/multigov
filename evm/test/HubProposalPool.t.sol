@@ -507,8 +507,42 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     vm.prank(_caller);
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, _resp, signatures);
   }
+}
 
-  function testFuzz_RevertIf_ZeroTokenAddress(uint16 _chainId, address _caller) public {}
+contract SetTokenAddress is HubProposalPoolTest {
+  function testFuzz_CorrectlySetTokenAddress(uint16 _chainId, address _tokenAddress, address _caller) public {
+    vm.assume(_chainId != 0);
+    vm.assume(_tokenAddress != address(0));
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
+
+    vm.prank(hubProposalPool.owner());
+    hubProposalPool.setTokenAddress(_chainId, _tokenAddress);
+
+    assertEq(hubProposalPool.tokenAddresses(_chainId), _tokenAddress);
+  }
+
+  function testFuzz_EmitsTokenAddressSetEvent(uint16 _chainId, address _tokenAddress, address _caller) public {
+    vm.assume(_chainId != 0);
+    vm.assume(_tokenAddress != address(0));
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
+
+    vm.prank(hubProposalPool.owner());
+    vm.expectEmit();
+    emit HubProposalPool.TokenAddressSet(_chainId, _tokenAddress);
+    hubProposalPool.setTokenAddress(_chainId, _tokenAddress);
+  }
+
+  function testFuzz_RevertIf_NotCalledByOwner(uint16 _chainId, address _tokenAddress, address _caller) public {
+    vm.assume(_tokenAddress != address(0));
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    hubProposalPool.setTokenAddress(_chainId, _tokenAddress);
+  }
 }
 
 contract _ExtractAccountFromCalldata is HubProposalPoolTest {
