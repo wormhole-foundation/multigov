@@ -115,6 +115,59 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
     return response;
   }
 
+  function _mockQueryResponseWithMultipleResults(
+    uint16 _chainId,
+    address _tokenAddress,
+    address _caller,
+    uint128 _voteWeight
+  ) internal view returns (bytes memory) {
+    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+      bytes("0x1296c33"), // blockId
+      2, // numCallData
+      abi.encodePacked(
+        QueryTest.buildEthCallDataBytes(_tokenAddress, abi.encodeWithSignature("getVotes(address)", _caller)),
+        QueryTest.buildEthCallDataBytes(_tokenAddress, abi.encodeWithSignature("getVotes(address)", _caller))
+      )
+    );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      1, // num per chain requests
+      abi.encodePacked(QueryTest.buildPerChainRequestBytes(_chainId, hubProposalPool.QT_ETH_CALL(), ethCall))
+    );
+
+    bytes memory invalidEthCallResp = abi.encodePacked(
+      QueryTest.buildEthCallResultBytes(abi.encode(_voteWeight)),
+      QueryTest.buildEthCallResultBytes(abi.encode(_voteWeight))
+    );
+
+    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      2, // numResults
+      invalidEthCallResp
+    );
+
+    return _buildQueryResponseWithMultipleResults(_chainId, _queryRequestBytes, ethCallResp);
+  }
+
+  function _buildQueryResponseWithMultipleResults(
+    uint16 _chainId,
+    bytes memory _queryRequestBytes,
+    bytes memory _ethCallResp
+  ) internal view returns (bytes memory) {
+    return QueryTest.buildQueryResponseBytes(
+      VERSION,
+      OFF_CHAIN_SENDER,
+      OFF_CHAIN_SIGNATURE,
+      _queryRequestBytes,
+      1, // num per chain responses
+      QueryTest.buildPerChainResponseBytes(_chainId, hubProposalPool.QT_ETH_CALL(), _ethCallResp)
+    );
+  }
+
   function _getSignatures(bytes memory response) internal view returns (IWormhole.Signature[] memory) {
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(response, address(hubProposalPool));
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
@@ -425,7 +478,42 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  function testFuzz_RevertIf_TooManyEthCallResults(uint16 _chainId, address _tokenAddress, address _caller) public {}
+  function testFuzz_RevertIf_TooManyEthCallResults(
+    uint16 _chainId,
+    address _tokenAddress,
+    address _caller,
+    uint256 _proposalId,
+    uint128 _voteWeight
+  ) public {
+    vm.assume(_chainId != 0);
+    vm.assume(_tokenAddress != address(0));
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
+
+    vm.prank(hubProposalPool.owner());
+    hubProposalPool.setTokenAddress(_chainId, _tokenAddress);
+
+    bytes memory _resp = _mockQueryResponseWithMultipleResults(_chainId, _tokenAddress, _caller, _voteWeight);
+
+    // console2.log("Chain ID:", _chainId);
+    // console2.log("Token Address:", _tokenAddress);
+    // console2.log("Caller:", _caller);
+    // console2.log("Query response length:", _resp.length);
+    // console2.log("Number of per-chain responses:", 2);
+    // console2.log("Vote weight:", _voteWeight1);
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.TooManyEthCallResults.selector, 2));
+    vm.prank(_caller);
+    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, "Test proposal", _resp, signatures);
+  }
+
   function testFuzz_RevertIf_ZeroTokenAddress(uint16 _chainId, address _caller) public {}
 }
 
