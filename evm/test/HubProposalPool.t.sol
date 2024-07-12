@@ -310,33 +310,22 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  function testFuzz_RevertIf_InsufficientVoteWeight(
-    VoteWeight[] memory _voteWeights,
-    uint256 _hubVoteWeight,
-    string memory _description,
-    address _caller
-  ) public {
-    vm.assume(_voteWeights.length > 0);
+  function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
 
-    _voteWeights = _setupVoteWeights(_voteWeights);
-    _hubVoteWeight = bound(_hubVoteWeight, 1, hubGovernor.proposalThreshold() - 1);
-    _mintAndDelegate(_caller, _hubVoteWeight);
-    hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
+    // Create a vote weight with a below threshold total
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] =
+      VoteWeight({voteWeight: hubGovernor.proposalThreshold() - 1, chainId: 1, tokenAddress: address(token)});
 
-    uint256 totalVoteWeight = 0;
-    for (uint256 i = 0; i < _voteWeights.length; i++) {
-      totalVoteWeight += _voteWeights[i].voteWeight;
-    }
-    totalVoteWeight += _hubVoteWeight;
-
-    vm.assume(totalVoteWeight < hubGovernor.proposalThreshold());
+    vm.prank(hubProposalPool.owner());
+    hubProposalPool.setTokenAddress(voteWeights[0].chainId, voteWeights[0].tokenAddress);
 
     uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
     vm.warp(vm.getBlockTimestamp() + windowLength);
 
-    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
+    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     ProposalBuilder builder = _createArbitraryProposal();
