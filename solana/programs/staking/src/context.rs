@@ -221,6 +221,19 @@ pub struct WithdrawTokens<'info> {
     // Native payer:
     #[account( address = stake_account_metadata.owner)]
     pub payer:                   Signer<'info>,
+
+    // Current delegate stake account:
+    #[account(mut)]
+    pub current_delegate_stake_account_checkpoints:
+        AccountLoader<'info, checkpoints::CheckpointData>,
+    #[account(
+        mut,
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_checkpoints.key().as_ref()],
+        bump = current_delegate_stake_account_metadata.metadata_bump
+    )]
+    pub current_delegate_stake_account_metadata:
+        Box<Account<'info, stake_account::StakeAccountMetadata>>,
+
     // Destination
     #[account(mut)]
     pub destination:             Account<'info, TokenAccount>,
@@ -242,7 +255,6 @@ pub struct WithdrawTokens<'info> {
     // Primitive accounts :
     pub token_program:           Program<'info, Token>,
 }
-
 
 impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
     for CpiContext<'a, 'b, 'c, 'info, Transfer<'info>>

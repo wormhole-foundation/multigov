@@ -643,10 +643,13 @@ export class StakeConnection {
       );
     }
 
+    let currentDelegateStakeAccountAddress = await this.delegates(stakeAccount);
+
     instructions.push(
       await this.program.methods
         .withdrawTokens(amount.toBN())
         .accounts({
+          currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccountAddress,
           stakeAccountCheckpoints: stakeAccount.address,
           destination: toAccount,
         })

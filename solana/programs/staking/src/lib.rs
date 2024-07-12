@@ -212,6 +212,33 @@ pub mod staking {
             amount,
         )?;
 
+        ctx.accounts.stake_account_custody.reload()?;
+
+        let recorded_balance = stake_account_metadata.recorded_balance;
+        let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
+
+        if stake_account_metadata.delegate != Pubkey::default() {
+            let current_delegate_stake_account_checkpoints = &mut ctx
+                .accounts
+                .current_delegate_stake_account_checkpoints
+                .load_mut()?;
+
+            let latest_current_delegate_checkpoint_value =
+                current_delegate_stake_account_checkpoints
+                    .latest()?
+                    .unwrap_or(0);
+
+            let config = &ctx.accounts.config;
+            let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
+
+            if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
+                current_timestamp,
+                latest_current_delegate_checkpoint_value - recorded_balance + current_stake_balance,
+            ) {};
+        }
+
+        ctx.accounts.stake_account_metadata.recorded_balance = *current_stake_balance;
+
         Ok(())
     }
 

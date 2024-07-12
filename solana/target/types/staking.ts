@@ -433,6 +433,30 @@ export type Staking = {
           "isSigner": true
         },
         {
+          "name": "currentDelegateStakeAccountCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "currentDelegateStakeAccountMetadata",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "current_delegate_stake_account_checkpoints"
+              }
+            ]
+          }
+        },
+        {
           "name": "destination",
           "isMut": true,
           "isSigner": false
@@ -1710,6 +1734,30 @@ export const IDL: Staking = {
           "name": "payer",
           "isMut": false,
           "isSigner": true
+        },
+        {
+          "name": "currentDelegateStakeAccountCheckpoints",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "currentDelegateStakeAccountMetadata",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "type": "string",
+                "value": "stake_metadata"
+              },
+              {
+                "kind": "account",
+                "type": "publicKey",
+                "path": "current_delegate_stake_account_checkpoints"
+              }
+            ]
+          }
         },
         {
           "name": "destination",
