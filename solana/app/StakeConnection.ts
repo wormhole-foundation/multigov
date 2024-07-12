@@ -31,7 +31,6 @@ import {
   withCreateTokenOwnerRecord,
 } from "@solana/spl-governance";
 import {
-  EPOCH_DURATION,
   GOVERNANCE_ADDRESS,
   STAKING_ADDRESS,
 } from "./constants";

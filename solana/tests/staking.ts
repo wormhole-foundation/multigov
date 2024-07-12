@@ -46,7 +46,6 @@ describe("staking", async () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
   const zeroPubkey = new PublicKey(0);
-  let EPOCH_DURATION: BN;
 
   let userAta: PublicKey;
   const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
@@ -76,7 +75,6 @@ describe("staking", async () => {
     );
 
     errMap = parseIdlErrors(program.idl);
-    EPOCH_DURATION = stakeConnection.config.epochDuration;
   });
 
   it("creates staking account", async () => {

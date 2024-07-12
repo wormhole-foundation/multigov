@@ -6,7 +6,6 @@ import { BN } from "bn.js";
 import {
   STAKING_ADDRESS,
   REALM_ID,
-  EPOCH_DURATION,
   GOVERNANCE_ADDRESS,
 } from "../constants";
 
@@ -24,7 +23,6 @@ async function main() {
     governanceAuthority: AUTHORITY_KEYPAIR.publicKey,
     whTokenMint: WORMHOLE_TOKEN,
     whGovernanceRealm: REALM_ID,
-    epochDuration: new BN(EPOCH_DURATION),
     freeze: false,
     pdaAuthority: AUTHORITY_KEYPAIR.publicKey,
     governanceProgram: GOVERNANCE_ADDRESS(),

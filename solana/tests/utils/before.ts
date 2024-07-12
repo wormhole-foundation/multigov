@@ -356,7 +356,6 @@ export function makeDefaultConfig(
     governanceAuthority: null,
     whGovernanceRealm: null,
     whTokenMint: whMint,
-    epochDuration: new BN(3600),
     freeze: true,
     mockClockTime: new BN(10),
     bump: 0,
@@ -461,7 +460,7 @@ export async function standardSetup(
     const { realm, governance } = await createDefaultRealm(
       provider,
       config,
-      Math.max(globalConfig.epochDuration.toNumber(), 60), // at least one minute
+      3600 * 24 * 7,
       whMintAccount.publicKey
     );
     globalConfig.governanceAuthority = governance;

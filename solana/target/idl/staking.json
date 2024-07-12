@@ -851,10 +851,6 @@
             "type": "publicKey"
           },
           {
-            "name": "epochDuration",
-            "type": "u64"
-          },
-          {
             "name": "freeze",
             "type": "bool"
           },
@@ -1205,81 +1201,76 @@
     },
     {
       "code": 6001,
-      "name": "ZeroEpochDuration",
-      "msg": "Epoch duration is 0"
-    },
-    {
-      "code": 6002,
       "name": "GenericOverflow",
       "msg": "An arithmetic operation unexpectedly overflowed"
     },
     {
-      "code": 6003,
+      "code": 6002,
       "name": "CheckpointSerDe",
       "msg": "Error deserializing checkpoint"
     },
     {
-      "code": 6004,
+      "code": 6003,
       "name": "CheckpointOutOfBounds",
       "msg": "Checkpoint out of bounds"
     },
     {
-      "code": 6005,
+      "code": 6004,
       "name": "NotLlcMember",
       "msg": "You need to be an LLC member to perform this action"
     },
     {
-      "code": 6006,
+      "code": 6005,
       "name": "RecoverWithStake",
       "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
     },
     {
-      "code": 6007,
+      "code": 6006,
       "name": "CheckpointNotFound",
       "msg": "Checkpoint not found"
     },
     {
-      "code": 6008,
+      "code": 6007,
       "name": "InvalidTimestamp",
       "msg": "Invalid timestamp"
     },
     {
-      "code": 6009,
+      "code": 6008,
       "name": "InvalidLlcAgreement",
       "msg": "Invalid LLC agreement"
     },
     {
-      "code": 6010,
+      "code": 6009,
       "name": "NoWeight",
       "msg": "No Weight"
     },
     {
-      "code": 6011,
+      "code": 6010,
       "name": "AllWeightCast",
       "msg": "All weight cast"
     },
     {
-      "code": 6012,
+      "code": 6011,
       "name": "VoteWouldExceedWeight",
       "msg": "Vote would exceed weight"
     },
     {
-      "code": 6013,
+      "code": 6012,
       "name": "WithdrawToUnauthorizedAccount",
       "msg": "Owner needs to own destination account"
     },
     {
-      "code": 6014,
+      "code": 6013,
       "name": "InsufficientWithdrawableBalance",
       "msg": "Insufficient balance to cover the withdrawal"
     },
     {
-      "code": 6015,
+      "code": 6014,
       "name": "ProposalAlreadyExists",
       "msg": "Proposal already exists"
     },
     {
-      "code": 6016,
+      "code": 6015,
       "name": "Other",
       "msg": "Other"
     }

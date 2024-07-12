@@ -5,36 +5,34 @@ use anchor_lang::prelude::*;
 pub enum ErrorCode {
     #[msg("Number of checkpoint limit reached")] //6000
     TooManyCheckpoints,
-    #[msg("Epoch duration is 0")] //6001
-    ZeroEpochDuration,
-    #[msg("An arithmetic operation unexpectedly overflowed")] //6002
+    #[msg("An arithmetic operation unexpectedly overflowed")] //6001
     GenericOverflow,
-    #[msg("Error deserializing checkpoint")] //6003
+    #[msg("Error deserializing checkpoint")] //6002
     CheckpointSerDe,
-    #[msg("Checkpoint out of bounds")] //6004
+    #[msg("Checkpoint out of bounds")] //6003
     CheckpointOutOfBounds,
-    #[msg("You need to be an LLC member to perform this action")] //6005
+    #[msg("You need to be an LLC member to perform this action")] //6004
     NotLlcMember,
-    #[msg("Can't recover account with a non-zero staking balance. Unstake your tokens first.")] // 6006
+    #[msg("Can't recover account with a non-zero staking balance. Unstake your tokens first.")] // 6005
     RecoverWithStake,
-    #[msg("Checkpoint not found")] //6007
+    #[msg("Checkpoint not found")] //6006
     CheckpointNotFound,
-    #[msg("Invalid timestamp")] //6008
+    #[msg("Invalid timestamp")] //6007
     InvalidTimestamp,
-    #[msg("Invalid LLC agreement")] // 6009
+    #[msg("Invalid LLC agreement")] // 6008
     InvalidLlcAgreement,
-    #[msg("No Weight")] // 6010
+    #[msg("No Weight")] // 6009
     NoWeight,
-    #[msg("All weight cast")] // 6011
+    #[msg("All weight cast")] // 6010
     AllWeightCast,
-    #[msg("Vote would exceed weight")] // 6012
+    #[msg("Vote would exceed weight")] // 6011
     VoteWouldExceedWeight,
-    #[msg("Owner needs to own destination account")] //6013
+    #[msg("Owner needs to own destination account")] //6012
     WithdrawToUnauthorizedAccount,
-    #[msg("Insufficient balance to cover the withdrawal")] //6014
+    #[msg("Insufficient balance to cover the withdrawal")] //6013
     InsufficientWithdrawableBalance,
-    #[msg("Proposal already exists")] //6015
+    #[msg("Proposal already exists")] //6014
     ProposalAlreadyExists,
-    #[msg("Other")] //6016
+    #[msg("Other")] //6015
     Other,
 }
