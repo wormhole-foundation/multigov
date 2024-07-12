@@ -974,12 +974,6 @@ export type Staking = {
             "type": "u64"
           },
           {
-            "name": "transferEpoch",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
             "name": "signedAgreementHash",
             "type": {
               "option": {
@@ -2266,12 +2260,6 @@ export const IDL: Staking = {
           {
             "name": "recordedBalance",
             "type": "u64"
-          },
-          {
-            "name": "transferEpoch",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "signedAgreementHash",

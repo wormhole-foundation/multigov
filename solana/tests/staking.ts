@@ -151,7 +151,6 @@ describe("staking", async () => {
         owner,
         delegate: zeroPubkey,
         recordedBalance: expectedRecordedBalance,
-        transferEpoch: null,
         signedAgreementHash: null,
       })
     );

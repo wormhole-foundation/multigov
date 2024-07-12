@@ -17,8 +17,6 @@ pub struct StakeAccountMetadata {
     pub owner:                 Pubkey,
     pub delegate:              Pubkey,
     pub recorded_balance:      u64,
-    pub transfer_epoch:        Option<u64>, /* null if the account was created, some epoch if
-                                             * the account received a transfer */
     pub signed_agreement_hash: Option<[u8; 32]>,
 }
 
@@ -52,7 +50,6 @@ impl StakeAccountMetadata {
         self.owner = *owner;
         self.delegate = Pubkey::default();
         self.recorded_balance = 0;
-        self.transfer_epoch = None;
         self.signed_agreement_hash = None;
     }
 }
@@ -82,7 +79,6 @@ pub mod tests {
             owner:                 Pubkey::default(),
             delegate:              Pubkey::default(),
             recorded_balance:      0,
-            transfer_epoch:        None,
             signed_agreement_hash: Some([0; 32]),
         };
         assert!(stake_account_metadata_llc_member
@@ -101,7 +97,6 @@ pub mod tests {
             owner:                 Pubkey::default(),
             delegate:              Pubkey::default(),
             recorded_balance:      0,
-            transfer_epoch:        None,
             signed_agreement_hash: None,
         };
         assert!(stake_account_metadata_non_llc_member
