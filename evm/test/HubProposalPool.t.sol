@@ -310,6 +310,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
+  // forge-config: default.fuzz.runs = 2500
   function testFuzz_RevertIf_InsufficientVoteWeight(
     VoteWeight[] memory _voteWeights,
     uint256 _hubVoteWeight,
@@ -319,7 +320,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     vm.assume(_voteWeights.length > 0);
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
-    vm.assume(_hubVoteWeight != 0);
 
     _voteWeights = _setupVoteWeights(_voteWeights);
     _hubVoteWeight = bound(_hubVoteWeight, 1, hubGovernor.proposalThreshold() - 1);
@@ -451,7 +451,7 @@ contract _ExtractAccountFromCalldata is HubProposalPoolTest {
     assertEq(extractedAccount, _account, "Extracted account should match the input account");
   }
 
-  function testFuzz_RevertIf_InvalidCallDataLength(address _account, bytes memory _callData) public {
+  function testFuzz_RevertIf_InvalidCallDataLength(bytes memory _callData) public {
     vm.assume(_callData.length < 24);
     vm.expectRevert(HubProposalPool.InvalidCallDataLength.selector);
     hubProposalPool.exposed_extractAccountFromCalldata(_callData);
