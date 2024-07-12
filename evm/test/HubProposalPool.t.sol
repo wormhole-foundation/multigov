@@ -309,6 +309,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
   ) public {
     vm.assume(_voteWeights.length > 0);
     vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
 
     VoteWeight[] memory voteWeights = _setupVoteWeights(_voteWeights);
 
