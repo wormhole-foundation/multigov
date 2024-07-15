@@ -482,23 +482,18 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  function testFuzz_RevertIf_InvalidTokenAddressZeroAddress(
+  function testFuzz_RevertIf_TokenAddressIsNotRegistered(
     uint128 _voteWeight,
     uint16 _chainId,
     address _caller,
-    address _arbitraryTokenAddress,
+    address _tokenAddress,
     string memory _description
   ) public {
-    address ZERO_ADDRESS = address(0);
-    vm.assume(_arbitraryTokenAddress != ZERO_ADDRESS);
-    vm.assume(_caller != ZERO_ADDRESS);
+    vm.assume(_tokenAddress != address(0));
+    vm.assume(_caller != address(0));
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
-    voteWeights[0] = VoteWeight({voteWeight: uint256(_voteWeight), chainId: _chainId, tokenAddress: ZERO_ADDRESS});
-
-    vm.prank(hubProposalPool.owner());
-    // Set arbitrary token address to avoid ZeroTokenAddress error
-    hubProposalPool.setTokenAddress(_chainId, _arbitraryTokenAddress);
+    voteWeights[0] = VoteWeight({voteWeight: uint256(_voteWeight), chainId: _chainId, tokenAddress: _tokenAddress});
 
     bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
@@ -508,7 +503,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.InvalidTokenAddress.selector, _chainId, ZERO_ADDRESS));
+    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.InvalidTokenAddress.selector, _chainId, address(0)));
     vm.prank(_caller);
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
