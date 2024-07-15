@@ -614,6 +614,15 @@ contract SetTokenAddress is HubProposalPoolTest {
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     hubProposalPool.setTokenAddress(_chainId, _tokenAddress);
   }
+
+  function testFuzz_RevertIf_TokenAddressIsZeroAddress(uint16 _chainId, address _caller) public {
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
+
+    vm.prank(hubProposalPool.owner());
+    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.ZeroTokenAddress.selector));
+    hubProposalPool.setTokenAddress(_chainId, address(0));
+  }
 }
 
 contract _ExtractAccountFromCalldata is HubProposalPoolTest {
