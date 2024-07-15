@@ -516,7 +516,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     address _caller,
     string memory _description
   ) public {
-    vm.assume(_chainId != 0);
     vm.assume(_expectedRegisteredTokenAddress != address(0));
     vm.assume(_invalidTokenAddress != address(0));
     vm.assume(_expectedRegisteredTokenAddress != _invalidTokenAddress);
@@ -551,7 +550,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     uint128 _voteWeight,
     string memory _description
   ) public {
-    vm.assume(_chainId != 0);
     vm.assume(_tokenAddress != address(0));
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
@@ -576,7 +574,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
 
 contract SetTokenAddress is HubProposalPoolTest {
   function testFuzz_CorrectlySetTokenAddress(uint16 _chainId, address _tokenAddress, address _caller) public {
-    vm.assume(_chainId != 0);
     vm.assume(_tokenAddress != address(0));
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
@@ -588,7 +585,6 @@ contract SetTokenAddress is HubProposalPoolTest {
   }
 
   function testFuzz_EmitsTokenAddressSetEvent(uint16 _chainId, address _tokenAddress, address _caller) public {
-    vm.assume(_chainId != 0);
     vm.assume(_tokenAddress != address(0));
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
