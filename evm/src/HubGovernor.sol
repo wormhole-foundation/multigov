@@ -72,7 +72,13 @@ contract HubGovernor is
   }
 
   function proposalDeadline(uint256 _proposalId) public view virtual override returns (uint256) {
-    return Math.max(super.proposalDeadline(_proposalId), governorProposalExtender.extendedDeadlines(_proposalId));
+    uint256 extendedDeadline;
+    try governorProposalExtender.extendedDeadlines(_proposalId) {
+      extendedDeadline = governorProposalExtender.extendedDeadlines(_proposalId);
+    } catch {
+      extendedDeadline = 0;
+    }
+    return Math.max(super.proposalDeadline(_proposalId), extendedDeadline);
   }
 
   function propose(

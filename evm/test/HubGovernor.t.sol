@@ -297,6 +297,25 @@ contract SetGovernorProposalExtender is HubGovernorTest {
   }
 }
 
+contract ProposalDeadline is HubGovernorTest {
+  function _proposeNewGovernorProposalExtender(address _governorProposalExtender) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setGovernorProposalExtender(address)", _governorProposalExtender));
+  }
+
+  function testFuzz_ProposalExtenderDoesNotSupportMethod(address _extender) public {
+    vm.assume(_extender != extender);
+    _setGovernorAndDelegates();
+    governor.exposed_setGovernorProposalExtender(_extender);
+
+    vm.startPrank(_whitelistedProposer);
+    uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    vm.stopPrank();
+
+    uint256 deadline = governor.proposalDeadline(proposalId);
+    assertEq(governor.proposalSnapshot(_proposalId) + governor.votingPeriod(), deadline);
+  }
+}
+
 contract Propose is HubGovernorTest {
   function _createSetWhitelistedProposerProposal(address _newWhitelistedProposer) public returns (ProposalBuilder) {
     return _createProposal(abi.encodeWithSignature("setWhitelistedProposer(address)", _newWhitelistedProposer));
