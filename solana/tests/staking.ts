@@ -189,6 +189,7 @@ describe("staking", async () => {
     await program.methods
       .withdrawTokens(new BN(1))
       .accounts({
+        currentDelegateStakeAccountCheckpoints: stakeAccountSecret.publicKey,
         stakeAccountCheckpoints: stakeAccountSecret.publicKey,
         destination: toAccount,
       })

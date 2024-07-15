@@ -111,15 +111,42 @@ describe("api", async () => {
     );
   });
 
-  it("find and parse stake accounts", async () => {
-    const res = await stakeConnection.getStakeAccounts(owner);
-    assert.equal(res.length, 2);
+  it("withdrawTokens", async () => {
+    await stakeConnection.delegate(
+      undefined,
+      undefined,
+      WHTokenBalance.fromString("100")
+    );
 
     let stakeAccount = await stakeConnection.getMainAccount(owner);
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
       "300000000" // 300 * 10**6
+    );
+
+    await stakeConnection.withdrawTokens(
+      stakeAccount,
+      WHTokenBalance.fromString("50")
+    )
+
+    stakeAccount = await stakeConnection.getMainAccount(owner);
+
+    assert.equal(
+      stakeAccount.tokenBalance.toString(),
+      "250000000" // 250 * 10**6
+    );
+  });
+
+  it("find and parse stake accounts", async () => {
+    const res = await stakeConnection.getStakeAccounts(owner);
+    assert.equal(res.length, 3);
+
+    let stakeAccount = await stakeConnection.getMainAccount(owner);
+
+    assert.equal(
+      stakeAccount.tokenBalance.toString(),
+      "250000000" // 250 * 10**6
     );
     
     await stakeConnection.delegate(
@@ -132,7 +159,7 @@ describe("api", async () => {
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "400000000" // 400 * 10**6
+      "350000000" // 350 * 10**6
     );
 
     assert.equal(
@@ -143,7 +170,7 @@ describe("api", async () => {
     await assertBalanceMatches(
       stakeConnection,
       owner,
-      { balance: WHTokenBalance.fromString("400") }
+      { balance: WHTokenBalance.fromString("350") }
     );
   });
 

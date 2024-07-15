@@ -186,7 +186,6 @@ pub mod staking {
     }
 
     pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, amount: u64) -> Result<()> {
-        let stake_account_checkpoints = &ctx.accounts.stake_account_checkpoints.load()?;
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
         let stake_account_custody = &ctx.accounts.stake_account_custody;
 
