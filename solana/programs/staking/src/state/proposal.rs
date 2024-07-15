@@ -50,9 +50,8 @@ impl ProposalData {
         Ok(Some((self.against_votes, self.for_votes, self.abstain_votes)))
     }
 
-    pub fn is_voting_safe(&self, config: &GlobalConfig) -> Result<bool> {
-        let current_timestamp: u64 = crate::utils::clock::get_current_time(config).try_into().unwrap();
-        Ok((self.vote_start + self.safe_window) >= current_timestamp)
+    pub fn is_voting_safe(&self, timestamp: u64) -> Result<bool> {
+        Ok((self.vote_start + self.safe_window) >= timestamp)
     }
 }
 

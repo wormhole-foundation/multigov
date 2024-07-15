@@ -18,6 +18,7 @@ pub fn get_current_time(global_config: &GlobalConfig) -> UnixTimestamp {
     assert!(Clock::get().unwrap().slot < MAX_LOCALNET_VALIDATOR_RUNTIME_SLOTS);
     global_config.mock_clock_time
 }
+
 #[cfg(not(feature = "mock-clock"))]
 pub fn get_current_time(_global_config: &GlobalConfig) -> UnixTimestamp {
     Clock::get().unwrap().unix_timestamp

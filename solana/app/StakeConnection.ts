@@ -567,6 +567,15 @@ export class StakeConnection {
     };
   }
 
+  public async isVotingSafe(proposalId: BN): Promise<{boolean}> {
+    const { proposalAccountWasm } = await this.fetchProposalAccountWasm(
+      proposalId
+    );
+
+    const currentTimestamp = new BN(Math.floor(Date.now() / 1000));
+    return await proposalAccountWasm.isVotingSafe(currentTimestamp);
+  }
+
   public async addProposal(
     proposalId: BN,
     vote_start: BN,

@@ -74,6 +74,19 @@ describe("api", async () => {
     assert.equal(abstainVotes.toString(), '0');
   });
 
+  it("isVotingSafe", async () => {
+    const proposalId = new BN(4);
+    const voteStart = new BN(Math.floor(Date.now() / 1000));
+    const safeWindow = new BN(24 * 60 * 60); // 24 hour
+
+    await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
+
+    assert.equal(
+      await stakeConnection.isVotingSafe(proposalId),
+      true
+    );
+  });
+
   it("delegate", async () => {
     await stakeConnection.delegate(
       undefined,
