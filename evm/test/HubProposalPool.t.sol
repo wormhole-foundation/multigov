@@ -553,7 +553,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     uint16 _chainId,
     address _tokenAddress,
     address _caller,
-    uint256 _proposalId,
     uint128 _voteWeight,
     string memory _description
   ) public {
@@ -626,7 +625,7 @@ contract SetTokenAddress is HubProposalPoolTest {
 }
 
 contract _ExtractAccountFromCalldata is HubProposalPoolTest {
-  function testFuzz_CorrectlyExtractsAccountFromCalldata(address _account) public {
+  function testFuzz_CorrectlyExtractsAccountFromCalldata(address _account) public view {
     // Simulate the calldata for a getVotes(address) function call
     bytes4 selector = bytes4(keccak256("getVotes(address)"));
     bytes memory callData = abi.encodeWithSelector(selector, _account);
