@@ -214,12 +214,12 @@ export class StakeConnection {
     }
   }
 
-  async fetchProposalAccountAddress(proposal: BN) {
+  async fetchProposalAccountAddress(proposalId: BN) {
     const proposalAccountAddress = (
       await PublicKey.findProgramAddress(
         [
           utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()),
-          proposal.toArrayLike(Buffer, "be", 8)
+          proposalId.toArrayLike(Buffer, "be", 8)
         ],
         this.program.programId
       )
@@ -228,8 +228,8 @@ export class StakeConnection {
     return { proposalAccountAddress };
   }
 
-  async fetchProposalAccountWasm(proposal: BN) {
-    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposal);
+  async fetchProposalAccountWasm(proposalId: BN) {
+    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposalId);
 
     const inbuf =
       await this.program.provider.connection.getAccountInfo(
@@ -243,8 +243,8 @@ export class StakeConnection {
     return { proposalAccountWasm };
   }
 
-  async fetchProposalAccountData(proposal: BN) {
-    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposal);
+  async fetchProposalAccountData(proposalId: BN) {
+    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposalId);
 
     const proposalAccountData =
       await this.program.account.proposalData.fetch(proposalAccountAddress);
@@ -525,7 +525,7 @@ export class StakeConnection {
   }
 
   public async castVote(
-    proposal: BN,
+    proposalId: BN,
     stakeAccount: StakeAccount,
     againstVotes: BN,
     forVotes: BN,
@@ -534,11 +534,11 @@ export class StakeConnection {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
 
-    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposal);
+    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposalId);
 
     instructions.push(
       await this.program.methods
-        .castVote(proposal, againstVotes, forVotes, abstainVotes)
+        .castVote(proposalId, againstVotes, forVotes, abstainVotes)
         .accounts({
           proposal: proposalAccountAddress,
           voterCheckpoints: stakeAccount.address,
@@ -549,13 +549,13 @@ export class StakeConnection {
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
-  public async proposalVotes(proposal: BN): Promise<{
+  public async proposalVotes(proposalId: BN): Promise<{
     againstVotes: BN;
     forVotes: BN;
     abstainVotes: BN;
   }> {
     const { proposalAccountWasm } = await this.fetchProposalAccountWasm(
-      proposal
+      proposalId
     );
 
     const proposalData = await proposalAccountWasm.proposalVotes();
@@ -568,18 +568,18 @@ export class StakeConnection {
   }
 
   public async addProposal(
-    proposal: BN,
+    proposalId: BN,
     vote_start: BN,
     safe_window: BN,
   ): Promise<void> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
 
-    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposal);
+    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposalId);
 
     instructions.push(
       await this.program.methods
-        .addProposal(proposal, vote_start, safe_window)
+        .addProposal(proposalId, vote_start, safe_window)
         .accounts({
           proposal: proposalAccountAddress,
         })
