@@ -23,6 +23,7 @@ contract HubProposalPool is QueryResponse, Ownable {
   error InvalidCaller(address expected, address actual);
   error InvalidTokenAddress(uint16 chainId, address tokenAddress);
   error TooManyEthCallResults(uint256);
+  error UnregisteredSpoke(uint16 chainId, address tokenAddress);
   error ZeroTokenAddress();
 
   event SpokeRegistered(uint16 chainId, address spokeAddress);
@@ -64,7 +65,7 @@ contract HubProposalPool is QueryResponse, Ownable {
 
       // Verify that the token address in the query matches what we have registered
       address registeredTokenAddress = registeredSpokes[perChainResp.chainId];
-      if (registeredTokenAddress == address(0)) revert InvalidTokenAddress(perChainResp.chainId, address(0));
+      if (registeredTokenAddress == address(0)) revert UnregisteredSpoke(perChainResp.chainId, address(0));
 
       // Parse the request to check if the request address matches the registered token address
       address queriedAddress = _ethCalls.result[0].contractAddress;
