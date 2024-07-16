@@ -339,45 +339,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     assertTrue(proposalId > 0, "Proposal should be created");
   }
 
-  function testFuzz_EmitsProposalCreated(
-    VoteWeight[] memory _voteWeights,
-    uint256 _hubVoteWeight,
-    address _caller,
-    string memory _description
-  ) public {
-    vm.assume(_voteWeights.length > 0);
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != address(hubProposalPool.owner()));
-
-    VoteWeight[] memory voteWeights = _setupVoteWeights(_voteWeights);
-
-    _hubVoteWeight = bound(_hubVoteWeight, 1, PROPOSAL_THRESHOLD);
-    _mintAndDelegate(_caller, _hubVoteWeight);
-
-    hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
-
-    bool thresholdMet = _checkThresholdMet(voteWeights, _hubVoteWeight, PROPOSAL_THRESHOLD);
-    vm.assume(thresholdMet);
-
-    uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
-    vm.warp(vm.getBlockTimestamp() + windowLength);
-
-    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
-    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
-
-    ProposalBuilder builder = _createArbitraryProposal();
-    address[] memory targets = builder.targets();
-    uint256[] memory values = builder.values();
-    bytes[] memory calldatas = builder.calldatas();
-
-    uint256 expectedProposalId = hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description)));
-
-    vm.prank(_caller);
-    vm.expectEmit();
-    emit HubProposalPool.ProposalCreated(expectedProposalId);
-    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
-  }
-
   function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));

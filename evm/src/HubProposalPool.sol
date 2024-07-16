@@ -25,7 +25,6 @@ contract HubProposalPool is QueryResponse, Ownable {
   error TooManyEthCallResults(uint256);
   error ZeroTokenAddress();
 
-  event ProposalCreated(uint256 proposalId);
   event TokenAddressSet(uint16 chainId, address tokenAddress);
 
   constructor(address _core, address _hubGovernor) QueryResponse(_core) Ownable(_hubGovernor) {
@@ -46,7 +45,6 @@ contract HubProposalPool is QueryResponse, Ownable {
 
     uint256 proposalId = HUB_GOVERNOR.propose(targets, values, calldatas, description);
 
-    emit ProposalCreated(proposalId);
     return proposalId;
   }
 
