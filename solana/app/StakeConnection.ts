@@ -449,7 +449,6 @@ export class StakeConnection {
   public async getTokenOwnerRecordAddress(user: PublicKey) {
     return getTokenOwnerRecordAddress(
       this.governanceAddress,
-      this.config.whGovernanceRealm,
       this.config.whTokenMint,
       user
     );
@@ -487,7 +486,6 @@ export class StakeConnection {
         instructions,
         this.governanceAddress,
         PROGRAM_VERSION_V2,
-        this.config.whGovernanceRealm,
         owner,
         this.config.whTokenMint,
         owner

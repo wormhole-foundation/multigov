@@ -7,7 +7,3 @@ export function GOVERNANCE_ADDRESS(): PublicKey {
 export const STAKING_ADDRESS = new PublicKey(
   "pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ"
 );
-
-export const REALM_ID = new PublicKey(
-  "4ct8XU5tKbMNRphWy4rePsS9kBqPhDdvZoGpmprPaug4"
-);

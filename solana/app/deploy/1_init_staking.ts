@@ -5,7 +5,6 @@ import { AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./mainnet_beta";
 import { BN } from "bn.js";
 import {
   STAKING_ADDRESS,
-  REALM_ID,
   GOVERNANCE_ADDRESS,
 } from "../constants";
 
@@ -22,7 +21,6 @@ async function main() {
   const globalConfig = {
     governanceAuthority: AUTHORITY_KEYPAIR.publicKey,
     whTokenMint: WORMHOLE_TOKEN,
-    whGovernanceRealm: REALM_ID,
     freeze: false,
     pdaAuthority: AUTHORITY_KEYPAIR.publicKey,
     governanceProgram: GOVERNANCE_ADDRESS(),
