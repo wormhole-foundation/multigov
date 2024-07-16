@@ -55,9 +55,8 @@ contract HubProposalPool is QueryResponse, Ownable {
   {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     uint256 totalVoteWeight = 0;
-    uint256 numResponses = _queryResponse.responses.length;
 
-    for (uint256 i = 0; i < numResponses; i++) {
+    for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       // TODO: need to check that the query time is a reasonalbe time against the hub time; reflect current state mostly
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
       EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
