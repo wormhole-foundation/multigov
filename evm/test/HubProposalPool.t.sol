@@ -302,6 +302,43 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     return voteWeights;
   }
 
+  function testFuzz_CorrectlyCheckAndProposeIfEligibleSingleSpokeVoteWeight(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    string memory _description,
+    address _caller
+  ) public {
+    vm.assume(_spokeAddress != address(0));
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != address(hubProposalPool.owner()));
+
+    vm.prank(hubProposalPool.owner());
+    hubProposalPool.registerSpoke(_chainId, _spokeAddress);
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
+    vm.assume(thresholdMet);
+
+    uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
+    vm.warp(vm.getBlockTimestamp() + windowLength);
+
+    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+
+    vm.startPrank(_caller);
+    uint256 proposalId = hubProposalPool.checkAndProposeIfEligible(
+      builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
+    );
+    vm.stopPrank();
+
+    assertTrue(proposalId > 0, "Proposal should be created");
+  }
+
   function testFuzz_CorrectlyCheckAndProposeIfEligible(
     VoteWeight[] memory _voteWeights,
     uint256 _hubVoteWeight,
