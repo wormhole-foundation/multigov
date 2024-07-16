@@ -416,42 +416,40 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.UnregisteredSpoke.selector, _chainId, address(0)));
+    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.UnregisteredSpoke.selector, _chainId, _spokeAddress));
     vm.prank(_caller);
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  function testFuzz_RevertIf_InvalidTokenAddress(
+  function testFuzz_RevertIf_QuerySpokeDoesNotMatchRegisteredSpoke(
     uint128 _voteWeight,
     uint16 _chainId,
-    address _expectedRegisteredTokenAddress,
-    address _invalidTokenAddress,
+    address _registeredSpokeAddress,
+    address _queriedSpokeAddress,
     address _caller,
     string memory _description
   ) public {
-    vm.assume(_expectedRegisteredTokenAddress != address(0));
-    vm.assume(_invalidTokenAddress != address(0));
-    vm.assume(_expectedRegisteredTokenAddress != _invalidTokenAddress);
+    vm.assume(_registeredSpokeAddress != address(0));
+    vm.assume(_queriedSpokeAddress != address(0));
+    vm.assume(_registeredSpokeAddress != _queriedSpokeAddress);
     vm.assume(_caller != address(0));
+
+    vm.prank(hubProposalPool.owner());
+    hubProposalPool.registerSpoke(_chainId, _registeredSpokeAddress);
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] =
-      VoteWeight({voteWeight: uint256(_voteWeight), chainId: _chainId, spokeAddress: _expectedRegisteredTokenAddress});
-
-    vm.prank(hubProposalPool.owner());
-    hubProposalPool.registerSpoke(_chainId, _invalidTokenAddress);
+      VoteWeight({voteWeight: uint256(_voteWeight), chainId: _chainId, spokeAddress: _queriedSpokeAddress});
 
     bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
-
     ProposalBuilder builder = _createArbitraryProposal();
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(
-      abi.encodeWithSelector(HubProposalPool.InvalidTokenAddress.selector, _chainId, _expectedRegisteredTokenAddress)
-    );
+    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.UnregisteredSpoke.selector, _chainId, _queriedSpokeAddress));
+
     vm.prank(_caller);
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
