@@ -12,7 +12,6 @@ pub const AUTHORITY_SEED: &str = "authority";
 pub const CUSTODY_SEED: &str = "custody";
 pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
 pub const CONFIG_SEED: &str = "config";
-pub const VOTER_WEIGHT_RECORD_SEED: &str = "voter_weight_record";
 pub const PROPOSAL_SEED: &str = "proposal";
 
 #[derive(Accounts)]
@@ -182,16 +181,6 @@ pub struct CreateStakeAccount<'info> {
     /// CHECK : This AccountInfo is safe because it's a checked PDA
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub custody_authority:         AccountInfo<'info>,
-    #[account(
-        init,
-        payer = payer,
-        space = voter_weight_record::VoterWeightRecord::LEN,
-        seeds = [
-            VOTER_WEIGHT_RECORD_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
-        ],
-        bump)]
-    pub voter_weight_record:       Account<'info, voter_weight_record::VoterWeightRecord>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config:                    Account<'info, global_config::GlobalConfig>,
     // Wormhole token mint:
@@ -316,16 +305,6 @@ pub struct RecoverAccount<'info> {
         bump = stake_account_metadata.metadata_bump
     )]
     pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
-
-    #[account(
-        mut,
-        seeds = [
-            VOTER_WEIGHT_RECORD_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
-        ],
-        bump = stake_account_metadata.voter_bump
-    )]
-    pub voter_weight_record: Account<'info, voter_weight_record::VoterWeightRecord>,
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,

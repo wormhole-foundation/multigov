@@ -105,15 +105,11 @@ pub mod staking {
             *ctx.bumps.get("stake_account_metadata").unwrap(),
             *ctx.bumps.get("stake_account_custody").unwrap(),
             *ctx.bumps.get("custody_authority").unwrap(),
-            *ctx.bumps.get("voter_weight_record").unwrap(),
             &owner,
         );
 
         let stake_account_checkpoints = &mut ctx.accounts.stake_account_checkpoints.load_init()?;
         stake_account_checkpoints.initialize(&owner);
-
-        let voter_weight_record = &mut ctx.accounts.voter_weight_record;
-        voter_weight_record.initialize(config, &owner);
 
         Ok(())
     }

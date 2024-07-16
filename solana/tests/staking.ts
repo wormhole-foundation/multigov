@@ -37,7 +37,6 @@ const portNumber = getPortNumber(path.basename(__filename));
 describe("staking", async () => {
   let program: Program<Staking>;
 
-  let voterAccount: PublicKey;
   let errMap: Map<number, string>;
 
   let provider: anchor.AnchorProvider;
@@ -106,16 +105,7 @@ describe("staking", async () => {
         ],
         program.programId
       );
-    let voterBump: number;
-    [voterAccount, voterBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode(
-          wasm.Constants.VOTER_WEIGHT_RECORD_SEED()
-        ),
-        stakeAccountSecret.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
+
     debugger;
     const tx = await program.methods
       .createStakeAccount(owner)

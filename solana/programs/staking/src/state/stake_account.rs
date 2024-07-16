@@ -13,7 +13,6 @@ pub struct StakeAccountMetadata {
     pub metadata_bump:         u8,
     pub custody_bump:          u8,
     pub authority_bump:        u8,
-    pub voter_bump:            u8,
     pub owner:                 Pubkey,
     pub delegate:              Pubkey,
     pub recorded_balance:      u64,
@@ -40,13 +39,11 @@ impl StakeAccountMetadata {
         metadata_bump: u8,
         custody_bump: u8,
         authority_bump: u8,
-        voter_bump: u8,
         owner: &Pubkey,
     ) {
         self.metadata_bump = metadata_bump;
         self.custody_bump = custody_bump;
         self.authority_bump = authority_bump;
-        self.voter_bump = voter_bump;
         self.owner = *owner;
         self.delegate = Pubkey::default();
         self.recorded_balance = 0;
@@ -75,7 +72,6 @@ pub mod tests {
             metadata_bump:         0,
             custody_bump:          0,
             authority_bump:        0,
-            voter_bump:            0,
             owner:                 Pubkey::default(),
             delegate:              Pubkey::default(),
             recorded_balance:      0,
@@ -93,7 +89,6 @@ pub mod tests {
             metadata_bump:         0,
             custody_bump:          0,
             authority_bump:        0,
-            voter_bump:            0,
             owner:                 Pubkey::default(),
             delegate:              Pubkey::default(),
             recorded_balance:      0,

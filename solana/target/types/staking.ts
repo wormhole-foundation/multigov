@@ -197,25 +197,6 @@ export type Staking = {
           }
         },
         {
-          "name": "voterWeightRecord",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "voter_weight_record"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
           "name": "config",
           "isMut": false,
           "isSigner": false,
@@ -786,25 +767,6 @@ export type Staking = {
           }
         },
         {
-          "name": "voterWeightRecord",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "voter_weight_record"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
           "name": "config",
           "isMut": false,
           "isSigner": false,
@@ -978,10 +940,6 @@ export type Staking = {
             "type": "u8"
           },
           {
-            "name": "voterBump",
-            "type": "u8"
-          },
-          {
             "name": "owner",
             "type": "publicKey"
           },
@@ -1006,85 +964,6 @@ export type Staking = {
           }
         ]
       }
-    },
-    {
-      "name": "voterWeightRecord",
-      "docs": [
-        "VoterWeightRecord account"
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "realm",
-            "docs": [
-              "The Realm the VoterWeightRecord belongs to"
-            ],
-            "type": "publicKey"
-          },
-          {
-            "name": "governingTokenMint",
-            "docs": [
-              "Governing Token Mint the VoterWeightRecord is associated with"
-            ],
-            "type": "publicKey"
-          },
-          {
-            "name": "governingTokenOwner",
-            "docs": [
-              "The owner of the governing token and voter",
-              "This is the actual owner (voter) and corresponds to",
-              "TokenOwnerRecord.governing_token_owner"
-            ],
-            "type": "publicKey"
-          },
-          {
-            "name": "voterWeight",
-            "docs": [
-              "Voter's weight"
-            ],
-            "type": "u64"
-          },
-          {
-            "name": "weightAction",
-            "docs": [
-              "The governance action the voter's weight pertains to",
-              "It allows to provided voter's weight specific to the particular action",
-              "the weight is evaluated for."
-            ],
-            "type": {
-              "option": {
-                "defined": "VoterWeightAction"
-              }
-            }
-          },
-          {
-            "name": "weightActionTarget",
-            "docs": [
-              "The target the voter's weight  action pertains to",
-              "It allows to provided voter's weight specific to the target the weight",
-              "is evaluated for. For example when addin supplies weight to vote on a",
-              "particular proposal then it must specify the proposal as the action",
-              "target."
-            ],
-            "type": {
-              "option": "publicKey"
-            }
-          },
-          {
-            "name": "reserved",
-            "docs": [
-              "Reserved space for future versions"
-            ],
-            "type": {
-              "array": [
-                "u8",
-                8
-              ]
-            }
-          }
-        ]
-      }
     }
   ],
   "types": [
@@ -1100,26 +979,6 @@ export type Staking = {
           {
             "name": "timestamp",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "VoterWeightAction",
-      "docs": [
-        "The governance action VoterWeight is evaluated for"
-      ],
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "CastVote"
-          },
-          {
-            "name": "CreateGovernance"
-          },
-          {
-            "name": "CreateProposal"
           }
         ]
       }
@@ -1500,25 +1359,6 @@ export const IDL: Staking = {
           }
         },
         {
-          "name": "voterWeightRecord",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "voter_weight_record"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
           "name": "config",
           "isMut": false,
           "isSigner": false,
@@ -2089,25 +1929,6 @@ export const IDL: Staking = {
           }
         },
         {
-          "name": "voterWeightRecord",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "voter_weight_record"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
           "name": "config",
           "isMut": false,
           "isSigner": false,
@@ -2281,10 +2102,6 @@ export const IDL: Staking = {
             "type": "u8"
           },
           {
-            "name": "voterBump",
-            "type": "u8"
-          },
-          {
             "name": "owner",
             "type": "publicKey"
           },
@@ -2309,85 +2126,6 @@ export const IDL: Staking = {
           }
         ]
       }
-    },
-    {
-      "name": "voterWeightRecord",
-      "docs": [
-        "VoterWeightRecord account"
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "realm",
-            "docs": [
-              "The Realm the VoterWeightRecord belongs to"
-            ],
-            "type": "publicKey"
-          },
-          {
-            "name": "governingTokenMint",
-            "docs": [
-              "Governing Token Mint the VoterWeightRecord is associated with"
-            ],
-            "type": "publicKey"
-          },
-          {
-            "name": "governingTokenOwner",
-            "docs": [
-              "The owner of the governing token and voter",
-              "This is the actual owner (voter) and corresponds to",
-              "TokenOwnerRecord.governing_token_owner"
-            ],
-            "type": "publicKey"
-          },
-          {
-            "name": "voterWeight",
-            "docs": [
-              "Voter's weight"
-            ],
-            "type": "u64"
-          },
-          {
-            "name": "weightAction",
-            "docs": [
-              "The governance action the voter's weight pertains to",
-              "It allows to provided voter's weight specific to the particular action",
-              "the weight is evaluated for."
-            ],
-            "type": {
-              "option": {
-                "defined": "VoterWeightAction"
-              }
-            }
-          },
-          {
-            "name": "weightActionTarget",
-            "docs": [
-              "The target the voter's weight  action pertains to",
-              "It allows to provided voter's weight specific to the target the weight",
-              "is evaluated for. For example when addin supplies weight to vote on a",
-              "particular proposal then it must specify the proposal as the action",
-              "target."
-            ],
-            "type": {
-              "option": "publicKey"
-            }
-          },
-          {
-            "name": "reserved",
-            "docs": [
-              "Reserved space for future versions"
-            ],
-            "type": {
-              "array": [
-                "u8",
-                8
-              ]
-            }
-          }
-        ]
-      }
     }
   ],
   "types": [
@@ -2403,26 +2141,6 @@ export const IDL: Staking = {
           {
             "name": "timestamp",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "VoterWeightAction",
-      "docs": [
-        "The governance action VoterWeight is evaluated for"
-      ],
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "CastVote"
-          },
-          {
-            "name": "CreateGovernance"
-          },
-          {
-            "name": "CreateProposal"
           }
         ]
       }
