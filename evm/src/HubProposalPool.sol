@@ -18,11 +18,9 @@ contract HubProposalPool is QueryResponse, Ownable {
 
   mapping(uint16 => address) public tokenAddresses;
 
-  error EmptyProposal();
   error InsufficientVoteWeight();
   error InvalidCallDataLength();
   error InvalidCaller(address expected, address actual);
-  error InvalidProposalLength();
   error InvalidTokenAddress(uint16 chainId, address tokenAddress);
   error TooManyEthCallResults(uint256);
   error ZeroTokenAddress();
@@ -43,9 +41,6 @@ contract HubProposalPool is QueryResponse, Ownable {
     bytes memory _queryResponseRaw,
     IWormhole.Signature[] memory _signatures
   ) external returns (uint256) {
-    if (targets.length != values.length || targets.length != calldatas.length) revert InvalidProposalLength();
-    if (targets.length == 0) revert EmptyProposal();
-
     bool isEligible = _checkProposalEligibility(_queryResponseRaw, _signatures);
     if (!isEligible) revert InsufficientVoteWeight();
 

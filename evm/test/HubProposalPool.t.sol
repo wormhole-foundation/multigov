@@ -378,31 +378,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
 
-  function testFuzz_RevertIf_EmptyProposal(
-    VoteWeight[] memory _voteWeights,
-    address _caller,
-    string memory _description
-  ) public {
-    vm.assume(_voteWeights.length > 0);
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != address(hubProposalPool.owner()));
-
-    _voteWeights = _setupVoteWeights(_voteWeights);
-
-    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
-    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
-
-    // Create empty proposal builder
-    ProposalBuilder builder = new ProposalBuilder();
-    address[] memory targets = builder.targets();
-    uint256[] memory values = builder.values();
-    bytes[] memory calldatas = builder.calldatas();
-
-    vm.expectRevert(HubProposalPool.EmptyProposal.selector);
-    vm.prank(_caller);
-    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
-  }
-
   function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
@@ -455,29 +430,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.expectRevert(abi.encodeWithSelector(HubProposalPool.InvalidCaller.selector, _caller, _account));
-    vm.prank(_caller);
-    hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
-  }
-
-  function testFuzz_RevertIf_InvalidProposalLength(
-    VoteWeight[] memory _voteWeights,
-    address _caller,
-    string memory _description
-  ) public {
-    vm.assume(_voteWeights.length > 0);
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != address(hubProposalPool.owner()));
-
-    _voteWeights = _setupVoteWeights(_voteWeights);
-
-    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
-    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
-
-    ProposalBuilder builder = _createArbitraryProposal();
-    address[] memory targets = builder.targets();
-    uint256[] memory values = new uint256[](2); // Mismatched length
-    bytes[] memory calldatas = builder.calldatas();
-    vm.expectRevert(HubProposalPool.InvalidProposalLength.selector);
     vm.prank(_caller);
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
