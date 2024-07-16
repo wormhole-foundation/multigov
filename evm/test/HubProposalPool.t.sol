@@ -60,6 +60,7 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
     );
 
     hubProposalPool = new HubProposalPoolHarness(address(wormhole), address(hubGovernor));
+    hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("PROPOSER_ROLE"), address(hubGovernor));
@@ -315,8 +316,6 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
 
     _hubVoteWeight = bound(_hubVoteWeight, 1, PROPOSAL_THRESHOLD);
     _mintAndDelegate(_caller, _hubVoteWeight);
-
-    hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
 
     bool thresholdMet = _checkThresholdMet(voteWeights, _hubVoteWeight, PROPOSAL_THRESHOLD);
     vm.assume(thresholdMet);
