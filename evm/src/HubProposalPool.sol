@@ -16,7 +16,7 @@ contract HubProposalPool is QueryResponse, Ownable {
   IGovernor public immutable HUB_GOVERNOR;
   IWormhole public immutable WORMHOLE_CORE;
 
-  mapping(uint16 => address) public tokenAddresses;
+  mapping(uint16 => address) public registeredSpokes;
 
   error InsufficientVoteWeight();
   error InvalidCallDataLength();
@@ -25,7 +25,7 @@ contract HubProposalPool is QueryResponse, Ownable {
   error TooManyEthCallResults(uint256);
   error ZeroTokenAddress();
 
-  event TokenAddressSet(uint16 chainId, address tokenAddress);
+  event SpokeRegistered(uint16 chainId, address spokeAddress);
 
   constructor(address _core, address _hubGovernor) QueryResponse(_core) Ownable(_hubGovernor) {
     WORMHOLE_CORE = IWormhole(_core);
@@ -63,7 +63,7 @@ contract HubProposalPool is QueryResponse, Ownable {
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
       // Verify that the token address in the query matches what we have registered
-      address registeredTokenAddress = tokenAddresses[perChainResp.chainId];
+      address registeredTokenAddress = registeredSpokes[perChainResp.chainId];
       if (registeredTokenAddress == address(0)) revert InvalidTokenAddress(perChainResp.chainId, address(0));
 
       // Parse the request to check if the request address matches the registered token address
@@ -89,15 +89,15 @@ contract HubProposalPool is QueryResponse, Ownable {
     return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
   }
 
-  function setTokenAddress(uint16 chainId, address tokenAddress) external {
+  function registerSpoke(uint16 chainId, address tokenAddress) external {
     _checkOwner();
-    _setTokenAddress(chainId, tokenAddress);
+    _registerSpoke(chainId, tokenAddress);
   }
 
-  function _setTokenAddress(uint16 chainId, address tokenAddress) internal {
-    if (tokenAddress == address(0)) revert ZeroTokenAddress();
-    tokenAddresses[chainId] = tokenAddress;
-    emit TokenAddressSet(chainId, tokenAddress);
+  function _registerSpoke(uint16 chainId, address spokeAddress) internal {
+    if (spokeAddress == address(0)) revert ZeroTokenAddress();
+    registeredSpokes[chainId] = spokeAddress;
+    emit SpokeRegistered(chainId, spokeAddress);
   }
 
   function _extractAccountFromCalldata(bytes memory callData) internal pure returns (address) {

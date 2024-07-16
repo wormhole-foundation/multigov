@@ -35,7 +35,7 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
   struct VoteWeight {
     uint256 voteWeight;
     uint16 chainId;
-    address tokenAddress;
+    address spokeAddress;
   }
 
   function setUp() public {
@@ -78,12 +78,12 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
     for (uint256 i = 0; i < voteWeights.length; i++) {
       uint256 voteWeight = voteWeights[i].voteWeight;
       uint16 chainId = voteWeights[i].chainId;
-      address tokenAddress = voteWeights[i].tokenAddress;
+      address spokeAddress = voteWeights[i].spokeAddress;
 
       bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
         bytes("0x1296c33"),
         1,
-        QueryTest.buildEthCallDataBytes(tokenAddress, abi.encodeWithSignature("getVotes(address)", proposer))
+        QueryTest.buildEthCallDataBytes(spokeAddress, abi.encodeWithSignature("getVotes(address)", proposer))
       );
 
       queryRequestBytes = abi.encodePacked(
@@ -237,13 +237,13 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     for (uint256 i = 0; i < voteWeights.length; i++) {
       if (remainingVoteWeight == 0) {
         result[i] =
-          VoteWeight({voteWeight: 0, chainId: voteWeights[i].chainId, tokenAddress: voteWeights[i].tokenAddress});
+          VoteWeight({voteWeight: 0, chainId: voteWeights[i].chainId, spokeAddress: voteWeights[i].spokeAddress});
       } else {
         uint256 boundedWeight = _boundVoteWeight(voteWeights[i].voteWeight, remainingVoteWeight);
         result[i] = VoteWeight({
           voteWeight: boundedWeight,
           chainId: voteWeights[i].chainId,
-          tokenAddress: voteWeights[i].tokenAddress
+          spokeAddress: voteWeights[i].spokeAddress
         });
         remainingVoteWeight = remainingVoteWeight > boundedWeight ? remainingVoteWeight - boundedWeight : 0;
       }
@@ -260,17 +260,17 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
 
   function _ensureUniqueTokenAddresses(VoteWeight[] memory voteWeights) internal returns (VoteWeight[] memory) {
     for (uint256 i = 0; i < voteWeights.length; i++) {
-      address tokenAddress =
-        voteWeights[i].tokenAddress == address(0) ? address(new ERC20VotesFake()) : voteWeights[i].tokenAddress;
-      voteWeights[i].tokenAddress = tokenAddress;
+      address spokeAddress =
+        voteWeights[i].spokeAddress == address(0) ? address(new ERC20VotesFake()) : voteWeights[i].spokeAddress;
+      voteWeights[i].spokeAddress = spokeAddress;
     }
     return voteWeights;
   }
 
-  function _setTokenAddresses(VoteWeight[] memory voteWeights) internal {
+  function _registerSpokes(VoteWeight[] memory voteWeights) internal {
     vm.startPrank(hubProposalPool.owner());
     for (uint256 i = 0; i < voteWeights.length; i++) {
-      hubProposalPool.setTokenAddress(voteWeights[i].chainId, voteWeights[i].tokenAddress);
+      hubProposalPool.registerSpoke(voteWeights[i].chainId, voteWeights[i].spokeAddress);
     }
     vm.stopPrank();
   }
@@ -297,7 +297,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     voteWeights = _boundVoteWeights(voteWeights);
     voteWeights = _ensureUniqueChainIds(voteWeights);
     voteWeights = _ensureUniqueTokenAddresses(voteWeights);
-    _setTokenAddresses(voteWeights);
+    _registerSpokes(voteWeights);
     return voteWeights;
   }
 
@@ -346,10 +346,10 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     // Create a vote weight with a below threshold total
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] =
-      VoteWeight({voteWeight: hubGovernor.proposalThreshold() - 1, chainId: 1, tokenAddress: address(token)});
+      VoteWeight({voteWeight: hubGovernor.proposalThreshold() - 1, chainId: 1, spokeAddress: address(token)});
 
     vm.prank(hubProposalPool.owner());
-    hubProposalPool.setTokenAddress(voteWeights[0].chainId, voteWeights[0].tokenAddress);
+    hubProposalPool.registerSpoke(voteWeights[0].chainId, voteWeights[0].spokeAddress);
 
     uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
     vm.warp(vm.getBlockTimestamp() + windowLength);
@@ -406,7 +406,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     vm.assume(_caller != address(0));
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
-    voteWeights[0] = VoteWeight({voteWeight: uint256(_voteWeight), chainId: _chainId, tokenAddress: _tokenAddress});
+    voteWeights[0] = VoteWeight({voteWeight: uint256(_voteWeight), chainId: _chainId, spokeAddress: _tokenAddress});
 
     bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
@@ -436,10 +436,10 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] =
-      VoteWeight({voteWeight: uint256(_voteWeight), chainId: _chainId, tokenAddress: _expectedRegisteredTokenAddress});
+      VoteWeight({voteWeight: uint256(_voteWeight), chainId: _chainId, spokeAddress: _expectedRegisteredTokenAddress});
 
     vm.prank(hubProposalPool.owner());
-    hubProposalPool.setTokenAddress(_chainId, _invalidTokenAddress);
+    hubProposalPool.registerSpoke(_chainId, _invalidTokenAddress);
 
     bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
@@ -468,7 +468,7 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     vm.assume(_caller != address(hubProposalPool.owner()));
 
     vm.prank(hubProposalPool.owner());
-    hubProposalPool.setTokenAddress(_chainId, _tokenAddress);
+    hubProposalPool.registerSpoke(_chainId, _tokenAddress);
 
     bytes memory _resp = _mockQueryResponseWithMultipleResults(_chainId, _tokenAddress, _caller, _voteWeight);
 
@@ -485,46 +485,46 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
   }
 }
 
-contract SetTokenAddress is HubProposalPoolTest {
-  function testFuzz_CorrectlySetTokenAddress(uint16 _chainId, address _tokenAddress, address _caller) public {
-    vm.assume(_tokenAddress != address(0));
+contract RegisterSpoke is HubProposalPoolTest {
+  function testFuzz_CorrectlyRegisterSpoke(uint16 _chainId, address _spokeAddress, address _caller) public {
+    vm.assume(_spokeAddress != address(0));
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
 
     vm.prank(hubProposalPool.owner());
-    hubProposalPool.setTokenAddress(_chainId, _tokenAddress);
+    hubProposalPool.registerSpoke(_chainId, _spokeAddress);
 
-    assertEq(hubProposalPool.tokenAddresses(_chainId), _tokenAddress);
+    assertEq(hubProposalPool.registeredSpokes(_chainId), _spokeAddress);
   }
 
-  function testFuzz_EmitsTokenAddressSetEvent(uint16 _chainId, address _tokenAddress, address _caller) public {
-    vm.assume(_tokenAddress != address(0));
+  function testFuzz_EmitsSpokeRegistered(uint16 _chainId, address _spokeAddress, address _caller) public {
+    vm.assume(_spokeAddress != address(0));
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
 
     vm.prank(hubProposalPool.owner());
     vm.expectEmit();
-    emit HubProposalPool.TokenAddressSet(_chainId, _tokenAddress);
-    hubProposalPool.setTokenAddress(_chainId, _tokenAddress);
+    emit HubProposalPool.SpokeRegistered(_chainId, _spokeAddress);
+    hubProposalPool.registerSpoke(_chainId, _spokeAddress);
   }
 
-  function testFuzz_RevertIf_NotCalledByOwner(uint16 _chainId, address _tokenAddress, address _caller) public {
-    vm.assume(_tokenAddress != address(0));
+  function testFuzz_RevertIf_NotCalledByOwner(uint16 _chainId, address _spokeAddress, address _caller) public {
+    vm.assume(_spokeAddress != address(0));
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
 
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
-    hubProposalPool.setTokenAddress(_chainId, _tokenAddress);
+    hubProposalPool.registerSpoke(_chainId, _spokeAddress);
   }
 
-  function testFuzz_RevertIf_TokenAddressIsZeroAddress(uint16 _chainId, address _caller) public {
+  function testFuzz_RevertIf_SpokeAddressIsZeroAddress(uint16 _chainId, address _caller) public {
     vm.assume(_caller != address(0));
     vm.assume(_caller != address(hubProposalPool.owner()));
 
     vm.prank(hubProposalPool.owner());
     vm.expectRevert(abi.encodeWithSelector(HubProposalPool.ZeroTokenAddress.selector));
-    hubProposalPool.setTokenAddress(_chainId, address(0));
+    hubProposalPool.registerSpoke(_chainId, address(0));
   }
 }
 
