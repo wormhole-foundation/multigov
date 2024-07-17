@@ -26,12 +26,6 @@ import { Staking } from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
 import { WHTokenBalance } from "./whTokenBalance";
 import {
-  getTokenOwnerRecordAddress,
-  PROGRAM_VERSION_V2,
-  withCreateTokenOwnerRecord,
-} from "@solana/spl-governance";
-import {
-  GOVERNANCE_ADDRESS,
   STAKING_ADDRESS,
 } from "./constants";
 import * as crypto from "crypto";
@@ -53,7 +47,6 @@ export class StakeConnection {
   provider: AnchorProvider;
   config: GlobalConfig;
   configAddress: PublicKey;
-  governanceAddress: PublicKey;
   addressLookupTable: PublicKey | undefined;
   priorityFeeConfig: PriorityFeeConfig;
 
@@ -69,7 +62,6 @@ export class StakeConnection {
     this.provider = provider;
     this.config = config;
     this.configAddress = configAddress;
-    this.governanceAddress = GOVERNANCE_ADDRESS();
     this.addressLookupTable = addressLookupTable;
     this.priorityFeeConfig = priorityFeeConfig ?? {};
   }
@@ -437,23 +429,6 @@ export class StakeConnection {
     return ix;
   }
 
-  public async hasGovernanceRecord(user: PublicKey): Promise<boolean> {
-    const voterAccountInfo =
-      await this.program.provider.connection.getAccountInfo(
-        await this.getTokenOwnerRecordAddress(user)
-      );
-
-    return Boolean(voterAccountInfo);
-  }
-
-  public async getTokenOwnerRecordAddress(user: PublicKey) {
-    return getTokenOwnerRecordAddress(
-      this.governanceAddress,
-      this.config.whTokenMint,
-      user
-    );
-  }
-
   public async delegate(
     stakeAccount: StakeAccount | undefined,
     delegateeStakeAccount: StakeAccount | undefined,
@@ -479,17 +454,6 @@ export class StakeConnection {
       delegateeStakeAccountAddress = currentDelegateStakeAccountAddress;
     } else {
       delegateeStakeAccountAddress = delegateeStakeAccount.address;
-    }
-
-    if (!(await this.hasGovernanceRecord(owner))) {
-      await withCreateTokenOwnerRecord(
-        instructions,
-        this.governanceAddress,
-        PROGRAM_VERSION_V2,
-        owner,
-        this.config.whTokenMint,
-        owner
-      );
     }
 
     if (!stakeAccount || !(await this.isLlcMember(stakeAccount))) {

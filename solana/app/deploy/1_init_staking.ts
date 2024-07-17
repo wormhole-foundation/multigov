@@ -5,7 +5,6 @@ import { AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./mainnet_beta";
 import { BN } from "bn.js";
 import {
   STAKING_ADDRESS,
-  GOVERNANCE_ADDRESS,
 } from "../constants";
 
 async function main() {
@@ -23,7 +22,6 @@ async function main() {
     whTokenMint: WORMHOLE_TOKEN,
     freeze: false,
     pdaAuthority: AUTHORITY_KEYPAIR.publicKey,
-    governanceProgram: GOVERNANCE_ADDRESS(),
     agreementHash: Array.from(Buffer.alloc(0)),
   };
   await program.methods.initConfig(globalConfig).rpc();

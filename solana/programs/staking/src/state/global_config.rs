@@ -9,7 +9,6 @@ pub struct GlobalConfig {
     pub wh_token_mint:        Pubkey,
     pub freeze:               bool,
     pub pda_authority:        Pubkey, // Authority that can authorize the transfer of locked tokens
-    pub governance_program:   Pubkey, // Governance program id
     pub agreement_hash:       [u8; 32],
 
     #[cfg(feature = "mock-clock")]
@@ -18,7 +17,7 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 8 + 1 + 32 + 32 + 32 + 8;
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 8 + 1 + 32 + 32 + 8;
 }
 
 #[cfg(test)]

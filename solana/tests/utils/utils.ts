@@ -15,7 +15,7 @@ import { AnchorError } from "@coral-xyz/anchor";
 import assert from "assert";
 import * as wasm from "@wormhole/staking-wasm";
 import { Staking } from "../../target/types/staking";
-import { GOVERNANCE_ADDRESS, STAKING_ADDRESS } from "../../app";
+import { STAKING_ADDRESS } from "../../app";
 
 export function getConfigAccount(programId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
@@ -91,7 +91,6 @@ export async function initAddressLookupTable(
       configAccount,
       SYSVAR_RENT_PUBKEY,
       TOKEN_PROGRAM_ID,
-      GOVERNANCE_ADDRESS(),
     ],
   });
   const createLookupTableTx = new VersionedTransaction(

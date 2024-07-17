@@ -56,7 +56,6 @@ pub mod staking {
         config_account.wh_token_mint = global_config.wh_token_mint;
         config_account.freeze = global_config.freeze;
         config_account.pda_authority = global_config.pda_authority;
-        config_account.governance_program = global_config.governance_program;
         config_account.agreement_hash = global_config.agreement_hash;
 
         #[cfg(feature = "mock-clock")]

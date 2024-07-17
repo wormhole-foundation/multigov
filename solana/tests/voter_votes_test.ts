@@ -26,15 +26,12 @@ describe("voter_votes_test", async () => {
 
   before(async () => {
     const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
-    const governanceProgram = new PublicKey(
-      config.programs.localnet.governance
-    );
     ({ controller, stakeConnection } = await standardSetup(
       portNumber,
       config,
       whMintAccount,
       whMintAuthority,
-      makeDefaultConfig(whMintAccount.publicKey, governanceProgram)
+      makeDefaultConfig(whMintAccount.publicKey)
     ));
 
     owner = stakeConnection.provider.wallet.publicKey;

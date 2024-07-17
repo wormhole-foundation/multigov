@@ -31,7 +31,6 @@ describe("config", async () => {
   const pdaAuthorityKeypair = new Keypair();
   const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
   const pdaAuthority = pdaAuthorityKeypair.publicKey;
-  const governanceProgram = new PublicKey(config.programs.localnet.governance);
 
   let errMap: Map<number, string>;
 
@@ -73,7 +72,6 @@ describe("config", async () => {
         whTokenMint: whMintAccount.publicKey,
         freeze: false,
         pdaAuthority: pdaAuthority,
-        governanceProgram: governanceProgram,
         agreementHash: getDummyAgreementHash(),
         mockClockTime: new BN(10),
       })
@@ -101,7 +99,6 @@ describe("config", async () => {
         whTokenMint: whMintAccount.publicKey,
         freeze: false,
         pdaAuthority: pdaAuthority,
-        governanceProgram: governanceProgram,
         agreementHash: getDummyAgreementHash(),
         mockClockTime: new BN(10),
       })
@@ -121,7 +118,6 @@ describe("config", async () => {
         whTokenMint: whMintAccount.publicKey,
         freeze: false,
         pdaAuthority: pdaAuthority,
-        governanceProgram: governanceProgram,
         agreementHash: getDummyAgreementHash(),
         mockClockTime: new BN(10),
       })
@@ -221,7 +217,6 @@ describe("config", async () => {
         whTokenMint: whMintAccount.publicKey,
         freeze: false,
         pdaAuthority: program.provider.wallet.publicKey,
-        governanceProgram,
         agreementHash: getDummyAgreementHash(),
         mockClockTime: new BN(10),
       })
@@ -240,7 +235,6 @@ describe("config", async () => {
         whTokenMint: whMintAccount.publicKey,
         freeze: false,
         pdaAuthority: pdaAuthority,
-        governanceProgram,
         agreementHash: getDummyAgreementHash(),
         mockClockTime: new BN(10),
       })
@@ -266,7 +260,6 @@ describe("config", async () => {
         whTokenMint: whMintAccount.publicKey,
         freeze: false,
         pdaAuthority: pdaAuthority,
-        governanceProgram,
         agreementHash: getDummyAgreementHash2(),
         mockClockTime: new BN(10),
       })

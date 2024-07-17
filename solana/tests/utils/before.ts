@@ -16,17 +16,6 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   u64,
 } from "@solana/spl-token";
-import {
-  GovernanceConfig,
-  GoverningTokenType,
-  MintMaxVoteWeightSource,
-  PROGRAM_VERSION_V2,
-  VoteThreshold,
-  VoteThresholdType,
-  VoteTipping,
-  withCreateGovernance,
-  withCreateNativeTreasury,
-} from "@solana/spl-governance";
 import shell from "shelljs";
 import BN from "bn.js";
 import toml from "toml";
@@ -42,7 +31,6 @@ export interface AnchorConfig {
   path: {
     idl_path: string;
     binary_path: string;
-    governance_path: string;
     chat_path: string;
     wallet_tester_path: string;
     profile_path: string;
@@ -54,7 +42,6 @@ export interface AnchorConfig {
   programs: {
     localnet: {
       staking: string;
-      governance: string;
       chat: string;
       wallet_tester: string;
       profile: string;
@@ -181,8 +168,6 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
   const otherArgs = `--mint ${
     user.publicKey
   } --reset --bpf-program ${programAddress.toBase58()} ${binaryPath} --bpf-program ${
-    config.programs.localnet.governance
-  } ${config.path.governance_path} --bpf-program ${
     config.programs.localnet.chat
   } ${config.path.chat_path}
 
@@ -266,10 +251,6 @@ export async function requestWHTokenAirdrop(
   });
 }
 
-interface GovernanceIds {
-  governance: PublicKey;
-}
-
 export async function initConfig(
   program: Program,
   whMintAccount: PublicKey,
@@ -287,7 +268,6 @@ export async function initConfig(
 
 export function makeDefaultConfig(
   whMint: PublicKey,
-  governanceProgram: PublicKey = PublicKey.unique(),
   pdaAuthority: PublicKey = PublicKey.unique()
 ): GlobalConfig {
   return {
@@ -296,59 +276,9 @@ export function makeDefaultConfig(
     freeze: true,
     mockClockTime: new BN(10),
     bump: 0,
-    governanceProgram,
     pdaAuthority,
     agreementHash: getDummyAgreementHash(),
   };
-}
-
-export async function withCreateDefaultGovernance(
-  tx: Transaction,
-  maxVotingTime: number,
-  govProgramId: PublicKey,
-  tokenOwnerRecord: PublicKey,
-  payer: PublicKey,
-  authority: PublicKey,
-  voterWeightRecord: PublicKey
-) {
-  const governanceConfig = new GovernanceConfig({
-    communityVoteThreshold: new VoteThreshold({
-      type: VoteThresholdType.YesVotePercentage,
-      value: 20,
-    }),
-    minCommunityTokensToCreateProposal: WHTokenBalance.fromNumber(200).toBN(),
-    minInstructionHoldUpTime: 1,
-    baseVotingTime: maxVotingTime,
-    minCouncilTokensToCreateProposal: new BN(1),
-    councilVoteThreshold: new VoteThreshold({
-      type: VoteThresholdType.YesVotePercentage,
-      value: 0,
-    }),
-    councilVetoVoteThreshold: new VoteThreshold({
-      type: VoteThresholdType.YesVotePercentage,
-      value: 0,
-    }),
-    communityVetoVoteThreshold: new VoteThreshold({
-      type: VoteThresholdType.YesVotePercentage,
-      value: 0,
-    }),
-    councilVoteTipping: VoteTipping.Strict,
-    votingCoolOffTime: 0,
-    depositExemptProposalCount: 255,
-  });
-  const governance = await withCreateGovernance(
-    tx.instructions,
-    govProgramId,
-    PROGRAM_VERSION_V2,
-    tokenOwnerRecord,
-    governanceConfig,
-    tokenOwnerRecord,
-    payer,
-    authority,
-    voterWeightRecord
-  );
-
-  return governance;
 }
 
 /**
