@@ -135,7 +135,6 @@ describe("staking", async () => {
         metadataBump,
         custodyBump,
         authorityBump,
-        voterBump,
         owner,
         delegate: zeroPubkey,
         recordedBalance: expectedRecordedBalance,

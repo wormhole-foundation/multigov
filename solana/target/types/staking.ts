@@ -833,19 +833,11 @@ export type Staking = {
             "type": "publicKey"
           },
           {
-            "name": "whGovernanceRealm",
-            "type": "publicKey"
-          },
-          {
             "name": "freeze",
             "type": "bool"
           },
           {
             "name": "pdaAuthority",
-            "type": "publicKey"
-          },
-          {
-            "name": "governanceProgram",
             "type": "publicKey"
           },
           {
@@ -1995,19 +1987,11 @@ export const IDL: Staking = {
             "type": "publicKey"
           },
           {
-            "name": "whGovernanceRealm",
-            "type": "publicKey"
-          },
-          {
             "name": "freeze",
             "type": "bool"
           },
           {
             "name": "pdaAuthority",
-            "type": "publicKey"
-          },
-          {
-            "name": "governanceProgram",
             "type": "publicKey"
           },
           {

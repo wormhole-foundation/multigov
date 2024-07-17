@@ -321,6 +321,8 @@ export async function standardSetup(
     program.provider.connection
   );
 
+  globalConfig.governanceAuthority = Keypair.generate().publicKey;
+
   if (globalConfig.pdaAuthority == null) {
     globalConfig.pdaAuthority = user;
   }
