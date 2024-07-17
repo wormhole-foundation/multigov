@@ -20,7 +20,7 @@ pub struct StakeAccountMetadata {
 }
 
 impl StakeAccountMetadata {
-    pub const LEN: usize = 200;
+    pub const LEN: usize = 116; // 8 + 3 * 1 + 32 + 32 + 8 + 33
 
     pub fn check_is_llc_member(&self, expected_agreement_hash: &[u8; 32]) -> Result<()> {
         if let Some(agreement_hash) = self.signed_agreement_hash {
