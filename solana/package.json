@@ -14,7 +14,6 @@
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
     "@pythnetwork/solana-utils": "^0.4.1",
-    "@solana/spl-governance": "0.3.26",
     "@solana/spl-token": "^0.1.8",
     "@solana/web3.js": "^1.87.5",
     "@wormhole/staking-wasm": "file:./wasm",
@@ -42,7 +41,7 @@
     "shelljs": "^0.8.5",
     "ts-mocha": "^9.0.2",
     "typescript": "^5.4.5",
-    "wasm-pack": "^0.10.2"
+    "wasm-pack": "^0.13.0"
   },
   "scripts": {
     "test": "npm run build_wasm && anchor build -- --features mock-clock && npm run dump_governance && ts-mocha --parallel -p ./tsconfig.json -t 1000000 tests/*.ts",
