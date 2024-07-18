@@ -184,15 +184,30 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.stopPrank();
   }
 
-  function testFuzz_RevertIf_CallerHasNoWeight(uint8 _support, uint256 _proposalId, uint48 _voteStart, address _caller)
-    public
-  {
+  function testFuzz_RevertIf_CallerHasNoWeight(
+    uint8 _support,
+    uint256 _proposalId,
+    uint48 _voteStart,
+    address _caller,
+    uint128 _amount
+  ) public {
     vm.assume(_caller != address(0));
+    _support = uint8(bound(_support, 0, 2));
     _voteStart = _boundProposalTime(_voteStart);
+
+    // Delegate to the caller
+    deal(address(token), _caller, _amount);
+    vm.prank(_caller);
+    token.delegate(_caller);
+
+    // Warp to after the proposal starts then delegate from caller to someone else to ensure the caller has no weight
+    vm.warp(_voteStart + 1);
+    vm.prank(_caller);
+    token.delegate(makeAddr("Other Delegate"));
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
-    vm.warp(_voteStart + 1);
+    vm.warp(vm.getBlockTimestamp() + 1);
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(SpokeVoteAggregator.NoWeight.selector));
     spokeVoteAggregator.castVote(_proposalId, _support);
