@@ -97,8 +97,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   {
     if (!voteActiveInternal(_proposalId)) revert ProposalInactive();
 
-    SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(_proposalId);
-    uint256 weight = VOTING_TOKEN.getPastVotes(_voter, proposal.voteStart);
+    uint256 weight = _getVotes(_voter);
     if (weight == 0) revert NoWeight();
     _countVote(_proposalId, _voter, _support, weight, _params);
 
@@ -112,5 +111,13 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     // TODO: do we need to use voting token clock or can we replace w more efficient block.timestamp
     uint256 _time = VOTING_TOKEN.clock();
     return _time >= proposal.voteStart;
+  }
+
+  function getVotes(address _account) public view returns (uint256) {
+    return _getVotes(_account);
+  }
+
+  function _getVotes(address _account) internal view returns (uint256) {
+    return VOTING_TOKEN.getVotes(_account);
   }
 }
