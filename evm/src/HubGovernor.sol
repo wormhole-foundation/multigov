@@ -32,7 +32,7 @@ contract HubGovernor is
 {
   address public whitelistedProposer;
   HubVotePool public hubVotePool;
-  IVoteExtender public immutable governorProposalExtender;
+  IVoteExtender public immutable GOVERNOR_PROPOSAL_EXTENDER;
 
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
 
@@ -61,7 +61,7 @@ contract HubGovernor is
   {
     _setHubVotePool(_params.hubVotePool);
     if (_params.whitelistedVoteExtender.code.length == 0) revert InvalidProposalExtender();
-    governorProposalExtender = IVoteExtender(_params.whitelistedVoteExtender);
+    GOVERNOR_PROPOSAL_EXTENDER = IVoteExtender(_params.whitelistedVoteExtender);
   }
 
   function setHubVotePool(address _hubVotePool) external {
@@ -70,7 +70,7 @@ contract HubGovernor is
   }
 
   function proposalDeadline(uint256 _proposalId) public view virtual override returns (uint256) {
-    return Math.max(super.proposalDeadline(_proposalId), governorProposalExtender.extendedDeadlines(_proposalId));
+    return Math.max(super.proposalDeadline(_proposalId), GOVERNOR_PROPOSAL_EXTENDER.extendedDeadlines(_proposalId));
   }
 
   function propose(
@@ -164,7 +164,7 @@ contract HubGovernor is
 
   function setVotingPeriod(uint32 newVotingPeriod) public virtual override {
     _checkGovernance();
-    if (newVotingPeriod < governorProposalExtender.minimumExtensionTime()) {
+    if (newVotingPeriod < GOVERNOR_PROPOSAL_EXTENDER.minimumExtensionTime()) {
       revert GovernorInvalidVotingPeriod(newVotingPeriod);
     }
     return _setVotingPeriod(newVotingPeriod);
