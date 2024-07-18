@@ -51,7 +51,7 @@ pub mod staking {
 
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
         let config_account = &mut ctx.accounts.config_account;
-        config_account.bump = *ctx.bumps.get("config_account").unwrap();
+        config_account.bump = ctx.bumps.config_account;
         config_account.governance_authority = global_config.governance_authority;
         config_account.wh_token_mint = global_config.wh_token_mint;
         config_account.freeze = global_config.freeze;
@@ -100,9 +100,9 @@ pub mod staking {
 
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
         stake_account_metadata.initialize(
-            *ctx.bumps.get("stake_account_metadata").unwrap(),
-            *ctx.bumps.get("stake_account_custody").unwrap(),
-            *ctx.bumps.get("custody_authority").unwrap(),
+            ctx.bumps.stake_account_metadata,
+            ctx.bumps.stake_account_custody,
+            ctx.bumps.custody_authority,
             &owner,
         );
 

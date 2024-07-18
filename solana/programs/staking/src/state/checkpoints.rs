@@ -1,18 +1,37 @@
 use crate::error::ErrorCode;
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::borsh::try_from_slice_unchecked;
+use solana_program::borsh1;
 use std::fmt::Debug;
+use bytemuck::{Pod, Zeroable};
+use borsh::{BorshDeserialize, BorshSerialize};
 
 pub const MAX_CHECKPOINTS: usize = 210;
 pub const CHECKPOINT_BUFFER_SIZE: usize = 48;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct Checkpoints([[u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS]);
+
+unsafe impl Zeroable for Checkpoints {}
+unsafe impl Pod for Checkpoints {}
+
+impl Checkpoints {
+    pub fn get(&self, index: usize) -> Option<&[u8; CHECKPOINT_BUFFER_SIZE]> {
+        self.0.get(index)
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut [u8; CHECKPOINT_BUFFER_SIZE]> {
+        self.0.get_mut(index)
+    }
+}
 
 #[account(zero_copy)]
 #[repr(C)]
 pub struct CheckpointData {
     pub owner:      Pubkey,
     pub next_index: u64,
-    checkpoints:    [[u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
+    checkpoints:    Checkpoints,
 }
 
 #[cfg(test)]
@@ -22,7 +41,7 @@ impl Default for CheckpointData {
         CheckpointData {
             owner:       Pubkey::default(),
             next_index:  0,
-            checkpoints: [[0u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS],
+            checkpoints: Checkpoints([[0u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS]),
         }
     }
 }
@@ -53,8 +72,12 @@ impl CheckpointData {
         }
     }
 
-    pub fn write_checkpoint(&mut self, i: usize, &checkpoint: &Checkpoint) -> Result<()> {
-        Some(checkpoint).try_write(&mut self.checkpoints[i])
+    pub fn write_checkpoint(&mut self, i: usize, checkpoint: &Checkpoint) -> Result<()> {
+        if let Some(slot) = self.checkpoints.get_mut(i) {
+            checkpoint.try_write(slot)
+        } else {
+            Err(error!(ErrorCode::CheckpointOutOfBounds))
+        }
     }
 
     pub fn read_checkpoint(&self, i: usize) -> Result<Option<Checkpoint>> {
@@ -187,26 +210,74 @@ pub trait TryBorsh {
     fn try_write(self, slice: &mut [u8]) -> Result<()>;
 }
 
-impl<T> TryBorsh for T
-where
-    T: AnchorDeserialize + AnchorSerialize,
-{
+// impl<T> TryBorsh for Option<T>
+// where
+//     T: AnchorDeserialize + AnchorSerialize + borsh::BorshDeserialize,
+// {
+//     fn try_read(slice: &[u8]) -> Result<Self> {
+//         if slice.is_empty() {
+//             Ok(None)
+//         } else {
+//             T::try_from_slice(slice).map(Some).map_err(|_| error!(ErrorCode::CheckpointSerDe))
+//         }
+//     }
+// 
+//     fn try_write(self, slice: &mut [u8]) -> Result<()> {
+//         match self {
+//             Some(value) => value.try_write(slice),
+//             None => Ok(()),
+//         }
+//     }
+// }
+
+impl TryBorsh for Option<Checkpoint> {
     fn try_read(slice: &[u8]) -> Result<Self> {
-        try_from_slice_unchecked(slice).map_err(|_| error!(ErrorCode::CheckpointSerDe))
+        if slice.is_empty() {
+            Ok(None)
+        } else {
+            Checkpoint::try_from_slice(slice).map(Some).map_err(|_| error!(ErrorCode::CheckpointSerDe))
+        }
     }
 
     fn try_write(self, slice: &mut [u8]) -> Result<()> {
-        let mut ptr = slice;
-        self.serialize(&mut ptr)
-            .map_err(|_| error!(ErrorCode::CheckpointSerDe))
+        match self {
+            Some(value) => value.try_write(slice),
+            None => Ok(()),
+        }
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone, Copy, BorshSchema)]
+// impl<T> TryBorsh for T
+// where
+//     T: AnchorDeserialize + AnchorSerialize + anchor_spl::token_2022_extensions::spl_token_metadata_interface::borsh::BorshDeserialize,
+// {
+//     fn try_read(slice: &[u8]) -> Result<Self> {
+//         borsh1::try_from_slice_unchecked(slice).map_err(|_| error!(ErrorCode::CheckpointSerDe))
+//     }
+// 
+//     fn try_write(self, slice: &mut [u8]) -> Result<()> {
+//         let mut ptr = slice;
+//         self.serialize(&mut ptr)
+//             .map_err(|_| error!(ErrorCode::CheckpointSerDe))
+//     }
+// }
+
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone, Copy)]
 #[cfg_attr(test, derive(Hash, PartialEq, Eq))]
 pub struct Checkpoint {
     pub value:     u64,
     pub timestamp: u64,
+}
+
+impl TryBorsh for Checkpoint {
+    fn try_read(slice: &[u8]) -> Result<Self> {
+        Checkpoint::try_from_slice(slice).map_err(|_| error!(ErrorCode::CheckpointSerDe))
+    }
+
+    fn try_write(self, slice: &mut [u8]) -> Result<()> {
+        let mut ptr = slice;
+        self.serialize(&mut ptr).map_err(|_| error!(ErrorCode::CheckpointSerDe))
+    }
 }
 
 #[cfg(test)]

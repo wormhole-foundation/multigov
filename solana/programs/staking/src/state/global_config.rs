@@ -22,13 +22,13 @@ impl GlobalConfig {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::state::global_config::GlobalConfig;
+    use super::GlobalConfig;
+    use anchor_lang::solana_program::borsh::get_packed_len;
 
     #[test]
     fn check_size() {
         assert!(
-            anchor_lang::solana_program::borsh::get_packed_len::<GlobalConfig>()
-                < GlobalConfig::LEN
+            get_packed_len::<GlobalConfig>() < GlobalConfig::LEN
         );
     }
 }

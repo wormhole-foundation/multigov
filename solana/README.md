@@ -6,9 +6,9 @@ This repository contains the Wormhole MultiGov Solana Staking Program.
 
 Before you begin, ensure you have met the following requirements:
 
-- Node.js v16.13
-- Solana CLI v1.14.20
-- Anchor v0.27.0
+- Node.js v20.10.0
+- Solana CLI v1.18.20
+- Anchor v0.30.1
 - Docker
 
 ## Building the Project

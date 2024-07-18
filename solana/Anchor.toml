@@ -1,4 +1,4 @@
-anchor_version = "0.24.1"
+anchor_version = "0.28.0"
 
 [features]
 seeds = true
@@ -8,7 +8,6 @@ members = ["programs/staking"]
 
 [programs.localnet]
 staking = "pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ"
-governance = "pytGY6tWRgGinSCvRLnSv4fHfBTMoiDGiCsesmHWM6U"
 chat = "gCHAtYKrUUktTVzE4hEnZdLV4LXrdBf6Hh9qMaJALET"
 
 [registry]
@@ -27,5 +26,4 @@ ledger_dir = "./.anchor/test-ledger"
 [path]
 idl_path = "./target/idl/staking.json"
 binary_path = "./target/deploy/staking.so"
-governance_path = "./target/deploy/governance.so"
 chat_path = "./target/deploy/chat.so"

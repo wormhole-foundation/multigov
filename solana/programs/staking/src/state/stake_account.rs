@@ -45,7 +45,7 @@ impl StakeAccountMetadata {
         self.custody_bump = custody_bump;
         self.authority_bump = authority_bump;
         self.owner = *owner;
-        self.delegate = Pubkey::default();
+        self.delegate = anchor_lang::prelude::Pubkey::default();
         self.recorded_balance = 0;
         self.signed_agreement_hash = None;
     }
@@ -55,7 +55,7 @@ impl StakeAccountMetadata {
 pub mod tests {
     use crate::state::stake_account::StakeAccountMetadata;
     use anchor_lang::Discriminator;
-    use solana_program::pubkey::Pubkey;
+    use anchor_lang::prelude::Pubkey;
 
     #[test]
     fn check_size() {
