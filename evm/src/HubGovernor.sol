@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {Test, console2} from "forge-std/Test.sol";
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -31,10 +32,11 @@ contract HubGovernor is
 {
   address public whitelistedProposer;
   HubVotePool public hubVotePool;
-  IVoteExtender public governorProposalExtender;
+  IVoteExtender public immutable governorProposalExtender;
 
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
-  event GovernorProposalExtenderUpdated(address oldExtender, address newExtender);
+
+  error InvalidProposalExtender();
 
   struct ConstructorParams {
     string name;
@@ -58,7 +60,9 @@ contract HubGovernor is
     GovernorMinimumWeightedVoteWindow(_params.initialVoteWindow)
   {
     _setHubVotePool(_params.hubVotePool);
-    _setGovernorProposalExtender(_params.whitelistedVoteExtender);
+    // Set proposal extender
+    if (_params.whitelistedVoteExtender.code.length == 0) revert InvalidProposalExtender();
+    governorProposalExtender = IVoteExtender(_params.whitelistedVoteExtender);
   }
 
   function setHubVotePool(address _hubVotePool) external {
@@ -66,19 +70,8 @@ contract HubGovernor is
     _setHubVotePool(_hubVotePool);
   }
 
-  function setGovernorProposalExtender(address _extender) public {
-    _checkGovernance();
-    _setGovernorProposalExtender(_extender);
-  }
-
   function proposalDeadline(uint256 _proposalId) public view virtual override returns (uint256) {
-    uint256 extendedDeadline;
-    try governorProposalExtender.extendedDeadlines(_proposalId) {
-      extendedDeadline = governorProposalExtender.extendedDeadlines(_proposalId);
-    } catch {
-      extendedDeadline = 0;
-    }
-    return Math.max(super.proposalDeadline(_proposalId), extendedDeadline);
+    return Math.max(super.proposalDeadline(_proposalId), governorProposalExtender.extendedDeadlines(_proposalId));
   }
 
   function propose(
@@ -127,11 +120,6 @@ contract HubGovernor is
     return GovernorTimelockControl._cancel(targets, values, calldatas, descriptionHash);
   }
 
-  function _setGovernorProposalExtender(address _extender) internal {
-    emit GovernorProposalExtenderUpdated(address(governorProposalExtender), _extender);
-    governorProposalExtender = IVoteExtender(_extender);
-  }
-
   function _setHubVotePool(address _hubVotePool) internal {
     hubVotePool = HubVotePool(_hubVotePool);
   }
@@ -175,6 +163,14 @@ contract HubGovernor is
     return GovernorTimelockControl.proposalNeedsQueuing(proposalId);
   }
 
+  function setVotingPeriod(uint32 newVotingPeriod) public virtual override {
+    _checkGovernance();
+    if (newVotingPeriod < governorProposalExtender.minimumExtensionTime()) {
+      revert GovernorInvalidVotingPeriod(newVotingPeriod);
+    }
+    return _setVotingPeriod(newVotingPeriod);
+  }
+
   function state(uint256 proposalId)
     public
     view
@@ -213,13 +209,5 @@ contract HubGovernor is
     returns (uint256)
   {
     return GovernorMinimumWeightedVoteWindow._getVotes(_account, _timepoint, _params);
-  }
-
-  function _setVotingPeriod(uint32 newVotingPeriod) internal virtual override {
-    if (
-      address(governorProposalExtender) != address(0)
-        && newVotingPeriod < governorProposalExtender.minimumExtensionTime()
-    ) revert GovernorInvalidVotingPeriod(newVotingPeriod);
-    super._setVotingPeriod(newVotingPeriod);
   }
 }

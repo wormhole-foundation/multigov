@@ -24,6 +24,8 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
   HubVotePoolHarness public hubVotePool;
+  HubGovernorProposalExtender public extender;
+
   address initialOwner;
 
   uint48 VOTE_WINDOW = 1 days;
@@ -37,7 +39,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    HubGovernorProposalExtender extender = new HubGovernorProposalExtender(
+    extender = new HubGovernorProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
     );
 
@@ -141,7 +143,9 @@ contract Constructor is HubGovernorTest {
     address _voteExtender
   ) public {
     vm.assume(_initialVotingPeriod != 0);
+    _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
 
+    vm.etch(_voteExtender, address(token).code);
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
       token: ERC20Votes(_token),
@@ -165,6 +169,36 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
     assertEq(address(_governor.hubVotePool()), _hubVotePool);
     assertEq(address(_governor.governorProposalExtender()), _voteExtender);
+  }
+
+  function testFuzz_RevertIf_HubProposalExtenderIsEOA(
+    string memory _name,
+    address _token,
+    address payable _timelock,
+    uint48 _initialVotingDelay,
+    uint32 _initialVotingPeriod,
+    uint208 _initialProposalThreshold,
+    uint208 _initialQuorum,
+    address _hubVotePool,
+    address _voteExtender
+  ) public {
+    vm.assume(_initialVotingPeriod != 0);
+
+    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+      name: _name,
+      token: ERC20Votes(_token),
+      timelock: TimelockController(_timelock),
+      initialVotingDelay: _initialVotingDelay,
+      initialVotingPeriod: _initialVotingPeriod,
+      initialProposalThreshold: _initialProposalThreshold,
+      initialQuorum: _initialQuorum,
+      hubVotePool: _hubVotePool,
+      whitelistedVoteExtender: _voteExtender,
+      initialVoteWindow: 1 days
+    });
+
+    vm.expectRevert(HubGovernor.InvalidProposalExtender.selector);
+    new HubGovernor(params);
   }
 
   function testFuzz_RevertIf_VotingPeriodIsZero(
@@ -244,75 +278,43 @@ contract SetHubVotePool is HubGovernorTest {
   }
 }
 
-contract SetGovernorProposalExtender is HubGovernorTest {
-  function _proposeNewGovernorProposalExtender(address _governorProposalExtender) public returns (ProposalBuilder) {
-    return _createProposal(abi.encodeWithSignature("setGovernorProposalExtender(address)", _governorProposalExtender));
-  }
-
-  function testFuzz_SetANewGovernorProposalExtender(
-    address _newGovernorProposalExtender,
-    string memory _proposalDescription
-  ) public {
-    _setGovernorAndDelegates();
-
-    ProposalBuilder builder = _proposeNewGovernorProposalExtender(_newGovernorProposalExtender);
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
-
-    assertEq(address(governor.governorProposalExtender()), _newGovernorProposalExtender);
-  }
-
-  function testFuzz_EmitsGovernorProposalExtenderUpdatedEvent(
-    address _newGovernorProposalExtender,
-    string memory _proposalDescription
-  ) public {
-    (, address[] memory delegates) = _setGovernorAndDelegates();
-
-    ProposalBuilder builder = _proposeNewGovernorProposalExtender(_newGovernorProposalExtender);
-    vm.startPrank(delegates[0]);
-    uint256 _proposalId =
-      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
-    vm.stopPrank();
-
-    _jumpToActiveProposal(_proposalId);
-
-    _delegatesVote(_proposalId, uint8(VoteType.For));
-    _jumpPastVoteComplete(_proposalId);
-
-    governor.queue(builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes(_proposalDescription)));
-
-    _jumpPastProposalEta(_proposalId);
-    vm.expectEmit();
-    emit HubGovernor.GovernorProposalExtenderUpdated(
-      address(governor.governorProposalExtender()), _newGovernorProposalExtender
-    );
-    governor.execute(builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes(_proposalDescription)));
-  }
-
-  function testFuzz_RevertIf_CallerIsNotAuthorized(address _governorProposalExtender, address _caller) public {
-    vm.assume(_caller != address(timelock));
-
-    vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
-    governor.setGovernorProposalExtender(_governorProposalExtender);
-  }
-}
-
 contract ProposalDeadline is HubGovernorTest {
   function _proposeNewGovernorProposalExtender(address _governorProposalExtender) public returns (ProposalBuilder) {
     return _createProposal(abi.encodeWithSignature("setGovernorProposalExtender(address)", _governorProposalExtender));
   }
 
-  function testFuzz_ProposalExtenderDoesNotSupportMethod(address _extender) public {
-    vm.assume(_extender != extender);
+  function testFuzz_DeadlineHasBeenExtended(address _extender, address _proposer) public {
     _setGovernorAndDelegates();
-    governor.exposed_setGovernorProposalExtender(_extender);
+    governor.exposed_setWhitelistedProposer(_proposer);
 
-    vm.startPrank(_whitelistedProposer);
+    ProposalBuilder builder = _proposeNewGovernorProposalExtender(_extender);
+    vm.startPrank(_proposer);
+    uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    vm.stopPrank();
+
+    uint256 currentVoteEnd = _proposalDeadline(proposalId);
+    vm.warp(currentVoteEnd - 1);
+
+    vm.prank(initialOwner);
+    extender.extendProposal(proposalId);
+
+    uint256 deadline = governor.proposalDeadline(proposalId);
+    assertEq(currentVoteEnd + VOTE_TIME_EXTENSION, deadline);
+  }
+
+  function testFuzz_ProposalHasNotBeenExtended(address _extender, address _proposer) public {
+    vm.assume(_extender != address(extender));
+
+    _setGovernorAndDelegates();
+    governor.exposed_setWhitelistedProposer(_proposer);
+
+    ProposalBuilder builder = _proposeNewGovernorProposalExtender(_extender);
+    vm.startPrank(_proposer);
     uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
     vm.stopPrank();
 
     uint256 deadline = governor.proposalDeadline(proposalId);
-    assertEq(governor.proposalSnapshot(_proposalId) + governor.votingPeriod(), deadline);
+    assertEq(governor.proposalSnapshot(proposalId) + governor.votingPeriod(), deadline);
   }
 }
 
@@ -494,6 +496,60 @@ contract SetQuorum is HubGovernorTest {
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, _caller));
     governor.setQuorum(_quorum);
+  }
+}
+
+// Change to handle proposal
+contract SetVotingPeriod is HubGovernorTest {
+  function _proposeNewVotingPeriod(uint32 _votingPeriod) public returns (ProposalBuilder) {
+    return _createProposal(abi.encodeWithSignature("setVotingPeriod(uint32)", _votingPeriod));
+  }
+
+  function testFuzz_CorrectlySetNewVotingPeriodIfAboveExtenderMinimum(uint32 _newVotingPeriod) public {
+    _newVotingPeriod = uint32(bound(_newVotingPeriod, MINIMUM_VOTE_EXTENSION, type(uint32).max));
+
+    _setGovernorAndDelegates();
+    ProposalBuilder builder = _proposeNewVotingPeriod(_newVotingPeriod);
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    assertEq(governor.votingPeriod(), _newVotingPeriod);
+  }
+
+  function testFuzz_CorrectlySetNewVotingPeriodIfExtenderDoesNotConformToExtenderInterface(uint32 _newVotingPeriod)
+    public
+  {
+    _newVotingPeriod = uint32(bound(_newVotingPeriod, MINIMUM_VOTE_EXTENSION, type(uint32).max));
+
+    _setGovernorAndDelegates();
+    ProposalBuilder builder = _proposeNewVotingPeriod(_newVotingPeriod);
+    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    assertEq(governor.votingPeriod(), _newVotingPeriod);
+  }
+
+  function testFuzz_RevertIf_NewVotingPeriodIsLessThanTheMinimumExtensionTime(uint32 _newVotingPeriod) public {
+    _newVotingPeriod = uint32(bound(_newVotingPeriod, 0, MINIMUM_VOTE_EXTENSION - 1));
+
+    (, address[] memory delegates) = _setGovernorAndDelegates();
+    ProposalBuilder builder = _proposeNewVotingPeriod(_newVotingPeriod);
+    address[] memory _targets = builder.targets();
+    uint256[] memory _values = builder.values();
+    bytes[] memory _calldatas = builder.calldatas();
+    string memory _description = "Hi";
+    vm.prank(delegates[0]);
+    uint256 _proposalId = governor.propose(_targets, _values, _calldatas, _description);
+
+    IGovernor.ProposalState _state = governor.state(_proposalId);
+    assertEq(uint8(_state), uint8(IGovernor.ProposalState.Pending));
+
+    _jumpToActiveProposal(_proposalId);
+
+    _delegatesVote(_proposalId, uint8(VoteType.For));
+    _jumpPastVoteComplete(_proposalId);
+
+    governor.queue(_targets, _values, _calldatas, keccak256(bytes(_description)));
+
+    _jumpPastProposalEta(_proposalId);
+    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorInvalidVotingPeriod.selector, _newVotingPeriod));
+    governor.execute(_targets, _values, _calldatas, keccak256(bytes(_description)));
   }
 }
 
@@ -801,29 +857,5 @@ contract _GetVotes is HubGovernorTest {
     _createAlternatingCheckpointArray(1000);
     uint256 _votes = governor.exposed_getVotes(attacker, _start);
     assertEq(_votes, 0);
-  }
-}
-
-contract _SetVotingPeriod is HubGovernorTest {
-  function testFuzz_CorrectlySetNewVotingPeriodIfAboveExtenderMinimum(uint32 _newVotingPeriod) public {
-    _newVotingPeriod = uint32(bound(_newVotingPeriod, MINIMUM_VOTE_EXTENSION, type(uint32).max));
-
-    governor.exposed_setVotingPeriod(_newVotingPeriod);
-    assertEq(governor.votingPeriod(), _newVotingPeriod);
-  }
-
-  function testFuzz_CorrectlySetNewVotingPeriodIfExtenderIsTheZeroAddress(uint32 _newVotingPeriod) public {
-    _newVotingPeriod = uint32(bound(_newVotingPeriod, MINIMUM_VOTE_EXTENSION, type(uint32).max));
-
-    governor.exposed_setGovernorProposalExtender(address(0));
-    governor.exposed_setVotingPeriod(_newVotingPeriod);
-    assertEq(governor.votingPeriod(), _newVotingPeriod);
-  }
-
-  function testFuzz_RevertIf_NewVotingPeriodIsLessThanTheMinimumExtensionTime(uint32 _newVotingPeriod) public {
-    _newVotingPeriod = uint32(bound(_newVotingPeriod, 0, MINIMUM_VOTE_EXTENSION - 1));
-
-    vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorInvalidVotingPeriod.selector, _newVotingPeriod));
-    governor.exposed_setVotingPeriod(_newVotingPeriod);
   }
 }

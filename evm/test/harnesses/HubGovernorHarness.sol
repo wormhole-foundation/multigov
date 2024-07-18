@@ -27,10 +27,6 @@ contract HubGovernorHarness is HubGovernor {
     _setHubVotePool(_hubVotePool);
   }
 
-  function exposed_setGovernorProposalExtender(address _hubVotePool) public {
-    _setGovernorProposalExtender(_hubVotePool);
-  }
-
   function exposed_setWhitelistedProposer(address _proposer) public {
     _setWhitelistedProposer(_proposer);
   }
