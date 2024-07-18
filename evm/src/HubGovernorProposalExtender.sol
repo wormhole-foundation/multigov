@@ -7,14 +7,6 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 
 contract HubGovernorProposalExtender is Ownable {
-  error AddressCannotExtendProposal();
-  error AlreadyInitialized();
-  error ProposalAlreadyExtended();
-  error ProposalCannotBeExtended();
-  error ProposalDoesNotExist();
-  error InvalidExtensionTime();
-  error InvalidUnsafeWindow();
-
   address public whitelistedVoteExtender;
   uint48 public proposalExtension;
   uint48 public minimumExtensionTime;
@@ -28,6 +20,14 @@ contract HubGovernorProposalExtender is Ownable {
   event ProposalExtensionTimeUpdated(uint48 oldExtension, uint48 newExtension);
   event SafeWindowUpdated(uint48 oldSafeWindow, uint48 newSafeWindow);
   event WhitelistedVoteExtenderUpdated(address oldExtender, address newExtender);
+
+  error AddressCannotExtendProposal();
+  error AlreadyInitialized();
+  error ProposalAlreadyExtended();
+  error ProposalCannotBeExtended();
+  error ProposalDoesNotExist();
+  error InvalidExtensionTime();
+  error InvalidUnsafeWindow();
 
   constructor(
     address _whitelistedVoteExtender,

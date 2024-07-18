@@ -128,7 +128,6 @@ contract ExtendProposal is HubGovernorProposalExtenderTest {
     hubExtender.extendProposal(_proposalId);
   }
 
-  // Need to simulate a real proposal to handle the different proposal states
   function testFuzz_RevertIf_ProposalHasAlreadyBeenExtended(address _proposer) public {
     (, address[] memory delegates) = _setGovernorAndDelegates();
     vm.startPrank(delegates[0]);

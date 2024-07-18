@@ -143,6 +143,7 @@ contract Constructor is HubGovernorTest {
     address _voteExtender
   ) public {
     vm.assume(_initialVotingPeriod != 0);
+    // Prevent the etching over of precompiles
     _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
 
     vm.etch(_voteExtender, address(token).code);
@@ -183,6 +184,7 @@ contract Constructor is HubGovernorTest {
     address _voteExtender
   ) public {
     vm.assume(_initialVotingPeriod != 0);
+    vm.assume(_voteExtender.code.length == 0);
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
@@ -506,17 +508,6 @@ contract SetVotingPeriod is HubGovernorTest {
   }
 
   function testFuzz_CorrectlySetNewVotingPeriodIfAboveExtenderMinimum(uint32 _newVotingPeriod) public {
-    _newVotingPeriod = uint32(bound(_newVotingPeriod, MINIMUM_VOTE_EXTENSION, type(uint32).max));
-
-    _setGovernorAndDelegates();
-    ProposalBuilder builder = _proposeNewVotingPeriod(_newVotingPeriod);
-    _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
-    assertEq(governor.votingPeriod(), _newVotingPeriod);
-  }
-
-  function testFuzz_CorrectlySetNewVotingPeriodIfExtenderDoesNotConformToExtenderInterface(uint32 _newVotingPeriod)
-    public
-  {
     _newVotingPeriod = uint32(bound(_newVotingPeriod, MINIMUM_VOTE_EXTENSION, type(uint32).max));
 
     _setGovernorAndDelegates();

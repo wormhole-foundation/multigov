@@ -60,7 +60,6 @@ contract HubGovernor is
     GovernorMinimumWeightedVoteWindow(_params.initialVoteWindow)
   {
     _setHubVotePool(_params.hubVotePool);
-    // Set proposal extender
     if (_params.whitelistedVoteExtender.code.length == 0) revert InvalidProposalExtender();
     governorProposalExtender = IVoteExtender(_params.whitelistedVoteExtender);
   }
@@ -124,11 +123,6 @@ contract HubGovernor is
     hubVotePool = HubVotePool(_hubVotePool);
   }
 
-  function _setWhitelistedProposer(address _proposer) internal {
-    emit WhitelistedProposerUpdated(whitelistedProposer, _proposer);
-    whitelistedProposer = _proposer;
-  }
-
   function _executeOperations(
     uint256 _proposalId,
     address[] memory _targets,
@@ -151,6 +145,11 @@ contract HubGovernor is
     bytes32 _description /*descriptionHash*/
   ) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
     return GovernorTimelockControl._queueOperations(_proposalId, _targets, _values, _calldatas, _description);
+  }
+
+  function _setWhitelistedProposer(address _proposer) internal {
+    emit WhitelistedProposerUpdated(whitelistedProposer, _proposer);
+    whitelistedProposer = _proposer;
   }
 
   function proposalNeedsQueuing(uint256 proposalId)
