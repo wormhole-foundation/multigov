@@ -891,3 +891,27 @@ contract Token is Test {
     assertEq(address(spokeVoteAggregator.token()), _token);
   }
 }
+
+contract GetVotes is SpokeVoteAggregatorTest {
+  function testFuzz_CorrectlyGetVotes(address _account, uint128 _voteWeight, address _otherAccount) public {
+    vm.assume(_account != address(0));
+
+    deal(address(token), _account, _voteWeight);
+    vm.prank(_account);
+    token.delegate(_account);
+
+    uint256 voteWeight = spokeVoteAggregator.getVotes(_account);
+    assertEq(voteWeight, _voteWeight);
+
+    vm.warp(vm.getBlockTimestamp() + 1);
+
+    // Ensure the vote weight is updated correctly if the account delegates to another account
+    vm.assume(_otherAccount != _account);
+    vm.prank(_account);
+    token.delegate(_otherAccount);
+
+    vm.warp(vm.getBlockTimestamp() + 1);
+    voteWeight = spokeVoteAggregator.getVotes(_account);
+    assertEq(voteWeight, 0);
+  }
+}
