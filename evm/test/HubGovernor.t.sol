@@ -54,7 +54,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialProposalThreshold: 500_000e18,
       initialQuorum: 100e18,
       hubVotePool: address(hubVotePool),
-      whitelistedVoteExtender: address(extender),
+      governorProposalExtender: address(extender),
       initialVoteWindow: VOTE_WINDOW
     });
 
@@ -156,7 +156,7 @@ contract Constructor is HubGovernorTest {
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
       hubVotePool: _hubVotePool,
-      whitelistedVoteExtender: _voteExtender,
+      governorProposalExtender: _voteExtender,
       initialVoteWindow: 1 days
     });
 
@@ -195,7 +195,7 @@ contract Constructor is HubGovernorTest {
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
       hubVotePool: _hubVotePool,
-      whitelistedVoteExtender: _voteExtender,
+      governorProposalExtender: _voteExtender,
       initialVoteWindow: 1 days
     });
 
@@ -222,7 +222,7 @@ contract Constructor is HubGovernorTest {
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
       hubVotePool: _hubVotePool,
-      whitelistedVoteExtender: _voteExtender,
+      governorProposalExtender: _voteExtender,
       initialVoteWindow: 1 days
     });
 
