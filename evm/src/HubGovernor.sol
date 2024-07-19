@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {Test, console2} from "forge-std/Test.sol";
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
@@ -17,6 +20,7 @@ import {GovernorCountingFractional} from "flexible-voting/GovernorCountingFracti
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
+import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
 
 contract HubGovernor is
   GovernorCountingFractional,
@@ -28,33 +32,45 @@ contract HubGovernor is
 {
   address public whitelistedProposer;
   HubVotePool public hubVotePool;
+  IVoteExtender public immutable GOVERNOR_PROPOSAL_EXTENDER;
 
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
 
-  constructor(
-    string memory _name,
-    ERC20Votes _token,
-    TimelockController _timelock,
-    uint48 _initialVotingDelay,
-    uint32 _initialVotingPeriod,
-    uint256 _initialProposalThreshold,
-    uint208 _initialQuorum,
-    address _hubVotePool,
-    uint48 _initialVoteWindow
-  )
-    Governor(_name)
-    GovernorSettings(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold)
-    GovernorVotes(_token)
-    GovernorTimelockControl(_timelock)
-    GovernorSettableFixedQuorum(_initialQuorum)
-    GovernorMinimumWeightedVoteWindow(_initialVoteWindow)
+  error InvalidProposalExtender();
+
+  struct ConstructorParams {
+    string name;
+    ERC20Votes token;
+    TimelockController timelock;
+    uint48 initialVotingDelay;
+    uint32 initialVotingPeriod;
+    uint256 initialProposalThreshold;
+    uint208 initialQuorum;
+    address hubVotePool;
+    address whitelistedVoteExtender;
+    uint48 initialVoteWindow;
+  }
+
+  constructor(ConstructorParams memory _params)
+    Governor(_params.name)
+    GovernorSettings(_params.initialVotingDelay, _params.initialVotingPeriod, _params.initialProposalThreshold)
+    GovernorVotes(_params.token)
+    GovernorTimelockControl(_params.timelock)
+    GovernorSettableFixedQuorum(_params.initialQuorum)
+    GovernorMinimumWeightedVoteWindow(_params.initialVoteWindow)
   {
-    _setHubVotePool(_hubVotePool);
+    _setHubVotePool(_params.hubVotePool);
+    if (_params.whitelistedVoteExtender.code.length == 0) revert InvalidProposalExtender();
+    GOVERNOR_PROPOSAL_EXTENDER = IVoteExtender(_params.whitelistedVoteExtender);
   }
 
   function setHubVotePool(address _hubVotePool) external {
     _checkGovernance();
     _setHubVotePool(_hubVotePool);
+  }
+
+  function proposalDeadline(uint256 _proposalId) public view virtual override returns (uint256) {
+    return Math.max(super.proposalDeadline(_proposalId), GOVERNOR_PROPOSAL_EXTENDER.extendedDeadlines(_proposalId));
   }
 
   function propose(
@@ -144,6 +160,14 @@ contract HubGovernor is
     returns (bool)
   {
     return GovernorTimelockControl.proposalNeedsQueuing(proposalId);
+  }
+
+  function setVotingPeriod(uint32 newVotingPeriod) public virtual override {
+    _checkGovernance();
+    if (newVotingPeriod < GOVERNOR_PROPOSAL_EXTENDER.minimumExtensionTime()) {
+      revert GovernorInvalidVotingPeriod(newVotingPeriod);
+    }
+    return _setVotingPeriod(newVotingPeriod);
   }
 
   function state(uint256 proposalId)
