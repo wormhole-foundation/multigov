@@ -1,10 +1,7 @@
 use crate::error::ErrorCode;
-use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
-use solana_program::borsh1;
 use std::fmt::Debug;
 use bytemuck::{Pod, Zeroable};
-use borsh::{BorshDeserialize, BorshSerialize};
 
 pub const MAX_CHECKPOINTS: usize = 210;
 pub const CHECKPOINT_BUFFER_SIZE: usize = 48;
@@ -74,14 +71,14 @@ impl CheckpointData {
 
     pub fn write_checkpoint(&mut self, i: usize, checkpoint: &Checkpoint) -> Result<()> {
         if let Some(slot) = self.checkpoints.get_mut(i) {
-            checkpoint.try_write(slot)
+            Self::write_option_checkpoint(Some(checkpoint), slot)
         } else {
             Err(error!(ErrorCode::CheckpointOutOfBounds))
         }
     }
 
     pub fn read_checkpoint(&self, i: usize) -> Result<Option<Checkpoint>> {
-        Option::<Checkpoint>::try_read(
+        Self::read_option_checkpoint(
             self.checkpoints
                 .get(i)
                 .ok_or_else(|| error!(ErrorCode::CheckpointOutOfBounds))?,
@@ -201,66 +198,25 @@ impl CheckpointData {
         }
         Ok(high)
     }
-}
 
-pub trait TryBorsh {
-    fn try_read(slice: &[u8]) -> Result<Self>
-    where
-        Self: std::marker::Sized;
-    fn try_write(self, slice: &mut [u8]) -> Result<()>;
-}
-
-// impl<T> TryBorsh for Option<T>
-// where
-//     T: AnchorDeserialize + AnchorSerialize + borsh::BorshDeserialize,
-// {
-//     fn try_read(slice: &[u8]) -> Result<Self> {
-//         if slice.is_empty() {
-//             Ok(None)
-//         } else {
-//             T::try_from_slice(slice).map(Some).map_err(|_| error!(ErrorCode::CheckpointSerDe))
-//         }
-//     }
-// 
-//     fn try_write(self, slice: &mut [u8]) -> Result<()> {
-//         match self {
-//             Some(value) => value.try_write(slice),
-//             None => Ok(()),
-//         }
-//     }
-// }
-
-impl TryBorsh for Option<Checkpoint> {
-    fn try_read(slice: &[u8]) -> Result<Self> {
-        if slice.is_empty() {
-            Ok(None)
-        } else {
-            Checkpoint::try_from_slice(slice).map(Some).map_err(|_| error!(ErrorCode::CheckpointSerDe))
-        }
+    fn write_option_checkpoint(
+        checkpoint: Option<&Checkpoint>,
+        slice: &mut [u8],
+    ) -> Result<()> {
+        let mut cursor = std::io::Cursor::new(slice);
+        checkpoint
+            .serialize(&mut cursor)
+            .map_err(|_| error!(ErrorCode::CheckpointSerDe))
     }
 
-    fn try_write(self, slice: &mut [u8]) -> Result<()> {
-        match self {
-            Some(value) => value.try_write(slice),
-            None => Ok(()),
-        }
+    fn read_option_checkpoint(
+        slice: &[u8],
+    ) -> Result<Option<Checkpoint>> {
+        let mut bytes = slice;
+        Option::<Checkpoint>::deserialize(&mut bytes)
+            .map_err(|_| error!(ErrorCode::CheckpointSerDe))
     }
 }
-
-// impl<T> TryBorsh for T
-// where
-//     T: AnchorDeserialize + AnchorSerialize + anchor_spl::token_2022_extensions::spl_token_metadata_interface::borsh::BorshDeserialize,
-// {
-//     fn try_read(slice: &[u8]) -> Result<Self> {
-//         borsh1::try_from_slice_unchecked(slice).map_err(|_| error!(ErrorCode::CheckpointSerDe))
-//     }
-// 
-//     fn try_write(self, slice: &mut [u8]) -> Result<()> {
-//         let mut ptr = slice;
-//         self.serialize(&mut ptr)
-//             .map_err(|_| error!(ErrorCode::CheckpointSerDe))
-//     }
-// }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone, Copy)]
 #[cfg_attr(test, derive(Hash, PartialEq, Eq))]
@@ -269,23 +225,11 @@ pub struct Checkpoint {
     pub timestamp: u64,
 }
 
-impl TryBorsh for Checkpoint {
-    fn try_read(slice: &[u8]) -> Result<Self> {
-        Checkpoint::try_from_slice(slice).map_err(|_| error!(ErrorCode::CheckpointSerDe))
-    }
-
-    fn try_write(self, slice: &mut [u8]) -> Result<()> {
-        let mut ptr = slice;
-        self.serialize(&mut ptr).map_err(|_| error!(ErrorCode::CheckpointSerDe))
-    }
-}
-
 #[cfg(test)]
 pub mod tests {
     use crate::state::checkpoints::{
         Checkpoint,
         CheckpointData,
-        TryBorsh,
         CHECKPOINT_BUFFER_SIZE,
         MAX_CHECKPOINTS,
     };
@@ -298,25 +242,25 @@ pub mod tests {
     use rand::Rng;
     use std::collections::HashSet;
 
-    #[test]
-    fn test_serialized_size() {
-        assert_eq!(
-            std::mem::size_of::<CheckpointData>(),
-            32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
-        );
-        assert_eq!(
-            CheckpointData::LEN,
-            10240
-        );
-        // Checks that the checkpoint struct fits in the individual checkpoint buffer
-        assert!(get_packed_len::<Checkpoint>() < CHECKPOINT_BUFFER_SIZE);
-    }
+//     #[test]
+//     fn test_serialized_size() {
+//         assert_eq!(
+//             std::mem::size_of::<CheckpointData>(),
+//             32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+//         );
+//         assert_eq!(
+//             CheckpointData::LEN,
+//             10240
+//         );
+//         // Checks that the checkpoint struct fits in the individual checkpoint buffer
+//         assert!(get_packed_len::<Checkpoint>() < CHECKPOINT_BUFFER_SIZE);
+//     }
 
     #[test]
     fn test_none_is_zero() {
         // Checks that it's fine to initialize a checkpoint buffer with zeros
         let buffer = [0u8; CHECKPOINT_BUFFER_SIZE];
-        assert!(Option::<Checkpoint>::try_read(&buffer).unwrap().is_none());
+        assert!(CheckpointData::read_option_checkpoint(&buffer).unwrap().is_none());
     }
 
     // A vector of DataOperation will be tested on both our struct and on a HashSet

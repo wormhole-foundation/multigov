@@ -2630,13 +2630,11 @@ dependencies = [
  "anchor-lang",
  "anchor-spl",
  "bincode",
- "borsh 0.9.3",
  "bytemuck",
  "js-sys",
  "quickcheck",
  "quickcheck_macros",
  "rand 0.8.5",
- "solana-program",
  "wasm-bindgen",
 ]
 
