@@ -4,7 +4,6 @@ pragma solidity ^0.8.23;
 import {Test, console2} from "forge-std/Test.sol";
 
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
-import {GovernorVoteFake} from "test/fakes/GovernorVoteFake.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
@@ -14,13 +13,10 @@ import {TestConstants} from "test/TestConstants.sol";
 contract HubMessageDispatcherTest is Test, TestConstants {
   HubMessageDispatcher dispatcher;
   WormholeCoreMock wormholeCoreMock;
-  GovernorVoteFake governor;
 
   function setUp() public {
     wormholeCoreMock = new WormholeCoreMock();
-    ERC20VotesFake token = new ERC20VotesFake();
     TimelockControllerFake timelock = TimelockControllerFake(payable(address(this)));
-    governor = new GovernorVoteFake("Example", token, timelock);
     dispatcher = new HubMessageDispatcher(address(timelock), address(wormholeCoreMock), 0);
   }
 }
