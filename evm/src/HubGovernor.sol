@@ -163,7 +163,7 @@ contract HubGovernor is
 
   function setVotingPeriod(uint32 newVotingPeriod) public virtual override {
     _checkGovernance();
-    if (newVotingPeriod < GOVERNOR_PROPOSAL_EXTENDER.minimumExtensionTime()) {
+    if (newVotingPeriod < GOVERNOR_PROPOSAL_EXTENDER.MINIMUM_EXTENSION_TIME()) {
       revert GovernorInvalidVotingPeriod(newVotingPeriod);
     }
     return _setVotingPeriod(newVotingPeriod);

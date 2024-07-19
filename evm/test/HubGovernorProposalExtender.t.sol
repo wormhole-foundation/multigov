@@ -50,7 +50,7 @@ contract Constructor is HubGovernorProposalExtenderTest {
     assertEq(hubExtender.whitelistedVoteExtender(), _whitelistedVoteExtender);
     assertEq(hubExtender.proposalExtension(), _voteTimeExtension);
     assertEq(hubExtender.owner(), _owner);
-    assertEq(hubExtender.minimumExtensionTime(), _minimumExtensionTime);
+    assertEq(hubExtender.MINIMUM_EXTENSION_TIME(), _minimumExtensionTime);
   }
 }
 
