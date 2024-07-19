@@ -11,6 +11,8 @@ import {
   EthCallQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
+import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
+
 contract HubVotePool is QueryResponse, Ownable {
   IWormhole public immutable WORMHOLE_CORE;
   IGovernor public hubGovernor;

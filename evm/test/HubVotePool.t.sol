@@ -13,13 +13,15 @@ import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
-
+import {HubVotePoolHarness} from "test/harnesses/HubVotePoolHarness.sol";
+import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 import {GovernorMock} from "test/mocks/GovernorMock.sol";
 
 contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
-  HubVotePool hubVotePool;
+  HubVotePoolHarness hubVotePool;
   GovernorMock governor;
   uint16 QUERY_CHAIN_ID = 2;
+  uint48 minimumTime = 1 hours;
 
   struct VoteParams {
     uint256 proposalId;
@@ -31,7 +33,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
   function setUp() public {
     _setupWormhole();
     governor = new GovernorMock();
-    hubVotePool = new HubVotePool(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
+    hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
   }
 
   function _buildArbitraryQuery(VoteParams memory _voteParams, uint16 _responseChainId, address _governance)
@@ -101,19 +103,17 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     bytes memory _resp = _buildArbitraryQuery(_voteParams, _queryChainId, _spokeContract);
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    (uint128 existingAgainstVotes, uint128 existingForVotes, uint128 existingAbstainVotes) =
-      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
+    hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
 
     return (_voteParams, _queryChainId);
   }
 
-  function _assertVotesEq(
-    VoteParams memory _voteParams,
-    uint16 _queryChainId,
-    SpokeCountingFractional.ProposalVote memory _proposalVotes
-  ) internal view {
+  function _assertVotesEq(VoteParams memory _voteParams, SpokeCountingFractional.ProposalVote memory _proposalVotes)
+    internal
+    pure
+  {
     assertEq(_proposalVotes.againstVotes, _voteParams.againstVotes);
     assertEq(_proposalVotes.forVotes, _voteParams.forVotes);
     assertEq(_proposalVotes.abstainVotes, _voteParams.abstainVotes);
@@ -296,7 +296,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
     _assertVotesEq(
       _voteParams,
-      _queryChainId,
       SpokeCountingFractional.ProposalVote({
         againstVotes: _againstVotes,
         forVotes: _forVotes,
@@ -326,7 +325,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams1.proposalId)));
     _assertVotesEq(
       _voteParams1,
-      _queryChainId,
       SpokeCountingFractional.ProposalVote({
         againstVotes: _againstVotes1,
         forVotes: _forVotes1,
@@ -339,7 +337,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams2.proposalId)));
     _assertVotesEq(
       _voteParams2,
-      _queryChainId,
       SpokeCountingFractional.ProposalVote({
         againstVotes: _againstVotes2,
         forVotes: _forVotes2,
@@ -369,7 +366,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId1, _voteParams1.proposalId)));
     _assertVotesEq(
       _voteParams1,
-      _queryChainId1,
       SpokeCountingFractional.ProposalVote({
         againstVotes: _againstVotes1,
         forVotes: _forVotes1,
@@ -382,7 +378,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId2, _voteParams2.proposalId)));
     _assertVotesEq(
       _voteParams2,
-      _queryChainId2,
       SpokeCountingFractional.ProposalVote({
         againstVotes: _againstVotes2,
         forVotes: _forVotes2,
