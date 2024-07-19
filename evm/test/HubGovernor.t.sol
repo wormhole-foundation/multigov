@@ -28,11 +28,11 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
 
   address initialOwner;
 
-  uint48 VOTE_WINDOW = 1 days;
-  uint48 MINIMUM_VOTE_EXTENSION = 1 hours;
-  uint48 VOTE_TIME_EXTENSION = 1 days;
-  uint48 MINIMUM_DECISION_WINDOW = 1 hours;
-  uint32 SAFE_WINDOW = 1 days;
+  uint48 constant VOTE_WINDOW = 1 days;
+  uint48 constant MINIMUM_VOTE_EXTENSION = 1 hours;
+  uint48 constant VOTE_TIME_EXTENSION = 1 days;
+  uint48 constant MINIMUM_DECISION_WINDOW = 1 hours;
+  uint32 constant SAFE_WINDOW = 1 days;
 
   function setUp() public virtual {
     _setupWormhole();
