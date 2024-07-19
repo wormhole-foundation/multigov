@@ -7,7 +7,7 @@ pub const MAX_CHECKPOINTS: usize = 210;
 pub const CHECKPOINT_BUFFER_SIZE: usize = 48;
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct Checkpoints([[u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS]);
 
 unsafe impl Zeroable for Checkpoints {}

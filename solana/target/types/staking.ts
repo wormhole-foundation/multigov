@@ -1,570 +1,64 @@
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/staking.json`.
+ */
 export type Staking = {
-  "version": "1.2.0",
-  "name": "staking",
+  "address": "pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ",
+  "metadata": {
+    "name": "staking",
+    "version": "1.3.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
   "instructions": [
     {
-      "name": "initConfig",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "configAccount",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        },
-        {
-          "name": "rent",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "globalConfig",
-          "type": {
-            "defined": "GlobalConfig"
-          }
-        }
-      ]
-    },
-    {
-      "name": "updateGovernanceAuthority",
-      "accounts": [
-        {
-          "name": "governanceSigner",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "config",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "newAuthority",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
-      "name": "updatePdaAuthority",
-      "accounts": [
-        {
-          "name": "governanceSigner",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "config",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "newAuthority",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
-      "name": "updateAgreementHash",
-      "accounts": [
-        {
-          "name": "governanceSigner",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "config",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "agreementHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "createStakeAccount",
-      "docs": [
-        "Trustless instruction that creates a stake account for a user"
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "stakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "custodyAuthority",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK : This AccountInfo is safe because it's a checked PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "authority"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountCustody",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "custody"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "rent",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "owner",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
-      "name": "delegate",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "currentDelegateStakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "currentDelegateStakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "current_delegate_stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "delegateeStakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "delegateeStakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "delegatee_stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "stakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "custodyAuthority",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK : This AccountInfo is safe because it's a checked PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "authority"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "stakeAccountCustody",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "custody"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "delegatee",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
-      "name": "withdrawTokens",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "currentDelegateStakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "currentDelegateStakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "current_delegate_stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "destination",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountCheckpoints",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "stakeAccountCustody",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "custody"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "custodyAuthority",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK : This AccountInfo is safe because it's a checked PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "authority"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        }
-      ]
-    },
-    {
       "name": "addProposal",
+      "discriminator": [
+        130,
+        139,
+        214,
+        107,
+        93,
+        13,
+        84,
+        152
+      ],
       "accounts": [
         {
           "name": "payer",
-          "isMut": true,
-          "isSigner": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "proposal",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "type": "string",
-                "value": "proposal"
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
               },
               {
                 "kind": "arg",
-                "type": "u64",
-                "path": "proposal_id"
+                "path": "proposalId"
               }
             ]
           }
         },
         {
           "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -584,65 +78,102 @@ export type Staking = {
     },
     {
       "name": "castVote",
+      "discriminator": [
+        20,
+        212,
+        15,
+        189,
+        69,
+        180,
+        69,
+        151
+      ],
       "accounts": [
         {
           "name": "payer",
-          "isMut": true,
-          "isSigner": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "proposal",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "type": "string",
-                "value": "proposal"
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
               },
               {
                 "kind": "arg",
-                "type": "u64",
-                "path": "proposal_id"
+                "path": "proposalId"
               }
             ]
           }
         },
         {
           "name": "voterCheckpoints",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "proposalVotersWeightCast",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "type": "string",
-                "value": "proposal_voters_weight_cast"
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108,
+                  95,
+                  118,
+                  111,
+                  116,
+                  101,
+                  114,
+                  115,
+                  95,
+                  119,
+                  101,
+                  105,
+                  103,
+                  104,
+                  116,
+                  95,
+                  99,
+                  97,
+                  115,
+                  116
+                ]
               },
               {
                 "kind": "account",
-                "type": "publicKey",
-                "account": "ProposalData",
                 "path": "proposal"
               },
               {
                 "kind": "account",
-                "type": "publicKey",
-                "path": "voter_checkpoints"
+                "path": "voterCheckpoints"
               }
             ]
           }
         },
         {
           "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -665,50 +196,483 @@ export type Staking = {
       ]
     },
     {
-      "name": "joinDaoLlc",
+      "name": "createStakeAccount",
       "docs": [
-        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
+        "Trustless instruction that creates a stake account for a user"
+      ],
+      "discriminator": [
+        105,
+        24,
+        131,
+        19,
+        201,
+        250,
+        157,
+        73
       ],
       "accounts": [
         {
           "name": "payer",
-          "isMut": true,
-          "isSigner": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "stakeAccountCheckpoints",
-          "isMut": false,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "stakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
               },
               {
                 "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
+                "path": "stakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custodyAuthority",
+          "docs": [
+            "CHECK : This AccountInfo is safe because it's a checked PDA"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stakeAccountCheckpoints"
               }
             ]
           }
         },
         {
           "name": "config",
-          "isMut": false,
-          "isSigner": false,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "type": "string",
-                "value": "config"
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "stakeAccountCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "owner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "delegate",
+      "discriminator": [
+        90,
+        147,
+        75,
+        178,
+        85,
+        88,
+        4,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "currentDelegateStakeAccountCheckpoints",
+          "writable": true
+        },
+        {
+          "name": "currentDelegateStakeAccountMetadata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "currentDelegateStakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "delegateeStakeAccountCheckpoints",
+          "writable": true
+        },
+        {
+          "name": "delegateeStakeAccountMetadata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "delegateeStakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stakeAccountCheckpoints",
+          "writable": true
+        },
+        {
+          "name": "stakeAccountMetadata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custodyAuthority",
+          "docs": [
+            "CHECK : This AccountInfo is safe because it's a checked PDA"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stakeAccountCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        }
+      ],
+      "args": [
+        {
+          "name": "delegatee",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initConfig",
+      "discriminator": [
+        23,
+        235,
+        115,
+        232,
+        168,
+        96,
+        1,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "configAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "globalConfig",
+          "type": {
+            "defined": {
+              "name": "globalConfig"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "joinDaoLlc",
+      "docs": [
+        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
+      ],
+      "discriminator": [
+        79,
+        241,
+        203,
+        177,
+        232,
+        143,
+        124,
+        14
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "stakeAccountCheckpoints"
+        },
+        {
+          "name": "stakeAccountMetadata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
               }
             ]
           }
@@ -731,68 +695,610 @@ export type Staking = {
       "docs": [
         "Recovers a user's `stake account` ownership by transferring ownership\n     * from a token account to the `owner` of that token account.\n     *\n     * This functionality addresses the scenario where a user mistakenly\n     * created a stake account using their token account address as the owner."
       ],
+      "discriminator": [
+        240,
+        223,
+        246,
+        118,
+        26,
+        121,
+        34,
+        128
+      ],
       "accounts": [
         {
           "name": "payer",
-          "isMut": false,
-          "isSigner": true
+          "signer": true
         },
         {
-          "name": "payerTokenAccount",
-          "isMut": false,
-          "isSigner": false
+          "name": "payerTokenAccount"
         },
         {
           "name": "stakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "stakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
               },
               {
                 "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
+                "path": "stakeAccountCheckpoints"
               }
             ]
           }
         },
         {
           "name": "config",
-          "isMut": false,
-          "isSigner": false,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "type": "string",
-                "value": "config"
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
               }
             ]
           }
         }
       ],
       "args": []
+    },
+    {
+      "name": "updateAgreementHash",
+      "discriminator": [
+        86,
+        232,
+        181,
+        137,
+        158,
+        110,
+        129,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "governanceSigner",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "agreementHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateGovernanceAuthority",
+      "discriminator": [
+        11,
+        185,
+        227,
+        55,
+        39,
+        32,
+        168,
+        14
+      ],
+      "accounts": [
+        {
+          "name": "governanceSigner",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "newAuthority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "updatePdaAuthority",
+      "discriminator": [
+        178,
+        112,
+        199,
+        196,
+        59,
+        40,
+        140,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "governanceSigner",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "newAuthority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "withdrawTokens",
+      "discriminator": [
+        2,
+        4,
+        225,
+        61,
+        19,
+        182,
+        106,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "currentDelegateStakeAccountCheckpoints",
+          "writable": true
+        },
+        {
+          "name": "currentDelegateStakeAccountMetadata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "currentDelegateStakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "destination",
+          "writable": true
+        },
+        {
+          "name": "stakeAccountCheckpoints"
+        },
+        {
+          "name": "stakeAccountMetadata",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stakeAccountCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custodyAuthority",
+          "docs": [
+            "CHECK : This AccountInfo is safe because it's a checked PDA"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stakeAccountCheckpoints"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
     {
       "name": "checkpointData",
+      "discriminator": [
+        163,
+        219,
+        133,
+        148,
+        129,
+        79,
+        209,
+        195
+      ]
+    },
+    {
+      "name": "globalConfig",
+      "discriminator": [
+        149,
+        8,
+        156,
+        202,
+        160,
+        252,
+        176,
+        217
+      ]
+    },
+    {
+      "name": "proposalData",
+      "discriminator": [
+        194,
+        86,
+        123,
+        172,
+        146,
+        28,
+        191,
+        244
+      ]
+    },
+    {
+      "name": "proposalVotersWeightCast",
+      "discriminator": [
+        42,
+        161,
+        214,
+        215,
+        3,
+        32,
+        96,
+        196
+      ]
+    },
+    {
+      "name": "stakeAccountMetadata",
+      "discriminator": [
+        68,
+        11,
+        237,
+        138,
+        61,
+        33,
+        15,
+        93
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "delegateChanged",
+      "discriminator": [
+        225,
+        147,
+        224,
+        43,
+        247,
+        130,
+        101,
+        91
+      ]
+    },
+    {
+      "name": "delegateVotesChanged",
+      "discriminator": [
+        12,
+        90,
+        174,
+        82,
+        144,
+        70,
+        63,
+        194
+      ]
+    },
+    {
+      "name": "proposalCreated",
+      "discriminator": [
+        186,
+        8,
+        160,
+        108,
+        81,
+        13,
+        51,
+        206
+      ]
+    },
+    {
+      "name": "voteCast",
+      "discriminator": [
+        39,
+        53,
+        195,
+        104,
+        188,
+        17,
+        225,
+        213
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "tooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
+    },
+    {
+      "code": 6001,
+      "name": "genericOverflow",
+      "msg": "An arithmetic operation unexpectedly overflowed"
+    },
+    {
+      "code": 6002,
+      "name": "checkpointSerDe",
+      "msg": "Error deserializing checkpoint"
+    },
+    {
+      "code": 6003,
+      "name": "checkpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
+    },
+    {
+      "code": 6004,
+      "name": "notLlcMember",
+      "msg": "You need to be an LLC member to perform this action"
+    },
+    {
+      "code": 6005,
+      "name": "recoverWithStake",
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+    },
+    {
+      "code": 6006,
+      "name": "checkpointNotFound",
+      "msg": "Checkpoint not found"
+    },
+    {
+      "code": 6007,
+      "name": "invalidTimestamp",
+      "msg": "Invalid timestamp"
+    },
+    {
+      "code": 6008,
+      "name": "invalidLlcAgreement",
+      "msg": "Invalid LLC agreement"
+    },
+    {
+      "code": 6009,
+      "name": "noWeight",
+      "msg": "No Weight"
+    },
+    {
+      "code": 6010,
+      "name": "allWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6011,
+      "name": "voteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6012,
+      "name": "withdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
+    },
+    {
+      "code": 6013,
+      "name": "insufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
+    },
+    {
+      "code": 6014,
+      "name": "proposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6015,
+      "name": "indexOutOfBounds",
+      "msg": "Index out of bounds"
+    },
+    {
+      "code": 6016,
+      "name": "other",
+      "msg": "other"
+    }
+  ],
+  "types": [
+    {
+      "name": "checkpointData",
+      "serialization": "bytemuck",
+      "repr": {
+        "kind": "c"
+      },
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "owner",
-            "type": "publicKey"
+            "type": "pubkey"
           },
           {
             "name": "nextIndex",
@@ -801,16 +1307,72 @@ export type Staking = {
           {
             "name": "checkpoints",
             "type": {
-              "array": [
-                {
-                  "array": [
-                    "u8",
-                    48
-                  ]
-                },
-                210
-              ]
+              "defined": {
+                "name": "checkpoints"
+              }
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "checkpoints",
+      "repr": {
+        "kind": "c"
+      },
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "array": [
+              {
+                "array": [
+                  "u8",
+                  48
+                ]
+              },
+              210
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "delegateChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "delegator",
+            "type": "pubkey"
+          },
+          {
+            "name": "fromDelegate",
+            "type": "pubkey"
+          },
+          {
+            "name": "toDelegate",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "delegateVotesChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "delegate",
+            "type": "pubkey"
+          },
+          {
+            "name": "previousBalance",
+            "type": "u64"
+          },
+          {
+            "name": "newBalance",
+            "type": "u64"
           }
         ]
       }
@@ -826,11 +1388,11 @@ export type Staking = {
           },
           {
             "name": "governanceAuthority",
-            "type": "publicKey"
+            "type": "pubkey"
           },
           {
             "name": "whTokenMint",
-            "type": "publicKey"
+            "type": "pubkey"
           },
           {
             "name": "freeze",
@@ -838,7 +1400,7 @@ export type Staking = {
           },
           {
             "name": "pdaAuthority",
-            "type": "publicKey"
+            "type": "pubkey"
           },
           {
             "name": "agreementHash",
@@ -848,16 +1410,12 @@ export type Staking = {
                 32
               ]
             }
-          },
-          {
-            "name": "mockClockTime",
-            "type": "i64"
           }
         ]
       }
     },
     {
-      "name": "proposalVotersWeightCast",
+      "name": "proposalCreated",
       "type": {
         "kind": "struct",
         "fields": [
@@ -866,11 +1424,7 @@ export type Staking = {
             "type": "u64"
           },
           {
-            "name": "voter",
-            "type": "publicKey"
-          },
-          {
-            "name": "value",
+            "name": "voteStart",
             "type": "u64"
           }
         ]
@@ -909,6 +1463,26 @@ export type Staking = {
       }
     },
     {
+      "name": "proposalVotersWeightCast",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposalId",
+            "type": "u64"
+          },
+          {
+            "name": "voter",
+            "type": "pubkey"
+          },
+          {
+            "name": "value",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "stakeAccountMetadata",
       "docs": [
         "This is the metadata account for each staker",
@@ -933,11 +1507,11 @@ export type Staking = {
           },
           {
             "name": "owner",
-            "type": "publicKey"
+            "type": "pubkey"
           },
           {
             "name": "delegate",
-            "type": "publicKey"
+            "type": "pubkey"
           },
           {
             "name": "recordedBalance",
@@ -956,1087 +1530,22 @@ export type Staking = {
           }
         ]
       }
-    }
-  ],
-  "types": [
+    },
     {
-      "name": "Checkpoint",
+      "name": "voteCast",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "value",
-            "type": "u64"
+            "name": "voter",
+            "type": "pubkey"
           },
-          {
-            "name": "timestamp",
-            "type": "u64"
-          }
-        ]
-      }
-    }
-  ],
-  "events": [
-    {
-      "name": "DelegateVotesChanged",
-      "fields": [
-        {
-          "name": "delegate",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "previousBalance",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "newBalance",
-          "type": "u64",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "DelegateChanged",
-      "fields": [
-        {
-          "name": "delegator",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "fromDelegate",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "toDelegate",
-          "type": "publicKey",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "VoteCast",
-      "fields": [
-        {
-          "name": "voter",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "proposalId",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "weight",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "againstVotes",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "forVotes",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "abstainVotes",
-          "type": "u64",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "ProposalCreated",
-      "fields": [
-        {
-          "name": "proposalId",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "voteStart",
-          "type": "u64",
-          "index": false
-        }
-      ]
-    }
-  ],
-  "errors": [
-    {
-      "code": 6000,
-      "name": "TooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
-    },
-    {
-      "code": 6001,
-      "name": "GenericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
-    },
-    {
-      "code": 6002,
-      "name": "CheckpointSerDe",
-      "msg": "Error deserializing checkpoint"
-    },
-    {
-      "code": 6003,
-      "name": "CheckpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
-    },
-    {
-      "code": 6004,
-      "name": "NotLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
-    },
-    {
-      "code": 6005,
-      "name": "RecoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
-    },
-    {
-      "code": 6006,
-      "name": "CheckpointNotFound",
-      "msg": "Checkpoint not found"
-    },
-    {
-      "code": 6007,
-      "name": "InvalidTimestamp",
-      "msg": "Invalid timestamp"
-    },
-    {
-      "code": 6008,
-      "name": "InvalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "NoWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "AllWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "VoteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "WithdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "InsufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "ProposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "Other",
-      "msg": "Other"
-    }
-  ]
-};
-
-export const IDL: Staking = {
-  "version": "1.2.0",
-  "name": "staking",
-  "instructions": [
-    {
-      "name": "initConfig",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "configAccount",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        },
-        {
-          "name": "rent",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "globalConfig",
-          "type": {
-            "defined": "GlobalConfig"
-          }
-        }
-      ]
-    },
-    {
-      "name": "updateGovernanceAuthority",
-      "accounts": [
-        {
-          "name": "governanceSigner",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "config",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "newAuthority",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
-      "name": "updatePdaAuthority",
-      "accounts": [
-        {
-          "name": "governanceSigner",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "config",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "newAuthority",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
-      "name": "updateAgreementHash",
-      "accounts": [
-        {
-          "name": "governanceSigner",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "config",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "agreementHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "createStakeAccount",
-      "docs": [
-        "Trustless instruction that creates a stake account for a user"
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "stakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "custodyAuthority",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK : This AccountInfo is safe because it's a checked PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "authority"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountCustody",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "custody"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "rent",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "owner",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
-      "name": "delegate",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "currentDelegateStakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "currentDelegateStakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "current_delegate_stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "delegateeStakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "delegateeStakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "delegatee_stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "stakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "custodyAuthority",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK : This AccountInfo is safe because it's a checked PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "authority"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "stakeAccountCustody",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "custody"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "delegatee",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
-      "name": "withdrawTokens",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "currentDelegateStakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "currentDelegateStakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "current_delegate_stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "destination",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountCheckpoints",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "stakeAccountCustody",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "custody"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "custodyAuthority",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK : This AccountInfo is safe because it's a checked PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "authority"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "addProposal",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "proposal",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "proposal"
-              },
-              {
-                "kind": "arg",
-                "type": "u64",
-                "path": "proposal_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "proposalId",
-          "type": "u64"
-        },
-        {
-          "name": "voteStart",
-          "type": "u64"
-        },
-        {
-          "name": "safeWindow",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "castVote",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "proposal",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "proposal"
-              },
-              {
-                "kind": "arg",
-                "type": "u64",
-                "path": "proposal_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "voterCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "proposalVotersWeightCast",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "proposal_voters_weight_cast"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "account": "ProposalData",
-                "path": "proposal"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "voter_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "proposalId",
-          "type": "u64"
-        },
-        {
-          "name": "againstVotes",
-          "type": "u64"
-        },
-        {
-          "name": "forVotes",
-          "type": "u64"
-        },
-        {
-          "name": "abstainVotes",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "joinDaoLlc",
-      "docs": [
-        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "stakeAccountCheckpoints",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "agreementHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "recoverAccount",
-      "docs": [
-        "Recovers a user's `stake account` ownership by transferring ownership\n     * from a token account to the `owner` of that token account.\n     *\n     * This functionality addresses the scenario where a user mistakenly\n     * created a stake account using their token account address as the owner."
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "payerTokenAccount",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountCheckpoints",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "isMut": true,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "stake_metadata"
-              },
-              {
-                "kind": "account",
-                "type": "publicKey",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "type": "string",
-                "value": "config"
-              }
-            ]
-          }
-        }
-      ],
-      "args": []
-    }
-  ],
-  "accounts": [
-    {
-      "name": "checkpointData",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "publicKey"
-          },
-          {
-            "name": "nextIndex",
-            "type": "u64"
-          },
-          {
-            "name": "checkpoints",
-            "type": {
-              "array": [
-                {
-                  "array": [
-                    "u8",
-                    48
-                  ]
-                },
-                210
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "globalConfig",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "governanceAuthority",
-            "type": "publicKey"
-          },
-          {
-            "name": "whTokenMint",
-            "type": "publicKey"
-          },
-          {
-            "name": "freeze",
-            "type": "bool"
-          },
-          {
-            "name": "pdaAuthority",
-            "type": "publicKey"
-          },
-          {
-            "name": "agreementHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "mockClockTime",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "proposalVotersWeightCast",
-      "type": {
-        "kind": "struct",
-        "fields": [
           {
             "name": "proposalId",
             "type": "u64"
           },
           {
-            "name": "voter",
-            "type": "publicKey"
-          },
-          {
-            "name": "value",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "proposalData",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "id",
+            "name": "weight",
             "type": "u64"
           },
           {
@@ -2050,258 +1559,9 @@ export const IDL: Staking = {
           {
             "name": "abstainVotes",
             "type": "u64"
-          },
-          {
-            "name": "voteStart",
-            "type": "u64"
-          },
-          {
-            "name": "safeWindow",
-            "type": "u64"
           }
         ]
       }
-    },
-    {
-      "name": "stakeAccountMetadata",
-      "docs": [
-        "This is the metadata account for each staker",
-        "It is derived from the checkpoints account with seeds \"stake_metadata\"",
-        "and the checkpoints account pubkey",
-        "It stores some PDA bumps, owner and delegate accounts"
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "metadataBump",
-            "type": "u8"
-          },
-          {
-            "name": "custodyBump",
-            "type": "u8"
-          },
-          {
-            "name": "authorityBump",
-            "type": "u8"
-          },
-          {
-            "name": "owner",
-            "type": "publicKey"
-          },
-          {
-            "name": "delegate",
-            "type": "publicKey"
-          },
-          {
-            "name": "recordedBalance",
-            "type": "u64"
-          },
-          {
-            "name": "signedAgreementHash",
-            "type": {
-              "option": {
-                "array": [
-                  "u8",
-                  32
-                ]
-              }
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "types": [
-    {
-      "name": "Checkpoint",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "value",
-            "type": "u64"
-          },
-          {
-            "name": "timestamp",
-            "type": "u64"
-          }
-        ]
-      }
-    }
-  ],
-  "events": [
-    {
-      "name": "DelegateVotesChanged",
-      "fields": [
-        {
-          "name": "delegate",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "previousBalance",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "newBalance",
-          "type": "u64",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "DelegateChanged",
-      "fields": [
-        {
-          "name": "delegator",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "fromDelegate",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "toDelegate",
-          "type": "publicKey",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "VoteCast",
-      "fields": [
-        {
-          "name": "voter",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "proposalId",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "weight",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "againstVotes",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "forVotes",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "abstainVotes",
-          "type": "u64",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "ProposalCreated",
-      "fields": [
-        {
-          "name": "proposalId",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "voteStart",
-          "type": "u64",
-          "index": false
-        }
-      ]
-    }
-  ],
-  "errors": [
-    {
-      "code": 6000,
-      "name": "TooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
-    },
-    {
-      "code": 6001,
-      "name": "GenericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
-    },
-    {
-      "code": 6002,
-      "name": "CheckpointSerDe",
-      "msg": "Error deserializing checkpoint"
-    },
-    {
-      "code": 6003,
-      "name": "CheckpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
-    },
-    {
-      "code": 6004,
-      "name": "NotLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
-    },
-    {
-      "code": 6005,
-      "name": "RecoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
-    },
-    {
-      "code": 6006,
-      "name": "CheckpointNotFound",
-      "msg": "Checkpoint not found"
-    },
-    {
-      "code": 6007,
-      "name": "InvalidTimestamp",
-      "msg": "Invalid timestamp"
-    },
-    {
-      "code": 6008,
-      "name": "InvalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "NoWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "AllWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "VoteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "WithdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "InsufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "ProposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "Other",
-      "msg": "Other"
     }
   ]
 };
