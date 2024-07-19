@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {Test, console2} from "forge-std/Test.sol";
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
