@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 import {Test, console2} from "forge-std/Test.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
@@ -894,27 +895,18 @@ contract Token is Test {
 
 contract GetVotes is SpokeVoteAggregatorTest {
   function testFuzz_CorrectlyGetVotes(address _account, uint128 _voteWeight, address _otherAccount) public {
-    vm.assume(_account != address(0) && _otherAccount != address(0) && _account != _otherAccount);
+    vm.assume(_account != address(0));
+    vm.assume(_voteWeight > 0);
 
     uint48 windowLength = spokeVoteAggregator.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
-    vm.warp(vm.getBlockTimestamp() + windowLength + 1);
+    uint256 windowStart = vm.getBlockTimestamp() + windowLength;
+    vm.warp(windowStart);
 
     deal(address(token), _account, _voteWeight);
     vm.prank(_account);
     token.delegate(_account);
 
     uint256 voteWeight = spokeVoteAggregator.getVotes(_account, vm.getBlockTimestamp());
-    assertEq(voteWeight, _voteWeight);
-
-    // vm.warp(vm.getBlockTimestamp() + 1);
-
-    // // Ensure the vote weight is updated correctly if the account delegates to another account
-    // vm.assume(_otherAccount != _account);
-    // vm.prank(_account);
-    // token.delegate(_otherAccount);
-
-    // vm.warp(vm.getBlockTimestamp() + 1);
-    // voteWeight = spokeVoteAggregator.getVotes(_account, vm.getBlockTimestamp());
-    // assertEq(voteWeight, 0);
+    assertEq(voteWeight, _voteWeight, "Vote weight should be correct");
   }
 }
