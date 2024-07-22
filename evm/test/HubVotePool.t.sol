@@ -103,7 +103,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     bytes memory _resp = _buildArbitraryQuery(_voteParams, _queryChainId, _spokeContract);
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    //hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
+    hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
 
     hubVotePool.crossChainEVMVote(_resp, signatures);
 
@@ -304,7 +304,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     );
   }
 
-  function testFuzz_CorrectlyAddNewVoteMultipleQueriesSameChain(
+  function testFuzz_CorrectlyAddNewVoteFromWithMultipleQueriesFromTheSameSpoke(
     VoteParams memory _voteParams1,
     VoteParams memory _voteParams2,
     address _spokeContract,
@@ -407,7 +407,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     assertEq(abstainVotes, _voteParams2.abstainVotes);
   }
 
-  function testFuzz_CorrectlyAddNewVoteMultipleQueriesSameDifferentChains(
+  function testFuzz_CorrectlyAddNewVoteFromMultipleSpokes(
     VoteParams memory _voteParams,
     address _spokeContract,
     uint16 _queryChainId
