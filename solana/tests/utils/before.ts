@@ -12,9 +12,9 @@ import { Program, Wallet, utils, AnchorProvider } from "@coral-xyz/anchor";
 import * as wasm from "@wormhole/staking-wasm";
 import {
   TOKEN_PROGRAM_ID,
-  Token,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  u64,
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
+  createMintToInstruction
 } from "@solana/spl-token";
 import shell from "shelljs";
 import BN from "bn.js";
@@ -179,9 +179,9 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
   );
 
   const provider = new AnchorProvider(connection, new Wallet(user), {});
+
   const program = new Program(
     JSON.parse(fs.readFileSync(idlPath).toString()),
-    programAddress,
     provider
   );
 
@@ -213,36 +213,28 @@ export async function requestWHTokenAirdrop(
 ) {
   // Testnet airdrop to ensure that the WH authority can pay for gas
   await connection.requestAirdrop(whMintAuthority.publicKey, 1_000_000_000);
-
   const transaction = new Transaction();
-
-  const destinationAta = await Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
+  const destinationAta = await getAssociatedTokenAddress(
     whMintAccount,
     destination,
     true
   );
 
   if ((await connection.getAccountInfo(destinationAta)) == null) {
-    const createAtaIx = Token.createAssociatedTokenAccountInstruction(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
-      whMintAccount,
+    const createAtaIx = createAssociatedTokenAccountInstruction(
+      whMintAuthority.publicKey,
       destinationAta,
       destination,
-      whMintAuthority.publicKey
+      whMintAccount
     );
     transaction.add(createAtaIx);
   }
 
-  const mintIx = Token.createMintToInstruction(
-    TOKEN_PROGRAM_ID,
+  const mintIx = createMintToInstruction(
     whMintAccount,
     destinationAta,
     whMintAuthority.publicKey,
-    [],
-    new u64(amount.toBN().toString())
+    amount.toBN()
   );
   transaction.add(mintIx);
 
@@ -337,7 +329,8 @@ export async function standardSetup(
     provider,
     whMintAccount.publicKey
   );
-  console.log("Lookup table address: ", lookupTableAddress.toBase58());
+
+//   console.log("Lookup table address: ", lookupTableAddress.toBase58());
 
   // Give the power back to the people
   await program.methods

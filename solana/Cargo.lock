@@ -2700,6 +2700,7 @@ dependencies = [
 name = "wormhole-staking-program"
 version = "1.3.0"
 dependencies = [
+ "anchor-attribute-error",
  "anchor-lang",
  "anchor-spl",
  "bincode",

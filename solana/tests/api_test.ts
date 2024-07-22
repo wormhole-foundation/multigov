@@ -8,7 +8,6 @@ import {
   ANCHOR_CONFIG_PATH,
   makeDefaultConfig,
 } from "./utils/before";
-import {} from "../../staking/tests/utils/before";
 import BN from "bn.js";
 import path from "path";
 import { expectFailApi } from "./utils/utils";
@@ -183,7 +182,7 @@ describe("api", async () => {
     await assertBalanceMatches(
       stakeConnection,
       owner,
-      { balance: WHTokenBalance.fromString("350") }
+      WHTokenBalance.fromString("350")
     );
   });
 

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::prelude::borsh::BorshSchema;
 
 #[account]
-#[derive(Default, BorshSchema)]
+#[derive(Default, Debug, BorshSchema)]
 pub struct GlobalConfig {
     pub bump:                 u8,
     pub governance_authority: Pubkey,

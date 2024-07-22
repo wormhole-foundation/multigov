@@ -15,7 +15,7 @@ async function main() {
     {}
   );
   const idl = (await Program.fetchIdl(STAKING_ADDRESS, provider))!;
-  const program = new Program(idl, STAKING_ADDRESS, provider);
+  const program = new Program(idl, provider);
 
   const globalConfig = {
     governanceAuthority: AUTHORITY_KEYPAIR.publicKey,

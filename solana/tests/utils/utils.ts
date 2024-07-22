@@ -1,4 +1,4 @@
-import { Token, MintLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getMinimumBalanceForRentExemptMint, createInitializeMintInstruction, MintLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
   PublicKey,
   Keypair,
@@ -36,11 +36,12 @@ export async function createMint(
   programId: PublicKey
 ): Promise<void> {
   // Allocate memory for the account
-  const balanceNeeded = await Token.getMinBalanceRentForExemptMint(
+  const balanceNeeded = await getMinimumBalanceForRentExemptMint(
     provider.connection
   );
 
   const transaction = new Transaction();
+
   transaction.add(
     SystemProgram.createAccount({
       fromPubkey: provider.wallet.publicKey,
@@ -52,8 +53,7 @@ export async function createMint(
   );
 
   transaction.add(
-    Token.createInitMintInstruction(
-      programId,
+    createInitializeMintInstruction(
       mintAccount.publicKey,
       decimals,
       mintAuthority,

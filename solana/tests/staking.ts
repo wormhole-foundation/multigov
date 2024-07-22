@@ -106,7 +106,6 @@ describe("staking", async () => {
         program.programId
       );
 
-    debugger;
     const tx = await program.methods
       .createStakeAccount(owner)
       .preInstructions([

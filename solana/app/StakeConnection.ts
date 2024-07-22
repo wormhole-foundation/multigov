@@ -90,7 +90,6 @@ export class StakeConnection {
     const provider = new AnchorProvider(connection, wallet, {});
     const program = new Program(
       IDL as Idl,
-      stakingProgramAddress,
       provider
     ) as unknown as Program<Staking>;
     // Sometimes in the browser, the import returns a promise.
