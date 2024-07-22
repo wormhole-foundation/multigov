@@ -23,24 +23,24 @@ pub mod wasm;
 #[event]
 pub struct DelegateChanged {
   pub delegator: Pubkey,
-  pub fromDelegate: Pubkey,
-  pub toDelegate: Pubkey,
+  pub from_delegate: Pubkey,
+  pub to_delegate: Pubkey,
 }
 
 #[event]
 pub struct VoteCast {
   pub voter: Pubkey,
-  pub proposalId: u64,
+  pub proposal_id: u64,
   pub weight: u64,
-  pub againstVotes: u64,
-  pub forVotes: u64,
-  pub abstainVotes: u64,
+  pub against_votes: u64,
+  pub for_votes: u64,
+  pub abstain_votes: u64,
 }
 
 #[event]
 pub struct ProposalCreated {
-  pub proposalId: u64,
-  pub voteStart: u64,
+  pub proposal_id: u64,
+  pub vote_start: u64,
 }
 
 declare_id!("pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ");
@@ -119,8 +119,8 @@ pub mod staking {
 
         emit!(DelegateChanged {
             delegator: ctx.accounts.stake_account_checkpoints.key(),
-            fromDelegate: current_delegate,
-            toDelegate: delegatee
+            from_delegate: current_delegate,
+            to_delegate: delegatee
         });
 
         let recorded_balance = stake_account_metadata.recorded_balance;
@@ -245,8 +245,8 @@ pub mod staking {
         let _ = proposal.add_proposal(proposal_id, vote_start, safe_window);
 
         emit!(ProposalCreated {
-            proposalId: proposal_id,
-            voteStart: vote_start
+            proposal_id: proposal_id,
+            vote_start: vote_start
         });
 
         Ok(())
@@ -302,11 +302,11 @@ pub mod staking {
 
         emit!(VoteCast {
             voter: ctx.accounts.voter_checkpoints.key(),
-            proposalId: proposal_id,
+            proposal_id: proposal_id,
             weight: total_weight,
-            againstVotes: against_votes,
-            forVotes: for_votes,
-            abstainVotes: abstain_votes
+            against_votes: against_votes,
+            for_votes: for_votes,
+            abstain_votes: abstain_votes
         });
 
         Ok(())

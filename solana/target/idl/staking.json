@@ -1271,11 +1271,6 @@
     },
     {
       "code": 6015,
-      "name": "IndexOutOfBounds",
-      "msg": "Index out of bounds"
-    },
-    {
-      "code": 6016,
       "name": "Other",
       "msg": "Other"
     }
@@ -1341,11 +1336,11 @@
             "type": "pubkey"
           },
           {
-            "name": "fromDelegate",
+            "name": "from_delegate",
             "type": "pubkey"
           },
           {
-            "name": "toDelegate",
+            "name": "to_delegate",
             "type": "pubkey"
           }
         ]
@@ -1361,11 +1356,11 @@
             "type": "pubkey"
           },
           {
-            "name": "previousBalance",
+            "name": "previous_balance",
             "type": "u64"
           },
           {
-            "name": "newBalance",
+            "name": "new_balance",
             "type": "u64"
           }
         ]
@@ -1414,11 +1409,11 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "proposalId",
+            "name": "proposal_id",
             "type": "u64"
           },
           {
-            "name": "voteStart",
+            "name": "vote_start",
             "type": "u64"
           }
         ]
@@ -1535,7 +1530,7 @@
             "type": "pubkey"
           },
           {
-            "name": "proposalId",
+            "name": "proposal_id",
             "type": "u64"
           },
           {
@@ -1543,15 +1538,15 @@
             "type": "u64"
           },
           {
-            "name": "againstVotes",
+            "name": "against_votes",
             "type": "u64"
           },
           {
-            "name": "forVotes",
+            "name": "for_votes",
             "type": "u64"
           },
           {
-            "name": "abstainVotes",
+            "name": "abstain_votes",
             "type": "u64"
           }
         ]

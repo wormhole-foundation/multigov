@@ -46,8 +46,8 @@ impl Default for CheckpointData {
 #[event]
 pub struct DelegateVotesChanged {
   pub delegate: Pubkey,
-  pub previousBalance: u64,
-  pub newBalance: u64,
+  pub previous_balance: u64,
+  pub new_balance: u64,
 }
 
 impl CheckpointData {
@@ -128,8 +128,8 @@ impl CheckpointData {
 
             emit!(DelegateVotesChanged {
                 delegate: self.owner,
-                previousBalance: last_value,
-                newBalance: value
+                previous_balance: last_value,
+                new_balance: value
             });
             
             Ok((last_value, value))
@@ -140,8 +140,8 @@ impl CheckpointData {
 
             emit!(DelegateVotesChanged {
                 delegate: self.owner,
-                previousBalance: 0,
-                newBalance: value
+                previous_balance: 0,
+                new_balance: value
             });
 
             Ok((0, value))

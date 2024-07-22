@@ -1277,11 +1277,6 @@ export type Staking = {
     },
     {
       "code": 6015,
-      "name": "indexOutOfBounds",
-      "msg": "Index out of bounds"
-    },
-    {
-      "code": 6016,
       "name": "other",
       "msg": "other"
     }
