@@ -894,17 +894,17 @@ contract Token is Test {
 }
 
 contract GetVotes is SpokeVoteAggregatorTest {
-  function testFuzz_CorrectlyGetVotes(address _account, uint128 _voteWeight, address _otherAccount) public {
+  function testFuzz_CorrectlyGetVotes(address _account, uint128 _voteWeight) public {
     vm.assume(_account != address(0));
     vm.assume(_voteWeight > 0);
-
-    uint48 windowLength = spokeVoteAggregator.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
-    uint256 windowStart = vm.getBlockTimestamp() + windowLength;
-    vm.warp(windowStart);
 
     deal(address(token), _account, _voteWeight);
     vm.prank(_account);
     token.delegate(_account);
+
+    uint48 windowLength = spokeVoteAggregator.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
+    uint256 windowStart = vm.getBlockTimestamp() + windowLength;
+    vm.warp(windowStart);
 
     uint256 voteWeight = spokeVoteAggregator.getVotes(_account, vm.getBlockTimestamp());
     assertEq(voteWeight, _voteWeight, "Vote weight should be correct");
