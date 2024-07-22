@@ -1,7 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_lang::prelude::borsh::BorshSchema;
-use super::global_config::GlobalConfig;
-use std::convert::TryInto;
 use crate::error::ErrorCode;
 
 #[account]

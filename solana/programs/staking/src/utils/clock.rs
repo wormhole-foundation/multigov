@@ -1,8 +1,6 @@
-use crate::error::ErrorCode;
 use crate::state::global_config::GlobalConfig;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::clock::UnixTimestamp;
-use std::convert::TryInto;
 
 // As an extra form of defense to make sure we're not using the mock clock
 // in devnet or mainnet, we'd like to have an assert(localnet). There's not

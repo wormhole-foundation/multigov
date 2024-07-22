@@ -96,8 +96,6 @@ pub mod staking {
     /// Trustless instruction that creates a stake account for a user
     #[inline(never)]
     pub fn create_stake_account(ctx: Context<CreateStakeAccount>, owner: Pubkey) -> Result<()> {
-        let config = &ctx.accounts.config;
-
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
         stake_account_metadata.initialize(
             ctx.bumps.stake_account_metadata,
@@ -181,7 +179,6 @@ pub mod staking {
 
     pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, amount: u64) -> Result<()> {
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
-        let stake_account_custody = &ctx.accounts.stake_account_custody;
 
         let destination_account = &ctx.accounts.destination;
         let signer = &ctx.accounts.payer;
@@ -189,12 +186,6 @@ pub mod staking {
         if destination_account.owner != *signer.key {
             return Err(error!(ErrorCode::WithdrawToUnauthorizedAccount));
         }
-
-        // Pre-check
-        let remaining_balance = stake_account_custody
-            .amount
-            .checked_sub(amount)
-            .ok_or_else(|| error!(ErrorCode::InsufficientWithdrawableBalance))?;
 
         transfer(
             CpiContext::from(&*ctx.accounts).with_signer(&[&[
