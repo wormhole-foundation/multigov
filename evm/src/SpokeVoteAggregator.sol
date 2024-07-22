@@ -97,7 +97,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   {
     if (!voteActiveInternal(_proposalId)) revert ProposalInactive();
 
-    uint256 weight = _getVotes(_voter);
+    uint256 weight = _getVotes(_voter, block.timestamp, "");
     if (weight == 0) revert NoWeight();
     _countVote(_proposalId, _voter, _support, weight, _params);
 
@@ -113,11 +113,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     return _time >= proposal.voteStart;
   }
 
-  function getVotes(address _account) public view returns (uint256) {
-    return _getVotes(_account);
-  }
-
-  function _getVotes(address _account) internal view returns (uint256) {
-    return VOTING_TOKEN.getVotes(_account);
+  function getVotes(address _account, uint256 _timepoint) public view returns (uint256) {
+    return _getVotes(_account, _timepoint, "");
   }
 }
