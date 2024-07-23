@@ -87,6 +87,8 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
     hubVotePool.transferOwnership(address(hubGovernor));
   }
 
+  // Mocks a query response using the provided voteWeights
+  // The voteWeights are representative of responses from calls to the SpokeVoteAggregator.getVotes() function
   function _mockQueryResponse(VoteWeight[] memory voteWeights, address proposer) internal view returns (bytes memory) {
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
@@ -99,7 +101,9 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
       bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
         bytes("0x1296c33"),
         1,
-        QueryTest.buildEthCallDataBytes(spokeAddress, abi.encodeWithSignature("getVotes(address)", proposer))
+        QueryTest.buildEthCallDataBytes(
+          spokeAddress, abi.encodeWithSignature("getVotes(address,uint256)", proposer, vm.getBlockTimestamp())
+        )
       );
 
       queryRequestBytes = abi.encodePacked(
