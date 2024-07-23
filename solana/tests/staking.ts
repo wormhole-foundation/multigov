@@ -2,9 +2,8 @@ import * as anchor from "@coral-xyz/anchor";
 import { parseIdlErrors, Program } from "@coral-xyz/anchor";
 import { Staking } from "../target/types/staking";
 import {
-  TOKEN_PROGRAM_ID,
-  Token,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
+  createTransferInstruction,
+  getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import {
   PublicKey,
@@ -65,9 +64,8 @@ describe("staking", async () => {
     ));
     program = stakeConnection.program;
     provider = stakeConnection.provider;
-    userAta = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+      
+    userAta = await getAssociatedTokenAddress(
       whMintAccount.publicKey,
       provider.wallet.publicKey,
       true
@@ -156,12 +154,10 @@ describe("staking", async () => {
       )
     )[0];
 
-    const ix = Token.createTransferInstruction(
-      TOKEN_PROGRAM_ID,
+    const ix = createTransferInstruction(
       from_account,
       toAccount,
       provider.wallet.publicKey,
-      [],
       101
     );
     transaction.add(ix);

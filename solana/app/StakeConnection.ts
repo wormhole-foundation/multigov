@@ -16,11 +16,13 @@ import {
 } from "@solana/web3.js";
 import * as wasm2 from "@wormhole/staking-wasm";
 import {
-  Token,
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  u64,
+  createAssociatedTokenAccountInstruction,
+  createTransferInstruction,
+  getAccount,
+  getAssociatedTokenAddress,
+  getMint,
 } from "@solana/spl-token";
+import { u64 } from '@solana/buffer-layout-utils';
 import BN from "bn.js";
 import { Staking } from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
@@ -295,15 +297,15 @@ export class StakeConnection {
       )
     )[0];
 
-    const mint = new Token(
+    const tokenBalance = (await getAccount(
       this.program.provider.connection,
-      this.config.whTokenMint,
-      TOKEN_PROGRAM_ID,
-      new Keypair()
-    );
+      custodyAddress
+    )).amount;
 
-    const tokenBalance = (await mint.getAccountInfo(custodyAddress)).amount;
-    const totalSupply = (await mint.getMintInfo()).supply;
+    const totalSupply = (await getMint(
+      this.program.provider.connection,
+      this.config.whTokenMint
+    )).supply
 
     return new StakeAccount(
       address,
@@ -398,9 +400,7 @@ export class StakeConnection {
     stakeAccountCheckpointsAddress: PublicKey,
     amount: BN
   ): Promise<TransactionInstruction> {
-    const from_account = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const from_account = await getAssociatedTokenAddress(
       this.config.whTokenMint,
       this.provider.wallet.publicKey,
       true
@@ -416,13 +416,11 @@ export class StakeConnection {
       )
     )[0];
 
-    const ix = Token.createTransferInstruction(
-      TOKEN_PROGRAM_ID,
+    const ix = createTransferInstruction(
       from_account,
       toAccount,
       this.provider.wallet.publicKey,
-      [],
-      new u64(amount.toString())
+      amount.toNumber()
     );
 
     return ix;
@@ -591,9 +589,7 @@ export class StakeConnection {
       throw new Error("Amount exceeds withdrawable.");
     }
 
-    const toAccount = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const toAccount = await getAssociatedTokenAddress(
       this.config.whTokenMint,
       this.provider.wallet.publicKey,
       true
@@ -602,13 +598,11 @@ export class StakeConnection {
     const instructions: TransactionInstruction[] = [];
     if ((await this.provider.connection.getAccountInfo(toAccount)) == null) {
       instructions.push(
-        Token.createAssociatedTokenAccountInstruction(
-          ASSOCIATED_TOKEN_PROGRAM_ID,
-          TOKEN_PROGRAM_ID,
-          this.config.whTokenMint,
+        createAssociatedTokenAccountInstruction(
+          this.provider.wallet.publicKey,
           toAccount,
           this.provider.wallet.publicKey,
-          this.provider.wallet.publicKey
+          this.config.whTokenMint
         )
       );
     }

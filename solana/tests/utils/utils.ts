@@ -32,8 +32,7 @@ export async function createMint(
   mintAccount: Keypair,
   mintAuthority: PublicKey,
   freezeAuthority: PublicKey | null,
-  decimals: number,
-  programId: PublicKey
+  decimals: number
 ): Promise<void> {
   // Allocate memory for the account
   const balanceNeeded = await getMinimumBalanceForRentExemptMint(
@@ -48,7 +47,7 @@ export async function createMint(
       newAccountPubkey: mintAccount.publicKey,
       lamports: balanceNeeded,
       space: MintLayout.span,
-      programId,
+      TOKEN_PROGRAM_ID,
     })
   );
 

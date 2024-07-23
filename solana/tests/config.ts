@@ -1,6 +1,5 @@
 import { parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
 import { PublicKey, Keypair, TransactionInstruction } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 import {
   startValidator,
   readAnchorConfig,
@@ -55,8 +54,7 @@ describe("config", async () => {
       whMintAccount,
       whMintAuthority.publicKey,
       null,
-      WH_TOKEN_DECIMALS,
-      TOKEN_PROGRAM_ID
+      WH_TOKEN_DECIMALS
     );
   });
 
