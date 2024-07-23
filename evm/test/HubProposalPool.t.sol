@@ -531,10 +531,8 @@ contract RegisterSpoke is HubProposalPoolTest {
     assertEq(hubProposalPool.registeredSpokes(_chainId), _spokeAddress);
   }
 
-  function testFuzz_EmitsSpokeRegistered(uint16 _chainId, address _spokeAddress, address _caller) public {
+  function testFuzz_EmitsSpokeRegistered(uint16 _chainId, address _spokeAddress) public {
     vm.assume(_spokeAddress != address(0));
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != address(hubProposalPool.owner()));
 
     vm.prank(hubProposalPool.owner());
     vm.expectEmit();
