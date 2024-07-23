@@ -237,55 +237,6 @@ contract Constructor is Test {
 }
 
 contract CheckAndProposeIfEligible is HubProposalPoolTest {
-  function _boundVoteWeight(uint256 voteWeight, uint256 maxVoteWeight) internal pure returns (uint256) {
-    return voteWeight > maxVoteWeight ? maxVoteWeight : voteWeight;
-  }
-
-  function _boundVoteWeights(VoteWeight[] memory voteWeights) internal pure returns (VoteWeight[] memory) {
-    uint256 remainingVoteWeight = type(uint128).max;
-    VoteWeight[] memory result = new VoteWeight[](voteWeights.length);
-
-    for (uint256 i = 0; i < voteWeights.length; i++) {
-      if (remainingVoteWeight == 0) {
-        result[i] =
-          VoteWeight({voteWeight: 0, chainId: voteWeights[i].chainId, spokeAddress: voteWeights[i].spokeAddress});
-      } else {
-        uint256 boundedWeight = _boundVoteWeight(voteWeights[i].voteWeight, remainingVoteWeight);
-        result[i] = VoteWeight({
-          voteWeight: boundedWeight,
-          chainId: voteWeights[i].chainId,
-          spokeAddress: voteWeights[i].spokeAddress
-        });
-        remainingVoteWeight = remainingVoteWeight > boundedWeight ? remainingVoteWeight - boundedWeight : 0;
-      }
-    }
-    return result;
-  }
-
-  function _ensureUniqueChainIds(VoteWeight[] memory voteWeights) internal pure returns (VoteWeight[] memory) {
-    for (uint256 i = 0; i < voteWeights.length; i++) {
-      voteWeights[i].chainId = uint16(i + 1);
-    }
-    return voteWeights;
-  }
-
-  function _ensureUniqueTokenAddresses(VoteWeight[] memory voteWeights) internal returns (VoteWeight[] memory) {
-    for (uint256 i = 0; i < voteWeights.length; i++) {
-      address spokeAddress =
-        voteWeights[i].spokeAddress == address(0) ? address(new ERC20VotesFake()) : voteWeights[i].spokeAddress;
-      voteWeights[i].spokeAddress = spokeAddress;
-    }
-    return voteWeights;
-  }
-
-  function _registerSpokes(VoteWeight[] memory voteWeights) internal {
-    vm.startPrank(hubProposalPool.owner());
-    for (uint256 i = 0; i < voteWeights.length; i++) {
-      hubProposalPool.registerSpoke(voteWeights[i].chainId, voteWeights[i].spokeAddress);
-    }
-    vm.stopPrank();
-  }
-
   function _checkThresholdMet(VoteWeight[] memory voteWeights, uint256 hubVoteWeight, uint256 threshold)
     internal
     pure
@@ -304,31 +255,9 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     return false;
   }
 
-  function _setupVoteWeights(VoteWeight[] memory voteWeights) internal returns (VoteWeight[] memory) {
-    voteWeights = _boundVoteWeights(voteWeights);
-    voteWeights = _ensureUniqueChainIds(voteWeights);
-    voteWeights = _ensureUniqueTokenAddresses(voteWeights);
-    _registerSpokes(voteWeights);
-    return voteWeights;
-  }
-
-  function testFuzz_CorrectlyCheckAndProposeIfEligibleSingleSpokeVoteWeight(
-    uint128 _voteWeight,
-    uint16 _chainId,
-    address _spokeAddress,
-    string memory _description,
-    address _caller
-  ) public {
-    vm.assume(_spokeAddress != address(0));
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != address(hubProposalPool.owner()));
-
-    vm.prank(hubProposalPool.owner());
-    hubProposalPool.registerSpoke(_chainId, _spokeAddress);
-
-    VoteWeight[] memory voteWeights = new VoteWeight[](1);
-    voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
-
+  function _testCheckAndProposeIfEligible(VoteWeight[] memory voteWeights, string memory _description, address _caller)
+    internal
+  {
     bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
     vm.assume(thresholdMet);
 
@@ -349,40 +278,82 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
     assertTrue(proposalId > 0, "Proposal should be created");
   }
 
-  function testFuzz_CorrectlyCheckAndProposeIfEligible(
-    VoteWeight[] memory _voteWeights,
-    uint256 _hubVoteWeight,
+  function testFuzz_CorrectlyCheckAndProposeIfEligibleSingleVoteWeight(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
     string memory _description,
     address _caller
   ) public {
-    vm.assume(_voteWeights.length > 0);
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != address(hubProposalPool.owner()));
+    vm.assume(_spokeAddress != address(0));
+    vm.assume(_caller != address(0) && _caller != address(hubProposalPool.owner()));
 
-    VoteWeight[] memory voteWeights = _setupVoteWeights(_voteWeights);
+    vm.prank(hubProposalPool.owner());
+    hubProposalPool.registerSpoke(_chainId, _spokeAddress);
 
-    _hubVoteWeight = bound(_hubVoteWeight, 1, PROPOSAL_THRESHOLD);
-    _mintAndDelegate(_caller, _hubVoteWeight);
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
 
-    bool thresholdMet = _checkThresholdMet(voteWeights, _hubVoteWeight, PROPOSAL_THRESHOLD);
-    vm.assume(thresholdMet);
+    _testCheckAndProposeIfEligible(voteWeights, _description, _caller);
+  }
 
-    uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
-    vm.warp(vm.getBlockTimestamp() + windowLength);
+  function testFuzz_CorrectlyCheckAndProposeIfEligibleTwoVoteWeights(
+    uint128 _voteWeight1,
+    uint128 _voteWeight2,
+    uint16 _chainId1,
+    uint16 _chainId2,
+    address _spokeAddress1,
+    address _spokeAddress2,
+    string memory _description,
+    address _caller
+  ) public {
+    vm.assume(_spokeAddress1 != address(0) && _spokeAddress2 != address(0));
+    vm.assume(_chainId1 != _chainId2);
+    vm.assume(_spokeAddress1 != _spokeAddress2);
+    vm.assume(_caller != address(0) && _caller != address(hubProposalPool.owner()));
 
-    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
-    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
-
-    ProposalBuilder builder = _createArbitraryProposal();
-
-    vm.startPrank(_caller);
-    uint256 proposalId = hubProposalPool.checkAndProposeIfEligible(
-      builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
-    );
+    vm.startPrank(hubProposalPool.owner());
+    hubProposalPool.registerSpoke(_chainId1, _spokeAddress1);
+    hubProposalPool.registerSpoke(_chainId2, _spokeAddress2);
     vm.stopPrank();
 
-    // use snapshot to check that the proposal was created
-    assertTrue(proposalId > 0, "Proposal should be created");
+    VoteWeight[] memory voteWeights = new VoteWeight[](2);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight1, chainId: _chainId1, spokeAddress: _spokeAddress1});
+    voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: _chainId2, spokeAddress: _spokeAddress2});
+
+    _testCheckAndProposeIfEligible(voteWeights, _description, _caller);
+  }
+
+  function testFuzz_CorrectlyCheckAndProposeIfEligibleThreeVoteWeights(
+    uint128 _voteWeight1,
+    uint128 _voteWeight2,
+    uint128 _voteWeight3,
+    uint16 _chainId1,
+    uint16 _chainId2,
+    uint16 _chainId3,
+    address _spokeAddress1,
+    address _spokeAddress2,
+    address _spokeAddress3,
+    string memory _description,
+    address _caller
+  ) public {
+    vm.assume(_spokeAddress1 != address(0) && _spokeAddress2 != address(0) && _spokeAddress3 != address(0));
+    vm.assume(_chainId1 != _chainId2 && _chainId1 != _chainId3 && _chainId2 != _chainId3);
+    vm.assume(_spokeAddress1 != _spokeAddress2 && _spokeAddress1 != _spokeAddress3 && _spokeAddress2 != _spokeAddress3);
+    vm.assume(_caller != address(0) && _caller != address(hubProposalPool.owner()));
+
+    vm.startPrank(hubProposalPool.owner());
+    hubProposalPool.registerSpoke(_chainId1, _spokeAddress1);
+    hubProposalPool.registerSpoke(_chainId2, _spokeAddress2);
+    hubProposalPool.registerSpoke(_chainId3, _spokeAddress3);
+    vm.stopPrank();
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](3);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight1, chainId: _chainId1, spokeAddress: _spokeAddress1});
+    voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: _chainId2, spokeAddress: _spokeAddress2});
+    voteWeights[2] = VoteWeight({voteWeight: _voteWeight3, chainId: _chainId3, spokeAddress: _spokeAddress3});
+
+    _testCheckAndProposeIfEligible(voteWeights, _description, _caller);
   }
 
   function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
@@ -414,29 +385,33 @@ contract CheckAndProposeIfEligible is HubProposalPoolTest {
   }
 
   function testFuzz_RevertIf_InvalidCaller(
-    VoteWeight[] memory _voteWeights,
-    address _account,
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    address _expectedAccount,
     address _caller,
     string memory _description
   ) public {
-    vm.assume(_voteWeights.length > 0);
-    vm.assume(_account != address(0));
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != _account);
-    vm.assume(_caller != address(hubProposalPool.owner()));
+    vm.assume(_spokeAddress != address(0));
+    vm.assume(_expectedAccount != address(0) && _caller != address(0));
+    vm.assume(_caller != _expectedAccount && _caller != address(hubProposalPool.owner()));
 
-    _voteWeights = _setupVoteWeights(_voteWeights);
+    vm.prank(hubProposalPool.owner());
+    hubProposalPool.registerSpoke(_chainId, _spokeAddress);
 
-    // Create mock query response with _account as the queried account
-    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _account);
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    bytes memory queryResponse = _mockQueryResponse(voteWeights, _expectedAccount);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     ProposalBuilder builder = _createArbitraryProposal();
+
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.InvalidCaller.selector, _caller, _account));
+    vm.expectRevert(abi.encodeWithSelector(HubProposalPool.InvalidCaller.selector, _caller, _expectedAccount));
     vm.prank(_caller);
     hubProposalPool.checkAndProposeIfEligible(targets, values, calldatas, _description, queryResponse, signatures);
   }
