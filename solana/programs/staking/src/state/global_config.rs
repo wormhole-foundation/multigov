@@ -17,18 +17,21 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 8 + 1 + 32 + 32 + 8;
+    pub const LEN: usize = 146; // 8 + 1 + 32 + 32 + 1 + 32 + 32 + 8
 }
 
-// #[cfg(test)]
-// pub mod tests {
-//     use super::GlobalConfig;
-//     use anchor_lang::solana_program::borsh::get_packed_len;
-// 
-//     #[test]
-//     fn check_size() {
-//         assert!(
-//             get_packed_len::<GlobalConfig>() < GlobalConfig::LEN
-//         );
-//     }
-// }
+#[cfg(test)]
+pub mod tests {
+    use super::GlobalConfig;
+    use anchor_lang::Discriminator;
+
+    #[test]
+    fn check_size() {
+        assert!(
+            std::mem::size_of::<GlobalConfig>()
+                + GlobalConfig::discriminator().len() 
+                + 8 // mock_clock_time 
+                <= GlobalConfig::LEN
+        );
+    }
+}

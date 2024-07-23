@@ -31,3 +31,18 @@ impl ProposalVotersWeightCast {
         self.value = new_value;
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::ProposalVotersWeightCast;
+    use anchor_lang::Discriminator;
+
+    #[test]
+    fn check_size() {
+        assert!(
+            std::mem::size_of::<ProposalVotersWeightCast>()
+                + ProposalVotersWeightCast::discriminator().len()
+                <= ProposalVotersWeightCast::LEN
+        );
+    }
+}

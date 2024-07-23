@@ -3,8 +3,8 @@ use anchor_lang::prelude::*;
 use std::fmt::Debug;
 use bytemuck::{Pod, Zeroable};
 
-pub const MAX_CHECKPOINTS: usize = 210;
-pub const CHECKPOINT_BUFFER_SIZE: usize = 48;
+pub const MAX_CHECKPOINTS: usize = 424;
+pub const CHECKPOINT_BUFFER_SIZE: usize = 24;
 
 #[repr(C)]
 #[derive(Copy, Clone, AnchorSerialize, AnchorDeserialize)]
@@ -233,7 +233,6 @@ pub mod tests {
         CHECKPOINT_BUFFER_SIZE,
         MAX_CHECKPOINTS,
     };
-    use anchor_lang::solana_program::borsh::get_packed_len;
     use quickcheck::{
         Arbitrary,
         Gen,
@@ -241,20 +240,22 @@ pub mod tests {
     use quickcheck_macros::quickcheck;
     use rand::Rng;
     use std::collections::HashSet;
+    use anchor_lang::Discriminator;
 
-//     #[test]
-//     fn test_serialized_size() {
-//         assert_eq!(
-//             std::mem::size_of::<CheckpointData>(),
-//             32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
-//         );
-//         assert_eq!(
-//             CheckpointData::LEN,
-//             10240
-//         );
-//         // Checks that the checkpoint struct fits in the individual checkpoint buffer
-//         assert!(get_packed_len::<Checkpoint>() < CHECKPOINT_BUFFER_SIZE);
-//     }
+    #[test]
+    fn test_serialized_size() {
+        assert_eq!(
+            std::mem::size_of::<CheckpointData>(),
+            32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
+        );
+        assert!(
+            std::mem::size_of::<CheckpointData>()
+                + CheckpointData::discriminator().len()
+                <= CheckpointData::LEN
+        );
+        // Checks that the checkpoint struct fits in the individual checkpoint buffer
+        assert!(std::mem::size_of::<Checkpoint>() + 8 <= CHECKPOINT_BUFFER_SIZE);
+    }
 
     #[test]
     fn test_none_is_zero() {

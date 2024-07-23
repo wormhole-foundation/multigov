@@ -55,7 +55,17 @@ impl ProposalData {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::state::proposal::ProposalData;
+    use super::ProposalData;
+    use anchor_lang::Discriminator;
+
+    #[test]
+    fn check_size() {
+        assert!(
+            std::mem::size_of::<ProposalData>()
+                + ProposalData::discriminator().len()
+                <= ProposalData::LEN
+        );
+    }
 
     #[test]
     fn proposal_votes_test() {

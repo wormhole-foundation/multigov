@@ -20,7 +20,7 @@ pub struct StakeAccountMetadata {
 }
 
 impl StakeAccountMetadata {
-    pub const LEN: usize = 116; // 8 + 3 * 1 + 32 + 32 + 8 + 33
+    pub const LEN: usize = 120; // 8 + 3 * 1 + 32 + 32 + 8 + 32 + 1 + 4
 
     pub fn check_is_llc_member(&self, expected_agreement_hash: &[u8; 32]) -> Result<()> {
         if let Some(agreement_hash) = self.signed_agreement_hash {
@@ -53,18 +53,18 @@ impl StakeAccountMetadata {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::state::stake_account::StakeAccountMetadata;
+    use super::StakeAccountMetadata;
     use anchor_lang::Discriminator;
     use anchor_lang::prelude::Pubkey;
 
-//     #[test]
-//     fn check_size() {
-//         assert!(
-//             anchor_lang::solana_program::borsh::get_packed_len::<StakeAccountMetadata>()
-//                 + StakeAccountMetadata::discriminator().len()
-//                 <= StakeAccountMetadata::LEN
-//         );
-//     }
+    #[test]
+    fn check_size() {
+        assert!(
+            std::mem::size_of::<StakeAccountMetadata>()
+                + StakeAccountMetadata::discriminator().len()
+                <= StakeAccountMetadata::LEN
+        );
+    }
 
     #[test]
     fn check_is_llc_member() {
