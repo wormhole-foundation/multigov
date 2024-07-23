@@ -8,6 +8,8 @@ import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 
 import {HubProposalPool} from "src/HubProposalPool.sol";
+import {HubGovernor} from "src/HubGovernor.sol";
+import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalPoolHarness} from "test/harnesses/HubProposalPoolHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
@@ -24,6 +26,7 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
   HubVotePool public hubVotePool;
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
+  HubGovernorProposalExtender public extender;
 
   uint48 public constant INITIAL_VOTING_DELAY = 1 days;
   uint32 public constant INITIAL_VOTING_PERIOD = 1 days;
@@ -31,6 +34,11 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
   uint256 public constant PROPOSAL_THRESHOLD = 1000e18;
   uint48 public constant VOTE_WINDOW = 1 days;
   uint8 public constant NUM_WEIGHTS_TO_USE = 3;
+
+  uint48 VOTE_TIME_EXTENSION = 1 days;
+  uint48 MINIMUM_VOTE_EXTENSION = 1 hours;
+  uint32 SAFE_WINDOW = 1 days;
+  uint48 MINIMUM_DESCISION_WINDOW = 1 hours;
 
   struct VoteWeight {
     uint256 voteWeight;
@@ -42,22 +50,30 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
     _setupWormhole();
 
     address initialOwner = makeAddr("Initial Owner");
+    address whitelistedVoteExtender = makeAddr("Vote Extender");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
 
     hubVotePool = new HubVotePool(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
 
-    hubGovernor = new HubGovernorHarness(
-      "Example Gov",
-      token,
-      timelock,
-      INITIAL_VOTING_DELAY,
-      INITIAL_VOTING_PERIOD,
-      PROPOSAL_THRESHOLD,
-      INITIAL_QUORUM,
-      address(hubVotePool),
-      VOTE_WINDOW
+    extender = new HubGovernorProposalExtender(
+      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
     );
+
+    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+      name: "Example Gov",
+      token: token,
+      timelock: timelock,
+      initialVotingDelay: INITIAL_VOTING_DELAY,
+      initialVotingPeriod: INITIAL_VOTING_PERIOD,
+      initialProposalThreshold: PROPOSAL_THRESHOLD,
+      initialQuorum: INITIAL_QUORUM,
+      hubVotePool: address(hubVotePool),
+      whitelistedVoteExtender: address(extender),
+      initialVoteWindow: VOTE_WINDOW
+    });
+
+    hubGovernor = new HubGovernorHarness(params);
 
     hubProposalPool = new HubProposalPoolHarness(address(wormhole), address(hubGovernor));
     hubGovernor.exposed_setWhitelistedProposer(address(hubProposalPool));
