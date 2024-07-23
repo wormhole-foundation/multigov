@@ -337,7 +337,7 @@ contract SetSafeWindow is HubGovernorProposalExtenderTest {
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(uint48 _safeWindow, address _caller) public {
-    vm.assume(address(governor) != _caller);
+    vm.assume(address(timelock) != _caller);
 
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
