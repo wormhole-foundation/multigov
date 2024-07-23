@@ -1,4 +1,4 @@
-anchor_version = "0.28.0"
+anchor_version = "0.30.1"
 
 [features]
 seeds = true

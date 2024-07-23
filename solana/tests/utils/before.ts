@@ -234,7 +234,7 @@ export async function requestWHTokenAirdrop(
     whMintAccount,
     destinationAta,
     whMintAuthority.publicKey,
-    amount.toBN()
+    amount.toNumber()
   );
   transaction.add(mintIx);
 

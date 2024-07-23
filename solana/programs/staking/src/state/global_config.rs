@@ -11,7 +11,7 @@ pub struct GlobalConfig {
     pub pda_authority:        Pubkey, // Authority that can authorize the transfer of locked tokens
     pub agreement_hash:       [u8; 32],
 
-    #[cfg(feature = "mock-clock")]
+//     #[cfg(feature = "mock-clock")]
     pub mock_clock_time: i64, /* this field needs to be greater than 0 otherwise the API
                                * will use real time */
 }

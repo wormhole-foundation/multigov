@@ -1405,6 +1405,10 @@ export type Staking = {
                 32
               ]
             }
+          },
+          {
+            "name": "mockClockTime",
+            "type": "i64"
           }
         ]
       }
