@@ -74,8 +74,6 @@ contract HubProposalMetadataTest is Test, ProposalTest {
 
 contract Constructor is HubProposalMetadataTest {
   function testFuzz_CorrectlySetConstructorArgs(address _governor) public {
-    vm.assume(_governor != address(0));
-
     HubProposalMetadata hubProposalMetadata = new HubProposalMetadata(_governor);
     assertEq(address(hubProposalMetadata.GOVERNOR()), _governor);
   }
