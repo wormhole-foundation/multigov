@@ -57,6 +57,20 @@ contract SpokeVoteAggregatorTest is Test {
   function _getTotalWeight(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (uint256) {
     return uint128(_votes.againstVotes) + _votes.forVotes + _votes.abstainVotes;
   }
+
+  function _mintAndDelegate(address user, uint256 _amount) public returns (address) {
+    token.mint(user, _amount);
+    vm.prank(user);
+    token.delegate(user);
+    vm.warp(vm.getBlockTimestamp() + 1);
+    return user;
+  }
+
+  function _ensureValidWindowStart(uint256 _voteStart) internal view {
+    uint48 windowLength = spokeVoteAggregator.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
+    uint256 windowStart = vm.getBlockTimestamp() + windowLength;
+    vm.assume(_voteStart > windowStart);
+  }
 }
 
 contract Constructor is SpokeVoteAggregatorTest {
@@ -82,9 +96,9 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
+
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
     vm.startPrank(_caller);
@@ -102,9 +116,8 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -124,9 +137,8 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
     vm.startPrank(_caller);
@@ -149,6 +161,8 @@ contract CastVote is SpokeVoteAggregatorTest {
     _support = uint8(bound(_support, 0, 2));
     _voteStart = _boundProposalTime(_voteStart);
 
+    _ensureValidWindowStart(_voteStart);
+
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
     vm.warp(_voteStart - 1);
@@ -169,9 +183,8 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     _support = uint8(bound(_support, 0, 2));
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
@@ -196,10 +209,8 @@ contract CastVote is SpokeVoteAggregatorTest {
     _support = uint8(bound(_support, 0, 2));
     _voteStart = _boundProposalTime(_voteStart);
 
-    // Delegate to the caller
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     // Warp to after the proposal starts then delegate from caller to someone else to ensure the caller has no weight
     vm.warp(_voteStart + 1);
@@ -227,9 +238,8 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -252,9 +262,8 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -277,9 +286,8 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -304,9 +312,8 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     _support = uint8(bound(_support, 0, 2));
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -350,9 +357,8 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
 
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     _support = uint8(bound(_support, 0, 2));
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
@@ -380,9 +386,8 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
 
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -403,6 +408,8 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
+
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -440,9 +447,8 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     _voteStart = _boundProposalTime(_voteStart);
     bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_amount, 0, 0));
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -468,9 +474,8 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     _voteStart = _boundProposalTime(_voteStart);
     bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, _amount, 0));
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -496,9 +501,8 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     _voteStart = _boundProposalTime(_voteStart);
     bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, 0, _amount));
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -527,9 +531,8 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     uint256 _totalWeight = _getTotalWeight(_votes);
     vm.assume(_totalWeight != 0);
 
-    deal(address(token), _caller, _totalWeight);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _totalWeight);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -570,9 +573,8 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     uint128 vote2Total = _vote2.againstVotes + _vote2.forVotes + _vote2.abstainVotes;
     vm.assume(vote2Total != 0); // Ensure vote2 votes are not all 0 to prevent an "all weight cast" revert
 
-    deal(address(token), _caller, _totalVotes);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _totalVotes);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
     vm.warp(_voteStart + 1);
@@ -642,9 +644,8 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     uint256 _totalWeight = _getTotalWeight(_votes);
     vm.assume(_totalWeight != 0);
 
-    deal(address(token), _caller, _totalWeight);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _totalWeight);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -673,9 +674,8 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     _support = uint8(bound(_support, 0, 2));
     _voteStart = _boundProposalTime(_voteStart);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -696,6 +696,8 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_caller != address(0));
     _voteStart = _boundProposalTime(_voteStart);
+
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -731,9 +733,8 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     _voteStart = _boundProposalTime(_voteStart);
     (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -759,9 +760,8 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     _voteStart = _boundProposalTime(_voteStart);
     (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -787,9 +787,8 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     _voteStart = _boundProposalTime(_voteStart);
     (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -816,9 +815,8 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     _voteStart = _boundProposalTime(_voteStart);
     (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
 
-    deal(address(token), _caller, _amount);
-    vm.prank(_caller);
-    token.delegate(_caller);
+    _mintAndDelegate(_caller, _amount);
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
@@ -896,14 +894,11 @@ contract Token is Test {
 contract GetVotes is SpokeVoteAggregatorTest {
   function testFuzz_CorrectlyGetVotes(address _account, uint128 _voteWeight) public {
     vm.assume(_account != address(0));
-    vm.assume(_voteWeight > 0);
+    vm.assume(_voteWeight != 0);
 
-    deal(address(token), _account, _voteWeight);
-    vm.prank(_account);
-    token.delegate(_account);
-
-    uint48 windowLength = spokeVoteAggregator.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
-    uint256 windowStart = vm.getBlockTimestamp() + windowLength;
+    _mintAndDelegate(_account, _voteWeight);
+    uint256 windowStart =
+      vm.getBlockTimestamp() + spokeVoteAggregator.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
     vm.warp(windowStart);
 
     uint256 voteWeight = spokeVoteAggregator.getVotes(_account, vm.getBlockTimestamp());
