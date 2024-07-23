@@ -47,7 +47,7 @@ export async function createMint(
       newAccountPubkey: mintAccount.publicKey,
       lamports: balanceNeeded,
       space: MintLayout.span,
-      TOKEN_PROGRAM_ID,
+      programId: TOKEN_PROGRAM_ID,
     })
   );
 
