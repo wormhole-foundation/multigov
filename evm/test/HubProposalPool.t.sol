@@ -50,7 +50,6 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
     _setupWormhole();
 
     address initialOwner = makeAddr("Initial Owner");
-    address whitelistedVoteExtender = makeAddr("Vote Extender");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
 
@@ -234,15 +233,6 @@ contract Constructor is Test {
 }
 
 contract CheckAndProposeIfEligible is HubProposalPoolTest {
-  function _getFirstNItems(VoteWeight[] memory array, uint256 n) internal pure returns (VoteWeight[] memory) {
-    uint256 length = n < array.length ? n : array.length;
-    VoteWeight[] memory result = new VoteWeight[](length);
-    for (uint256 i = 0; i < length; i++) {
-      result[i] = array[i];
-    }
-    return result;
-  }
-
   function _boundVoteWeight(uint256 voteWeight, uint256 maxVoteWeight) internal pure returns (uint256) {
     return voteWeight > maxVoteWeight ? maxVoteWeight : voteWeight;
   }
