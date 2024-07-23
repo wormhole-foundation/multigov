@@ -6,7 +6,9 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
+import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
+import {HubGovernor} from "src/HubGovernor.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {HubGovernorHarness} from "test/harnesses/HubGovernorHarness.sol";
@@ -17,6 +19,17 @@ contract HubProposalMetadataTest is Test, ProposalTest {
   HubProposalMetadata public hubProposalMetadata;
   HubGovernorHarness public governor;
   ERC20VotesFake public token;
+  HubGovernorProposalExtender public extender;
+
+  uint48 public constant INITIAL_VOTING_DELAY = 1 days;
+  uint32 public constant INITIAL_VOTING_PERIOD = 3 days;
+  uint208 public constant INITIAL_QUORUM = 100e18;
+  uint256 public constant PROPOSAL_THRESHOLD = 500_000e18;
+  uint48 public constant VOTE_WINDOW = 1 days;
+  uint48 MINIMUM_VOTE_EXTENSION = 1 hours;
+  uint48 VOTE_TIME_EXTENSION = 1 days;
+  uint48 MINIMUM_DESCISION_WINDOW = 1 hours;
+  uint32 SAFE_WINDOW = 1 days;
 
   function setUp() public {
     address initialOwner = makeAddr("Initial Owner");
@@ -24,9 +37,23 @@ contract HubProposalMetadataTest is Test, ProposalTest {
     token = new ERC20VotesFake();
     WormholeMock wormhole = new WormholeMock();
     HubVotePool hubVotePool = new HubVotePool(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
-    governor = new HubGovernorHarness(
-      "Example Gov", token, timelock, 1 days, 1 days, 500_000e18, 100e18, address(hubVotePool), 1 days
+    extender = new HubGovernorProposalExtender(
+      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
     );
+    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+      name: "Example Gov",
+      token: token,
+      timelock: timelock,
+      initialVotingDelay: INITIAL_VOTING_DELAY,
+      initialVotingPeriod: INITIAL_VOTING_PERIOD,
+      initialProposalThreshold: PROPOSAL_THRESHOLD,
+      initialQuorum: INITIAL_QUORUM,
+      hubVotePool: address(hubVotePool),
+      whitelistedVoteExtender: address(extender),
+      initialVoteWindow: VOTE_WINDOW
+    });
+
+    governor = new HubGovernorHarness(params);
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("PROPOSER_ROLE"), address(governor));
