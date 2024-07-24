@@ -60,7 +60,7 @@ contract DeployHubContractsTest is DeployHubContractsBase {
 
     assertEq(extender.whitelistedVoteExtender(), address(deployer));
     assertEq(extender.proposalExtension(), 5 minutes);
-    assertEq(extender.minimumExtensionTime(), 1 minutes);
+    assertEq(extender.MINIMUM_EXTENSION_TIME(), 1 minutes);
     assertEq(address(extender.governor()), address(governor));
     assertEq(extender.initialized(), true);
 
