@@ -57,7 +57,6 @@ contract SpokeVoteAggregatorTest is Test {
     token.mint(user, _amount);
     vm.prank(user);
     token.delegate(user);
-    vm.warp(vm.getBlockTimestamp() + 1);
     return user;
   }
 
