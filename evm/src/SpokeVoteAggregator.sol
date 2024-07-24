@@ -97,7 +97,9 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   {
     if (!voteActiveInternal(_proposalId)) revert ProposalInactive();
 
-    uint256 weight = _getVotes(_voter, block.timestamp, "");
+    SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(_proposalId);
+
+    uint256 weight = _getVotes(_voter, proposal.voteStart, "");
     if (weight == 0) revert NoWeight();
     _countVote(_proposalId, _voter, _support, weight, _params);
 

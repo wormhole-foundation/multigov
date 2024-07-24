@@ -210,16 +210,16 @@ contract CastVote is SpokeVoteAggregatorTest {
     _voteStart = _boundProposalTime(_voteStart);
 
     _mintAndDelegate(_caller, _amount);
-    _ensureValidWindowStart(_voteStart);
 
-    // Warp to after the proposal starts then delegate from caller to someone else to ensure the caller has no weight
-    vm.warp(_voteStart + 1);
+    // Transfer to another address before voting to ensure the caller has no weight
     vm.prank(_caller);
-    token.delegate(makeAddr("Other Delegate"));
+    token.transfer(makeAddr("Other Delegate"), _amount);
+
+    _ensureValidWindowStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, _voteStart);
 
-    vm.warp(vm.getBlockTimestamp() + 1);
+    vm.warp(_voteStart);
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(SpokeVoteAggregator.NoWeight.selector));
     spokeVoteAggregator.castVote(_proposalId, _support);
