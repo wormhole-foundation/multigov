@@ -97,6 +97,14 @@ contract SetAirlock is SpokeMessageExecutorTest {
     executor.setAirlock(_newAirlock);
     assertEq(payable(executor.airlock()), _newAirlock);
   }
+
+  function testFuzz_RevertIf_InvalidCaller(address _caller, address payable _newAirlock) public {
+    vm.assume(_caller != address(airlock));
+
+    vm.prank(_caller);
+    vm.expectRevert(SpokeMessageExecutor.InvalidCaller.selector);
+    executor.setAirlock(payable(_newAirlock));
+  }
 }
 
 contract ReceiveMessage is SpokeMessageExecutorTest {
