@@ -39,10 +39,6 @@ abstract contract ProposalTest is Test {
     vm.warp(_proposalSnapshot(_proposalId) + 1);
   }
 
-  function _jumpToVoteComplete(uint256 _proposalId) internal {
-    vm.warp(_proposalDeadline(_proposalId));
-  }
-
   function _jumpPastVoteComplete(uint256 _proposalId) internal {
     vm.warp(_proposalDeadline(_proposalId) + 1);
   }
@@ -56,12 +52,6 @@ abstract contract ProposalTest is Test {
       vm.prank(delegates[_index]);
       governor.castVote(_proposalId, _support);
     }
-  }
-
-  function _passProposal(uint256 _proposalId) internal {
-    _jumpToActiveProposal(_proposalId);
-    _delegatesVote(_proposalId, 1); // support
-    _jumpPastVoteComplete(_proposalId);
   }
 
   function _queueAndVoteAndExecuteProposal(
