@@ -850,3 +850,64 @@ contract _GetVotes is HubGovernorTest {
     assertEq(_votes, 0);
   }
 }
+
+contract Token is HubGovernorTest {
+  function testFuzz_CorrectlyGetToken() public {
+    assertEq(address(governor.token()), address(token));
+  }
+}
+
+contract ProposalNeedsQueuing is HubGovernorTest {
+  function testFuzz_ProposalNeedsQueuing(uint256 _proposalId) public view {
+    assertTrue(governor.proposalNeedsQueuing(_proposalId));
+  }
+}
+
+contract ProposalThreshold is HubGovernorTest {
+  function testFuzz_ProposalThreshold(uint256 _proposalThreshold) public {
+    vm.assume(_proposalThreshold != 0);
+    governor.exposed_setProposalThreshold(_proposalThreshold);
+    assertEq(governor.proposalThreshold(), _proposalThreshold);
+  }
+}
+
+contract State is HubGovernorTest {
+  function testFuzz_CorrectlyGetState(address _proposer, string memory _proposalDescription) public {
+    vm.assume(_proposer != address(0));
+
+    _setGovernor(governor);
+    governor.exposed_setWhitelistedProposer(_proposer);
+    (ProposalBuilder builder) = _createArbitraryProposal();
+
+    vm.startPrank(_proposer);
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
+    vm.stopPrank();
+
+    assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Pending));
+    _jumpToActiveProposal(_proposalId);
+    assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Active));
+  }
+}
+
+contract _Cancel is HubGovernorTest {
+  function testFuzz_Cancel(address _proposer, string memory _proposalDescription) public {
+    vm.assume(_proposer != address(0));
+
+    _setGovernor(governor);
+    governor.exposed_setWhitelistedProposer(_proposer);
+    (ProposalBuilder builder) = _createArbitraryProposal();
+
+    vm.startPrank(_proposer);
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
+    vm.stopPrank();
+
+    vm.prank(address(timelock));
+    governor.exposed_cancel(
+      builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes(_proposalDescription))
+    );
+
+    assertEq(uint8(governor.state(_proposalId)), uint8(IGovernor.ProposalState.Canceled));
+  }
+}

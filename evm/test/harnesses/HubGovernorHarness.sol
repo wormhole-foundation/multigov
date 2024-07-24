@@ -42,4 +42,17 @@ contract HubGovernorHarness is HubGovernor {
   function exposed_setVotingPeriod(uint32 _newVotingPeriod) public {
     _setVotingPeriod(_newVotingPeriod);
   }
+
+  function exposed_setProposalThreshold(uint256 _proposalThreshold) public {
+    _setProposalThreshold(_proposalThreshold);
+  }
+
+  function exposed_cancel(
+    address[] memory targets,
+    uint256[] memory values,
+    bytes[] memory calldatas,
+    bytes32 descriptionHash
+  ) public {
+    _cancel(targets, values, calldatas, descriptionHash);
+  }
 }
