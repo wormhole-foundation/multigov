@@ -5,7 +5,7 @@ export const AUTHORITY_PATH = "/.config/solana/deployer.json";
 export const AUTHORITY_KEYPAIR = loadKeypair(homedir() + AUTHORITY_PATH);
 
 export const WORMHOLE_TOKEN = new PublicKey(
-  "85VBFQZC9TZkfaptBWjvUw7YbZjy52A6mjtPGjstQAmQ"
+  "3XsW9v8Ar6RwEy2uga4c2JEcYc7sh1x9LtDYeUt8zvV1"
 );
 
 export const RPC_NODE = "https://api.devnet.solana.com";

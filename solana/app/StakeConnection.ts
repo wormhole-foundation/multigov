@@ -486,10 +486,10 @@ export class StakeConnection {
     instructions.push(
       await this.program.methods
         .castVote(proposalId, againstVotes, forVotes, abstainVotes)
-        .accounts({
+        .accounts([{
           proposal: proposalAccountAddress,
           voterCheckpoints: stakeAccount.address,
-        })
+        }])
         .instruction()
     );
 
@@ -536,9 +536,9 @@ export class StakeConnection {
     instructions.push(
       await this.program.methods
         .addProposal(proposalId, vote_start, safe_window)
-        .accounts({
+        .accounts([{
           proposal: proposalAccountAddress,
-        })
+        }])
         .instruction()
     );
 
