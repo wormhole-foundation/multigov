@@ -246,7 +246,7 @@ export async function initConfig(
   whMintAccount: PublicKey,
   globalConfig: GlobalConfig
 ) {
-  const [configAccount, bump] = await PublicKey.findProgramAddress(
+  const [configAccount, bump] = PublicKey.findProgramAddressSync(
     [utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
     program.programId
   );

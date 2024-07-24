@@ -59,7 +59,7 @@ describe("config", async () => {
   });
 
   it("initializes config", async () => {
-    [configAccount, bump] = await PublicKey.findProgramAddress(
+    [configAccount, bump] = PublicKey.findProgramAddressSync(
       [utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
       program.programId
     );

@@ -251,7 +251,7 @@ export class StakeConnection {
     );
 
     const metadataAddress = (
-      await PublicKey.findProgramAddress(
+      PublicKey.findProgramAddressSync(
         [
           utils.bytes.utf8.encode(wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()),
           address.toBuffer(),

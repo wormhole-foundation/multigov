@@ -77,7 +77,7 @@ describe("staking", async () => {
   it("creates staking account", async () => {
     const owner = provider.wallet.publicKey;
 
-    const [metadataAccount, metadataBump] = await PublicKey.findProgramAddress(
+    const [metadataAccount, metadataBump] = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(
           wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()
@@ -87,7 +87,7 @@ describe("staking", async () => {
       program.programId
     );
 
-    const [custodyAccount, custodyBump] = await PublicKey.findProgramAddress(
+    const [custodyAccount, custodyBump] = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
         stakeAccountSecret.publicKey.toBuffer(),
@@ -95,14 +95,13 @@ describe("staking", async () => {
       program.programId
     );
 
-    const [authorityAccount, authorityBump] =
-      await PublicKey.findProgramAddress(
-        [
-          anchor.utils.bytes.utf8.encode(wasm.Constants.AUTHORITY_SEED()),
-          stakeAccountSecret.publicKey.toBuffer(),
-        ],
-        program.programId
-      );
+    const [authorityAccount, authorityBump] = PublicKey.findProgramAddressSync(
+      [
+        anchor.utils.bytes.utf8.encode(wasm.Constants.AUTHORITY_SEED()),
+        stakeAccountSecret.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
 
     const tx = await program.methods
       .createStakeAccount(owner)
@@ -145,7 +144,7 @@ describe("staking", async () => {
     const from_account = userAta;
 
     const toAccount = (
-      await PublicKey.findProgramAddress(
+      PublicKey.findProgramAddressSync(
         [
           anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
           stakeAccountSecret.publicKey.toBuffer(),
