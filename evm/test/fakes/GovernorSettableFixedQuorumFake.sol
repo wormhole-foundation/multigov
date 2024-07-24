@@ -27,10 +27,6 @@ contract GovernorSettableFixedQuorumFake is GovernorVoteMocks, GovernorTimelockC
     GovernorSettableFixedQuorum(_initialQuorum)
   {}
 
-  function proposalThreshold() public pure override returns (uint256) {
-    return 1;
-  }
-
   function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
     internal
     virtual
