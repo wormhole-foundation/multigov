@@ -21,7 +21,7 @@ contract HubVotePool is QueryResponse, Ownable {
   error InvalidWormholeMessage(string);
   error UnknownMessageEmitter();
   error InvalidProposalVote();
-  error TooManyEthCallResults(uint256);
+  error TooManyEthCallResults(uint256, uint256);
   error TooManyQueryResponses(uint256);
 
   event SpokeVoteCast(
@@ -90,7 +90,7 @@ contract HubVotePool is QueryResponse, Ownable {
         revert UnknownMessageEmitter();
       }
 
-      if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
+      if (_ethCalls.result.length != 1) revert TooManyEthCallResults(i, _ethCalls.result.length);
 
       (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
         abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));

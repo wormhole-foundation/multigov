@@ -183,7 +183,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
-  function test_TooManyResponsesPassedInResponseBytes(
+  function testFuzz_TooManyResponsesPassedInResponseBytes(
     uint256 _proposalId1,
     uint256 _proposalId2,
     uint48 _voteStart1,
@@ -314,7 +314,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     );
     IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
 
-    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyEthCallResults.selector, 2));
+    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyEthCallResults.selector, 0, 2));
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 }

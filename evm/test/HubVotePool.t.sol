@@ -304,7 +304,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
     );
   }
 
-  function testFuzz_CorrectlyAddNewVoteFromWithMultipleQueriesFromTheSameSpoke(
+  function testFuzz_CorrectlyAddNewVoteWithMultipleQueriesFromTheSameSpoke(
     VoteParams memory _voteParams1,
     VoteParams memory _voteParams2,
     address _spokeContract,
@@ -315,10 +315,6 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     vm.startPrank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
-    hubVotePool.registerSpoke(_queryChainId - 1, addressToBytes32(_spokeContract));
-    hubVotePool.registerSpoke(_queryChainId - 2, addressToBytes32(_spokeContract));
-    hubVotePool.registerSpoke(_queryChainId - 3, addressToBytes32(_spokeContract));
-    hubVotePool.registerSpoke(_queryChainId - 4, addressToBytes32(_spokeContract));
     vm.stopPrank();
 
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
@@ -649,7 +645,7 @@ contract CrossChainEVMVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyEthCallResults.selector, 2));
+    vm.expectRevert(abi.encodeWithSelector(HubVotePool.TooManyEthCallResults.selector, 0, 2));
     hubVotePool.crossChainEVMVote(_resp, signatures);
   }
 
