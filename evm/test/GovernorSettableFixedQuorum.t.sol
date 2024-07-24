@@ -106,6 +106,7 @@ contract SetQuorum is GovernorSettableFixedQuorumTest {
 
     uint256 betweenProposalsTimestamp = uint256(block.timestamp + 1);
     assertEq(governor.quorum(betweenProposalsTimestamp), _firstQuorum);
+
     ProposalBuilder secondBuilder = _createSetQuorumProposal(_secondQuorum);
     _mintAndDelegate(delegates[0], _firstQuorum);
 

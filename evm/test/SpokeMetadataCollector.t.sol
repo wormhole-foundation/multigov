@@ -183,7 +183,15 @@ contract AddProposal is SpokeMetadataCollectorTest {
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
-  function test_RevertIf_TooManyResponsesPassedInResponseBytes() public {
+  function testFuzz_TooManyResponsesPassedInResponseBytes(
+    uint256 _proposalId1,
+    uint256 _proposalId2,
+    uint48 _voteStart1,
+    uint48 _voteStart2,
+    uint48 _voteEnd1,
+    uint48 _voteEnd2
+  ) public {
+    vm.assume(_proposalId1 != _proposalId2);
     bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
       bytes("0x1296c33"), // blockId
       1, // numCallData
@@ -215,7 +223,15 @@ contract AddProposal is SpokeMetadataCollectorTest {
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
       1, // numResults
-      QueryTest.buildEthCallResultBytes(abi.encode(1, 2, 3)) // results
+      QueryTest.buildEthCallResultBytes(abi.encode(_proposalId1, _voteStart1, _voteEnd1)) // results
+    );
+
+    bytes memory secondEthCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      1, // numResults
+      QueryTest.buildEthCallResultBytes(abi.encode(_proposalId2, _voteStart2, _voteEnd2)) // results
     );
 
     // version and nonce are arbitrary
@@ -234,14 +250,18 @@ contract AddProposal is SpokeMetadataCollectorTest {
         QueryTest.buildPerChainResponseBytes(
           2, // eth mainnet
           spokeMetadataCollector.QT_ETH_CALL(),
-          ethCallResp
+          secondEthCallResp
         )
       )
     );
     IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
 
-    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyQueryResponses.selector, 2));
     spokeMetadataCollector.addProposal(_resp, signatures);
+    SpokeMetadataCollector.Proposal memory proposal1 = spokeMetadataCollector.exposed_proposals(_proposalId1);
+    SpokeMetadataCollector.Proposal memory proposal2 = spokeMetadataCollector.exposed_proposals(_proposalId2);
+
+    assertEq(proposal1.voteStart, _voteStart1);
+    assertEq(proposal2.voteStart, _voteStart2);
   }
 
   function test_RevertIf_TooManyCalls() public {
@@ -294,7 +314,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     );
     IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
 
-    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyEthCallResults.selector, 2));
+    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyEthCallResults.selector, 0, 2));
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 }

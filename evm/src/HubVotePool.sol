@@ -21,7 +21,7 @@ contract HubVotePool is QueryResponse, Ownable {
   error InvalidWormholeMessage(string);
   error UnknownMessageEmitter();
   error InvalidProposalVote();
-  error TooManyEthCallResults(uint256);
+  error TooManyEthCallResults(uint256, uint256);
   error TooManyQueryResponses(uint256);
 
   event SpokeVoteCast(
@@ -78,44 +78,43 @@ contract HubVotePool is QueryResponse, Ownable {
     // Validate the query response signatures
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
 
-    uint256 numResponses = _queryResponse.responses.length;
-    if (numResponses != 1) revert TooManyQueryResponses(numResponses);
+    for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
+      // Validate that the query response is from hub
+      ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
 
-    // Validate that the query response is from hub
-    ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[0];
+      EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
 
-    EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
+      // verify contract and chain is correct
+      bytes32 addr = spokeRegistry[perChainResp.chainId];
+      if (addr != bytes32(uint256(uint160(_ethCalls.result[0].contractAddress))) || addr == bytes32("")) {
+        revert UnknownMessageEmitter();
+      }
 
-    // verify contract and chain is correct
-    bytes32 addr = spokeRegistry[perChainResp.chainId];
-    if (addr != bytes32(uint256(uint160(_ethCalls.result[0].contractAddress))) || addr == bytes32("")) {
-      revert UnknownMessageEmitter();
+      if (_ethCalls.result.length != 1) revert TooManyEthCallResults(i, _ethCalls.result.length);
+
+      (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
+        abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));
+
+      // TODO: does encode vs encodePacked matter here
+      bytes32 _spokeProposalId = keccak256(abi.encode(perChainResp.chainId, proposalId));
+      ProposalVote memory existingSpokeVote = spokeProposalVotes[_spokeProposalId];
+      if (
+        existingSpokeVote.againstVotes > againstVotes || existingSpokeVote.forVotes > forVotes
+          || existingSpokeVote.abstainVotes > abstainVotes
+      ) revert InvalidProposalVote();
+
+      spokeProposalVotes[_spokeProposalId] = ProposalVote(againstVotes, forVotes, abstainVotes);
+
+      _castVote(
+        proposalId,
+        ProposalVote(
+          againstVotes - existingSpokeVote.againstVotes,
+          forVotes - existingSpokeVote.forVotes,
+          abstainVotes - existingSpokeVote.abstainVotes
+        ),
+        perChainResp.chainId
+      );
     }
-
-    if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
-
-    (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
-      abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));
-
-    // TODO: does encode vs encodePacked matter here
-    bytes32 _spokeProposalId = keccak256(abi.encode(perChainResp.chainId, proposalId));
-    ProposalVote memory existingSpokeVote = spokeProposalVotes[_spokeProposalId];
-    if (
-      existingSpokeVote.againstVotes > againstVotes || existingSpokeVote.forVotes > forVotes
-        || existingSpokeVote.abstainVotes > abstainVotes
-    ) revert InvalidProposalVote();
-
-    spokeProposalVotes[_spokeProposalId] = ProposalVote(againstVotes, forVotes, abstainVotes);
-
-    _castVote(
-      proposalId,
-      ProposalVote(
-        againstVotes - existingSpokeVote.againstVotes,
-        forVotes - existingSpokeVote.forVotes,
-        abstainVotes - existingSpokeVote.abstainVotes
-      ),
-      perChainResp.chainId
-    );
   }
 
   function _castVote(uint256 proposalId, ProposalVote memory vote, uint16 emitterChainId) internal {
