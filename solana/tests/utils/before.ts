@@ -169,9 +169,7 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
     user.publicKey
   } --reset --bpf-program ${programAddress.toBase58()} ${binaryPath} --bpf-program ${
     config.programs.localnet.chat
-  } ${config.path.chat_path}
-
-  --clone ENmcpFCpxN1CqyUjuog9yyUVfdXBKF3LVCwLr7grJZpk -ud`;
+  } ${config.path.chat_path} --clone ENmcpFCpxN1CqyUjuog9yyUVfdXBKF3LVCwLr7grJZpk -ud`;
 
   const { controller, connection } = await startValidatorRaw(
     portNumber,
@@ -300,7 +298,6 @@ export async function standardSetup(
     whMintAuthority.publicKey,
     null,
     WH_TOKEN_DECIMALS,
-    TOKEN_PROGRAM_ID
   );
 
   const user = provider.wallet.publicKey;

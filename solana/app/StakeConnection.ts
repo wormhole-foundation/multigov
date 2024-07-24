@@ -1,18 +1,11 @@
+import {AnchorProvider, Idl, IdlAccounts, Program, utils, Wallet,} from "@coral-xyz/anchor";
 import {
-  Program,
-  Wallet,
-  utils,
-  Idl,
-  IdlAccounts,
-  AnchorProvider,
-} from "@coral-xyz/anchor";
-import {
-  PublicKey,
   Connection,
-  Keypair,
-  TransactionInstruction,
-  SYSVAR_CLOCK_PUBKEY,
+  PublicKey,
+  Signer,
   SystemProgram,
+  SYSVAR_CLOCK_PUBKEY,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import * as wasm2 from "@wormhole/staking-wasm";
 import {
@@ -22,21 +15,16 @@ import {
   getAssociatedTokenAddress,
   getMint,
 } from "@solana/spl-token";
-import { u64 } from '@solana/buffer-layout-utils';
 import BN from "bn.js";
-import { Staking } from "../target/types/staking";
+import {Staking} from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
-import { WHTokenBalance } from "./whTokenBalance";
-import {
-  STAKING_ADDRESS,
-} from "./constants";
+import {WHTokenBalance} from "./whTokenBalance";
+import {STAKING_ADDRESS,} from "./constants";
 import * as crypto from "crypto";
-import {
-  PriorityFeeConfig,
-  TransactionBuilder,
-  sendTransactions,
-} from "@pythnetwork/solana-utils";
+import {PriorityFeeConfig, sendTransactions, TransactionBuilder,} from "@pythnetwork/solana-utils";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
+import * as console from "node:console";
+
 let wasm = wasm2;
 export { wasm };
 
@@ -201,7 +189,7 @@ export class StakeConnection {
     } else {
       return accounts.reduce(
         (prev: StakeAccount, curr: StakeAccount): StakeAccount => {
-          return prev.tokenBalance.lt(curr.tokenBalance) ? curr : prev;
+          return prev.tokenBalance > curr.tokenBalance ? curr : prev;
         }
       );
     }
@@ -517,22 +505,22 @@ export class StakeConnection {
       proposalId
     );
 
-    const proposalData = await proposalAccountWasm.proposalVotes();
+    const proposalData = proposalAccountWasm.proposalVotes();
 
     return {
-      againstVotes: new BN(proposalData.againstVotes),
-      forVotes: new BN(proposalData.forVotes),
-      abstainVotes: new BN(proposalData.abstainVotes),
+      againstVotes: new BN(proposalData.against_votes.toString()),
+      forVotes: new BN(proposalData.for_votes.toString()),
+      abstainVotes: new BN(proposalData.abstain_votes.toString()),
     };
   }
 
-  public async isVotingSafe(proposalId: BN): Promise<{boolean}> {
+  public async isVotingSafe(proposalId: BN): Promise<boolean> {
     const { proposalAccountWasm } = await this.fetchProposalAccountWasm(
       proposalId
     );
 
-    const currentTimestamp = new BN(Math.floor(Date.now() / 1000));
-    return await proposalAccountWasm.isVotingSafe(currentTimestamp);
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    return proposalAccountWasm.isVotingSafe(BigInt(currentTimestamp));
   }
 
   public async addProposal(
@@ -558,7 +546,7 @@ export class StakeConnection {
   }
 
   /** Gets the current votes balance of the delegate's stake account. */
-  public getVotes(delegateStakeAccount: StakeAccount): Promise<BN> {
+  public getVotes(delegateStakeAccount: StakeAccount): BN {
     return delegateStakeAccount.getVotes();
   }
 
@@ -566,12 +554,12 @@ export class StakeConnection {
   public getPastVotes(
     delegateStakeAccount: StakeAccount,
     timestamp: BN
-  ): Promise<BN> {
+  ): BN {
     return delegateStakeAccount.getPastVotes(timestamp);
   }
 
   /** Gets the current delegate's stake account associated with the specified stake account. */
-  public delegates(stakeAccount: StakeAccount): Promise<PublicKey> {
+  public delegates(stakeAccount: StakeAccount): PublicKey {
     return stakeAccount.delegates();
   }
 
@@ -632,18 +620,18 @@ export class StakeAccount {
   address: PublicKey;
   stakeAccountCheckpointsWasm: any;
   stakeAccountMetadata: StakeAccountMetadata;
-  tokenBalance: u64;
+  tokenBalance: bigint;
   authorityAddress: PublicKey;
-  totalSupply: BN;
+  totalSupply: bigint;
   config: GlobalConfig;
 
   constructor(
     address: PublicKey,
     stakeAccountCheckpointsWasm: any,
     stakeAccountMetadata: StakeAccountMetadata,
-    tokenBalance: u64,
+    tokenBalance: bigint,
     authorityAddress: PublicKey,
-    totalSupply: BN,
+    totalSupply: bigint,
     config: GlobalConfig
   ) {
     this.address = address;
@@ -656,21 +644,19 @@ export class StakeAccount {
   }
 
   /** Gets the current votes balance. */
-  public getVotes(): Promise<BN> {
-    const voterVotes = this.stakeAccountCheckpointsWasm.getVoterVotes();
-
-    return new BN(voterVotes.toString());
+  public getVotes(): BN {
+    return new BN(this.stakeAccountCheckpointsWasm.getVoterVotes().toString());
   }
 
   /** Gets the voting power at a specified past timestamp. */
-  public getPastVotes(timestamp: BN): Promise<BN> {
+  public getPastVotes(timestamp: BN): BN {
     const voterVotes =
       this.stakeAccountCheckpointsWasm.getVoterPastVotes(timestamp);
 
     return new BN(voterVotes.toString());
   }
 
-  public delegates(): Promise<PublicKey> {
+  public delegates(): PublicKey {
     return this.stakeAccountMetadata.delegate;
   }
 

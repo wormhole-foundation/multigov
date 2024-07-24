@@ -16,7 +16,7 @@ export async function assertBalanceMatches(
   const balanceSummary = stakeAccount.getBalanceSummary();
   assert.equal(
     balanceSummary.balance.toString(),
-    expected.balance.toString()
+    expected.toString()
   );
 }
 
@@ -24,6 +24,6 @@ export async function assertVoterVotesEquals(
   stakeAccount: StakeAccount,
   expectedVoterVotes: BN
 ) {
-  const currentActual = await stakeAccount.getVotes();
+  const currentActual = stakeAccount.getVotes();
   assert.equal(currentActual.toString(), expectedVoterVotes.toString());
 }

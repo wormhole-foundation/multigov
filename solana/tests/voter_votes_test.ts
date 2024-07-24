@@ -12,6 +12,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { StakeConnection, WHTokenBalance } from "../app";
 import { BN, Wallet } from "@coral-xyz/anchor";
 import { assertVoterVotesEquals } from "./utils/api_utils";
+import * as console from "node:console";
 
 const portNumber = getPortNumber(path.basename(__filename));
 
@@ -43,7 +44,7 @@ describe("voter_votes_test", async () => {
       undefined,
       WHTokenBalance.fromString("50")
     );
-    
+
     let stakeAccount = await stakeConnection.getMainAccount(owner);
 
     await assertVoterVotesEquals(stakeAccount, new BN("50000000")); // 50 * 10**6
