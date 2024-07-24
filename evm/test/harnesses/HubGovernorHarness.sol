@@ -23,10 +23,6 @@ contract HubGovernorHarness is HubGovernor {
     _countVote(_proposalId, _account, _support, _totalWeight, _voteData);
   }
 
-  function exposed_setHubVotePool(address _hubVotePool) public {
-    _setHubVotePool(_hubVotePool);
-  }
-
   function exposed_setWhitelistedProposer(address _proposer) public {
     _setWhitelistedProposer(_proposer);
   }
@@ -37,10 +33,6 @@ contract HubGovernorHarness is HubGovernor {
 
   function exposed_setVoteWeightWindow(uint48 _num) public {
     _setVoteWeightWindow(_num);
-  }
-
-  function exposed_setVotingPeriod(uint32 _newVotingPeriod) public {
-    _setVotingPeriod(_newVotingPeriod);
   }
 
   function exposed_setProposalThreshold(uint256 _proposalThreshold) public {
