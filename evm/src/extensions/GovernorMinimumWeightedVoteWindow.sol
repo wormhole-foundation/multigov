@@ -10,7 +10,9 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /// @title GovernorMinimumWeightedVoteWindow
 /// @author [ScopeLift](https://scopelift.co)
-/// @notice An abstract extension to the Governor which implements a minimum voting weight for a given window.
+/// @notice An abstract extension to the Governor which will modify the voting weight so that the lowest checkpointed
+/// weight over a given period is used. This calculation of voting weight can be useful in cross chain contexts as it
+/// can help mitigate situations where weight is double counted.
 abstract contract GovernorMinimumWeightedVoteWindow {
   using Checkpoints for Checkpoints.Trace160;
 
