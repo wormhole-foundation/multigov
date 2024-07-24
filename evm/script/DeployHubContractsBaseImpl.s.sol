@@ -84,7 +84,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
       initialProposalThreshold: config.initialProposalThreshold,
       initialQuorum: config.initialQuorum,
       hubVotePool: address(pool),
-      whitelistedVoteExtender: address(extender),
+      governorProposalExtender: address(extender),
       initialVoteWindow: config.voteWeightWindow
     });
 

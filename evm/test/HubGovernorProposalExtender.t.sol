@@ -50,7 +50,7 @@ contract Constructor is HubGovernorProposalExtenderTest {
     assertEq(hubExtender.whitelistedVoteExtender(), _whitelistedVoteExtender);
     assertEq(hubExtender.proposalExtension(), _voteTimeExtension);
     assertEq(hubExtender.owner(), _owner);
-    assertEq(hubExtender.minimumExtensionTime(), _minimumExtensionTime);
+    assertEq(hubExtender.MINIMUM_EXTENSION_TIME(), _minimumExtensionTime);
   }
 }
 
@@ -337,7 +337,7 @@ contract SetSafeWindow is HubGovernorProposalExtenderTest {
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(uint48 _safeWindow, address _caller) public {
-    vm.assume(address(governor) != _caller);
+    vm.assume(address(timelock) != _caller);
 
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));

@@ -7,13 +7,13 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 
 contract HubGovernorProposalExtender is Ownable {
-  address public whitelistedVoteExtender;
-  uint48 public proposalExtension;
-  uint48 public minimumExtensionTime;
   HubGovernor public governor;
   bool public initialized;
-  uint48 public minimumDecisionWindow;
+  uint48 public proposalExtension;
   uint48 public safeWindow;
+  address public whitelistedVoteExtender;
+  uint48 public immutable MINIMUM_EXTENSION_TIME;
+  uint48 public immutable MINIMUM_DECISION_WINDOW;
 
   mapping(uint256 proposalId => uint48 newVoteEnd) public extendedDeadlines;
 
@@ -37,11 +37,11 @@ contract HubGovernorProposalExtender is Ownable {
     uint32 _safeWindow,
     uint48 _minimumDecisionWindow
   ) Ownable(_owner) {
-    minimumDecisionWindow = _minimumDecisionWindow;
     _setSafeWindow(_safeWindow);
     _setProposalExtension(_voteTimeExtension);
     _setWhitelistedVoteExtender(_whitelistedVoteExtender);
-    minimumExtensionTime = _minimumExtensionTime;
+    MINIMUM_EXTENSION_TIME = _minimumExtensionTime;
+    MINIMUM_DECISION_WINDOW = _minimumDecisionWindow;
   }
 
   function initialize(address payable _governor) external {
@@ -70,7 +70,7 @@ contract HubGovernorProposalExtender is Ownable {
 
   function setProposalExtension(uint48 _extensionTime) external {
     _checkOwner();
-    if (_extensionTime > governor.votingPeriod() || _extensionTime < minimumExtensionTime) {
+    if (_extensionTime > governor.votingPeriod() || _extensionTime < MINIMUM_EXTENSION_TIME) {
       revert InvalidExtensionTime();
     }
     _setProposalExtension(_extensionTime);
@@ -80,7 +80,7 @@ contract HubGovernorProposalExtender is Ownable {
     _checkOwner();
     if (_safeWindow > governor.votingPeriod()) revert InvalidUnsafeWindow();
     uint256 decisionPeriod = governor.votingPeriod() - _safeWindow;
-    if (decisionPeriod < minimumDecisionWindow) revert InvalidUnsafeWindow();
+    if (decisionPeriod < MINIMUM_DECISION_WINDOW) revert InvalidUnsafeWindow();
     _setSafeWindow(_safeWindow);
   }
 
