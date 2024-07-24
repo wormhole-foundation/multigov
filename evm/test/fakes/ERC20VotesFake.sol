@@ -16,12 +16,6 @@ contract ERC20VotesFake is ERC20Mock, ERC20Permit, ERC20Votes {
     return Time.timestamp();
   }
 
-  function CLOCK_MODE() public view virtual override returns (string memory) {
-    // Check that the clock was not modified
-    if (clock() != Time.timestamp()) revert ERC6372InconsistentClock();
-    return "mode=timestamp";
-  }
-
   function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Votes) {
     ERC20Votes._update(from, to, amount);
   }
