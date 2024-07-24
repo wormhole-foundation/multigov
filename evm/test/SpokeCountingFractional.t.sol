@@ -29,7 +29,7 @@ contract SpokeCountingFractionalTest is Test {
     return _voteData;
   }
 
-  function _getTotalWeight(SpokeCountingFractional.ProposalVote memory _votes) internal returns (uint256) {
+  function _getTotalWeight(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (uint256) {
     return uint256(_votes.againstVotes) + _votes.forVotes + _votes.abstainVotes;
   }
 }
