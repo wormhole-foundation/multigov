@@ -68,7 +68,7 @@ contract HubProposalPoolTest is WormholeEthQueryTest, AddressUtils, ProposalTest
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
       hubVotePool: address(hubVotePool),
-      whitelistedVoteExtender: address(extender),
+      governorProposalExtender: address(extender),
       initialVoteWindow: VOTE_WINDOW
     });
 
