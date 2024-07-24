@@ -25,7 +25,7 @@ contract SpokeMetadataCollector is QueryResponse {
   error InvalidWormholeMessage(string);
   error TooManyQueryResponses(uint256);
   error SenderChainMismatch();
-  error TooManyEthCallResults(uint256);
+  error TooManyEthCallResults(uint256, uint256);
 
   event ProposalCreated(uint256 proposalId, uint256 start);
 
@@ -48,18 +48,19 @@ contract SpokeMetadataCollector is QueryResponse {
     if (perChainResp.chainId != HUB_CHAIN_ID) revert SenderChainMismatch();
 
     uint256 numResponses = _queryResponse.responses.length;
-    if (numResponses != 1) revert TooManyQueryResponses(numResponses);
 
-    EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_queryResponse.responses[0]);
-    if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
-    if (_ethCalls.result[0].contractAddress != HUB_PROPOSAL_METADATA) {
-      revert InvalidWormholeMessage("Query data must be from hub proposal metadata contract");
+    for (uint256 i = 0; i < numResponses; i++) {
+      EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_queryResponse.responses[i]);
+      if (_ethCalls.result.length != 1) revert TooManyEthCallResults(i, _ethCalls.result.length);
+      if (_ethCalls.result[0].contractAddress != HUB_PROPOSAL_METADATA) {
+        revert InvalidWormholeMessage("Query data must be from hub proposal metadata contract");
+      }
+      (uint256 proposalId, uint256 voteStart) = abi.decode(_ethCalls.result[0].result, (uint256, uint256));
+
+      // If the proposal exists we can revert (prevent overwriting existing proposals with old zeroes)
+      if (proposals[proposalId].voteStart != 0) revert ProposalAlreadyExists();
+      _addProposal(proposalId, voteStart);
     }
-    (uint256 proposalId, uint256 voteStart) = abi.decode(_ethCalls.result[0].result, (uint256, uint256));
-
-    // If the proposal exists we can revert (prevent overwriting existing proposals with old zeroes)
-    if (proposals[proposalId].voteStart != 0) revert ProposalAlreadyExists();
-    _addProposal(proposalId, voteStart);
   }
 
   function _addProposal(uint256 proposalId, uint256 voteStart) internal {
