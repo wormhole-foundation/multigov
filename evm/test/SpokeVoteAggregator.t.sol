@@ -32,11 +32,6 @@ contract SpokeVoteAggregatorTest is Test {
     spokeVoteAggregator = new SpokeVoteAggregatorHarness(address(spokeMetadataCollector), address(token), owner, 1 days);
   }
 
-  function _boundProposalTime(uint48 _voteStart) internal pure returns (uint48) {
-    _voteStart = uint48(bound(_voteStart, 1, type(uint48).max - 2));
-    return _voteStart;
-  }
-
   function _getVoteData(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (bytes memory) {
     uint128 remainingVotes = type(uint128).max;
 
@@ -116,7 +111,6 @@ contract CastVote is SpokeVoteAggregatorTest {
   {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    _voteStart = _boundProposalTime(_voteStart);
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _getValidVoteStart(_voteStart);
@@ -137,7 +131,6 @@ contract CastVote is SpokeVoteAggregatorTest {
   {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    _voteStart = _boundProposalTime(_voteStart);
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _getValidVoteStart(_voteStart);
@@ -162,7 +155,6 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
     _voteStart = uint32(bound(_voteStart, 2, type(uint32).max));
     _support = uint8(bound(_support, 0, 2));
-    _voteStart = _boundProposalTime(_voteStart);
 
     uint48 voteStart = _getValidVoteStart(_voteStart);
 
@@ -184,7 +176,6 @@ contract CastVote is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    _voteStart = _boundProposalTime(_voteStart);
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _getValidVoteStart(_voteStart);
@@ -210,7 +201,6 @@ contract CastVote is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_caller != address(0));
     _support = uint8(bound(_support, 0, 2));
-    _voteStart = _boundProposalTime(_voteStart);
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _getValidVoteStart(_voteStart);
@@ -238,7 +228,6 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    _voteStart = _boundProposalTime(_voteStart);
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _getValidVoteStart(_voteStart);
@@ -262,7 +251,6 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    _voteStart = _boundProposalTime(_voteStart);
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _getValidVoteStart(_voteStart);
@@ -311,7 +299,6 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
     _support = uint8(bound(_support, 0, 2));
-    _voteStart = _boundProposalTime(_voteStart);
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _getValidVoteStart(_voteStart);
