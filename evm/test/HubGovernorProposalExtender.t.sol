@@ -225,6 +225,20 @@ contract SetProposalExtension is HubGovernorProposalExtenderTest {
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     hubExtender.setProposalExtension(_extensionTime);
   }
+
+  function testFuzz_RevertIf_ExtensionTimeGreaterThanVotingPeriod() public {
+    uint48 invalidExtensionTime = uint48(governor.votingPeriod()) + 1;
+    vm.prank(hubExtender.owner());
+    vm.expectRevert(HubGovernorProposalExtender.InvalidExtensionTime.selector);
+    extender.setProposalExtension(invalidExtensionTime);
+  }
+
+  function testFuzz_RevertIf_ExtensionTimeBelowMinimum() public {
+    uint48 invalidExtensionTime = hubExtender.MINIMUM_EXTENSION_TIME() - 1;
+    vm.prank(hubExtender.owner());
+    vm.expectRevert(HubGovernorProposalExtender.InvalidExtensionTime.selector);
+    extender.setProposalExtension(invalidExtensionTime);
+  }
 }
 
 contract SetWhitelistedVoteExtender is HubGovernorProposalExtenderTest {
