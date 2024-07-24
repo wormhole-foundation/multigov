@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {Test, console2} from "forge-std/Test.sol";
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -47,7 +46,7 @@ contract HubGovernor is
     uint256 initialProposalThreshold;
     uint208 initialQuorum;
     address hubVotePool;
-    address whitelistedVoteExtender;
+    address governorProposalExtender;
     uint48 initialVoteWindow;
   }
 
@@ -60,8 +59,8 @@ contract HubGovernor is
     GovernorMinimumWeightedVoteWindow(_params.initialVoteWindow)
   {
     _setHubVotePool(_params.hubVotePool);
-    if (_params.whitelistedVoteExtender.code.length == 0) revert InvalidProposalExtender();
-    GOVERNOR_PROPOSAL_EXTENDER = IVoteExtender(_params.whitelistedVoteExtender);
+    if (_params.governorProposalExtender.code.length == 0) revert InvalidProposalExtender();
+    GOVERNOR_PROPOSAL_EXTENDER = IVoteExtender(_params.governorProposalExtender);
   }
 
   function setHubVotePool(address _hubVotePool) external {
@@ -164,7 +163,7 @@ contract HubGovernor is
 
   function setVotingPeriod(uint32 newVotingPeriod) public virtual override {
     _checkGovernance();
-    if (newVotingPeriod < GOVERNOR_PROPOSAL_EXTENDER.minimumExtensionTime()) {
+    if (newVotingPeriod < GOVERNOR_PROPOSAL_EXTENDER.MINIMUM_EXTENSION_TIME()) {
       revert GovernorInvalidVotingPeriod(newVotingPeriod);
     }
     return _setVotingPeriod(newVotingPeriod);

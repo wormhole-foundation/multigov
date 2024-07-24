@@ -28,11 +28,11 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
 
   address initialOwner;
 
-  uint48 VOTE_WINDOW = 1 days;
-  uint48 MINIMUM_VOTE_EXTENSION = 1 hours;
-  uint48 VOTE_TIME_EXTENSION = 1 days;
-  uint48 MINIMUM_DESCISION_WINDOW = 1 hours;
-  uint32 SAFE_WINDOW = 1 days;
+  uint48 constant VOTE_WINDOW = 1 days;
+  uint48 constant MINIMUM_VOTE_EXTENSION = 1 hours;
+  uint48 constant VOTE_TIME_EXTENSION = 1 days;
+  uint48 constant MINIMUM_DECISION_WINDOW = 1 hours;
+  uint32 constant SAFE_WINDOW = 1 days;
 
   function setUp() public virtual {
     _setupWormhole();
@@ -40,7 +40,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
     extender = new HubGovernorProposalExtender(
-      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
+      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DECISION_WINDOW
     );
 
     hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
@@ -54,7 +54,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialProposalThreshold: 500_000e18,
       initialQuorum: 100e18,
       hubVotePool: address(hubVotePool),
-      whitelistedVoteExtender: address(extender),
+      governorProposalExtender: address(extender),
       initialVoteWindow: VOTE_WINDOW
     });
 
@@ -156,7 +156,7 @@ contract Constructor is HubGovernorTest {
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
       hubVotePool: _hubVotePool,
-      whitelistedVoteExtender: _voteExtender,
+      governorProposalExtender: _voteExtender,
       initialVoteWindow: 1 days
     });
 
@@ -195,7 +195,7 @@ contract Constructor is HubGovernorTest {
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
       hubVotePool: _hubVotePool,
-      whitelistedVoteExtender: _voteExtender,
+      governorProposalExtender: _voteExtender,
       initialVoteWindow: 1 days
     });
 
@@ -222,7 +222,7 @@ contract Constructor is HubGovernorTest {
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
       hubVotePool: _hubVotePool,
-      whitelistedVoteExtender: _voteExtender,
+      governorProposalExtender: _voteExtender,
       initialVoteWindow: 1 days
     });
 
