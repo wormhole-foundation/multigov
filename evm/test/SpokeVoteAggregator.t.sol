@@ -93,7 +93,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -112,7 +112,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -132,7 +132,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -155,7 +155,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     _voteStart = uint32(bound(_voteStart, 2, type(uint32).max));
     _support = uint8(bound(_support, 0, 2));
 
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -177,7 +177,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     _support = uint8(bound(_support, 0, 2));
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
@@ -197,7 +197,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
     _support = uint8(bound(_support, 0, 2));
 
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -220,7 +220,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -243,7 +243,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -266,7 +266,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -291,7 +291,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     _support = uint8(bound(_support, 0, 2));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -312,7 +312,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _support = uint8(bound(_support, 0, 2));
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -334,7 +334,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     _support = uint8(bound(_support, 0, 2));
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
@@ -360,7 +360,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.assume(_caller != address(0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -380,7 +380,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     string memory _reason
   ) public {
     vm.assume(_caller != address(0));
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -418,7 +418,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_amount, 0, 0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -444,7 +444,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, _amount, 0));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -470,7 +470,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, 0, _amount));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -499,7 +499,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     vm.assume(_totalWeight != 0);
 
     _mintAndDelegate(_caller, _totalWeight);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -540,7 +540,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     vm.assume(vote2Total != 0); // Ensure vote2 votes are not all 0 to prevent an "all weight cast" revert
 
     _mintAndDelegate(_caller, _totalVotes);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
     vm.warp(voteStart);
@@ -581,7 +581,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     SpokeCountingFractional.ProposalVote memory _votes
   ) public {
     vm.assume(_caller != address(0));
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     _support = uint8(bound(_support, 0, 2));
     bytes memory _params = _getVoteData(_votes);
@@ -610,7 +610,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     vm.assume(_totalWeight != 0);
 
     _mintAndDelegate(_caller, _totalWeight);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -639,7 +639,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     _support = uint8(bound(_support, 0, 2));
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -659,7 +659,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     bytes memory _params
   ) public {
     vm.assume(_caller != address(0));
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -695,7 +695,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -721,7 +721,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -747,7 +747,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -774,7 +774,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     (address _caller, uint256 _callerPrivateKey) = makeAddrAndKey(_callerName);
 
     _mintAndDelegate(_caller, _amount);
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
 
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
@@ -810,7 +810,7 @@ contract SetVoteWeightWindow is SpokeVoteAggregatorTest {
 
 contract VoteActiveInternal is SpokeVoteAggregatorTest {
   function testFuzz_VoteActiveInternalBeforeStart(uint256 _proposalId, uint48 _voteStart) public {
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
     vm.warp(voteStart - 1);
@@ -818,7 +818,7 @@ contract VoteActiveInternal is SpokeVoteAggregatorTest {
   }
 
   function testFuzz_VoteActiveInternalAtStart(uint256 _proposalId, uint48 _voteStart) public {
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
 
     vm.warp(voteStart);
@@ -826,7 +826,7 @@ contract VoteActiveInternal is SpokeVoteAggregatorTest {
   }
 
   function testFuzz_VoteActiveInternalAfterStart(uint256 _proposalId, uint48 _voteStart, uint48 _timeDelta) public {
-    uint48 voteStart = _getValidVoteStart(_voteStart);
+    uint48 voteStart = _boundVoteStart(_voteStart);
     _timeDelta = uint48(bound(_timeDelta, 0, type(uint48).max - voteStart));
     spokeMetadataCollector.workaround_createProposal(_proposalId, voteStart);
     vm.warp(voteStart + _timeDelta);
