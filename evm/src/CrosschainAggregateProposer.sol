@@ -15,22 +15,40 @@ import {
 contract CrosschainAggregateProposer is QueryResponse, Ownable {
   IGovernor public immutable HUB_GOVERNOR;
   IWormhole public immutable WORMHOLE_CORE;
+  uint48 public minAllowedTimeDelta;
 
   mapping(uint16 => address) public registeredSpokes;
 
   error InsufficientVoteWeight();
   error InvalidCallDataLength();
   error InvalidCaller(address expected, address actual);
+  error InvalidTimeDelta();
   error InvalidTimestamp();
   error TooManyEthCallResults(uint256);
   error UnregisteredSpoke(uint16 chainId, address tokenAddress);
   error ZeroTokenAddress();
 
   event SpokeRegistered(uint16 chainId, address spokeAddress);
+  event MinAllowedTimeDeltaUpdated(uint256 oldMinAllowedTimeDelta, uint256 newMinAllowedTimeDelta);
 
-  constructor(address _core, address _hubGovernor) QueryResponse(_core) Ownable(_hubGovernor) {
+  constructor(address _core, address _hubGovernor, uint48 _initialMinAllowedTimeDelta)
+    QueryResponse(_core)
+    Ownable(_hubGovernor)
+  {
     WORMHOLE_CORE = IWormhole(_core);
     HUB_GOVERNOR = IGovernor(_hubGovernor);
+    minAllowedTimeDelta = _initialMinAllowedTimeDelta;
+  }
+
+  function setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) external onlyOwner {
+    _checkOwner();
+    _setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
+  }
+
+  function _setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) internal {
+    if (_newMinAllowedTimeDelta == 0) revert InvalidTimeDelta();
+    emit MinAllowedTimeDeltaUpdated(minAllowedTimeDelta, _newMinAllowedTimeDelta);
+    minAllowedTimeDelta = _newMinAllowedTimeDelta;
   }
 
   function checkAndProposeIfEligible(
@@ -56,14 +74,17 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
   {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     uint256 totalVoteWeight = 0;
-    uint256 timestampToCheck = block.timestamp;
+    uint256 currentTimestamp = block.timestamp;
+    uint256 oldestAllowedTimestamp = currentTimestamp - minAllowedTimeDelta;
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
       EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
 
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
-      if (_ethCalls.blockTime != timestampToCheck) revert InvalidTimestamp();
+
+      uint64 queryBlockTime = _ethCalls.blockTime;
+      if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) revert InvalidTimestamp();
 
       address registeredSpokeAddress = registeredSpokes[perChainResp.chainId];
       address queriedAddress = _ethCalls.result[0].contractAddress;
