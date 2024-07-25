@@ -774,6 +774,39 @@ contract RegisterSpoke is CrosschainAggregateProposerTest {
   }
 }
 
+contract SetMinAllowedTimeDelta is CrosschainAggregateProposerTest {
+  function testFuzz_CorrectlySetMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) public {
+    vm.assume(_newMinAllowedTimeDelta != 0);
+    vm.prank(crosschainAggregateProposer.owner());
+    crosschainAggregateProposer.setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
+    assertEq(crosschainAggregateProposer.minAllowedTimeDelta(), _newMinAllowedTimeDelta);
+  }
+
+  function testFuzz_EmitsMinAllowedTimeDeltaUpdatedEvent(uint48 _newMinAllowedTimeDelta) public {
+    vm.assume(_newMinAllowedTimeDelta != 0);
+    vm.expectEmit();
+    emit CrosschainAggregateProposer.MinAllowedTimeDeltaUpdated(
+      crosschainAggregateProposer.minAllowedTimeDelta(), _newMinAllowedTimeDelta
+    );
+    vm.prank(crosschainAggregateProposer.owner());
+    crosschainAggregateProposer.setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
+  }
+
+  function testFuzz_RevertIf_NotCalledByOwner(uint48 _newMinAllowedTimeDelta, address _caller) public {
+    vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_newMinAllowedTimeDelta != 0);
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    crosschainAggregateProposer.setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
+  }
+
+  function test_RevertIf_ZeroTimeDelta() public {
+    vm.prank(crosschainAggregateProposer.owner());
+    vm.expectRevert(CrosschainAggregateProposer.InvalidTimeDelta.selector);
+    crosschainAggregateProposer.setMinAllowedTimeDelta(0);
+  }
+}
+
 contract _ExtractAccountFromCalldata is CrosschainAggregateProposerTest {
   function testFuzz_CorrectlyExtractsAccountFromCalldata(address _account) public view {
     // Simulate the calldata for a getVotes(address) function call

@@ -40,17 +40,6 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
     minAllowedTimeDelta = _initialMinAllowedTimeDelta;
   }
 
-  function setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) external onlyOwner {
-    _checkOwner();
-    _setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
-  }
-
-  function _setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) internal {
-    if (_newMinAllowedTimeDelta == 0) revert InvalidTimeDelta();
-    emit MinAllowedTimeDeltaUpdated(minAllowedTimeDelta, _newMinAllowedTimeDelta);
-    minAllowedTimeDelta = _newMinAllowedTimeDelta;
-  }
-
   function checkAndProposeIfEligible(
     address[] memory targets,
     uint256[] memory values,
@@ -121,6 +110,17 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
     if (spokeAddress == address(0)) revert ZeroTokenAddress();
     registeredSpokes[chainId] = spokeAddress;
     emit SpokeRegistered(chainId, spokeAddress);
+  }
+
+  function setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) external onlyOwner {
+    _checkOwner();
+    _setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
+  }
+
+  function _setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) internal {
+    if (_newMinAllowedTimeDelta == 0) revert InvalidTimeDelta();
+    emit MinAllowedTimeDeltaUpdated(minAllowedTimeDelta, _newMinAllowedTimeDelta);
+    minAllowedTimeDelta = _newMinAllowedTimeDelta;
   }
 
   function _extractAccountFromCalldata(bytes memory callData) internal pure returns (address) {
