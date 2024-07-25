@@ -681,6 +681,56 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
   }
+
+  function testFuzz_RevertIf_LessThanMinAllowedTimeDelta(address _caller, uint64 _timestamp) public {
+    _warpToValidTimestamp();
+
+    uint64[] memory timestamps = new uint64[](1);
+    timestamps[0] = uint64(vm.getBlockTimestamp()) - crosschainAggregateProposer.minAllowedTimeDelta() - 1;
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] =
+      VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 1, spokeAddress: makeAddr("SpokeAddress")});
+
+    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, address(hubGovernor), timestamps);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(CrosschainAggregateProposer.InvalidTimestamp.selector));
+    crosschainAggregateProposer.checkAndProposeIfEligible(
+      targets, values, calldatas, "Test Proposal", queryResponse, signatures
+    );
+  }
+
+  function testFuzz_RevertIf_QueryTimestampGreaterThanCurrentTimestamp(address _caller, uint64 _timestamp) public {
+    _warpToValidTimestamp();
+
+    uint64[] memory timestamps = new uint64[](1);
+    timestamps[0] = uint64(vm.getBlockTimestamp()) + 1;
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] =
+      VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 1, spokeAddress: makeAddr("SpokeAddress")});
+
+    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, address(hubGovernor), timestamps);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(CrosschainAggregateProposer.InvalidTimestamp.selector));
+    crosschainAggregateProposer.checkAndProposeIfEligible(
+      targets, values, calldatas, "Test Proposal", queryResponse, signatures
+    );
+  }
 }
 
 contract RegisterSpoke is CrosschainAggregateProposerTest {

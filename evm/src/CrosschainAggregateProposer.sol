@@ -29,7 +29,7 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
   error ZeroTokenAddress();
 
   event SpokeRegistered(uint16 chainId, address spokeAddress);
-  event MinAllowedTimeDeltaUpdated(uint256 oldMinAllowedTimeDelta, uint256 newMinAllowedTimeDelta);
+  event MinAllowedTimeDeltaUpdated(uint48 oldMinAllowedTimeDelta, uint48 newMinAllowedTimeDelta);
 
   constructor(address _core, address _hubGovernor, uint48 _initialMinAllowedTimeDelta)
     QueryResponse(_core)
