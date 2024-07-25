@@ -192,6 +192,58 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
     );
   }
 
+  function _mockQueryResponseWithCustomTimestamps(
+    VoteWeight[] memory _voteWeights,
+    address _caller,
+    uint64[] memory _timestamps
+  ) internal view returns (bytes memory) {
+    bytes memory queryRequestBytes = "";
+    bytes memory perChainResponses = "";
+
+    for (uint256 i = 0; i < _voteWeights.length; i++) {
+      uint256 voteWeight = _voteWeights[i].voteWeight;
+      uint16 chainId = _voteWeights[i].chainId;
+      address spokeAddress = _voteWeights[i].spokeAddress;
+
+      bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+        bytes("0x1296c33"),
+        1,
+        QueryTest.buildEthCallDataBytes(
+          spokeAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, vm.getBlockTimestamp())
+        )
+      );
+
+      queryRequestBytes = abi.encodePacked(
+        queryRequestBytes,
+        QueryTest.buildPerChainRequestBytes(chainId, crosschainAggregateProposer.QT_ETH_CALL(), ethCall)
+      );
+
+      bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+        uint64(block.number),
+        blockhash(block.number),
+        _timestamps[i], // Use custom timestamp
+        1,
+        QueryTest.buildEthCallResultBytes(abi.encode(voteWeight))
+      );
+
+      perChainResponses = abi.encodePacked(
+        perChainResponses,
+        QueryTest.buildPerChainResponseBytes(chainId, crosschainAggregateProposer.QT_ETH_CALL(), ethCallResp)
+      );
+    }
+
+    bytes memory response = QueryTest.buildQueryResponseBytes(
+      VERSION,
+      OFF_CHAIN_SENDER,
+      OFF_CHAIN_SIGNATURE,
+      QueryTest.buildOffChainQueryRequestBytes(VERSION, 0, uint8(_voteWeights.length), queryRequestBytes),
+      uint8(_voteWeights.length),
+      perChainResponses
+    );
+
+    return response;
+  }
+
   function _getSignatures(bytes memory response) internal view returns (IWormhole.Signature[] memory) {
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(response, address(crosschainAggregateProposer));
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
@@ -259,16 +311,43 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     return false;
   }
 
+  function _warpToValidTimestamp() internal {
+    uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
+    vm.warp(vm.getBlockTimestamp() + windowLength);
+  }
+
   function _testCheckAndProposeIfEligible(VoteWeight[] memory voteWeights, string memory _description, address _caller)
     internal
   {
     bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
     vm.assume(thresholdMet);
 
-    uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
-    vm.warp(vm.getBlockTimestamp() + windowLength);
+    _warpToValidTimestamp();
 
     bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+
+    vm.startPrank(_caller);
+    uint256 proposalId = crosschainAggregateProposer.checkAndProposeIfEligible(
+      builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
+    );
+    vm.stopPrank();
+
+    assertTrue(proposalId > 0, "Proposal should be created");
+  }
+
+  function _testCheckAndProposeIfEligibleCustomTimepoints(
+    VoteWeight[] memory voteWeights,
+    string memory _description,
+    address _caller,
+    uint64[] memory _timestamps
+  ) internal {
+    bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
+    vm.assume(thresholdMet);
+
+    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, _timestamps);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     ProposalBuilder builder = _createArbitraryProposal();
@@ -358,6 +437,40 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     voteWeights[2] = VoteWeight({voteWeight: _voteWeight3, chainId: _chainId3, spokeAddress: _spokeAddress3});
 
     _testCheckAndProposeIfEligible(voteWeights, _description, _caller);
+  }
+
+  function testFuzz_WithValidTimestamps(
+    address _caller,
+    uint128 _voteWeight1,
+    uint128 _voteWeight2,
+    uint128 _voteWeight3,
+    address _spokeAddress1,
+    address _spokeAddress2,
+    address _spokeAddress3
+  ) public {
+    vm.assume(_spokeAddress1 != address(0) && _spokeAddress2 != address(0) && _spokeAddress3 != address(0));
+    vm.assume(_spokeAddress1 != _spokeAddress2 && _spokeAddress1 != _spokeAddress3 && _spokeAddress2 != _spokeAddress3);
+    vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
+    _warpToValidTimestamp();
+
+    uint64 timestamp = uint64(vm.getBlockTimestamp());
+    uint64[] memory timestamps = new uint64[](3);
+    timestamps[0] = timestamp;
+    timestamps[1] = timestamp;
+    timestamps[2] = timestamp;
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](3);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight1, chainId: 1, spokeAddress: _spokeAddress1});
+    voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: 2, spokeAddress: _spokeAddress2});
+    voteWeights[2] = VoteWeight({voteWeight: _voteWeight3, chainId: 3, spokeAddress: _spokeAddress3});
+
+    vm.startPrank(crosschainAggregateProposer.owner());
+    crosschainAggregateProposer.registerSpoke(1, _spokeAddress1);
+    crosschainAggregateProposer.registerSpoke(2, _spokeAddress2);
+    crosschainAggregateProposer.registerSpoke(3, _spokeAddress3);
+    vm.stopPrank();
+
+    _testCheckAndProposeIfEligibleCustomTimepoints(voteWeights, "Test Proposal", _caller, timestamps);
   }
 
   function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
@@ -519,6 +632,40 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     vm.expectRevert(abi.encodeWithSelector(CrosschainAggregateProposer.TooManyEthCallResults.selector, 2));
     vm.prank(_caller);
     crosschainAggregateProposer.checkAndProposeIfEligible(targets, values, calldatas, _description, _resp, signatures);
+  }
+
+  function testFuzz_RevertIf_InvalidTimestamp(address _caller, uint128 _voteWeight1, uint128 _voteWeight2) public {
+    vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
+    _warpToValidTimestamp();
+
+    uint64 timestamp = uint64(vm.getBlockTimestamp());
+    uint64[] memory timestamps = new uint64[](2);
+    timestamps[0] = timestamp;
+    timestamps[1] = timestamp + 1; // Different timestamp
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](2);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight1, chainId: 1, spokeAddress: makeAddr("SpokeAddress1")});
+    voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: 2, spokeAddress: makeAddr("SpokeAddress2")});
+
+    vm.startPrank(crosschainAggregateProposer.owner());
+    crosschainAggregateProposer.registerSpoke(1, makeAddr("SpokeAddress1"));
+    crosschainAggregateProposer.registerSpoke(2, makeAddr("SpokeAddress2"));
+    vm.stopPrank();
+
+    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, timestamps);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.expectRevert(CrosschainAggregateProposer.InvalidTimestamp.selector);
+    vm.prank(_caller);
+    crosschainAggregateProposer.checkAndProposeIfEligible(
+      targets, values, calldatas, "Test Proposal", queryResponse, signatures
+    );
   }
 }
 

@@ -21,6 +21,7 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
   error InsufficientVoteWeight();
   error InvalidCallDataLength();
   error InvalidCaller(address expected, address actual);
+  error InvalidTimestamp();
   error TooManyEthCallResults(uint256);
   error UnregisteredSpoke(uint16 chainId, address tokenAddress);
   error ZeroTokenAddress();
@@ -55,11 +56,14 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
   {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     uint256 totalVoteWeight = 0;
+    uint256 timestampToCheck = block.timestamp;
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
       EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
+
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
+      if (_ethCalls.blockTime != timestampToCheck) revert InvalidTimestamp();
 
       address registeredSpokeAddress = registeredSpokes[perChainResp.chainId];
       address queriedAddress = _ethCalls.result[0].contractAddress;
