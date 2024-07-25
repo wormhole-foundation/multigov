@@ -6,12 +6,10 @@ import {
 } from "@solana/spl-token";
 import {
   PublicKey,
-  Keypair,
   Transaction,
   Connection,
 } from "@solana/web3.js";
 import * as wasm from "@wormhole/staking-wasm";
-import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
 import { USER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
 
@@ -35,12 +33,6 @@ async function main() {
     const idl = (await Program.fetchIdl(STAKING_ADDRESS, provider))!;
 
     const program = new Program(idl, provider);
-
-    const stakeConnection = await StakeConnection.createStakeConnection(
-      connection,
-      provider.wallet as Wallet,
-      STAKING_ADDRESS
-    );
 
     const transaction = new Transaction();
     const from_account = await getAssociatedTokenAddress(

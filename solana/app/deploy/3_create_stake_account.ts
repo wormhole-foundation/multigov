@@ -35,12 +35,6 @@ async function main() {
       provider
     );
 
-    const stakeConnection = await StakeConnection.createStakeConnection(
-      connection,
-      provider.wallet as Wallet,
-      STAKING_ADDRESS
-    );
-
     const user = provider.wallet.publicKey;
 
     const [metadataAccount, metadataBump] = PublicKey.findProgramAddressSync(

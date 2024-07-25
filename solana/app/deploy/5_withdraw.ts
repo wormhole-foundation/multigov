@@ -33,12 +33,6 @@ async function main() {
 
     const program = new Program(idl, provider);
 
-    const stakeConnection = await StakeConnection.createStakeConnection(
-      connection,
-      provider.wallet as Wallet,
-      STAKING_ADDRESS
-    );
-
     const toAccount = await getAssociatedTokenAddress(
       WORMHOLE_TOKEN,
       provider.wallet.publicKey,
