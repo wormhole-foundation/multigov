@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/staking.json`.
  */
 export type Staking = {
-  "address": "pytS9TjG1qyAZypk7n8rw8gfW9sUaqqYyMhJQ4E7JCQ",
+  "address": "5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ",
   "metadata": {
     "name": "staking",
     "version": "1.3.0",

@@ -16,15 +16,20 @@ import { STAKING_ADDRESS } from "../constants";
 import { AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
 
 async function main() {
-  const stakeAccountSecret = new Keypair();
+  const stakeAccountAddress = new PublicKey(
+    "EHbjaCjypw3HAZMWskLhX1KtmVUDmNFrijPcBtfqH8S3"
+  );
 
   const connection = new Connection(RPC_NODE);
+
   const provider = new AnchorProvider(
     connection,
     new Wallet(AUTHORITY_KEYPAIR),
     {}
   );
+
   const idl = (await Program.fetchIdl(STAKING_ADDRESS, provider))!;
+
   const program = new Program(idl, provider);
 
   const stakeConnection = await StakeConnection.createStakeConnection(
@@ -35,7 +40,7 @@ async function main() {
 
   const transaction = new Transaction();
   const from_account = await getAssociatedTokenAddress(
-    WORMHOLE_TOKEN,
+    WORMHOLE_MINT_ACCOUNT,
     provider.wallet.publicKey,
     true
   );
@@ -44,7 +49,7 @@ async function main() {
     PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-        stakeAccountSecret.publicKey.toBuffer(),
+        stakeAccountAddress.toBuffer(),
       ],
       program.programId
     )
@@ -56,6 +61,7 @@ async function main() {
     provider.wallet.publicKey,
     101
   );
+
   transaction.add(ix);
 
   const tx = await provider.sendAndConfirm(transaction, [], {

@@ -21,7 +21,7 @@ pub struct InitConfig<'info> {
     #[account(mut)]
     pub payer:          Signer<'info>,
     #[account(
-        init,
+        init_if_needed,
         seeds = [CONFIG_SEED.as_bytes()],
         bump,
         payer = payer,
