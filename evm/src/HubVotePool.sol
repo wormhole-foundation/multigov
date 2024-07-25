@@ -97,16 +97,13 @@ contract HubVotePool is QueryResponse, Ownable {
   }
 
   // TODO we will need a Solana method as well
-  function crossChainVote(uint8 queryType, bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures)
-    external
-  {
-    //
-    ICrossChainVote queryVoteImpl = queryTypeVoteImpl[queryType];
-    if (address(queryVoteImpl) == address(0)) revert UnsupportedQueryType();
-    ICrossChainVote.QueryVote[] memory votes = queryVoteImpl.crossChainVote(_queryResponseRaw, _signatures);
+  function crossChainVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
+    ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
+    for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
+      ICrossChainVote queryVoteImpl = queryTypeVoteImpl[_queryResponse.responses[i].queryType];
+      if (address(queryVoteImpl) == address(0)) revert UnsupportedQueryType();
 
-    for (uint256 i = 0; i < votes.length; i++) {
-      ICrossChainVote.QueryVote memory queryVote = votes[i];
+      ICrossChainVote.QueryVote memory queryVote = queryVoteImpl.crossChainVote(_queryResponse.responses[i]);
       ICrossChainVote.ProposalVote memory proposalVote = queryVote.proposalVote;
       ProposalVote memory existingSpokeVote = spokeProposalVotes[queryVote.spokeProposalId];
 
