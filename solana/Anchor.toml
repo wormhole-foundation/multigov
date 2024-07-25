@@ -8,7 +8,6 @@ members = ["programs/staking"]
 
 [programs.localnet]
 staking = "5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ"
-chat = "gCHAtYKrUUktTVzE4hEnZdLV4LXrdBf6Hh9qMaJALET"
 
 [registry]
 url = "https://anchor.projectserum.com"
@@ -26,4 +25,4 @@ ledger_dir = "./.anchor/test-ledger"
 [path]
 idl_path = "./target/idl/staking.json"
 binary_path = "./target/deploy/staking.so"
-chat_path = "./target/deploy/chat.so"
+

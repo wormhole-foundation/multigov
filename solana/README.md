@@ -27,14 +27,6 @@ If you want to create a verifiable build for testing, use the -t option:
 
 The result of the build will be `target` folder.
 
-## Clone the required programs
-
-To clone the governance and chat programs from the Devnet environment, execute the following command:
-
-```bash
-npm run dump_governance
-```
-
 ## Run tests
 
 To run the tests locally use the following command:

@@ -31,7 +31,6 @@ export interface AnchorConfig {
   path: {
     idl_path: string;
     binary_path: string;
-    chat_path: string;
     wallet_tester_path: string;
     profile_path: string;
   };
@@ -42,7 +41,6 @@ export interface AnchorConfig {
   programs: {
     localnet: {
       staking: string;
-      chat: string;
       wallet_tester: string;
       profile: string;
     };
@@ -167,9 +165,7 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
 
   const otherArgs = `--mint ${
     user.publicKey
-  } --reset --bpf-program ${programAddress.toBase58()} ${binaryPath} --bpf-program ${
-    config.programs.localnet.chat
-  } ${config.path.chat_path} --clone ENmcpFCpxN1CqyUjuog9yyUVfdXBKF3LVCwLr7grJZpk -ud`;
+  } --reset --bpf-program ${programAddress.toBase58()} ${binaryPath} -ud`;
 
   const { controller, connection } = await startValidatorRaw(
     portNumber,
