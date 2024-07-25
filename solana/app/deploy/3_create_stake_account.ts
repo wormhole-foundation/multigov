@@ -8,7 +8,7 @@ import {
 import * as wasm from "@wormhole/staking-wasm";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
-import { AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
+import { USER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
 
@@ -25,7 +25,7 @@ async function main() {
 
     const provider = new AnchorProvider(
       connection,
-      new Wallet(AUTHORITY_KEYPAIR),
+      new Wallet(USER_AUTHORITY_KEYPAIR),
       {}
     );
 
