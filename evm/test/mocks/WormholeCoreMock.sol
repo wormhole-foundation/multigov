@@ -24,7 +24,7 @@ contract WormholeCoreMock is WormholeMock {
 
   function parseAndVerifyVM(bytes calldata encodedVM)
     external
-    view
+    pure
     override
     returns (IWormhole.VM memory vm, bool valid, string memory reason)
   {
