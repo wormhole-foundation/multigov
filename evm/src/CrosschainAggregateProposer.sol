@@ -12,7 +12,7 @@ import {
   EthCallQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
-contract HubProposalPool is QueryResponse, Ownable {
+contract CrosschainAggregateProposer is QueryResponse, Ownable {
   IGovernor public immutable HUB_GOVERNOR;
   IWormhole public immutable WORMHOLE_CORE;
 
@@ -57,7 +57,6 @@ contract HubProposalPool is QueryResponse, Ownable {
     uint256 totalVoteWeight = 0;
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
-      // TODO: need to check that the query time is a reasonalbe time against the hub time; reflect current state mostly
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
       EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
