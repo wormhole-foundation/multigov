@@ -759,7 +759,7 @@ contract _GetVotes is HubGovernorTest {
     }
   }
 
-  function testFuzz_GetCorrectVoteWeightWhenTheUserNoWeight(address _account, uint96 _windowStart) public {
+  function testFuzz_GetCorrectVoteWeightWhenTheUserNoWeight(address _account, uint96 _windowStart) public view {
     _windowStart = uint96(bound(_windowStart, VOTE_WINDOW, type(uint96).max));
     uint256 _votingWeight = governor.exposed_getVotes(_account, _windowStart);
     assertEq(_votingWeight, 0);
