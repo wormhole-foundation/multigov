@@ -1,19 +1,16 @@
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet, } from "@coral-xyz/anchor";
 import {
-  createTransferInstruction,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import {
   PublicKey,
-  Keypair,
-  Transaction,
   Connection,
 } from "@solana/web3.js";
-import * as wasm from "@wormhole/staking-wasm";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
 import { AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
+import BN from "bn.js";
 
 async function main() {
   try {
@@ -42,35 +39,20 @@ async function main() {
       STAKING_ADDRESS
     );
 
-    const transaction = new Transaction();
-    const from_account = await getAssociatedTokenAddress(
+    const toAccount = await getAssociatedTokenAddress(
       WORMHOLE_TOKEN,
       provider.wallet.publicKey,
       true
     );
 
-    const toAccount = (
-      PublicKey.findProgramAddressSync(
-        [
-          anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-          stakeAccountAddress.toBuffer(),
-        ],
-        program.programId
-      )
-    )[0];
-
-    const ix = createTransferInstruction(
-      from_account,
-      toAccount,
-      provider.wallet.publicKey,
-      101
-    );
-
-    transaction.add(ix);
-
-    const tx = await provider.sendAndConfirm(transaction, [], {
-      skipPreflight: DEBUG,
-    });
+    await program.methods
+      .withdrawTokens(new BN(1))
+      .accounts({
+        currentDelegateStakeAccountCheckpoints: stakeAccountAddress,
+        stakeAccountCheckpoints: stakeAccountAddress,
+        destination: toAccount,
+      })
+      .rpc({ skipPreflight: DEBUG });
   } catch (err) {
     console.error("Error:", err);
   }

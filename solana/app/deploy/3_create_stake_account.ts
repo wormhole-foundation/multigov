@@ -14,6 +14,8 @@ import fs from "fs";
 
 async function main() {
   try {
+    const DEBUG = true;
+
     const stakeAccountSecret = new Keypair();
 
     console.log(stakeAccountSecret)
@@ -81,7 +83,7 @@ async function main() {
       })
       .signers([stakeAccountSecret])
       .rpc({
-        skipPreflight: true,
+        skipPreflight: DEBUG,
       });
   } catch (err) {
     console.error("Error:", err);
