@@ -61,7 +61,7 @@ contract SpokeVoteAggregatorTest is Test {
   }
 
   // Accounts for the possibility of a vote starting before the vote weight window
-  function _getValidVoteStart(uint48 _voteStart) internal view returns (uint48) {
+  function _boundVoteStart(uint48 _voteStart) internal view returns (uint48) {
     uint256 timestamp = vm.getBlockTimestamp();
     uint48 windowLength = spokeVoteAggregator.getVoteWeightWindowLength(uint96(timestamp));
     uint256 minVoteStart = timestamp + windowLength;
