@@ -55,6 +55,16 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
     return proposalId;
   }
 
+  function registerSpoke(uint16 chainId, address tokenAddress) external {
+    _checkOwner();
+    _registerSpoke(chainId, tokenAddress);
+  }
+
+  function setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) external onlyOwner {
+    _checkOwner();
+    _setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
+  }
+
   function _checkProposalEligibility(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures)
     internal
     view
@@ -100,28 +110,6 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
     return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
   }
 
-  function registerSpoke(uint16 chainId, address tokenAddress) external {
-    _checkOwner();
-    _registerSpoke(chainId, tokenAddress);
-  }
-
-  function _registerSpoke(uint16 chainId, address spokeAddress) internal {
-    if (spokeAddress == address(0)) revert ZeroTokenAddress();
-    registeredSpokes[chainId] = spokeAddress;
-    emit SpokeRegistered(chainId, spokeAddress);
-  }
-
-  function setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) external onlyOwner {
-    _checkOwner();
-    _setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
-  }
-
-  function _setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) internal {
-    if (_newMinAllowedTimeDelta == 0) revert InvalidTimeDelta();
-    emit MinAllowedTimeDeltaUpdated(minAllowedTimeDelta, _newMinAllowedTimeDelta);
-    minAllowedTimeDelta = _newMinAllowedTimeDelta;
-  }
-
   function _extractAccountFromCalldata(bytes memory callData) internal pure returns (address) {
     // Ensure callData is long enough to contain function selector (4 bytes) and an address (20 bytes)
     if (callData.length < 24) revert InvalidCallDataLength();
@@ -132,5 +120,17 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
     }
 
     return extractedAccount;
+  }
+
+  function _registerSpoke(uint16 chainId, address spokeAddress) internal {
+    if (spokeAddress == address(0)) revert ZeroTokenAddress();
+    registeredSpokes[chainId] = spokeAddress;
+    emit SpokeRegistered(chainId, spokeAddress);
+  }
+
+  function _setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) internal {
+    if (_newMinAllowedTimeDelta == 0) revert InvalidTimeDelta();
+    emit MinAllowedTimeDeltaUpdated(minAllowedTimeDelta, _newMinAllowedTimeDelta);
+    minAllowedTimeDelta = _newMinAllowedTimeDelta;
   }
 }
