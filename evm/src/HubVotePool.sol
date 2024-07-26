@@ -15,12 +15,8 @@ import {
 import {ICrossChainVote} from "src/interfaces/ICrossChainVote.sol";
 import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
 
-// 1. On setter for a chain type use supports interface to support how thinhd str made
-// 2. Type is passed into the call on the hub and it uses the appropriate contract. They will be separated but the
-// numbers should follow.
 contract HubVotePool is QueryResponse, Ownable {
   using ERC165Checker for address;
-  // use erc 165 checker for address
 
   IWormhole public immutable WORMHOLE_CORE;
   IGovernor public hubGovernor;
@@ -100,28 +96,28 @@ contract HubVotePool is QueryResponse, Ownable {
   function crossChainVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
-      ICrossChainVote queryVoteImpl = queryTypeVoteImpl[_queryResponse.responses[i].queryType];
-      if (address(queryVoteImpl) == address(0)) revert UnsupportedQueryType();
+      ICrossChainVote voteQueryImpl = queryTypeVoteImpl[_queryResponse.responses[i].queryType];
+      if (address(voteQueryImpl) == address(0)) revert UnsupportedQueryType();
 
-      ICrossChainVote.QueryVote memory queryVote = queryVoteImpl.crossChainVote(_queryResponse.responses[i]);
-      ICrossChainVote.ProposalVote memory proposalVote = queryVote.proposalVote;
-      ProposalVote memory existingSpokeVote = spokeProposalVotes[queryVote.spokeProposalId];
+      ICrossChainVote.QueryVote memory voteQuery = voteQueryImpl.crossChainVote(_queryResponse.responses[i]);
+      ICrossChainVote.ProposalVote memory proposalVote = voteQuery.proposalVote;
+      ProposalVote memory existingSpokeVote = spokeProposalVotes[voteQuery.spokeProposalId];
 
       if (
         existingSpokeVote.againstVotes > proposalVote.againstVotes || existingSpokeVote.forVotes > proposalVote.forVotes
           || existingSpokeVote.abstainVotes > proposalVote.abstainVotes
       ) revert InvalidProposalVote();
 
-      spokeProposalVotes[queryVote.spokeProposalId] =
+      spokeProposalVotes[voteQuery.spokeProposalId] =
         ProposalVote(proposalVote.againstVotes, proposalVote.forVotes, proposalVote.abstainVotes);
       _castVote(
-        queryVote.proposalId,
+        voteQuery.proposalId,
         ProposalVote(
           proposalVote.againstVotes - existingSpokeVote.againstVotes,
           proposalVote.forVotes - existingSpokeVote.forVotes,
           proposalVote.abstainVotes - existingSpokeVote.abstainVotes
         ),
-        queryVote.chainId
+        voteQuery.chainId
       );
     }
   }
