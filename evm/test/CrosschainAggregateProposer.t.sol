@@ -737,10 +737,8 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
 }
 
 contract RegisterSpoke is CrossChainAggregateProposerTest {
-  function testFuzz_CorrectlyRegisterSpoke(uint16 _chainId, address _spokeAddress, address _caller) public {
+  function testFuzz_CorrectlyRegisterSpoke(uint16 _chainId, address _spokeAddress) public {
     vm.assume(_spokeAddress != address(0));
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != address(crossChainAggregateProposer.owner()));
 
     vm.prank(crossChainAggregateProposer.owner());
     crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
