@@ -25,7 +25,6 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
   error InvalidTimestamp();
   error TooManyEthCallResults(uint256);
   error UnregisteredSpoke(uint16 chainId, address tokenAddress);
-  error ZeroTokenAddress();
 
   event SpokeRegistered(uint16 chainId, address spokeAddress);
   event MaxQueryTimestampOffsetUpdated(uint48 oldMaxQueryTimestampOffset, uint48 newMaxQueryTimestampOffset);
@@ -123,7 +122,6 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
   }
 
   function _registerSpoke(uint16 chainId, address spokeAddress) internal {
-    if (spokeAddress == address(0)) revert ZeroTokenAddress();
     registeredSpokes[chainId] = spokeAddress;
     emit SpokeRegistered(chainId, spokeAddress);
   }

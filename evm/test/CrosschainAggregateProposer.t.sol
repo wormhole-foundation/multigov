@@ -766,15 +766,6 @@ contract RegisterSpoke is CrossChainAggregateProposerTest {
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
   }
-
-  function testFuzz_RevertIf_SpokeAddressIsZeroAddress(uint16 _chainId, address _caller) public {
-    vm.assume(_caller != address(0));
-    vm.assume(_caller != address(crossChainAggregateProposer.owner()));
-
-    vm.prank(crossChainAggregateProposer.owner());
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.ZeroTokenAddress.selector));
-    crossChainAggregateProposer.registerSpoke(_chainId, address(0));
-  }
 }
 
 contract SetMaxQueryTimestampOffset is CrossChainAggregateProposerTest {
