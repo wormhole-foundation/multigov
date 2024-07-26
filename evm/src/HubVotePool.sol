@@ -30,6 +30,7 @@ contract HubVotePool is QueryResponse, Ownable {
   error UnsupportedQueryType();
   error InvalidQueryVoteImpl();
 
+  event QueryTypeRegistered(uint16 indexed targetChain, address oldQueryTypeImpl, address newQueryTypeImpl);
   event SpokeVoteCast(
     uint16 indexed emitterChainId, uint256 proposalId, uint256 voteAgainst, uint256 voteFor, uint256 voteAbstain
   );
@@ -78,6 +79,7 @@ contract HubVotePool is QueryResponse, Ownable {
     }
     bool isValid = _implementation.supportsInterface(type(ICrossChainVote).interfaceId);
     if (!isValid) revert InvalidQueryVoteImpl();
+    emit QueryTypeRegistered(_queryType, address(queryTypeVoteImpl[_queryType]), _implementation);
     queryTypeVoteImpl[_queryType] = ICrossChainVote(_implementation);
   }
 
@@ -92,7 +94,6 @@ contract HubVotePool is QueryResponse, Ownable {
     hubGovernor = IGovernor(_newGovernor);
   }
 
-  // TODO we will need a Solana method as well
   function crossChainVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {

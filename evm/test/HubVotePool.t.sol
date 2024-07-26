@@ -252,6 +252,15 @@ contract RegisterQueryType is HubVotePoolTest {
     assertEq(address(hubVotePool.queryTypeVoteImpl(_queryType)), address(hubCrossChainEvmVote));
   }
 
+  function testFuzz_RegisteringQueryTypeEmitsQueryTypeRegisteredEvent(uint8 _queryType) public {
+    vm.startPrank(address(governor));
+    ICrossChainVote current = hubVotePool.queryTypeVoteImpl(_queryType);
+    vm.expectEmit();
+    emit HubVotePool.QueryTypeRegistered(_queryType, address(current), address(hubCrossChainEvmVote));
+    hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
+    vm.stopPrank();
+  }
+
   function testFuzz_CorrectlyResetQueryTypeToZeroAddress(uint8 _queryType) public {
     vm.startPrank(address(governor));
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
