@@ -320,6 +320,11 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     return false;
   }
 
+  function _assumeThresholdMet(VoteWeight[] memory voteWeights) internal {
+    bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
+    vm.assume(thresholdMet);
+  }
+
   function _warpToValidTimestamp() internal {
     uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
     vm.warp(vm.getBlockTimestamp() + windowLength);
@@ -356,20 +361,27 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     address[] memory targets,
     uint256[] memory values,
     bytes[] memory calldatas,
-    string memory _description,
     address _caller,
     uint64[] memory _timestamps
-  ) internal returns (uint256) {
+  ) public returns (uint256) {
     bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, _timestamps);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     vm.startPrank(_caller);
     uint256 proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
-      targets, values, calldatas, _description, queryResponse, signatures
+      targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
     vm.stopPrank();
 
     return proposalId;
+  }
+
+  function _setupValidTimestamps() internal returns (uint64[] memory) {
+    uint64 timestamp = uint64(vm.getBlockTimestamp());
+    uint64[] memory timestamps = new uint64[](3);
+    timestamps[0] = timestamp;
+    timestamps[1] = timestamp;
+    timestamps[2] = timestamp;
   }
 
   function testFuzz_CorrectlyCheckAndProposeIfEligibleSingleVoteWeight(
@@ -386,8 +398,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
 
     _warpToValidTimestamp();
-    bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
-    vm.assume(thresholdMet);
+    _assumeThresholdMet(voteWeights);
 
     _registerSpokes(voteWeights);
     ProposalBuilder builder = _createArbitraryProposal();
@@ -424,8 +435,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: _chainId2, spokeAddress: _spokeAddress2});
 
     _warpToValidTimestamp();
-    bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
-    vm.assume(thresholdMet);
+    _assumeThresholdMet(voteWeights);
 
     _registerSpokes(voteWeights);
     ProposalBuilder builder = _createArbitraryProposal();
@@ -466,8 +476,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     voteWeights[2] = VoteWeight({voteWeight: _voteWeight3, chainId: _chainId3, spokeAddress: _spokeAddress3});
 
     _warpToValidTimestamp();
-    bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
-    vm.assume(thresholdMet);
+    _assumeThresholdMet(voteWeights);
 
     _registerSpokes(voteWeights);
     ProposalBuilder builder = _createArbitraryProposal();
@@ -488,46 +497,32 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     address _caller,
     uint128 _voteWeight1,
     uint128 _voteWeight2,
-    uint128 _voteWeight3,
-    address _spokeAddress1,
-    address _spokeAddress2,
-    address _spokeAddress3,
-    string memory _description
+    uint128 _voteWeight3
   ) public {
-    vm.assume(_spokeAddress1 != address(0) && _spokeAddress2 != address(0) && _spokeAddress3 != address(0));
-    vm.assume(_spokeAddress1 != _spokeAddress2 && _spokeAddress1 != _spokeAddress3 && _spokeAddress2 != _spokeAddress3);
     vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
     _warpToValidTimestamp();
 
-    uint64 timestamp = uint64(vm.getBlockTimestamp());
-    uint64[] memory timestamps = new uint64[](3);
-    timestamps[0] = timestamp;
-    timestamps[1] = timestamp;
-    timestamps[2] = timestamp;
-
     VoteWeight[] memory voteWeights = new VoteWeight[](3);
-    voteWeights[0] = VoteWeight({voteWeight: _voteWeight1, chainId: 1, spokeAddress: _spokeAddress1});
-    voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: 2, spokeAddress: _spokeAddress2});
-    voteWeights[2] = VoteWeight({voteWeight: _voteWeight3, chainId: 3, spokeAddress: _spokeAddress3});
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight1, chainId: 1, spokeAddress: makeAddr("SpokeAddress1")});
+    voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: 2, spokeAddress: makeAddr("SpokeAddress2")});
+    voteWeights[2] = VoteWeight({voteWeight: _voteWeight3, chainId: 3, spokeAddress: makeAddr("SpokeAddress3")});
 
-    bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
-    vm.assume(thresholdMet);
+    uint64[] memory timestamps = _setupValidTimestamps();
+
+    _assumeThresholdMet(voteWeights);
 
     _registerSpokes(voteWeights);
     ProposalBuilder builder = _createArbitraryProposal();
-    address[] memory targets = builder.targets();
-    uint256[] memory values = builder.values();
-    bytes[] memory calldatas = builder.calldatas();
+
+    address[] memory _targets = builder.targets();
+    uint256[] memory _values = builder.values();
+    bytes[] memory _calldatas = builder.calldatas();
 
     uint256 proposalId = _setupAndExecuteProposalIfEligibleCustomTimepoints(
-      voteWeights, targets, values, calldatas, _description, _caller, timestamps
+      voteWeights, _targets, _values, _calldatas, _caller, timestamps
     );
 
-    assertEq(
-      hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
-      proposalId,
-      "Proposal ID should match the hash of the proposal"
-    );
+    assertEq(hubGovernor.hashProposal(_targets, _values, _calldatas, keccak256(bytes("Test Proposal"))), proposalId);
   }
 
   function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
