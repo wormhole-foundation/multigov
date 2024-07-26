@@ -28,7 +28,7 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
   TimelockControllerFake public timelock;
   HubGovernorProposalExtender public extender;
 
-  uint48 public constant INITIAL_MIN_ALLOWED_TIME_DELTA = 1 hours;
+  uint48 public constant INITIAL_MAX_QUERY_TIMESTAMP_OFFSET = 1 hours;
 
   uint48 public constant INITIAL_VOTING_DELAY = 1 days;
   uint32 public constant INITIAL_VOTING_PERIOD = 1 days;
@@ -76,8 +76,9 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 
     hubGovernor = new HubGovernorHarness(params);
 
-    crosschainAggregateProposer =
-      new CrosschainAggregateProposerHarness(address(wormhole), address(hubGovernor), INITIAL_MIN_ALLOWED_TIME_DELTA);
+    crosschainAggregateProposer = new CrosschainAggregateProposerHarness(
+      address(wormhole), address(hubGovernor), INITIAL_MAX_QUERY_TIMESTAMP_OFFSET
+    );
     hubGovernor.exposed_setWhitelistedProposer(address(crosschainAggregateProposer));
 
     vm.prank(initialOwner);
@@ -274,27 +275,29 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 }
 
 contract Constructor is Test {
-  function testFuzz_CorrectlySetConstructorArgs(address _core, address _hubGovernor, uint48 _initialMinAllowedTimeDelta)
-    public
-  {
+  function testFuzz_CorrectlySetConstructorArgs(
+    address _core,
+    address _hubGovernor,
+    uint48 _initialMaxQueryTimestampOffset
+  ) public {
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
 
     CrosschainAggregateProposer crosschainAggregateProposer =
-      new CrosschainAggregateProposer(_core, _hubGovernor, _initialMinAllowedTimeDelta);
+      new CrosschainAggregateProposer(_core, _hubGovernor, _initialMaxQueryTimestampOffset);
     assertEq(address(crosschainAggregateProposer.WORMHOLE_CORE()), _core);
     assertEq(address(crosschainAggregateProposer.HUB_GOVERNOR()), _hubGovernor);
   }
 
-  function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, uint48 _initialMinAllowedTimeDelta) public {
+  function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, uint48 _initialMaxQueryTimestampOffset) public {
     vm.expectRevert(EmptyWormholeAddress.selector);
-    new CrosschainAggregateProposer(address(0), _hubGovernor, _initialMinAllowedTimeDelta);
+    new CrosschainAggregateProposer(address(0), _hubGovernor, _initialMaxQueryTimestampOffset);
   }
 
-  function testFuzz_RevertIf_HubGovernorIsZeroAddress(address _core, uint48 _initialMinAllowedTimeDelta) public {
+  function testFuzz_RevertIf_HubGovernorIsZeroAddress(address _core, uint48 _initialMaxQueryTimestampOffset) public {
     vm.assume(_core != address(0));
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-    new CrosschainAggregateProposer(_core, address(0), _initialMinAllowedTimeDelta);
+    new CrosschainAggregateProposer(_core, address(0), _initialMaxQueryTimestampOffset);
   }
 }
 
@@ -682,11 +685,11 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     );
   }
 
-  function testFuzz_RevertIf_LessThanMinAllowedTimeDelta(address _caller, uint64 _timestamp) public {
+  function testFuzz_RevertIf_LessThanMaxQueryTimestampOffset(address _caller, uint64 _timestamp) public {
     _warpToValidTimestamp();
 
     uint64[] memory timestamps = new uint64[](1);
-    timestamps[0] = uint64(vm.getBlockTimestamp()) - crosschainAggregateProposer.minAllowedTimeDelta() - 1;
+    timestamps[0] = uint64(vm.getBlockTimestamp()) - crosschainAggregateProposer.maxQueryTimestampOffset() - 1;
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] =
@@ -774,36 +777,36 @@ contract RegisterSpoke is CrosschainAggregateProposerTest {
   }
 }
 
-contract SetMinAllowedTimeDelta is CrosschainAggregateProposerTest {
-  function testFuzz_CorrectlySetMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) public {
-    vm.assume(_newMinAllowedTimeDelta != 0);
+contract SetMaxQueryTimestampOffset is CrosschainAggregateProposerTest {
+  function testFuzz_CorrectlySetMaxQueryTimestampOffset(uint48 _maxQueryTimestampOffset) public {
+    vm.assume(_maxQueryTimestampOffset != 0);
     vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
-    assertEq(crosschainAggregateProposer.minAllowedTimeDelta(), _newMinAllowedTimeDelta);
+    crosschainAggregateProposer.setMaxQueryTimestampOffset(_maxQueryTimestampOffset);
+    assertEq(crosschainAggregateProposer.maxQueryTimestampOffset(), _maxQueryTimestampOffset);
   }
 
-  function testFuzz_EmitsMinAllowedTimeDeltaUpdatedEvent(uint48 _newMinAllowedTimeDelta) public {
-    vm.assume(_newMinAllowedTimeDelta != 0);
+  function testFuzz_EmitsMaxQueryTimestampOffsetUpdatedEvent(uint48 _maxQueryTimestampOffset) public {
+    vm.assume(_maxQueryTimestampOffset != 0);
     vm.expectEmit();
-    emit CrosschainAggregateProposer.MinAllowedTimeDeltaUpdated(
-      crosschainAggregateProposer.minAllowedTimeDelta(), _newMinAllowedTimeDelta
+    emit CrosschainAggregateProposer.MaxQueryTimestampOffsetUpdated(
+      crosschainAggregateProposer.maxQueryTimestampOffset(), _maxQueryTimestampOffset
     );
     vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
+    crosschainAggregateProposer.setMaxQueryTimestampOffset(_maxQueryTimestampOffset);
   }
 
-  function testFuzz_RevertIf_NotCalledByOwner(uint48 _newMinAllowedTimeDelta, address _caller) public {
+  function testFuzz_RevertIf_NotCalledByOwner(uint48 _maxQueryTimestampOffset, address _caller) public {
     vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
-    vm.assume(_newMinAllowedTimeDelta != 0);
+    vm.assume(_maxQueryTimestampOffset != 0);
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
-    crosschainAggregateProposer.setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
+    crosschainAggregateProposer.setMaxQueryTimestampOffset(_maxQueryTimestampOffset);
   }
 
   function test_RevertIf_ZeroTimeDelta() public {
     vm.prank(crosschainAggregateProposer.owner());
     vm.expectRevert(CrosschainAggregateProposer.InvalidTimeDelta.selector);
-    crosschainAggregateProposer.setMinAllowedTimeDelta(0);
+    crosschainAggregateProposer.setMaxQueryTimestampOffset(0);
   }
 }
 

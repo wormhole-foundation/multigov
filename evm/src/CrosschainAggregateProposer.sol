@@ -14,7 +14,7 @@ import {
 contract CrosschainAggregateProposer is QueryResponse, Ownable {
   IGovernor public immutable HUB_GOVERNOR;
   IWormhole public immutable WORMHOLE_CORE;
-  uint48 public minAllowedTimeDelta;
+  uint48 public maxQueryTimestampOffset;
 
   mapping(uint16 => address) public registeredSpokes;
 
@@ -28,15 +28,15 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
   error ZeroTokenAddress();
 
   event SpokeRegistered(uint16 chainId, address spokeAddress);
-  event MinAllowedTimeDeltaUpdated(uint48 oldMinAllowedTimeDelta, uint48 newMinAllowedTimeDelta);
+  event MaxQueryTimestampOffsetUpdated(uint48 oldMaxQueryTimestampOffset, uint48 newMaxQueryTimestampOffset);
 
-  constructor(address _core, address _hubGovernor, uint48 _initialMinAllowedTimeDelta)
+  constructor(address _core, address _hubGovernor, uint48 _initialMaxQueryTimestampOffset)
     QueryResponse(_core)
     Ownable(_hubGovernor)
   {
     WORMHOLE_CORE = IWormhole(_core);
     HUB_GOVERNOR = IGovernor(_hubGovernor);
-    minAllowedTimeDelta = _initialMinAllowedTimeDelta;
+    maxQueryTimestampOffset = _initialMaxQueryTimestampOffset;
   }
 
   function checkAndProposeIfEligible(
@@ -60,9 +60,9 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
     _registerSpoke(chainId, tokenAddress);
   }
 
-  function setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) external onlyOwner {
+  function setMaxQueryTimestampOffset(uint48 _newMaxQueryTimestampOffset) external onlyOwner {
     _checkOwner();
-    _setMinAllowedTimeDelta(_newMinAllowedTimeDelta);
+    _setMaxQueryTimestampOffset(_newMaxQueryTimestampOffset);
   }
 
   function _checkProposalEligibility(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures)
@@ -73,7 +73,7 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     uint256 totalVoteWeight = 0;
     uint256 currentTimestamp = block.timestamp;
-    uint256 oldestAllowedTimestamp = currentTimestamp - minAllowedTimeDelta;
+    uint256 oldestAllowedTimestamp = currentTimestamp - maxQueryTimestampOffset;
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
@@ -128,9 +128,9 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
     emit SpokeRegistered(chainId, spokeAddress);
   }
 
-  function _setMinAllowedTimeDelta(uint48 _newMinAllowedTimeDelta) internal {
-    if (_newMinAllowedTimeDelta == 0) revert InvalidTimeDelta();
-    emit MinAllowedTimeDeltaUpdated(minAllowedTimeDelta, _newMinAllowedTimeDelta);
-    minAllowedTimeDelta = _newMinAllowedTimeDelta;
+  function _setMaxQueryTimestampOffset(uint48 _newMaxQueryTimestampOffset) internal {
+    if (_newMaxQueryTimestampOffset == 0) revert InvalidTimeDelta();
+    emit MaxQueryTimestampOffsetUpdated(maxQueryTimestampOffset, _newMaxQueryTimestampOffset);
+    maxQueryTimestampOffset = _newMaxQueryTimestampOffset;
   }
 }
