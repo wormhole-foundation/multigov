@@ -335,23 +335,27 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
 
   function _setupAndExecuteProposalIfEligible(
     VoteWeight[] memory voteWeights,
+    address[] memory targets,
+    uint256[] memory values,
+    bytes[] memory calldatas,
     string memory _description,
     address _caller
   ) internal returns (uint256 proposalId) {
     bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
-    ProposalBuilder builder = _createArbitraryProposal();
-
     vm.startPrank(_caller);
     proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
-      builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
+      targets, values, calldatas, _description, queryResponse, signatures
     );
     vm.stopPrank();
   }
 
   function _setupAndExecuteProposalIfEligibleCustomTimepoints(
     VoteWeight[] memory voteWeights,
+    address[] memory targets,
+    uint256[] memory values,
+    bytes[] memory calldatas,
     string memory _description,
     address _caller,
     uint64[] memory _timestamps
@@ -359,11 +363,9 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, _timestamps);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
-    ProposalBuilder builder = _createArbitraryProposal();
-
     vm.startPrank(_caller);
     uint256 proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
-      builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
+      targets, values, calldatas, _description, queryResponse, signatures
     );
     vm.stopPrank();
 
@@ -388,9 +390,18 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     vm.assume(thresholdMet);
 
     _registerSpokes(voteWeights);
-    uint256 proposalId = _setupAndExecuteProposalIfEligible(voteWeights, _description, _caller);
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    uint256 proposalId =
+      _setupAndExecuteProposalIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
-    assertTrue(proposalId > 0, "Proposal should be created");
+    assertEq(
+      hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
+      proposalId,
+      "Proposal ID should match the hash of the proposal"
+    );
   }
 
   function testFuzz_CorrectlyCheckAndProposeIfEligibleTwoVoteWeights(
@@ -417,9 +428,18 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     vm.assume(thresholdMet);
 
     _registerSpokes(voteWeights);
-    uint256 proposalId = _setupAndExecuteProposalIfEligible(voteWeights, _description, _caller);
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    uint256 proposalId =
+      _setupAndExecuteProposalIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
-    assertTrue(proposalId > 0, "Proposal should be created");
+    assertEq(
+      hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
+      proposalId,
+      "Proposal ID should match the hash of the proposal"
+    );
   }
 
   function testFuzz_CorrectlyCheckAndProposeIfEligibleThreeVoteWeights(
@@ -450,9 +470,18 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     vm.assume(thresholdMet);
 
     _registerSpokes(voteWeights);
-    uint256 proposalId = _setupAndExecuteProposalIfEligible(voteWeights, _description, _caller);
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    uint256 proposalId =
+      _setupAndExecuteProposalIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
-    assertTrue(proposalId > 0, "Proposal should be created");
+    assertEq(
+      hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
+      proposalId,
+      "Proposal ID should match the hash of the proposal"
+    );
   }
 
   function testFuzz_CheckAndProposeIfEligibleWithValidTimestamps(
@@ -462,7 +491,8 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint128 _voteWeight3,
     address _spokeAddress1,
     address _spokeAddress2,
-    address _spokeAddress3
+    address _spokeAddress3,
+    string memory _description
   ) public {
     vm.assume(_spokeAddress1 != address(0) && _spokeAddress2 != address(0) && _spokeAddress3 != address(0));
     vm.assume(_spokeAddress1 != _spokeAddress2 && _spokeAddress1 != _spokeAddress3 && _spokeAddress2 != _spokeAddress3);
@@ -484,10 +514,20 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     vm.assume(thresholdMet);
 
     _registerSpokes(voteWeights);
-    uint256 proposalId =
-      _setupAndExecuteProposalIfEligibleCustomTimepoints(voteWeights, "Test Proposal", _caller, timestamps);
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
 
-    assertTrue(proposalId > 0, "Proposal should be created");
+    uint256 proposalId = _setupAndExecuteProposalIfEligibleCustomTimepoints(
+      voteWeights, targets, values, calldatas, _description, _caller, timestamps
+    );
+
+    assertEq(
+      hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
+      proposalId,
+      "Proposal ID should match the hash of the proposal"
+    );
   }
 
   function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
