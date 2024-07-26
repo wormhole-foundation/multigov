@@ -204,6 +204,8 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
 
+    console2.log("custom timestamps", _timestamps[0]);
+
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       uint256 voteWeight = _voteWeights[i].voteWeight;
       uint16 chainId = _voteWeights[i].chainId;
@@ -320,7 +322,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     return false;
   }
 
-  function _assumeThresholdMet(VoteWeight[] memory voteWeights) internal {
+  function _assumeThresholdMet(VoteWeight[] memory voteWeights) internal view {
     bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
     vm.assume(thresholdMet);
   }
@@ -376,12 +378,14 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     return proposalId;
   }
 
-  function _setupValidTimestamps() internal returns (uint64[] memory) {
+  function _setupValidTimestamps() internal view returns (uint64[] memory) {
     uint64 timestamp = uint64(vm.getBlockTimestamp());
     uint64[] memory timestamps = new uint64[](3);
     timestamps[0] = timestamp;
     timestamps[1] = timestamp;
     timestamps[2] = timestamp;
+
+    return timestamps;
   }
 
   function testFuzz_CorrectlyCheckAndProposeIfEligibleSingleVoteWeight(
