@@ -11,7 +11,7 @@ import {
   EthCallQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
-contract CrosschainAggregateProposer is QueryResponse, Ownable {
+contract CrossChainAggregateProposer is QueryResponse, Ownable {
   IGovernor public immutable HUB_GOVERNOR;
   IWormhole public immutable WORMHOLE_CORE;
   uint48 public maxQueryTimestampOffset;

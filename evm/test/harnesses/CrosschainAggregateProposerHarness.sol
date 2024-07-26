@@ -1,11 +1,11 @@
   // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {CrosschainAggregateProposer} from "src/CrosschainAggregateProposer.sol";
+import {CrossChainAggregateProposer} from "src/CrossChainAggregateProposer.sol";
 
-contract CrosschainAggregateProposerHarness is CrosschainAggregateProposer {
+contract CrossChainAggregateProposerHarness is CrossChainAggregateProposer {
   constructor(address _core, address _hubGovernor, uint48 _initialMinAllowedTimeDelta)
-    CrosschainAggregateProposer(_core, _hubGovernor, _initialMinAllowedTimeDelta)
+    CrossChainAggregateProposer(_core, _hubGovernor, _initialMinAllowedTimeDelta)
   {}
 
   function exposed_extractAccountFromCalldata(bytes memory callData) public pure returns (address) {

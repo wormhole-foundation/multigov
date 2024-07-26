@@ -7,11 +7,11 @@ import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 
-import {CrosschainAggregateProposer} from "src/CrosschainAggregateProposer.sol";
+import {CrossChainAggregateProposer} from "src/CrossChainAggregateProposer.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
-import {CrosschainAggregateProposerHarness} from "test/harnesses/CrosschainAggregateProposerHarness.sol";
+import {CrossChainAggregateProposerHarness} from "test/harnesses/CrossChainAggregateProposerHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
@@ -20,8 +20,8 @@ import {HubGovernorHarness} from "test/harnesses/HubGovernorHarness.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {ProposalTest} from "test/helpers/ProposalTest.sol";
 
-contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, ProposalTest {
-  CrosschainAggregateProposerHarness public crosschainAggregateProposer;
+contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, ProposalTest {
+  CrossChainAggregateProposerHarness public crossChainAggregateProposer;
   HubGovernorHarness public hubGovernor;
   HubVotePool public hubVotePool;
   ERC20VotesFake public token;
@@ -76,10 +76,10 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 
     hubGovernor = new HubGovernorHarness(params);
 
-    crosschainAggregateProposer = new CrosschainAggregateProposerHarness(
+    crossChainAggregateProposer = new CrossChainAggregateProposerHarness(
       address(wormhole), address(hubGovernor), INITIAL_MAX_QUERY_TIMESTAMP_OFFSET
     );
-    hubGovernor.exposed_setWhitelistedProposer(address(crosschainAggregateProposer));
+    hubGovernor.exposed_setWhitelistedProposer(address(crossChainAggregateProposer));
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("PROPOSER_ROLE"), address(hubGovernor));
@@ -112,7 +112,7 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 
       queryRequestBytes = abi.encodePacked(
         queryRequestBytes,
-        QueryTest.buildPerChainRequestBytes(chainId, crosschainAggregateProposer.QT_ETH_CALL(), ethCall)
+        QueryTest.buildPerChainRequestBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCall)
       );
 
       bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
@@ -125,7 +125,7 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 
       perChainResponses = abi.encodePacked(
         perChainResponses,
-        QueryTest.buildPerChainResponseBytes(chainId, crosschainAggregateProposer.QT_ETH_CALL(), ethCallResp)
+        QueryTest.buildPerChainResponseBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCallResp)
       );
     }
 
@@ -161,7 +161,7 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
       0, // nonce
       1, // num per chain requests
       abi.encodePacked(
-        QueryTest.buildPerChainRequestBytes(_chainId, crosschainAggregateProposer.QT_ETH_CALL(), ethCall)
+        QueryTest.buildPerChainRequestBytes(_chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCall)
       )
     );
 
@@ -192,7 +192,7 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
       OFF_CHAIN_SIGNATURE,
       _queryRequestBytes,
       1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(_chainId, crosschainAggregateProposer.QT_ETH_CALL(), _ethCallResp)
+      QueryTest.buildPerChainResponseBytes(_chainId, crossChainAggregateProposer.QT_ETH_CALL(), _ethCallResp)
     );
   }
 
@@ -219,7 +219,7 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 
       queryRequestBytes = abi.encodePacked(
         queryRequestBytes,
-        QueryTest.buildPerChainRequestBytes(chainId, crosschainAggregateProposer.QT_ETH_CALL(), ethCall)
+        QueryTest.buildPerChainRequestBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCall)
       );
 
       bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
@@ -232,7 +232,7 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 
       perChainResponses = abi.encodePacked(
         perChainResponses,
-        QueryTest.buildPerChainResponseBytes(chainId, crosschainAggregateProposer.QT_ETH_CALL(), ethCallResp)
+        QueryTest.buildPerChainResponseBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCallResp)
       );
     }
 
@@ -249,7 +249,7 @@ contract CrosschainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
   }
 
   function _getSignatures(bytes memory response) internal view returns (IWormhole.Signature[] memory) {
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(response, address(crosschainAggregateProposer));
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(response, address(crossChainAggregateProposer));
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
     return signatures;
@@ -283,25 +283,25 @@ contract Constructor is Test {
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
 
-    CrosschainAggregateProposer crosschainAggregateProposer =
-      new CrosschainAggregateProposer(_core, _hubGovernor, _initialMaxQueryTimestampOffset);
-    assertEq(address(crosschainAggregateProposer.WORMHOLE_CORE()), _core);
-    assertEq(address(crosschainAggregateProposer.HUB_GOVERNOR()), _hubGovernor);
+    CrossChainAggregateProposer crossChainAggregateProposer =
+      new CrossChainAggregateProposer(_core, _hubGovernor, _initialMaxQueryTimestampOffset);
+    assertEq(address(crossChainAggregateProposer.WORMHOLE_CORE()), _core);
+    assertEq(address(crossChainAggregateProposer.HUB_GOVERNOR()), _hubGovernor);
   }
 
   function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, uint48 _initialMaxQueryTimestampOffset) public {
     vm.expectRevert(EmptyWormholeAddress.selector);
-    new CrosschainAggregateProposer(address(0), _hubGovernor, _initialMaxQueryTimestampOffset);
+    new CrossChainAggregateProposer(address(0), _hubGovernor, _initialMaxQueryTimestampOffset);
   }
 
   function testFuzz_RevertIf_HubGovernorIsZeroAddress(address _core, uint48 _initialMaxQueryTimestampOffset) public {
     vm.assume(_core != address(0));
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-    new CrosschainAggregateProposer(_core, address(0), _initialMaxQueryTimestampOffset);
+    new CrossChainAggregateProposer(_core, address(0), _initialMaxQueryTimestampOffset);
   }
 }
 
-contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
+contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
   function _checkThresholdMet(VoteWeight[] memory voteWeights, uint256 hubVoteWeight, uint256 threshold)
     internal
     pure
@@ -339,7 +339,7 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(_caller);
-    uint256 proposalId = crosschainAggregateProposer.checkAndProposeIfEligible(
+    uint256 proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
       builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
     );
     vm.stopPrank();
@@ -362,7 +362,7 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(_caller);
-    uint256 proposalId = crosschainAggregateProposer.checkAndProposeIfEligible(
+    uint256 proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
       builder.targets(), builder.values(), builder.calldatas(), _description, queryResponse, signatures
     );
     vm.stopPrank();
@@ -378,10 +378,10 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     address _caller
   ) public {
     vm.assume(_spokeAddress != address(0));
-    vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
 
-    vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
+    vm.prank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
@@ -402,11 +402,11 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     vm.assume(_spokeAddress1 != address(0) && _spokeAddress2 != address(0));
     vm.assume(_chainId1 != _chainId2);
     vm.assume(_spokeAddress1 != _spokeAddress2);
-    vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
 
-    vm.startPrank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(_chainId1, _spokeAddress1);
-    crosschainAggregateProposer.registerSpoke(_chainId2, _spokeAddress2);
+    vm.startPrank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(_chainId1, _spokeAddress1);
+    crossChainAggregateProposer.registerSpoke(_chainId2, _spokeAddress2);
     vm.stopPrank();
 
     VoteWeight[] memory voteWeights = new VoteWeight[](2);
@@ -432,12 +432,12 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     vm.assume(_spokeAddress1 != address(0) && _spokeAddress2 != address(0) && _spokeAddress3 != address(0));
     vm.assume(_chainId1 != _chainId2 && _chainId1 != _chainId3 && _chainId2 != _chainId3);
     vm.assume(_spokeAddress1 != _spokeAddress2 && _spokeAddress1 != _spokeAddress3 && _spokeAddress2 != _spokeAddress3);
-    vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
 
-    vm.startPrank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(_chainId1, _spokeAddress1);
-    crosschainAggregateProposer.registerSpoke(_chainId2, _spokeAddress2);
-    crosschainAggregateProposer.registerSpoke(_chainId3, _spokeAddress3);
+    vm.startPrank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(_chainId1, _spokeAddress1);
+    crossChainAggregateProposer.registerSpoke(_chainId2, _spokeAddress2);
+    crossChainAggregateProposer.registerSpoke(_chainId3, _spokeAddress3);
     vm.stopPrank();
 
     VoteWeight[] memory voteWeights = new VoteWeight[](3);
@@ -459,7 +459,7 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
   ) public {
     vm.assume(_spokeAddress1 != address(0) && _spokeAddress2 != address(0) && _spokeAddress3 != address(0));
     vm.assume(_spokeAddress1 != _spokeAddress2 && _spokeAddress1 != _spokeAddress3 && _spokeAddress2 != _spokeAddress3);
-    vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
     _warpToValidTimestamp();
 
     uint64 timestamp = uint64(vm.getBlockTimestamp());
@@ -473,10 +473,10 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: 2, spokeAddress: _spokeAddress2});
     voteWeights[2] = VoteWeight({voteWeight: _voteWeight3, chainId: 3, spokeAddress: _spokeAddress3});
 
-    vm.startPrank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(1, _spokeAddress1);
-    crosschainAggregateProposer.registerSpoke(2, _spokeAddress2);
-    crosschainAggregateProposer.registerSpoke(3, _spokeAddress3);
+    vm.startPrank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(1, _spokeAddress1);
+    crossChainAggregateProposer.registerSpoke(2, _spokeAddress2);
+    crossChainAggregateProposer.registerSpoke(3, _spokeAddress3);
     vm.stopPrank();
 
     _testCheckAndProposeIfEligibleCustomTimepoints(voteWeights, "Test Proposal", _caller, timestamps);
@@ -484,15 +484,15 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
 
   function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
     vm.assume(_caller != address(0));
-    vm.assume(_caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(crossChainAggregateProposer.owner()));
 
     // Create a vote weight with a below threshold total
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] =
       VoteWeight({voteWeight: hubGovernor.proposalThreshold() - 1, chainId: 1, spokeAddress: address(token)});
 
-    vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(voteWeights[0].chainId, voteWeights[0].spokeAddress);
+    vm.prank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(voteWeights[0].chainId, voteWeights[0].spokeAddress);
 
     uint48 windowLength = hubGovernor.getVoteWeightWindowLength(uint96(vm.getBlockTimestamp()));
     vm.warp(vm.getBlockTimestamp() + windowLength);
@@ -505,9 +505,9 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(CrosschainAggregateProposer.InsufficientVoteWeight.selector);
+    vm.expectRevert(CrossChainAggregateProposer.InsufficientVoteWeight.selector);
     vm.prank(_caller);
-    crosschainAggregateProposer.checkAndProposeIfEligible(
+    crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, _description, queryResponse, signatures
     );
   }
@@ -522,10 +522,10 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
   ) public {
     vm.assume(_spokeAddress != address(0));
     vm.assume(_expectedAccount != address(0) && _caller != address(0));
-    vm.assume(_caller != _expectedAccount && _caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != _expectedAccount && _caller != address(crossChainAggregateProposer.owner()));
 
-    vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
+    vm.prank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
 
     _warpToValidTimestamp();
 
@@ -542,10 +542,10 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.expectRevert(
-      abi.encodeWithSelector(CrosschainAggregateProposer.InvalidCaller.selector, _caller, _expectedAccount)
+      abi.encodeWithSelector(CrossChainAggregateProposer.InvalidCaller.selector, _caller, _expectedAccount)
     );
     vm.prank(_caller);
-    crosschainAggregateProposer.checkAndProposeIfEligible(
+    crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, _description, queryResponse, signatures
     );
   }
@@ -574,10 +574,10 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.expectRevert(
-      abi.encodeWithSelector(CrosschainAggregateProposer.UnregisteredSpoke.selector, _chainId, _spokeAddress)
+      abi.encodeWithSelector(CrossChainAggregateProposer.UnregisteredSpoke.selector, _chainId, _spokeAddress)
     );
     vm.prank(_caller);
-    crosschainAggregateProposer.checkAndProposeIfEligible(
+    crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, _description, queryResponse, signatures
     );
   }
@@ -597,8 +597,8 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
 
     _warpToValidTimestamp();
 
-    vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(_chainId, _registeredSpokeAddress);
+    vm.prank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(_chainId, _registeredSpokeAddress);
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] =
@@ -612,11 +612,11 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.expectRevert(
-      abi.encodeWithSelector(CrosschainAggregateProposer.UnregisteredSpoke.selector, _chainId, _queriedSpokeAddress)
+      abi.encodeWithSelector(CrossChainAggregateProposer.UnregisteredSpoke.selector, _chainId, _queriedSpokeAddress)
     );
 
     vm.prank(_caller);
-    crosschainAggregateProposer.checkAndProposeIfEligible(
+    crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, _description, queryResponse, signatures
     );
   }
@@ -630,12 +630,12 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
   ) public {
     vm.assume(_tokenAddress != address(0));
     vm.assume(_caller != address(0));
-    vm.assume(_caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(crossChainAggregateProposer.owner()));
 
     _warpToValidTimestamp();
 
-    vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(_chainId, _tokenAddress);
+    vm.prank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(_chainId, _tokenAddress);
 
     bytes memory _resp = _mockQueryResponseWithMultipleResults(_chainId, _tokenAddress, _caller, _voteWeight);
 
@@ -646,13 +646,13 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(abi.encodeWithSelector(CrosschainAggregateProposer.TooManyEthCallResults.selector, 2));
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.TooManyEthCallResults.selector, 2));
     vm.prank(_caller);
-    crosschainAggregateProposer.checkAndProposeIfEligible(targets, values, calldatas, _description, _resp, signatures);
+    crossChainAggregateProposer.checkAndProposeIfEligible(targets, values, calldatas, _description, _resp, signatures);
   }
 
   function testFuzz_RevertIf_InvalidTimestamp(address _caller, uint128 _voteWeight1, uint128 _voteWeight2) public {
-    vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
     _warpToValidTimestamp();
 
     uint64 timestamp = uint64(vm.getBlockTimestamp());
@@ -664,9 +664,9 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     voteWeights[0] = VoteWeight({voteWeight: _voteWeight1, chainId: 1, spokeAddress: makeAddr("SpokeAddress1")});
     voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: 2, spokeAddress: makeAddr("SpokeAddress2")});
 
-    vm.startPrank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(1, makeAddr("SpokeAddress1"));
-    crosschainAggregateProposer.registerSpoke(2, makeAddr("SpokeAddress2"));
+    vm.startPrank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(1, makeAddr("SpokeAddress1"));
+    crossChainAggregateProposer.registerSpoke(2, makeAddr("SpokeAddress2"));
     vm.stopPrank();
 
     bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, timestamps);
@@ -678,9 +678,9 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(CrosschainAggregateProposer.InvalidTimestamp.selector);
+    vm.expectRevert(CrossChainAggregateProposer.InvalidTimestamp.selector);
     vm.prank(_caller);
-    crosschainAggregateProposer.checkAndProposeIfEligible(
+    crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
   }
@@ -689,7 +689,7 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     _warpToValidTimestamp();
 
     uint64[] memory timestamps = new uint64[](1);
-    timestamps[0] = uint64(vm.getBlockTimestamp()) - crosschainAggregateProposer.maxQueryTimestampOffset() - 1;
+    timestamps[0] = uint64(vm.getBlockTimestamp()) - crossChainAggregateProposer.maxQueryTimestampOffset() - 1;
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] =
@@ -704,8 +704,8 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrosschainAggregateProposer.InvalidTimestamp.selector));
-    crosschainAggregateProposer.checkAndProposeIfEligible(
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector));
+    crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
   }
@@ -729,100 +729,100 @@ contract CheckAndProposeIfEligible is CrosschainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrosschainAggregateProposer.InvalidTimestamp.selector));
-    crosschainAggregateProposer.checkAndProposeIfEligible(
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector));
+    crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
   }
 }
 
-contract RegisterSpoke is CrosschainAggregateProposerTest {
+contract RegisterSpoke is CrossChainAggregateProposerTest {
   function testFuzz_CorrectlyRegisterSpoke(uint16 _chainId, address _spokeAddress, address _caller) public {
     vm.assume(_spokeAddress != address(0));
     vm.assume(_caller != address(0));
-    vm.assume(_caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(crossChainAggregateProposer.owner()));
 
-    vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
+    vm.prank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
 
-    assertEq(crosschainAggregateProposer.registeredSpokes(_chainId), _spokeAddress);
+    assertEq(crossChainAggregateProposer.registeredSpokes(_chainId), _spokeAddress);
   }
 
   function testFuzz_EmitsSpokeRegistered(uint16 _chainId, address _spokeAddress) public {
     vm.assume(_spokeAddress != address(0));
 
-    vm.prank(crosschainAggregateProposer.owner());
+    vm.prank(crossChainAggregateProposer.owner());
     vm.expectEmit();
-    emit CrosschainAggregateProposer.SpokeRegistered(_chainId, _spokeAddress);
-    crosschainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
+    emit CrossChainAggregateProposer.SpokeRegistered(_chainId, _spokeAddress);
+    crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(uint16 _chainId, address _spokeAddress, address _caller) public {
     vm.assume(_spokeAddress != address(0));
     vm.assume(_caller != address(0));
-    vm.assume(_caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(crossChainAggregateProposer.owner()));
 
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
-    crosschainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
+    crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
   }
 
   function testFuzz_RevertIf_SpokeAddressIsZeroAddress(uint16 _chainId, address _caller) public {
     vm.assume(_caller != address(0));
-    vm.assume(_caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(crossChainAggregateProposer.owner()));
 
-    vm.prank(crosschainAggregateProposer.owner());
-    vm.expectRevert(abi.encodeWithSelector(CrosschainAggregateProposer.ZeroTokenAddress.selector));
-    crosschainAggregateProposer.registerSpoke(_chainId, address(0));
+    vm.prank(crossChainAggregateProposer.owner());
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.ZeroTokenAddress.selector));
+    crossChainAggregateProposer.registerSpoke(_chainId, address(0));
   }
 }
 
-contract SetMaxQueryTimestampOffset is CrosschainAggregateProposerTest {
+contract SetMaxQueryTimestampOffset is CrossChainAggregateProposerTest {
   function testFuzz_CorrectlySetMaxQueryTimestampOffset(uint48 _maxQueryTimestampOffset) public {
     vm.assume(_maxQueryTimestampOffset != 0);
-    vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.setMaxQueryTimestampOffset(_maxQueryTimestampOffset);
-    assertEq(crosschainAggregateProposer.maxQueryTimestampOffset(), _maxQueryTimestampOffset);
+    vm.prank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.setMaxQueryTimestampOffset(_maxQueryTimestampOffset);
+    assertEq(crossChainAggregateProposer.maxQueryTimestampOffset(), _maxQueryTimestampOffset);
   }
 
   function testFuzz_EmitsMaxQueryTimestampOffsetUpdatedEvent(uint48 _maxQueryTimestampOffset) public {
     vm.assume(_maxQueryTimestampOffset != 0);
     vm.expectEmit();
-    emit CrosschainAggregateProposer.MaxQueryTimestampOffsetUpdated(
-      crosschainAggregateProposer.maxQueryTimestampOffset(), _maxQueryTimestampOffset
+    emit CrossChainAggregateProposer.MaxQueryTimestampOffsetUpdated(
+      crossChainAggregateProposer.maxQueryTimestampOffset(), _maxQueryTimestampOffset
     );
-    vm.prank(crosschainAggregateProposer.owner());
-    crosschainAggregateProposer.setMaxQueryTimestampOffset(_maxQueryTimestampOffset);
+    vm.prank(crossChainAggregateProposer.owner());
+    crossChainAggregateProposer.setMaxQueryTimestampOffset(_maxQueryTimestampOffset);
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(uint48 _maxQueryTimestampOffset, address _caller) public {
-    vm.assume(_caller != address(0) && _caller != address(crosschainAggregateProposer.owner()));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
     vm.assume(_maxQueryTimestampOffset != 0);
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
-    crosschainAggregateProposer.setMaxQueryTimestampOffset(_maxQueryTimestampOffset);
+    crossChainAggregateProposer.setMaxQueryTimestampOffset(_maxQueryTimestampOffset);
   }
 
   function test_RevertIf_ZeroTimeDelta() public {
-    vm.prank(crosschainAggregateProposer.owner());
-    vm.expectRevert(CrosschainAggregateProposer.InvalidTimeDelta.selector);
-    crosschainAggregateProposer.setMaxQueryTimestampOffset(0);
+    vm.prank(crossChainAggregateProposer.owner());
+    vm.expectRevert(CrossChainAggregateProposer.InvalidTimeDelta.selector);
+    crossChainAggregateProposer.setMaxQueryTimestampOffset(0);
   }
 }
 
-contract _ExtractAccountFromCalldata is CrosschainAggregateProposerTest {
+contract _ExtractAccountFromCalldata is CrossChainAggregateProposerTest {
   function testFuzz_CorrectlyExtractsAccountFromCalldata(address _account) public view {
     // Simulate the calldata for a getVotes(address) function call
     bytes4 selector = bytes4(keccak256("getVotes(address)"));
     bytes memory callData = abi.encodeWithSelector(selector, _account);
 
-    address extractedAccount = crosschainAggregateProposer.exposed_extractAccountFromCalldata(callData);
+    address extractedAccount = crossChainAggregateProposer.exposed_extractAccountFromCalldata(callData);
     assertEq(extractedAccount, _account, "Extracted account should match the input account");
   }
 
   function testFuzz_RevertIf_InvalidCallDataLength(bytes memory _callData) public {
     vm.assume(_callData.length < 24);
-    vm.expectRevert(CrosschainAggregateProposer.InvalidCallDataLength.selector);
-    crosschainAggregateProposer.exposed_extractAccountFromCalldata(_callData);
+    vm.expectRevert(CrossChainAggregateProposer.InvalidCallDataLength.selector);
+    crossChainAggregateProposer.exposed_extractAccountFromCalldata(_callData);
   }
 }
