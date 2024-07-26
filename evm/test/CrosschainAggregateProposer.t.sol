@@ -685,7 +685,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     );
   }
 
-  function testFuzz_RevertIf_LessThanMaxQueryTimestampOffset(address _caller, uint64 _timestamp) public {
+  function testFuzz_RevertIf_LessThanMaxQueryTimestampOffset(address _caller) public {
     _warpToValidTimestamp();
 
     uint64[] memory timestamps = new uint64[](1);
@@ -710,7 +710,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     );
   }
 
-  function testFuzz_RevertIf_QueryTimestampGreaterThanCurrentTimestamp(address _caller, uint64 _timestamp) public {
+  function testFuzz_RevertIf_QueryTimestampGreaterThanCurrentTimestamp(address _caller) public {
     _warpToValidTimestamp();
 
     uint64[] memory timestamps = new uint64[](1);
