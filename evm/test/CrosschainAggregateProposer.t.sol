@@ -448,7 +448,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     _testCheckAndProposeIfEligible(voteWeights, _description, _caller);
   }
 
-  function testFuzz_WithValidTimestamps(
+  function testFuzz_CheckAndProposeIfEligibleWithValidTimestamps(
     address _caller,
     uint128 _voteWeight1,
     uint128 _voteWeight2,
