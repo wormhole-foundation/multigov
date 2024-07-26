@@ -759,7 +759,6 @@ contract RegisterSpoke is CrossChainAggregateProposerTest {
 
   function testFuzz_RevertIf_NotCalledByOwner(uint16 _chainId, address _spokeAddress, address _caller) public {
     vm.assume(_spokeAddress != address(0));
-    vm.assume(_caller != address(0));
     vm.assume(_caller != address(crossChainAggregateProposer.owner()));
 
     vm.prank(_caller);
