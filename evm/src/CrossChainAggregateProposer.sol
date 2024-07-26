@@ -4,30 +4,28 @@ pragma solidity ^0.8.23;
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-import {
-  QueryResponse,
-  ParsedQueryResponse,
-  ParsedPerChainQueryResponse,
-  EthCallQueryResponse
-} from "wormhole/query/QueryResponse.sol";
+import {QueryResponse, ParsedQueryResponse, ParsedPerChainQueryResponse} from "wormhole/query/QueryResponse.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ICrossChainVoteWeight} from "src/interfaces/ICrossChainVoteWeight.sol";
 
 contract CrossChainAggregateProposer is QueryResponse, Ownable {
   IGovernor public immutable HUB_GOVERNOR;
   IWormhole public immutable WORMHOLE_CORE;
   uint48 public maxQueryTimestampOffset;
 
+  mapping(uint8 queryType => ICrossChainVoteWeight voteWeightGetterImpl) public queryTypeVoteWeightGetter;
   mapping(uint16 => address) public registeredSpokes;
 
   error InsufficientVoteWeight();
-  error InvalidCallDataLength();
-  error InvalidCaller(address expected, address actual);
-  error InvalidTimeDelta();
-  error InvalidTimestamp();
-  error TooManyEthCallResults(uint256);
-  error UnregisteredSpoke(uint16 chainId, address tokenAddress);
+  error InvalidImplementation(address implementation);
+  error InvalidMaxQueryTimestampOffset(uint48 offset);
+  error InvalidTimestamp(uint256 timestamp, uint256 minAllowed, uint256 maxAllowed);
+  error UnregisteredSpoke(uint16 chainId, address spokeAddress);
+  error UnsupportedQueryType(uint8 queryType);
 
-  event SpokeRegistered(uint16 chainId, address spokeAddress);
+  event SpokeRegistered(uint16 indexed chainId, address spokeAddress);
   event MaxQueryTimestampOffsetUpdated(uint48 oldMaxQueryTimestampOffset, uint48 newMaxQueryTimestampOffset);
+  event QueryTypeVoteWeightGetterRegistered(uint8 indexed queryType, address oldGetter, address newGetter);
 
   constructor(address _core, address _hubGovernor, uint48 _initialMaxQueryTimestampOffset)
     QueryResponse(_core)
@@ -54,14 +52,19 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
     return proposalId;
   }
 
-  function registerSpoke(uint16 chainId, address tokenAddress) external {
+  function registerSpoke(uint16 chainId, address spokeAddress) external {
     _checkOwner();
-    _registerSpoke(chainId, tokenAddress);
+    _registerSpoke(chainId, spokeAddress);
   }
 
   function setMaxQueryTimestampOffset(uint48 _newMaxQueryTimestampOffset) external {
     _checkOwner();
     _setMaxQueryTimestampOffset(_newMaxQueryTimestampOffset);
+  }
+
+  function registerQueryTypeVoteWeightGetter(uint8 _queryType, address _implementation) external {
+    _checkOwner();
+    _registerQueryTypeVoteWeightGetter(_queryType, _implementation);
   }
 
   function _checkProposalEligibility(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures)
@@ -76,59 +79,50 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
-      EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
-
-      if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
-
-      uint64 queryBlockTime = _ethCalls.blockTime;
-      if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) revert InvalidTimestamp();
 
       address registeredSpokeAddress = registeredSpokes[perChainResp.chainId];
-      address queriedAddress = _ethCalls.result[0].contractAddress;
+      if (registeredSpokeAddress == address(0)) revert UnregisteredSpoke(perChainResp.chainId, address(0));
 
-      if (registeredSpokeAddress == address(0) || queriedAddress != registeredSpokeAddress) {
-        revert UnregisteredSpoke(perChainResp.chainId, queriedAddress);
+      ICrossChainVoteWeight voteWeightGetter = queryTypeVoteWeightGetter[perChainResp.queryType];
+      if (address(voteWeightGetter) == address(0)) revert UnsupportedQueryType(perChainResp.queryType);
+
+      ICrossChainVoteWeight.CrossChainVoteWeightResult memory voteWeightResult =
+        voteWeightGetter.getVoteWeight(perChainResp);
+
+      if (voteWeightResult.blockTime < oldestAllowedTimestamp || voteWeightResult.blockTime > currentTimestamp) {
+        revert InvalidTimestamp(voteWeightResult.blockTime, oldestAllowedTimestamp, currentTimestamp);
       }
-
-      bytes memory callData = _ethCalls.result[0].callData;
-
-      // Extract the address from callData (skip first 4 bytes of function selector)
-      address queriedAccount = _extractAccountFromCalldata(callData);
-
-      // Check that the address being queried is the caller
-      if (queriedAccount != msg.sender) revert InvalidCaller(msg.sender, queriedAccount);
-
-      uint256 voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
-      totalVoteWeight += voteWeight;
+      totalVoteWeight += voteWeightResult.voteWeight;
     }
 
-    // Use current timestamp (what all of the spoke query responses are checked against) to get the hub vote weight
-    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, currentTimestamp);
-    totalVoteWeight += hubVoteWeight;
+    totalVoteWeight += HUB_GOVERNOR.getVotes(msg.sender, currentTimestamp);
 
     return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
   }
 
-  function _extractAccountFromCalldata(bytes memory callData) internal pure returns (address) {
-    // Ensure callData is long enough to contain function selector (4 bytes) and an address (20 bytes)
-    if (callData.length < 24) revert InvalidCallDataLength();
+  function _setMaxQueryTimestampOffset(uint48 _newMaxQueryTimestampOffset) internal {
+    if (_newMaxQueryTimestampOffset == 0) revert InvalidMaxQueryTimestampOffset(_newMaxQueryTimestampOffset);
+    emit MaxQueryTimestampOffsetUpdated(maxQueryTimestampOffset, _newMaxQueryTimestampOffset);
+    maxQueryTimestampOffset = _newMaxQueryTimestampOffset;
+  }
 
-    address extractedAccount;
-    assembly {
-      extractedAccount := mload(add(add(callData, 0x20), 4))
+  function _registerQueryTypeVoteWeightGetter(uint8 _queryType, address _implementation) internal {
+    if (_implementation == address(0)) {
+      queryTypeVoteWeightGetter[_queryType] = ICrossChainVoteWeight(_implementation);
+      return;
     }
 
-    return extractedAccount;
+    bool isValid = IERC165(_implementation).supportsInterface(type(ICrossChainVoteWeight).interfaceId);
+    if (!isValid) revert InvalidImplementation(_implementation);
+
+    emit QueryTypeVoteWeightGetterRegistered(
+      _queryType, address(queryTypeVoteWeightGetter[_queryType]), _implementation
+    );
+    queryTypeVoteWeightGetter[_queryType] = ICrossChainVoteWeight(_implementation);
   }
 
   function _registerSpoke(uint16 chainId, address spokeAddress) internal {
     registeredSpokes[chainId] = spokeAddress;
     emit SpokeRegistered(chainId, spokeAddress);
-  }
-
-  function _setMaxQueryTimestampOffset(uint48 _newMaxQueryTimestampOffset) internal {
-    if (_newMaxQueryTimestampOffset == 0) revert InvalidTimeDelta();
-    emit MaxQueryTimestampOffsetUpdated(maxQueryTimestampOffset, _newMaxQueryTimestampOffset);
-    maxQueryTimestampOffset = _newMaxQueryTimestampOffset;
   }
 }
