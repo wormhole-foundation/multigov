@@ -204,8 +204,6 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
 
-    console2.log("custom timestamps", _timestamps[0]);
-
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       uint256 voteWeight = _voteWeights[i].voteWeight;
       uint16 chainId = _voteWeights[i].chainId;
