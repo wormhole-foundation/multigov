@@ -104,7 +104,7 @@ contract CrosschainAggregateProposer is QueryResponse, Ownable {
     }
 
     // Include the hub vote weight
-    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, block.timestamp);
+    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, currentTimestamp);
     totalVoteWeight += hubVoteWeight;
 
     return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
