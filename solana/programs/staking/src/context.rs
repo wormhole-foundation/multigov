@@ -15,7 +15,6 @@ pub const CONFIG_SEED: &str = "config";
 pub const PROPOSAL_SEED: &str = "proposal";
 
 #[derive(Accounts)]
-#[instruction(config_data : global_config::GlobalConfig)]
 pub struct InitConfig<'info> {
     // Native payer
     #[account(mut)]
@@ -35,7 +34,6 @@ pub struct InitConfig<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(delegatee : Pubkey)]
 pub struct Delegate<'info> {
     // Native payer:
     #[account(address = stake_account_metadata.owner)]
@@ -95,7 +93,7 @@ pub struct Delegate<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(proposal_id: u64, against_votes : u64, for_votes: u64, abstain_votes: u64)]
+#[instruction(proposal_id: u64)]
 pub struct CastVote<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -123,7 +121,7 @@ pub struct CastVote<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(proposal_id : u64, vote_start: u64, safe_window: u64)]
+#[instruction(proposal_id : u64)]
 pub struct AddProposal<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -141,7 +139,6 @@ pub struct AddProposal<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(new_authority : Pubkey)]
 pub struct UpdateGovernanceAuthority<'info> {
     #[account(address = config.governance_authority)]
     pub governance_signer: Signer<'info>,
@@ -150,7 +147,6 @@ pub struct UpdateGovernanceAuthority<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(new_authority : Pubkey)]
 pub struct UpdatePdaAuthority<'info> {
     #[account(address = config.pda_authority)]
     pub governance_signer: Signer<'info>,
@@ -159,7 +155,6 @@ pub struct UpdatePdaAuthority<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(agreement_hash : [u8; 32])]
 pub struct UpdateAgreementHash<'info> {
     #[account(address = config.governance_authority)]
     pub governance_signer: Signer<'info>,
@@ -168,7 +163,6 @@ pub struct UpdateAgreementHash<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(owner : Pubkey)]
 pub struct CreateStakeAccount<'info> {
     // Native payer:
     #[account(mut)]
@@ -205,7 +199,6 @@ pub struct CreateStakeAccount<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(amount : u64)]
 pub struct WithdrawTokens<'info> {
     // Native payer:
     #[account( address = stake_account_metadata.owner)]

@@ -195,8 +195,8 @@ export class StakeConnection {
     }
   }
 
-  async fetchProposalAccountAddress(proposalId: BN) {
-    const proposalAccountAddress = (
+  async fetchProposalAccount(proposalId: BN) {
+    const proposalAccount = (
       await PublicKey.findProgramAddress(
         [
           utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()),
@@ -206,15 +206,15 @@ export class StakeConnection {
       )
     )[0];
 
-    return { proposalAccountAddress };
+    return { proposalAccount };
   }
 
   async fetchProposalAccountWasm(proposalId: BN) {
-    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposalId);
+    const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
     const inbuf =
       await this.program.provider.connection.getAccountInfo(
-        proposalAccountAddress
+        proposalAccount
       );
 
     const proposalAccountWasm = new wasm.WasmProposalData(
@@ -225,10 +225,10 @@ export class StakeConnection {
   }
 
   async fetchProposalAccountData(proposalId: BN) {
-    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposalId);
+    const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
     const proposalAccountData =
-      await this.program.account.proposalData.fetch(proposalAccountAddress);
+      await this.program.account.proposalData.fetch(proposalAccount);
 
     return { proposalAccountData };
   }
@@ -423,9 +423,7 @@ export class StakeConnection {
     let currentDelegateStakeAccountAddress: PublicKey;
     let delegateeStakeAccountAddress: PublicKey;
     const owner = this.provider.wallet.publicKey;
-
     const instructions: TransactionInstruction[] = [];
-    const signers: Signer[] = [];
 
     if (!stakeAccount) {
       stakeAccountAddress = await this.withCreateAccount(instructions, owner);
@@ -479,17 +477,15 @@ export class StakeConnection {
     abstainVotes: BN,
   ): Promise<void> {
     const instructions: TransactionInstruction[] = [];
-    const signers: Signer[] = [];
-
-    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposalId);
+    const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
     instructions.push(
       await this.program.methods
         .castVote(proposalId, againstVotes, forVotes, abstainVotes)
-        .accounts([{
-          proposal: proposalAccountAddress,
+        .accountsPartial({
+          proposal: proposalAccount,
           voterCheckpoints: stakeAccount.address,
-        }])
+        })
         .instruction()
     );
 
@@ -529,16 +525,15 @@ export class StakeConnection {
     safe_window: BN,
   ): Promise<void> {
     const instructions: TransactionInstruction[] = [];
-    const signers: Signer[] = [];
 
-    const { proposalAccountAddress } = await this.fetchProposalAccountAddress(proposalId);
+    const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
     instructions.push(
       await this.program.methods
         .addProposal(proposalId, vote_start, safe_window)
-        .accounts([{
-          proposal: proposalAccountAddress,
-        }])
+        .accountsPartial({
+          proposal: proposalAccount
+        })
         .instruction()
     );
 
