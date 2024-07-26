@@ -59,7 +59,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
     _registerSpoke(chainId, tokenAddress);
   }
 
-  function setMaxQueryTimestampOffset(uint48 _newMaxQueryTimestampOffset) external onlyOwner {
+  function setMaxQueryTimestampOffset(uint48 _newMaxQueryTimestampOffset) external {
     _checkOwner();
     _setMaxQueryTimestampOffset(_newMaxQueryTimestampOffset);
   }
