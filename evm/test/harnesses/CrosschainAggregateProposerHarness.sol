@@ -1,7 +1,7 @@
   // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {CrossChainAggregateProposer} from "src/CrosschainAggregateProposer.sol";
+import {CrossChainAggregateProposer} from "src/CrossChainAggregateProposer.sol";
 
 contract CrossChainAggregateProposerHarness is CrossChainAggregateProposer {
   constructor(address _core, address _hubGovernor, uint48 _maxQueryTimestampOffset)
