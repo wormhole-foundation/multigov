@@ -13,8 +13,8 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {ICrossChainVote} from "src/interfaces/ICrossChainVote.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 
-contract HubCrossChainEvmVote is ICrossChainVote, QueryResponse, ERC165 {
-  HubVotePool immutable HUB_VOTE_POOL;
+contract HubCrossChainEvmCallVote is ICrossChainVote, QueryResponse, ERC165 {
+  HubVotePool public immutable HUB_VOTE_POOL;
 
   constructor(address _core, address _hubVotePool) QueryResponse(_core) {
     HUB_VOTE_POOL = HubVotePool(_hubVotePool);

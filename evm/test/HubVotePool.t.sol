@@ -9,7 +9,7 @@ import {QueryResponse} from "wormhole/query/QueryResponse.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {HubCrossChainEvmVote} from "src/HubCrossChainEvmVote.sol";
+import {HubCrossChainEvmCallVote} from "src/HubCrossChainEvmCallVote.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ICrossChainVote} from "src/interfaces/ICrossChainVote.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
@@ -21,14 +21,13 @@ import {HubVotePoolHarness} from "test/harnesses/HubVotePoolHarness.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 import {GovernorMock} from "test/mocks/GovernorMock.sol";
 
-
 contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
   HubVotePoolHarness hubVotePool;
   GovernorMock governor;
   uint16 QUERY_CHAIN_ID = 2;
   uint48 minimumTime = 1 hours;
   uint8 ethCallQuery;
-HubCrossChainEvmVote hubCrossChainEvmVote;
+  HubCrossChainEvmCallVote hubCrossChainEvmVote;
 
   struct VoteParams {
     uint256 proposalId;
@@ -42,7 +41,7 @@ HubCrossChainEvmVote hubCrossChainEvmVote;
     governor = new GovernorMock();
     hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
 
-    hubCrossChainEvmVote = new HubCrossChainEvmVote(address(wormhole), address(hubVotePool));
+    hubCrossChainEvmVote = new HubCrossChainEvmCallVote(address(wormhole), address(hubVotePool));
 
     ethCallQuery = hubVotePool.QT_ETH_CALL();
     vm.startPrank(address(governor));
@@ -249,41 +248,40 @@ contract RegisterQueryType is HubVotePoolTest {
   function testFuzz_CorrectlySetCrossChainVote(uint8 _queryType) public {
     vm.startPrank(address(governor));
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
-	vm.stopPrank();
-	assertEq(address(hubVotePool.queryTypeVoteImpl(_queryType)), address(hubCrossChainEvmVote));
+    vm.stopPrank();
+    assertEq(address(hubVotePool.queryTypeVoteImpl(_queryType)), address(hubCrossChainEvmVote));
   }
 
   function testFuzz_CorrectlyResetQueryTypeToZeroAddress(uint8 _queryType) public {
     vm.startPrank(address(governor));
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
     hubVotePool.registerQueryType(_queryType, address(0));
-	vm.stopPrank();
-	assertEq(address(hubVotePool.queryTypeVoteImpl(_queryType)), address(0));
+    vm.stopPrank();
+    assertEq(address(hubVotePool.queryTypeVoteImpl(_queryType)), address(0));
   }
 
   function testFuzz_RevertIf_ERC165IsNotSupported(uint8 queryType) public {
     vm.startPrank(address(governor));
-	GovernorMock gov = new GovernorMock();
-	vm.expectRevert(HubVotePool.InvalidQueryVoteImpl.selector);
+    GovernorMock gov = new GovernorMock();
+    vm.expectRevert(HubVotePool.InvalidQueryVoteImpl.selector);
     hubVotePool.registerQueryType(queryType, address(gov));
-	vm.stopPrank();
+    vm.stopPrank();
   }
 
   function testFuzz_RevertIf_TheCrossChainVoteInterfaceIsNotSupported(uint8 _queryType) public {
     vm.startPrank(address(governor));
-	ERC165Fake impl = new ERC165Fake();
-	vm.expectRevert(HubVotePool.InvalidQueryVoteImpl.selector);
+    ERC165Fake impl = new ERC165Fake();
+    vm.expectRevert(HubVotePool.InvalidQueryVoteImpl.selector);
     hubVotePool.registerQueryType(_queryType, address(impl));
-	vm.stopPrank();
+    vm.stopPrank();
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(uint8 _queryType, address _caller) public {
     vm.startPrank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
-	vm.stopPrank();
+    vm.stopPrank();
   }
-
 }
 
 contract RegisterSpoke is HubVotePoolTest {
@@ -329,7 +327,7 @@ contract SetGovernor is HubVotePoolTest {
   }
 }
 
-contract CrossChainEVMVote is HubVotePoolTest {
+contract CrossChainVote is HubVotePoolTest {
   function testFuzz_CorrectlyAddNewVote(VoteParams memory _voteParams, address _spokeContract, uint16 _queryChainId)
     public
   {
@@ -582,6 +580,67 @@ contract CrossChainEVMVote is HubVotePoolTest {
         abstainVotes: _abstainVotes2
       })
     );
+  }
+
+  function testFuzz_RevertIf_UnregisteredQueryType(
+    uint256 _proposalId,
+    uint64 _votes,
+    address _spokeContract,
+    uint16 _queryChainId,
+    uint8 _queryType
+  ) public {
+    vm.assume(_spokeContract != address(0));
+    vm.assume(_votes != 0);
+    _queryType = uint8(bound(_queryType, 2, 5));
+
+    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+      bytes("0x1296c33"), // random blockId: a hash of the block number
+      1, // numCallData
+      QueryTest.buildEthCallDataBytes(_spokeContract, abi.encodeWithSignature("proposalVotes(uint256)", _proposalId))
+    );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      1, // num per chain requests
+      QueryTest.buildPerChainRequestBytes(
+        _queryChainId, // chainId: (Ethereum mainnet)
+        _queryType,
+        ethCall
+      )
+    );
+
+    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      1, // numResults
+      QueryTest.buildEthCallResultBytes(
+        abi.encode(
+          _proposalId,
+          SpokeCountingFractional.ProposalVote({
+            againstVotes: uint128(_votes),
+            forVotes: uint128(_votes),
+            abstainVotes: uint128(_votes)
+          })
+        )
+      ) // results
+    );
+
+    // version and nonce are arbitrary
+    bytes memory _resp = QueryTest.buildQueryResponseBytes(
+      VERSION, // version
+      OFF_CHAIN_SENDER, // sender chain id
+      OFF_CHAIN_SIGNATURE, // signature
+      _queryRequestBytes, // query request
+      1, // num per chain responses
+      QueryTest.buildPerChainResponseBytes(_queryChainId, _queryType, ethCallResp)
+    );
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+
+    vm.expectRevert(HubVotePool.UnsupportedQueryType.selector);
+    hubVotePool.crossChainVote(_resp, signatures);
   }
 
   function testFuzz_RevertIf_QueriedVotesAreLessThanOnHubVotePoolForSpoke(
