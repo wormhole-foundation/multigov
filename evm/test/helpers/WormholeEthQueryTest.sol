@@ -12,7 +12,7 @@ import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollect
 contract WormholeEthQueryTest is Test {
   address constant DEVNET_GUARDIAN = 0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe;
   uint256 constant DEVNET_GUARDIAN_PRIVATE_KEY = 0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0;
-  uint256 constant MAINNET_CHAIN_ID = 2;
+  uint16 constant MAINNET_CHAIN_ID = 2;
   uint8 constant VERSION = 1;
   uint8 constant OFF_CHAIN_SENDER = 0;
   bytes constant OFF_CHAIN_SIGNATURE =

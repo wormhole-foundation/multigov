@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.0;
 
+import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
+
 contract GovernorMock {
   uint256 public proposalId;
   uint8 public support;
   string public reason;
   bytes public params;
   uint256 voteStart;
+  uint256 public proposalThreshold;
+  address public whitelistedProposer;
+  ERC20VotesFake public token;
 
   function castVoteWithReasonAndParams(
     uint256 _proposalId,
@@ -32,5 +37,21 @@ contract GovernorMock {
 
   function votingPeriod() public pure returns (uint256) {
     return 7 days;
+  }
+
+  function setProposalThreshold(uint256 _proposalThreshold) public virtual {
+    proposalThreshold = _proposalThreshold;
+  }
+
+  function setWhitelistedProposer(address _proposer) public virtual {
+    whitelistedProposer = _proposer;
+  }
+
+  function setToken(address _token) external {
+    token = ERC20VotesFake(_token);
+  }
+
+  function getVotes(address account, uint256 blockNumber) public view returns (uint256) {
+    return token.getPastVotes(account, blockNumber);
   }
 }
