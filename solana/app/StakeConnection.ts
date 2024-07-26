@@ -244,12 +244,7 @@ export class StakeConnection {
     return { stakeAccountCheckpointsWasm };
   }
 
-  /** Stake accounts are loaded by a StakeConnection object */
-  public async loadStakeAccount(address: PublicKey): Promise<StakeAccount> {
-    const { stakeAccountCheckpointsWasm } = await this.fetchCheckpointAccount(
-      address
-    );
-
+  public async fetchStakeAccountMetadata(address: PublicKey): Promise<StakeAccountMetadata> {
     const metadataAddress = (
       PublicKey.findProgramAddressSync(
         [
@@ -260,10 +255,21 @@ export class StakeConnection {
       )
     )[0];
 
-    const stakeAccountMetadata =
+    const fetchedData =
       (await this.program.account.stakeAccountMetadata.fetch(
         metadataAddress
-      )) as any as StakeAccountMetadata; // TS complains about types. Not exactly sure why they're incompatible.
+      ));
+
+    return fetchedData as StakeAccountMetadata;
+  }
+
+  /** Stake accounts are loaded by a StakeConnection object */
+  public async loadStakeAccount(address: PublicKey): Promise<StakeAccount> {
+    const { stakeAccountCheckpointsWasm } = await this.fetchCheckpointAccount(
+      address
+    );
+
+    const stakeAccountMetadata = await this.fetchStakeAccountMetadata(address);
 
     const custodyAddress = (
       await PublicKey.findProgramAddress(
@@ -334,7 +340,9 @@ export class StakeConnection {
       nonce,
       this.program.programId
     );
-
+    console.log("nonce:", nonce)
+    console.log("stakeAccountAddress:", stakeAccountAddress)
+    console.log("wasm.Constants.CHECKPOINT_DATA_SIZE():", wasm.Constants.CHECKPOINT_DATA_SIZE())
     instructions.push(
       SystemProgram.createAccountWithSeed({
         fromPubkey: this.userPublicKey(),
@@ -363,9 +371,10 @@ export class StakeConnection {
     return stakeAccountAddress;
   }
 
-  public async isLlcMember(stakeAccount: StakeAccount) {
+  public async isLlcMember(stakeAccount: PublicKey) {
+    const stakeAccountMetadata = await this.fetchStakeAccountMetadata(stakeAccount);
     return (
-      JSON.stringify(stakeAccount.stakeAccountMetadata.signedAgreementHash) ==
+      JSON.stringify(stakeAccountMetadata.signedAgreementHash) ==
       JSON.stringify(this.config.agreementHash)
     );
   }
@@ -415,52 +424,42 @@ export class StakeConnection {
   }
 
   public async delegate(
-    stakeAccount: StakeAccount | undefined,
-    delegateeStakeAccount: StakeAccount | undefined,
+    stakeAccount: PublicKey | undefined,
+    delegateeStakeAccount: PublicKey | undefined,
     amount: WHTokenBalance
   ) {
-    let stakeAccountAddress: PublicKey;
-    let currentDelegateStakeAccountAddress: PublicKey;
-    let delegateeStakeAccountAddress: PublicKey;
-    const owner = this.provider.wallet.publicKey;
+    let currentDelegateStakeAccount: PublicKey;
     const instructions: TransactionInstruction[] = [];
 
     if (!stakeAccount) {
-      stakeAccountAddress = await this.withCreateAccount(instructions, owner);
-      currentDelegateStakeAccountAddress = stakeAccountAddress;
+      stakeAccount = await this.withCreateAccount(
+        instructions,
+        this.provider.wallet.publicKey
+      );
+      currentDelegateStakeAccount = stakeAccount;
     } else {
-      stakeAccountAddress = stakeAccount.address;
-      currentDelegateStakeAccountAddress = await this.delegates(stakeAccount);
+      currentDelegateStakeAccount = await this.delegates(stakeAccount);
     }
 
     if (!delegateeStakeAccount) {
-      delegateeStakeAccountAddress = currentDelegateStakeAccountAddress;
-    } else {
-      delegateeStakeAccountAddress = delegateeStakeAccount.address;
+      delegateeStakeAccount = currentDelegateStakeAccount;
     }
-
+  
     if (!stakeAccount || !(await this.isLlcMember(stakeAccount))) {
-      await this.withJoinDaoLlc(instructions, stakeAccountAddress);
-    }
-
-    if (
-      delegateeStakeAccount &&
-        !(await this.isLlcMember(delegateeStakeAccount))
-    ) {
-      await this.withJoinDaoLlc(instructions, delegateeStakeAccountAddress);
+      await this.withJoinDaoLlc(instructions, stakeAccount);
     }
 
     instructions.push(
-      await this.buildTransferInstruction(stakeAccountAddress, amount.toBN())
+      await this.buildTransferInstruction(stakeAccount, amount.toBN())
     );
 
     instructions.push(
       await this.program.methods
-        .delegate(delegateeStakeAccountAddress)
+        .delegate(delegateeStakeAccount)
         .accounts({
-          currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccountAddress,
-          delegateeStakeAccountCheckpoints: delegateeStakeAccountAddress,
-          stakeAccountCheckpoints: stakeAccountAddress,
+          currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccount,
+          delegateeStakeAccountCheckpoints: delegateeStakeAccount,
+          stakeAccountCheckpoints: stakeAccount,
           mint: this.config.whTokenMint,
         })
         .instruction()
@@ -554,8 +553,9 @@ export class StakeConnection {
   }
 
   /** Gets the current delegate's stake account associated with the specified stake account. */
-  public delegates(stakeAccount: StakeAccount): PublicKey {
-    return stakeAccount.delegates();
+  public async delegates(stakeAccount: PublicKey): Promise<PublicKey> {
+    const stakeAccountMetadata = await this.fetchStakeAccountMetadata(stakeAccount);
+    return stakeAccountMetadata.delegate;
   }
 
   /** Withdraws tokens */
@@ -590,7 +590,7 @@ export class StakeConnection {
       );
     }
 
-    let currentDelegateStakeAccountAddress = await this.delegates(stakeAccount);
+    let currentDelegateStakeAccountAddress = await this.delegates(stakeAccount.address);
 
     instructions.push(
       await this.program.methods

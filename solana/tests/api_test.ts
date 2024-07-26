@@ -96,13 +96,13 @@ describe("api", async () => {
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 
     await stakeConnection.delegate(
-      stakeAccount,
-      stakeAccount,
+      stakeAccount.address,
+      stakeAccount.address,
       WHTokenBalance.fromString("100")
     );
 
     await stakeConnection.delegate(
-      stakeAccount,
+      stakeAccount.address,
       undefined,
       WHTokenBalance.fromString("100")
     );
@@ -116,7 +116,7 @@ describe("api", async () => {
     );
 
     const stakeAccount = await stakeConnection.getMainAccount(owner);
-    const delegate = await stakeConnection.delegates(stakeAccount);
+    const delegate = await stakeConnection.delegates(stakeAccount.address);
     assert.equal(
       delegate.toBase58(),
       stakeAccount.address.toBase58()
@@ -162,8 +162,8 @@ describe("api", async () => {
     );
     
     await stakeConnection.delegate(
-      stakeAccount,
-      stakeAccount,
+      stakeAccount.address,
+      stakeAccount.address,
       WHTokenBalance.fromString("100")
     );
 

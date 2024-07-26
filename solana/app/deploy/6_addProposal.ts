@@ -23,16 +23,21 @@ async function main() {
       STAKING_ADDRESS
     );
 
-    const proposalId = new BN(1);
-    const voteStart = new BN(Math.floor(Date.now() / 1000));
+    const proposalId = new BN(2);
+    // const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24*60*60); // 24 hour
 
-    await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
+    // await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
 
     const { proposalAccountData } = await stakeConnection.fetchProposalAccountData(proposalId);
+    console.log(proposalAccountData)
+    const { againstVotes, forVotes, abstainVotes } = await stakeConnection.proposalVotes(proposalId);
+    console.log(againstVotes)
+    console.log(forVotes)
+    console.log(abstainVotes)
 
     assert.equal(proposalAccountData.id.toString(), proposalId.toString());
-    assert.equal(proposalAccountData.voteStart.toString(), voteStart.toString());
+    // assert.equal(proposalAccountData.voteStart.toString(), voteStart.toString());
     assert.equal(proposalAccountData.safeWindow.toString(), safeWindow.toString());
     assert.equal(proposalAccountData.againstVotes.toString(), '0');
     assert.equal(proposalAccountData.forVotes.toString(), '0');
