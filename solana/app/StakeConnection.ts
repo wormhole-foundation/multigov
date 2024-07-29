@@ -117,6 +117,7 @@ export class StakeConnection {
           )
         ).value
       : undefined;
+
     const transactions =
       await TransactionBuilder.batchIntoVersionedTransactions(
         this.userPublicKey(),
@@ -127,6 +128,7 @@ export class StakeConnection {
         this.priorityFeeConfig,
         addressLookupTableAccount
       );
+
     return sendTransactions(
       transactions,
       this.provider.connection,
@@ -428,29 +430,31 @@ export class StakeConnection {
     delegateeStakeAccount: PublicKey | undefined,
     amount: WHTokenBalance
   ) {
+    let currentStakeAccount: PublicKey;
     let currentDelegateStakeAccount: PublicKey;
     const instructions: TransactionInstruction[] = [];
 
     if (!stakeAccount) {
-      stakeAccount = await this.withCreateAccount(
+      currentStakeAccount = await this.withCreateAccount(
         instructions,
         this.provider.wallet.publicKey
       );
-      currentDelegateStakeAccount = stakeAccount;
+      currentDelegateStakeAccount = currentStakeAccount;
     } else {
-      currentDelegateStakeAccount = await this.delegates(stakeAccount);
+      currentStakeAccount = stakeAccount;
+      currentDelegateStakeAccount = await this.delegates(currentStakeAccount);
     }
 
     if (!delegateeStakeAccount) {
       delegateeStakeAccount = currentDelegateStakeAccount;
     }
-  
+
     if (!stakeAccount || !(await this.isLlcMember(stakeAccount))) {
-      await this.withJoinDaoLlc(instructions, stakeAccount);
+      await this.withJoinDaoLlc(instructions, currentStakeAccount);
     }
 
     instructions.push(
-      await this.buildTransferInstruction(stakeAccount, amount.toBN())
+      await this.buildTransferInstruction(currentStakeAccount, amount.toBN())
     );
 
     instructions.push(
@@ -459,7 +463,7 @@ export class StakeConnection {
         .accounts({
           currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccount,
           delegateeStakeAccountCheckpoints: delegateeStakeAccount,
-          stakeAccountCheckpoints: stakeAccount,
+          stakeAccountCheckpoints: currentStakeAccount,
           mint: this.config.whTokenMint,
         })
         .instruction()
