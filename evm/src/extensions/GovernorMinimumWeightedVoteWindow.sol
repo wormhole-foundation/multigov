@@ -16,22 +16,38 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 abstract contract GovernorMinimumWeightedVoteWindow {
   using Checkpoints for Checkpoints.Trace160;
 
+  /// @notice A history of the vote weight window. If a new weight window is set than a new checkpoint is added to this
+  /// history.
   Checkpoints.Trace160 internal voteWeightWindowLengths;
 
+  /// @notice Emitted When the vote weight window is updated.
+  event VoteWeightWindowUpdated(uint48 oldVoteWeightWind, uint48 newVoteWeightWindow);
+
+  /// @param _initialVoteWeightWindowLength The length of time to set the vote weight window.
   constructor(uint48 _initialVoteWeightWindowLength) {
     _setVoteWeightWindow(_initialVoteWeightWindowLength);
   }
 
+  /// @notice Get the vote weight window used for a given timepoint.
+  /// @param _timepoint The timepoint to use when fetching the vote weight window.
   function getVoteWeightWindowLength(uint96 _timepoint) external view returns (uint48) {
     return SafeCast.toUint48(voteWeightWindowLengths.upperLookup(_timepoint));
   }
 
+  /// @notice An interface method meant to return the token used by governance.
   function token() public view virtual returns (IERC5805);
 
   function _setVoteWeightWindow(uint48 _windowLength) internal {
+    emit VoteWeightWindowUpdated(
+      SafeCast.toUint48(voteWeightWindowLengths.upperLookup(SafeCast.toUint48(block.timestamp))), _windowLength
+    );
     voteWeightWindowLengths.push(SafeCast.toUint96(block.timestamp), uint160(_windowLength));
   }
 
+  /// @notice Gets the voting weight for a given account at a specific timepoint. The voting weight is determined by
+  /// taking the minimum voting weight for an account over the vote weight window.
+  /// @param _account The address used to get the voting weight.
+  /// @param _timepoint The timestamp used as the end of the vote window.
   function _getVotes(address _account, uint256 _timepoint, bytes memory) internal view virtual returns (uint256) {
     uint160 voteWeightWindowLength = voteWeightWindowLengths.upperLookup(SafeCast.toUint96(_timepoint));
     uint256 windowStart = _timepoint - SafeCast.toUint48(voteWeightWindowLength);
@@ -56,6 +72,9 @@ abstract contract GovernorMinimumWeightedVoteWindow {
   ///
   /// NOTE: This is a variant of {upperLookup} that is optimised to find "recent" checkpoint (checkpoints with high
   /// keys).
+  /// @dev This function was taken from
+  /// https://github.com/OpenZeppelin/openzeppelin-contrac_upperBinaryLookupts/blob/v5.0.2/contracts/utils/structs/Checkpoints.sol#L70.
+  /// The only change we made was we interpolated the upperBinaryLookup into upperLookupRecent and return the position.
   function _upperLookupRecent(address _account, uint32 key, uint256 len) internal view returns (uint256) {
     uint256 low = 0;
     uint256 high = len;

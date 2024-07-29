@@ -283,7 +283,6 @@ contract Constructor is Test {
 
     CrossChainAggregateProposer crossChainAggregateProposer =
       new CrossChainAggregateProposer(_core, _hubGovernor, _initialMaxQueryTimestampOffset);
-    assertEq(address(crossChainAggregateProposer.WORMHOLE_CORE()), _core);
     assertEq(address(crossChainAggregateProposer.HUB_GOVERNOR()), _hubGovernor);
   }
 
@@ -816,9 +815,10 @@ contract RegisterSpoke is CrossChainAggregateProposerTest {
   function testFuzz_EmitsSpokeRegistered(uint16 _chainId, address _spokeAddress) public {
     vm.assume(_spokeAddress != address(0));
 
+    address existingAddress = crossChainAggregateProposer.registeredSpokes(_chainId);
     vm.prank(crossChainAggregateProposer.owner());
     vm.expectEmit();
-    emit CrossChainAggregateProposer.SpokeRegistered(_chainId, _spokeAddress);
+    emit CrossChainAggregateProposer.SpokeRegistered(_chainId, existingAddress, _spokeAddress);
     crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
   }
 
@@ -860,7 +860,7 @@ contract SetMaxQueryTimestampOffset is CrossChainAggregateProposerTest {
 
   function test_RevertIf_ZeroTimeDelta() public {
     vm.prank(crossChainAggregateProposer.owner());
-    vm.expectRevert(CrossChainAggregateProposer.InvalidTimeDelta.selector);
+    vm.expectRevert(CrossChainAggregateProposer.InvalidOffset.selector);
     crossChainAggregateProposer.setMaxQueryTimestampOffset(0);
   }
 }

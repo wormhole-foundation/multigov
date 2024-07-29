@@ -22,18 +22,18 @@ abstract contract GovernorSettableFixedQuorum is Governor {
     _setQuorum(_initialQuorum);
   }
 
+  /// @notice A function to get the quorum threshold for a given timestamp.
+  /// @param _voteStart The timestamp of when voting starts for a given proposal.
+  function quorum(uint256 _voteStart) public view override returns (uint256) {
+    return _quorumCheckpoints.upperLookup(SafeCast.toUint48(_voteStart));
+  }
+
   /// @notice A function to set quorum for the current block timestamp. Proposals created after this timestamp will be
   /// subject to the new quorum.
   /// @param _amount The new quorum threshold.
   function setQuorum(uint208 _amount) external {
     _checkGovernance();
     _setQuorum(_amount);
-  }
-
-  /// @notice A function to get the quorum threshold for a given timestamp.
-  /// @param _voteStart The timestamp of when voting starts for a given proposal.
-  function quorum(uint256 _voteStart) public view override returns (uint256) {
-    return _quorumCheckpoints.upperLookup(SafeCast.toUint48(_voteStart));
   }
 
   /// @notice A function to set quorum for the current block timestamp.
