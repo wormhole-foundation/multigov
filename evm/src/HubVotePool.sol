@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -11,9 +12,12 @@ import {
   EthCallQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
+import {ICrossChainVote} from "src/interfaces/ICrossChainVote.sol";
 import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
 
 contract HubVotePool is QueryResponse, Ownable {
+  using ERC165Checker for address;
+
   IWormhole public immutable WORMHOLE_CORE;
   IGovernor public hubGovernor;
   uint8 constant UNUSED_SUPPORT_PARAM = 1;
@@ -23,7 +27,10 @@ contract HubVotePool is QueryResponse, Ownable {
   error InvalidProposalVote();
   error TooManyEthCallResults(uint256, uint256);
   error TooManyQueryResponses(uint256);
+  error UnsupportedQueryType();
+  error InvalidQueryVoteImpl();
 
+  event QueryTypeRegistered(uint16 indexed targetChain, address oldQueryTypeImpl, address newQueryTypeImpl);
   event SpokeVoteCast(
     uint16 indexed emitterChainId, uint256 proposalId, uint256 voteAgainst, uint256 voteFor, uint256 voteAbstain
   );
@@ -47,6 +54,8 @@ contract HubVotePool is QueryResponse, Ownable {
   // Instead of nested mapping create encoding for the key
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
+  mapping(uint8 queryType => ICrossChainVote voteImpl) public queryTypeVoteImpl;
+
   constructor(address _core, address _hubGovernor, SpokeVoteAggregator[] memory _initialSpokeRegistry)
     QueryResponse(_core)
     Ownable(_hubGovernor)
@@ -62,6 +71,18 @@ contract HubVotePool is QueryResponse, Ownable {
     }
   }
 
+  function registerQueryType(uint8 _queryType, address _implementation) external {
+    _checkOwner();
+    if (_implementation == address(0)) {
+      queryTypeVoteImpl[_queryType] = ICrossChainVote(_implementation);
+      return;
+    }
+    bool isValid = _implementation.supportsInterface(type(ICrossChainVote).interfaceId);
+    if (!isValid) revert InvalidQueryVoteImpl();
+    emit QueryTypeRegistered(_queryType, address(queryTypeVoteImpl[_queryType]), _implementation);
+    queryTypeVoteImpl[_queryType] = ICrossChainVote(_implementation);
+  }
+
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
     _checkOwner();
     emit SpokeRegistered(_targetChain, spokeRegistry[_targetChain], _spokeVoteAddress);
@@ -73,46 +94,31 @@ contract HubVotePool is QueryResponse, Ownable {
     hubGovernor = IGovernor(_newGovernor);
   }
 
-  // TODO we will need a Solana method as well
-  function crossChainEVMVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
-    // Validate the query response signatures
+  function crossChainVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
-
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
-      // Validate that the query response is from hub
-      ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
+      ICrossChainVote voteQueryImpl = queryTypeVoteImpl[_queryResponse.responses[i].queryType];
+      if (address(voteQueryImpl) == address(0)) revert UnsupportedQueryType();
 
-      EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
+      ICrossChainVote.QueryVote memory voteQuery = voteQueryImpl.crossChainVote(_queryResponse.responses[i]);
+      ICrossChainVote.ProposalVote memory proposalVote = voteQuery.proposalVote;
+      ProposalVote memory existingSpokeVote = spokeProposalVotes[voteQuery.spokeProposalId];
 
-      // verify contract and chain is correct
-      bytes32 addr = spokeRegistry[perChainResp.chainId];
-      if (addr != bytes32(uint256(uint160(_ethCalls.result[0].contractAddress))) || addr == bytes32("")) {
-        revert UnknownMessageEmitter();
-      }
-
-      if (_ethCalls.result.length != 1) revert TooManyEthCallResults(i, _ethCalls.result.length);
-
-      (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
-        abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));
-
-      // TODO: does encode vs encodePacked matter here
-      bytes32 _spokeProposalId = keccak256(abi.encode(perChainResp.chainId, proposalId));
-      ProposalVote memory existingSpokeVote = spokeProposalVotes[_spokeProposalId];
       if (
-        existingSpokeVote.againstVotes > againstVotes || existingSpokeVote.forVotes > forVotes
-          || existingSpokeVote.abstainVotes > abstainVotes
+        existingSpokeVote.againstVotes > proposalVote.againstVotes || existingSpokeVote.forVotes > proposalVote.forVotes
+          || existingSpokeVote.abstainVotes > proposalVote.abstainVotes
       ) revert InvalidProposalVote();
 
-      spokeProposalVotes[_spokeProposalId] = ProposalVote(againstVotes, forVotes, abstainVotes);
-
+      spokeProposalVotes[voteQuery.spokeProposalId] =
+        ProposalVote(proposalVote.againstVotes, proposalVote.forVotes, proposalVote.abstainVotes);
       _castVote(
-        proposalId,
+        voteQuery.proposalId,
         ProposalVote(
-          againstVotes - existingSpokeVote.againstVotes,
-          forVotes - existingSpokeVote.forVotes,
-          abstainVotes - existingSpokeVote.abstainVotes
+          proposalVote.againstVotes - existingSpokeVote.againstVotes,
+          proposalVote.forVotes - existingSpokeVote.forVotes,
+          proposalVote.abstainVotes - existingSpokeVote.abstainVotes
         ),
-        perChainResp.chainId
+        voteQuery.chainId
       );
     }
   }
