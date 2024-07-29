@@ -6,6 +6,7 @@ import {
   SystemProgram,
   SYSVAR_CLOCK_PUBKEY,
   TransactionInstruction,
+  Transaction
 } from "@solana/web3.js";
 import * as wasm2 from "@wormhole/staking-wasm";
 import {
@@ -21,7 +22,7 @@ import IDL from "../target/idl/staking.json";
 import {WHTokenBalance} from "./whTokenBalance";
 import {STAKING_ADDRESS,} from "./constants";
 import * as crypto from "crypto";
-import {PriorityFeeConfig, sendTransactions, TransactionBuilder,} from "@pythnetwork/solana-utils";
+import {PriorityFeeConfig, sendTransactions, TransactionBuilder,} from "./transaction";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import * as console from "node:console";
 
@@ -89,7 +90,7 @@ export class StakeConnection {
     }
 
     const configAddress = (
-      await PublicKey.findProgramAddress(
+      PublicKey.findProgramAddressSync(
         [utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
         program.programId
       )
@@ -199,7 +200,7 @@ export class StakeConnection {
 
   async fetchProposalAccount(proposalId: BN) {
     const proposalAccount = (
-      await PublicKey.findProgramAddress(
+      PublicKey.findProgramAddressSync(
         [
           utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()),
           proposalId.toArrayLike(Buffer, "be", 8)
@@ -274,7 +275,7 @@ export class StakeConnection {
     const stakeAccountMetadata = await this.fetchStakeAccountMetadata(address);
 
     const custodyAddress = (
-      await PublicKey.findProgramAddress(
+      PublicKey.findProgramAddressSync(
         [
           utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
           address.toBuffer(),
@@ -284,7 +285,7 @@ export class StakeConnection {
     )[0];
 
     const authorityAddress = (
-      await PublicKey.findProgramAddress(
+      PublicKey.findProgramAddressSync(
         [
           utils.bytes.utf8.encode(wasm.Constants.AUTHORITY_SEED()),
           address.toBuffer(),
@@ -399,6 +400,7 @@ export class StakeConnection {
     stakeAccountCheckpointsAddress: PublicKey,
     amount: BN
   ): Promise<TransactionInstruction> {
+
     const from_account = await getAssociatedTokenAddress(
       this.config.whTokenMint,
       this.provider.wallet.publicKey,
@@ -406,7 +408,7 @@ export class StakeConnection {
     );
 
     const toAccount = (
-      await PublicKey.findProgramAddress(
+      PublicKey.findProgramAddressSync(
         [
           utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
           stakeAccountCheckpointsAddress.toBuffer(),

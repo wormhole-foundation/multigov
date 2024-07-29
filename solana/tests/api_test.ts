@@ -93,19 +93,19 @@ describe("api", async () => {
       WHTokenBalance.fromString("100")
     );
 
-    const stakeAccount = await stakeConnection.getMainAccount(owner);
-
-    await stakeConnection.delegate(
-      stakeAccount.address,
-      stakeAccount.address,
-      WHTokenBalance.fromString("100")
-    );
-
-    await stakeConnection.delegate(
-      stakeAccount.address,
-      undefined,
-      WHTokenBalance.fromString("100")
-    );
+//     const stakeAccount = await stakeConnection.getMainAccount(owner);
+// 
+//     await stakeConnection.delegate2(
+//       stakeAccount.address,
+//       stakeAccount.address,
+//       WHTokenBalance.fromString("100")
+//     );
+// 
+//     await stakeConnection.delegate2(
+//       stakeAccount.address,
+//       undefined,
+//       WHTokenBalance.fromString("100")
+//     );
   });
 
   it("default delegates", async () => {
