@@ -338,38 +338,38 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     vm.stopPrank();
   }
 
-  function _setupAndExecuteProposalIfEligible(
-    VoteWeight[] memory voteWeights,
-    address[] memory targets,
-    uint256[] memory values,
-    bytes[] memory calldatas,
+  function _mockQueryResponseAndProposeIfEligible(
+    VoteWeight[] memory _voteWeights,
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
     string memory _description,
     address _caller
   ) internal returns (uint256 proposalId) {
-    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
+    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     vm.startPrank(_caller);
     proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
-      targets, values, calldatas, _description, queryResponse, signatures
+      _targets, _values, _calldatas, _description, queryResponse, signatures
     );
     vm.stopPrank();
   }
 
-  function _setupAndExecuteProposalIfEligibleCustomTimepoints(
-    VoteWeight[] memory voteWeights,
-    address[] memory targets,
-    uint256[] memory values,
-    bytes[] memory calldatas,
+  function _mockQueryResponseAndProposeIfEligibleCustomTimepoints(
+    VoteWeight[] memory _voteWeights,
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
     address _caller,
     uint64[] memory _timestamps
   ) public returns (uint256) {
-    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, _timestamps);
+    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(_voteWeights, _caller, _timestamps);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     vm.startPrank(_caller);
     uint256 proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
-      targets, values, calldatas, "Test Proposal", queryResponse, signatures
+      _targets, _values, _calldatas, "Test Proposal", queryResponse, signatures
     );
     vm.stopPrank();
 
@@ -408,7 +408,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
     uint256 proposalId =
-      _setupAndExecuteProposalIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+      _mockQueryResponseAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
     assertEq(
       hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
@@ -445,7 +445,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
     uint256 proposalId =
-      _setupAndExecuteProposalIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+      _mockQueryResponseAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
     assertEq(
       hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
@@ -486,7 +486,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
     uint256 proposalId =
-      _setupAndExecuteProposalIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+      _mockQueryResponseAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
     assertEq(
       hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
@@ -520,7 +520,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory _values = builder.values();
     bytes[] memory _calldatas = builder.calldatas();
 
-    uint256 proposalId = _setupAndExecuteProposalIfEligibleCustomTimepoints(
+    uint256 proposalId = _mockQueryResponseAndProposeIfEligibleCustomTimepoints(
       voteWeights, _targets, _values, _calldatas, _caller, timestamps
     );
 
