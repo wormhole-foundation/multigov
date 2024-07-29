@@ -349,11 +349,10 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
-    vm.startPrank(_caller);
+    vm.prank(_caller);
     proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
       _targets, _values, _calldatas, _description, queryResponse, signatures
     );
-    vm.stopPrank();
   }
 
   function _mockQueryResponseAndProposeIfEligibleCustomTimepoints(
@@ -367,11 +366,10 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(_voteWeights, _caller, _timestamps);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
-    vm.startPrank(_caller);
+    vm.prank(_caller);
     uint256 proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
       _targets, _values, _calldatas, "Test Proposal", queryResponse, signatures
     );
-    vm.stopPrank();
 
     return proposalId;
   }
