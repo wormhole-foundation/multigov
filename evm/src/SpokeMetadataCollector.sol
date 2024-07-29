@@ -6,7 +6,7 @@ import {
   QueryResponse,
   ParsedQueryResponse,
   ParsedPerChainQueryResponse,
-  EthCallQueryResponse
+  EthCallWithFinalityQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
 contract SpokeMetadataCollector is QueryResponse {
@@ -26,6 +26,7 @@ contract SpokeMetadataCollector is QueryResponse {
   error TooManyQueryResponses(uint256);
   error SenderChainMismatch();
   error TooManyEthCallResults(uint256, uint256);
+  error InvalidQueryBlock(bytes);
 
   event ProposalCreated(uint256 proposalId, uint256 start);
 
@@ -50,10 +51,14 @@ contract SpokeMetadataCollector is QueryResponse {
     uint256 numResponses = _queryResponse.responses.length;
 
     for (uint256 i = 0; i < numResponses; i++) {
-      EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_queryResponse.responses[i]);
+      EthCallWithFinalityQueryResponse memory _ethCalls =
+        parseEthCallWithFinalityQueryResponse(_queryResponse.responses[i]);
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(i, _ethCalls.result.length);
       if (_ethCalls.result[0].contractAddress != HUB_PROPOSAL_METADATA) {
         revert InvalidWormholeMessage("Query data must be from hub proposal metadata contract");
+      }
+      if (keccak256(_ethCalls.requestFinality) != keccak256(bytes("finalized"))) {
+        revert InvalidQueryBlock(_ethCalls.requestBlockId);
       }
       (uint256 proposalId, uint256 voteStart) = abi.decode(_ethCalls.result[0].result, (uint256, uint256));
 

@@ -9,7 +9,7 @@ import {QueryResponse} from "wormhole/query/QueryResponse.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {HubCrossChainEvmCallVoteDecoder} from "src/HubCrossChainEvmCallVoteDecoder.sol";
+import {HubCrossChainEvmCallWithFinalityVoteDecoder} from "src/HubCrossChainEvmCallWithFinalityVoteDecoder.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
@@ -27,7 +27,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
   uint16 QUERY_CHAIN_ID = 2;
   uint48 minimumTime = 1 hours;
   uint8 ethCallQuery;
-  HubCrossChainEvmCallVoteDecoder hubCrossChainEvmVote;
+  HubCrossChainEvmCallWithFinalityVoteDecoder hubCrossChainEvmVote;
 
   struct VoteParams {
     uint256 proposalId;
@@ -41,9 +41,9 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     governor = new GovernorMock();
     hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
 
-    hubCrossChainEvmVote = new HubCrossChainEvmCallVoteDecoder(address(wormhole), address(hubVotePool));
+    hubCrossChainEvmVote = new HubCrossChainEvmCallWithFinalityVoteDecoder(address(wormhole), address(hubVotePool));
 
-    ethCallQuery = hubVotePool.QT_ETH_CALL();
+    ethCallQuery = hubVotePool.QT_ETH_CALL_WITH_FINALITY();
     vm.startPrank(address(governor));
     hubVotePool.registerQueryType(ethCallQuery, address(hubCrossChainEvmVote));
     vm.stopPrank();
@@ -54,8 +54,9 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     view
     returns (bytes memory)
   {
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // random blockId: a hash of the block number
+      "finalized", // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         _governance, abi.encodeWithSignature("proposalVotes(uint256)", _voteParams.proposalId)
@@ -68,12 +69,12 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
       1, // num per chain requests
       QueryTest.buildPerChainRequestBytes(
         _responseChainId, // chainId: (Ethereum mainnet)
-        hubVotePool.QT_ETH_CALL(),
+        hubVotePool.QT_ETH_CALL_WITH_FINALITY(),
         ethCall
       )
     );
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
       uint64(block.number), // block number
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
@@ -97,7 +98,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
       OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(_responseChainId, hubVotePool.QT_ETH_CALL(), ethCallResp)
+      QueryTest.buildPerChainResponseBytes(_responseChainId, hubVotePool.QT_ETH_CALL_WITH_FINALITY(), ethCallResp)
     );
     return _resp;
   }
@@ -382,15 +383,16 @@ contract CrossChainVote is HubVotePoolTest {
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
     vm.stopPrank();
 
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // random blockId: a hash of the block number
+      "finalized", // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         _spokeContract, abi.encodeWithSignature("proposalVotes(uint256)", _voteParams1.proposalId)
       )
     );
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
       uint64(block.number), // block number
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
@@ -434,12 +436,12 @@ contract CrossChainVote is HubVotePoolTest {
       abi.encodePacked(
         QueryTest.buildPerChainRequestBytes(
           _queryChainId, // chainId
-          hubVotePool.QT_ETH_CALL(),
+          hubVotePool.QT_ETH_CALL_WITH_FINALITY(),
           ethCall
         ),
         QueryTest.buildPerChainRequestBytes(
           _queryChainId, // chainId
-          hubVotePool.QT_ETH_CALL(),
+          hubVotePool.QT_ETH_CALL_WITH_FINALITY(),
           ethCall
         )
       )
@@ -452,8 +454,8 @@ contract CrossChainVote is HubVotePoolTest {
       _queryRequestBytes, // query request
       2, // num per chain responses
       abi.encodePacked(
-        QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), ethCallResp),
-        QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), secondEthCallResp)
+        QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL_WITH_FINALITY(), ethCallResp),
+        QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL_WITH_FINALITY(), secondEthCallResp)
       )
     );
 
@@ -481,15 +483,16 @@ contract CrossChainVote is HubVotePoolTest {
     hubVotePool.registerSpoke(_queryChainId - 1, addressToBytes32(_spokeContract));
     vm.stopPrank();
 
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // random blockId: a hash of the block number
+      "finalized", // finalized
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         _spokeContract, abi.encodeWithSignature("proposalVotes(uint256)", _voteParams.proposalId)
       )
     );
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
       uint64(block.number), // block number
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
@@ -513,12 +516,12 @@ contract CrossChainVote is HubVotePoolTest {
       abi.encodePacked(
         QueryTest.buildPerChainRequestBytes(
           _queryChainId, // chainId
-          hubVotePool.QT_ETH_CALL(),
+          hubVotePool.QT_ETH_CALL_WITH_FINALITY(),
           ethCall
         ),
         QueryTest.buildPerChainRequestBytes(
           _queryChainId - 1, // chainId
-          hubVotePool.QT_ETH_CALL(),
+          hubVotePool.QT_ETH_CALL_WITH_FINALITY(),
           ethCall
         )
       )
@@ -531,8 +534,8 @@ contract CrossChainVote is HubVotePoolTest {
       _queryRequestBytes, // query request
       2, // num per chain responses
       abi.encodePacked(
-        QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), ethCallResp),
-        QueryTest.buildPerChainResponseBytes(_queryChainId - 1, hubVotePool.QT_ETH_CALL(), ethCallResp)
+        QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL_WITH_FINALITY(), ethCallResp),
+        QueryTest.buildPerChainResponseBytes(_queryChainId - 1, hubVotePool.QT_ETH_CALL_WITH_FINALITY(), ethCallResp)
       )
     );
 
@@ -605,10 +608,12 @@ contract CrossChainVote is HubVotePoolTest {
   ) public {
     vm.assume(_spokeContract != address(0));
     vm.assume(_votes != 0);
-    _queryType = uint8(bound(_queryType, 2, 5));
+    _queryType = uint8(bound(_queryType, 1, 5));
+    vm.assume(_queryType != hubVotePool.QT_ETH_CALL_WITH_FINALITY());
 
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // random blockId: a hash of the block number
+      "finalized", // finalized
       1, // numCallData
       QueryTest.buildEthCallDataBytes(_spokeContract, abi.encodeWithSignature("proposalVotes(uint256)", _proposalId))
     );
@@ -624,7 +629,7 @@ contract CrossChainVote is HubVotePoolTest {
       )
     );
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
       uint64(block.number), // block number
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
@@ -733,8 +738,9 @@ contract CrossChainVote is HubVotePoolTest {
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // blockId
+      "finalized", // finality
       2, // numCallData
       abi.encodePacked(
         QueryTest.buildEthCallDataBytes(
@@ -748,7 +754,7 @@ contract CrossChainVote is HubVotePoolTest {
       VERSION, // version
       0, // nonce
       1, // num per chain requests
-      QueryTest.buildPerChainRequestBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), ethCall)
+      QueryTest.buildPerChainRequestBytes(_queryChainId, hubVotePool.QT_ETH_CALL_WITH_FINALITY(), ethCall)
     );
 
     bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
@@ -768,7 +774,7 @@ contract CrossChainVote is HubVotePoolTest {
       OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL(), ethCallResp)
+      QueryTest.buildPerChainResponseBytes(_queryChainId, hubVotePool.QT_ETH_CALL_WITH_FINALITY(), ethCallResp)
     );
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);

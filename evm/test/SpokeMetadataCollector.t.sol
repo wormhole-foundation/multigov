@@ -22,8 +22,9 @@ contract SpokeMetadataCollectorTest is WormholeEthQueryTest {
     view
     returns (bytes memory)
   {
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // random blockId: a hash of the block number
+      "finalized", // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         _governance, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", _proposalId, _voteStart)
@@ -36,12 +37,12 @@ contract SpokeMetadataCollectorTest is WormholeEthQueryTest {
       1, // num per chain requests
       QueryTest.buildPerChainRequestBytes(
         _responseChainId, // chainId: (Ethereum mainnet)
-        spokeMetadataCollector.QT_ETH_CALL(),
+        spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
         ethCall
       )
     );
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
       uint64(block.number), // block number
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
@@ -58,7 +59,7 @@ contract SpokeMetadataCollectorTest is WormholeEthQueryTest {
       1, // num per chain responses
       QueryTest.buildPerChainResponseBytes(
         _responseChainId, // eth mainnet
-        spokeMetadataCollector.QT_ETH_CALL(),
+        spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
         ethCallResp
       )
     );
@@ -192,8 +193,9 @@ contract AddProposal is SpokeMetadataCollectorTest {
     uint48 _voteEnd2
   ) public {
     vm.assume(_proposalId1 != _proposalId2);
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // blockId
+      "finalized", // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
@@ -207,18 +209,18 @@ contract AddProposal is SpokeMetadataCollectorTest {
       abi.encodePacked(
         QueryTest.buildPerChainRequestBytes(
           2, // chainId: (Ethereum mainnet)
-          spokeMetadataCollector.QT_ETH_CALL(),
+          spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
           ethCall
         ),
         QueryTest.buildPerChainRequestBytes(
           2, // chainId: (Ethereum mainnet)
-          spokeMetadataCollector.QT_ETH_CALL(),
+          spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
           ethCall
         )
       )
     );
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
       uint64(block.number), // block number
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
@@ -226,7 +228,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
       QueryTest.buildEthCallResultBytes(abi.encode(_proposalId1, _voteStart1, _voteEnd1)) // results
     );
 
-    bytes memory secondEthCallResp = QueryTest.buildEthCallResponseBytes(
+    bytes memory secondEthCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
       uint64(block.number), // block number
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
@@ -244,12 +246,12 @@ contract AddProposal is SpokeMetadataCollectorTest {
       abi.encodePacked(
         QueryTest.buildPerChainResponseBytes(
           2, // eth mainnet
-          spokeMetadataCollector.QT_ETH_CALL(),
+          spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
           ethCallResp
         ),
         QueryTest.buildPerChainResponseBytes(
           2, // eth mainnet
-          spokeMetadataCollector.QT_ETH_CALL(),
+          spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
           secondEthCallResp
         )
       )
@@ -265,8 +267,9 @@ contract AddProposal is SpokeMetadataCollectorTest {
   }
 
   function test_RevertIf_TooManyCalls() public {
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // blockId
+      "finalized", // finality
       2, // numCallData
       abi.encodePacked(
         QueryTest.buildEthCallDataBytes(
@@ -284,12 +287,12 @@ contract AddProposal is SpokeMetadataCollectorTest {
       1, // num per chain requests
       QueryTest.buildPerChainRequestBytes(
         2, // chainId: (Ethereum mainnet)
-        spokeMetadataCollector.QT_ETH_CALL(),
+        spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
         ethCall
       )
     );
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
       uint64(block.number), // block number
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
@@ -308,13 +311,68 @@ contract AddProposal is SpokeMetadataCollectorTest {
       1, // num per chain responses
       QueryTest.buildPerChainResponseBytes(
         2, // eth mainnet
-        spokeMetadataCollector.QT_ETH_CALL(),
+        spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
         ethCallResp
       )
     );
     IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
 
     vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.TooManyEthCallResults.selector, 0, 2));
+    spokeMetadataCollector.addProposal(_resp, signatures);
+  }
+
+  function testFuzz_RevertIf_QueryBlockIsNotFinalized(
+    uint256 _proposalId,
+    uint256 _voteStart,
+    string memory blockId,
+    bytes memory finality
+  ) public {
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
+      bytes(blockId), // random blockId: a hash of the block number
+      finality, // finality
+      1, // numCallData
+      QueryTest.buildEthCallDataBytes(
+        GOVERNANCE_CONTRACT,
+        abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", _proposalId, _voteStart)
+      )
+    );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      1, // num per chain requests
+      QueryTest.buildPerChainRequestBytes(
+        uint16(MAINNET_CHAIN_ID), // chainId: (Ethereum mainnet)
+        spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
+        ethCall
+      )
+    );
+
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      1, // numResults
+      QueryTest.buildEthCallResultBytes(abi.encode(_proposalId, _voteStart)) // results
+    );
+
+    // version and nonce are arbitrary
+    bytes memory _resp = QueryTest.buildQueryResponseBytes(
+      VERSION, // version
+      OFF_CHAIN_SENDER, // sender chain id
+      OFF_CHAIN_SIGNATURE, // signature
+      _queryRequestBytes, // query request
+      1, // num per chain responses
+      QueryTest.buildPerChainResponseBytes(
+        uint16(MAINNET_CHAIN_ID), // eth mainnet
+        spokeMetadataCollector.QT_ETH_CALL_WITH_FINALITY(),
+        ethCallResp
+      )
+    );
+
+    IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
+
+    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.InvalidQueryBlock.selector, bytes(blockId)));
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 }

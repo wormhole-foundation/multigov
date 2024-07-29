@@ -22,6 +22,7 @@ interface ICrossChainVoteDecoder is IERC165 {
   error TooManyEthCallResults(uint256);
   error UnknownMessageEmitter();
   error InvalidProposalVote();
+  error InvalidQueryBlock(bytes);
 
   function decode(ParsedPerChainQueryResponse memory _queryResponse) external returns (QueryVote memory);
 }

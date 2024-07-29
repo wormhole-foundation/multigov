@@ -6,7 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {ParsedPerChainQueryResponse, ParsedQueryResponse} from "wormhole/query/QueryResponse.sol";
-import {HubCrossChainEvmCallVoteDecoder} from "src/HubCrossChainEvmCallVoteDecoder.sol";
+import {HubCrossChainEvmCallWithFinalityVoteDecoder} from "src/HubCrossChainEvmCallWithFinalityVoteDecoder.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
@@ -16,9 +16,9 @@ import {GovernorMock} from "test/mocks/GovernorMock.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 
-contract HubCrossChainEvmCallVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
+contract HubCrossChainEvmCallWithFinalityVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
   GovernorMock governor;
-  HubCrossChainEvmCallVoteDecoder hubCrossChainEvmVote;
+  HubCrossChainEvmCallWithFinalityVoteDecoder hubCrossChainEvmVote;
   HubVotePoolHarness hubVotePool;
 
   struct VoteParams {
@@ -32,7 +32,7 @@ contract HubCrossChainEvmCallVoteDecoderTest is WormholeEthQueryTest, AddressUti
     _setupWormhole();
     governor = new GovernorMock();
     hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
-    hubCrossChainEvmVote = new HubCrossChainEvmCallVoteDecoder(address(wormhole), address(hubVotePool));
+    hubCrossChainEvmVote = new HubCrossChainEvmCallWithFinalityVoteDecoder(address(wormhole), address(hubVotePool));
   }
 
   function _buildParsedPerChainResponse(VoteParams memory _voteParams, uint16 _responseChainId, address _governance)
@@ -40,8 +40,9 @@ contract HubCrossChainEvmCallVoteDecoderTest is WormholeEthQueryTest, AddressUti
     view
     returns (ParsedPerChainQueryResponse memory)
   {
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // random blockId: a hash of the block number
+      "finalized", // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         _governance, abi.encodeWithSignature("proposalVotes(uint256)", _voteParams.proposalId)
@@ -54,12 +55,12 @@ contract HubCrossChainEvmCallVoteDecoderTest is WormholeEthQueryTest, AddressUti
       1, // num per chain requests
       QueryTest.buildPerChainRequestBytes(
         _responseChainId, // chainId: (Ethereum mainnet)
-        hubVotePool.QT_ETH_CALL(),
+        hubVotePool.QT_ETH_CALL_WITH_FINALITY(),
         ethCall
       )
     );
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
       uint64(block.number), // block number
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
@@ -83,7 +84,7 @@ contract HubCrossChainEvmCallVoteDecoderTest is WormholeEthQueryTest, AddressUti
       OFF_CHAIN_SIGNATURE, // signature
       _queryRequestBytes, // query request
       1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(_responseChainId, hubVotePool.QT_ETH_CALL(), ethCallResp)
+      QueryTest.buildPerChainResponseBytes(_responseChainId, hubVotePool.QT_ETH_CALL_WITH_FINALITY(), ethCallResp)
     );
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
@@ -99,16 +100,17 @@ contract HubCrossChainEvmCallVoteDecoderTest is WormholeEthQueryTest, AddressUti
   }
 }
 
-contract Constructor is HubCrossChainEvmCallVoteDecoderTest {
+contract Constructor is HubCrossChainEvmCallWithFinalityVoteDecoderTest {
   function testFuzz_CorrectlySetConstructorArgs(address _core, address _hubVotePool) public {
     vm.assume(_core != address(0));
-    HubCrossChainEvmCallVoteDecoder vote = new HubCrossChainEvmCallVoteDecoder(_core, _hubVotePool);
+    HubCrossChainEvmCallWithFinalityVoteDecoder vote =
+      new HubCrossChainEvmCallWithFinalityVoteDecoder(_core, _hubVotePool);
     assertEq(address(vote.wormhole()), _core);
     assertEq(address(vote.HUB_VOTE_POOL()), _hubVotePool);
   }
 }
 
-contract Decode is HubCrossChainEvmCallVoteDecoderTest {
+contract Decode is HubCrossChainEvmCallWithFinalityVoteDecoderTest {
   function testFuzz_CorrectlyParseChainResponse(
     uint256 _proposalId,
     uint64 _againstVotes,
@@ -163,9 +165,70 @@ contract Decode is HubCrossChainEvmCallVoteDecoderTest {
     vm.expectRevert(ICrossChainVoteDecoder.UnknownMessageEmitter.selector);
     hubCrossChainEvmVote.decode(_resp);
   }
+
+  function testFuzz_RevertIf_QueryBlockIsNotFinalized(
+    uint256 _proposalId,
+    uint64 _againstVotes,
+    uint64 _forVotes,
+    uint64 _abstainVotes
+  ) public {
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
+      bytes("0x1296c33"), // random blockId: a hash of the block number
+      "finalized", // finality
+      1, // numCallData
+      QueryTest.buildEthCallDataBytes(
+        GOVERNANCE_CONTRACT, abi.encodeWithSignature("proposalVotes(uint256)", _proposalId)
+      )
+    );
+
+    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      1, // num per chain requests
+      QueryTest.buildPerChainRequestBytes(
+        uint16(MAINNET_CHAIN_ID), // chainId: (Ethereum mainnet)
+        hubVotePool.QT_ETH_CALL_WITH_FINALITY(),
+        ethCall
+      )
+    );
+
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
+      uint64(block.number), // block number
+      blockhash(block.number), // block hash
+      uint64(block.timestamp), // block time US
+      1, // numResults
+      QueryTest.buildEthCallResultBytes(
+        abi.encode(
+          SpokeCountingFractional.ProposalVote({
+            proposalId: _proposalId,
+            againstVotes: uint128(_againstVotes),
+            forVotes: uint128(_forVotes),
+            abstainVotes: uint128(_abstainVotes)
+          })
+        )
+      ) // results
+    );
+
+    // version and nonce are arbitrary
+    bytes memory _resp = QueryTest.buildQueryResponseBytes(
+      VERSION, // version
+      OFF_CHAIN_SENDER, // sender chain id
+      OFF_CHAIN_SIGNATURE, // signature
+      _queryRequestBytes, // query request
+      1, // num per chain responses
+      QueryTest.buildPerChainResponseBytes(
+        uint16(MAINNET_CHAIN_ID), hubVotePool.QT_ETH_CALL_WITH_FINALITY(), ethCallResp
+      )
+    );
+
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+    ParsedQueryResponse memory parsedResp = hubCrossChainEvmVote.parseAndVerifyQueryResponse(_resp, signatures);
+    vm.expectRevert(ICrossChainVoteDecoder.UnknownMessageEmitter.selector);
+    hubCrossChainEvmVote.decode(parsedResp.responses[0]);
+  }
 }
 
-contract SupportsInterface is HubCrossChainEvmCallVoteDecoderTest {
+contract SupportsInterface is HubCrossChainEvmCallWithFinalityVoteDecoderTest {
   function test_Erc165InterfaceIsSupported() public {
     bool isValid = hubCrossChainEvmVote.supportsInterface(type(IERC165).interfaceId);
     assertTrue(isValid);
