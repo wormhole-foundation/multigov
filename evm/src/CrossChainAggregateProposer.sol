@@ -8,7 +8,7 @@ import {
   QueryResponse,
   ParsedQueryResponse,
   ParsedPerChainQueryResponse,
-  EthCallQueryResponse
+  EthCallByTimestampQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
 contract CrossChainAggregateProposer is QueryResponse, Ownable {
@@ -77,11 +77,11 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
-      EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
+      EthCallByTimestampQueryResponse memory _ethCalls = parseEthCallByTimestampQueryResponse(perChainResp);
 
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
-      uint64 queryBlockTime = _ethCalls.blockTime;
+      uint64 queryBlockTime = _ethCalls.targetBlockTime;
 
       if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) {
         revert InvalidTimestamp(queryBlockTime);
