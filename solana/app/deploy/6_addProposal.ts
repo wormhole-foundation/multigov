@@ -23,7 +23,7 @@ async function main() {
       STAKING_ADDRESS
     );
 
-    const proposalId = new BN(2);
+    const proposalId = new BN(3);
     // const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24*60*60); // 24 hour
 

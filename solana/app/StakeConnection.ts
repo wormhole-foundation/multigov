@@ -474,7 +474,7 @@ export class StakeConnection {
 
   public async castVote(
     proposalId: BN,
-    stakeAccount: StakeAccount,
+    stakeAccount: PublicKey,
     againstVotes: BN,
     forVotes: BN,
     abstainVotes: BN,
@@ -487,7 +487,7 @@ export class StakeConnection {
         .castVote(proposalId, againstVotes, forVotes, abstainVotes)
         .accountsPartial({
           proposal: proposalAccount,
-          voterCheckpoints: stakeAccount.address,
+          voterCheckpoints: stakeAccount,
         })
         .instruction()
     );
