@@ -376,7 +376,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     return proposalId;
   }
 
-  function _setupValidTimestamps() internal view returns (uint64[] memory) {
+  function _createSynchronizedTimestamps() internal view returns (uint64[] memory) {
     uint64 timestamp = uint64(vm.getBlockTimestamp());
     uint64[] memory timestamps = new uint64[](3);
     timestamps[0] = timestamp;
@@ -509,7 +509,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: 2, spokeAddress: makeAddr("SpokeAddress2")});
     voteWeights[2] = VoteWeight({voteWeight: _voteWeight3, chainId: 3, spokeAddress: makeAddr("SpokeAddress3")});
 
-    uint64[] memory timestamps = _setupValidTimestamps();
+    uint64[] memory timestamps = _createSynchronizedTimestamps();
 
     _assumeThresholdMet(voteWeights);
 
