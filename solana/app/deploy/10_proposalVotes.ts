@@ -29,7 +29,11 @@ async function main() {
 
     const proposalId = new BN(1);
 
-    await stakeConnection.castVote(proposalId, stakeAccount, new BN(10), new BN(20), new BN(12));
+    const { againstVotes, forVotes, abstainVotes } = await stakeConnection.proposalVotes(proposalId);
+
+    console.log("againstVotes", againstVotes.toString())
+    console.log("forVotes", forVotes.toString())
+    console.log("abstainVotes", abstainVotes.toString())
   } catch (err) {
     console.error("Error:", err);
   }
