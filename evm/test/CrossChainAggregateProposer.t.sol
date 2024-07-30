@@ -714,7 +714,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(CrossChainAggregateProposer.InvalidTimestamp.selector);
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[1]));
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
@@ -740,7 +740,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector));
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
@@ -765,7 +765,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector));
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
@@ -803,7 +803,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector));
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[3]));
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
