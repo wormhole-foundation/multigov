@@ -27,7 +27,7 @@ async function main() {
       STAKING_ADDRESS
     );
 
-    const proposalId = new BN(1);
+    const proposalId = new BN(4);
 
     const { againstVotes, forVotes, abstainVotes } = await stakeConnection.proposalVotes(proposalId);
 

@@ -5,7 +5,6 @@ import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import BN from "bn.js";
-import assert from "assert";
 
 async function main() {
   try {
@@ -24,10 +23,14 @@ async function main() {
     );
 
     const proposalId = new BN(4);
-    const voteStart = new BN(Math.floor(Date.now() / 1000));
-    const safeWindow = new BN(24*60*60); // 24 hour
+    const { proposalAccountData } = await stakeConnection.fetchProposalAccountData(proposalId);
+    console.log("proposalAccountData:", proposalAccountData)
 
-    await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
+    console.log("againstVotes:", proposalAccountData.againstVotes.toNumber())
+    console.log("forVotes:", proposalAccountData.forVotes.toNumber())
+    console.log("abstainVotes:", proposalAccountData.abstainVotes.toNumber())
+    console.log("voteStart:", proposalAccountData.voteStart.toNumber())
+    console.log("safeWindow:", proposalAccountData.safeWindow.toNumber())
   } catch (err) {
     console.error("Error:", err);
   }

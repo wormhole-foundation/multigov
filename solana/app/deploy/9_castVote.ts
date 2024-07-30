@@ -27,7 +27,7 @@ async function main() {
       STAKING_ADDRESS
     );
 
-    const proposalId = new BN(1);
+    const proposalId = new BN(4);
 
     await stakeConnection.castVote(proposalId, stakeAccount, new BN(10), new BN(20), new BN(12));
   } catch (err) {
