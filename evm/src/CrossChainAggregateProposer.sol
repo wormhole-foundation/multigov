@@ -73,7 +73,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
     uint256 totalVoteWeight = 0;
     uint256 currentTimestamp = block.timestamp;
     uint256 oldestAllowedTimestamp = currentTimestamp - maxQueryTimestampOffset;
-    uint256 globalCheckpointTime = 0;
+    uint256 sharedQueryBlockTime = 0;
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
@@ -85,8 +85,8 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
 
       if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) revert InvalidTimestamp();
 
-      if (globalCheckpointTime == 0) globalCheckpointTime = queryBlockTime;
-      else if (globalCheckpointTime != queryBlockTime) revert InvalidTimestamp();
+      if (sharedQueryBlockTime == 0) sharedQueryBlockTime = queryBlockTime;
+      else if (sharedQueryBlockTime != queryBlockTime) revert InvalidTimestamp();
 
       address registeredSpokeAddress = registeredSpokes[perChainResp.chainId];
       address queriedAddress = _ethCalls.result[0].contractAddress;
@@ -108,7 +108,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
     }
 
     // Use current timestamp (what all of the spoke query responses are checked against) to get the hub vote weight
-    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, globalCheckpointTime);
+    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, sharedQueryBlockTime);
     totalVoteWeight += hubVoteWeight;
 
     return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
