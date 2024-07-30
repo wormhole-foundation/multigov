@@ -85,7 +85,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
       initialQuorum: config.initialQuorum,
       hubVotePool: address(pool),
       governorProposalExtender: address(extender),
-      initialVoteWindow: config.voteWeightWindow
+      initialVoteWeightWindow: config.voteWeightWindow
     });
 
     // Deploy Hub Governor

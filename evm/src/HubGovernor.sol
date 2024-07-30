@@ -46,7 +46,7 @@ contract HubGovernor is
     uint208 initialQuorum;
     address hubVotePool;
     address governorProposalExtender;
-    uint48 initialVoteWindow;
+    uint48 initialVoteWeightWindow;
   }
 
   constructor(ConstructorParams memory _params)
@@ -55,7 +55,7 @@ contract HubGovernor is
     GovernorVotes(_params.token)
     GovernorTimelockControl(_params.timelock)
     GovernorSettableFixedQuorum(_params.initialQuorum)
-    GovernorMinimumWeightedVoteWindow(_params.initialVoteWindow)
+    GovernorMinimumWeightedVoteWindow(_params.initialVoteWeightWindow)
   {
     _setHubVotePool(_params.hubVotePool);
     if (_params.governorProposalExtender.code.length == 0) revert InvalidProposalExtender();

@@ -28,7 +28,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
 
   address initialOwner;
 
-  uint48 constant VOTE_WINDOW = 1 days;
+  uint48 constant VOTE_WEIGHT_WINDOW = 1 days;
   uint48 constant MINIMUM_VOTE_EXTENSION = 1 hours;
   uint48 constant VOTE_TIME_EXTENSION = 1 days;
   uint48 constant MINIMUM_DECISION_WINDOW = 1 hours;
@@ -55,7 +55,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialQuorum: 100e18,
       hubVotePool: address(hubVotePool),
       governorProposalExtender: address(extender),
-      initialVoteWindow: VOTE_WINDOW
+      initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
     });
 
     governor = new HubGovernorHarness(params);
@@ -157,7 +157,7 @@ contract Constructor is HubGovernorTest {
       initialQuorum: _initialQuorum,
       hubVotePool: _hubVotePool,
       governorProposalExtender: _voteExtender,
-      initialVoteWindow: 1 days
+      initialVoteWeightWindow: 1 days
     });
 
     HubGovernor _governor = new HubGovernor(params);
@@ -196,7 +196,7 @@ contract Constructor is HubGovernorTest {
       initialQuorum: _initialQuorum,
       hubVotePool: _hubVotePool,
       governorProposalExtender: _voteExtender,
-      initialVoteWindow: 1 days
+      initialVoteWeightWindow: 1 days
     });
 
     vm.expectRevert(HubGovernor.InvalidProposalExtender.selector);
@@ -223,7 +223,7 @@ contract Constructor is HubGovernorTest {
       initialQuorum: _initialQuorum,
       hubVotePool: _hubVotePool,
       governorProposalExtender: _voteExtender,
-      initialVoteWindow: 1 days
+      initialVoteWeightWindow: 1 days
     });
 
     vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorInvalidVotingPeriod.selector, 0));
@@ -552,7 +552,7 @@ contract SetVoteWeightWindow is HubGovernorTest {
     vm.prank(delegate);
     token.delegate(delegate);
 
-    vm.warp(vm.getBlockTimestamp() + VOTE_WINDOW + 1);
+    vm.warp(vm.getBlockTimestamp() + VOTE_WEIGHT_WINDOW + 1);
     address[] memory delegates = new address[](1);
     delegates[0] = delegate;
     _setGovernor(governor);
@@ -760,7 +760,7 @@ contract _GetVotes is HubGovernorTest {
   }
 
   function testFuzz_GetCorrectVoteWeightWhenTheUserNoWeight(address _account, uint96 _windowStart) public view {
-    _windowStart = uint96(bound(_windowStart, VOTE_WINDOW, type(uint96).max));
+    _windowStart = uint96(bound(_windowStart, VOTE_WEIGHT_WINDOW, type(uint96).max));
     uint256 _votingWeight = governor.exposed_getVotes(_account, _windowStart);
     assertEq(_votingWeight, 0);
   }
