@@ -12,7 +12,7 @@ import {
   EthCallQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
-import {ICrossChainVote} from "src/interfaces/ICrossChainVote.sol";
+import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
 import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
 
 contract HubVotePool is QueryResponse, Ownable {
@@ -54,7 +54,7 @@ contract HubVotePool is QueryResponse, Ownable {
   // Instead of nested mapping create encoding for the key
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
-  mapping(uint8 queryType => ICrossChainVote voteImpl) public queryTypeVoteImpl;
+  mapping(uint8 queryType => ICrossChainVoteDecoder voteImpl) public voteTypeDecoder;
 
   constructor(address _core, address _hubGovernor, SpokeVoteAggregator[] memory _initialSpokeRegistry)
     QueryResponse(_core)
@@ -74,13 +74,13 @@ contract HubVotePool is QueryResponse, Ownable {
   function registerQueryType(uint8 _queryType, address _implementation) external {
     _checkOwner();
     if (_implementation == address(0)) {
-      queryTypeVoteImpl[_queryType] = ICrossChainVote(_implementation);
+      delete voteTypeDecoder[_queryType];
       return;
     }
-    bool isValid = _implementation.supportsInterface(type(ICrossChainVote).interfaceId);
+    bool isValid = _implementation.supportsInterface(type(ICrossChainVoteDecoder).interfaceId);
     if (!isValid) revert InvalidQueryVoteImpl();
-    emit QueryTypeRegistered(_queryType, address(queryTypeVoteImpl[_queryType]), _implementation);
-    queryTypeVoteImpl[_queryType] = ICrossChainVote(_implementation);
+    emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
+    voteTypeDecoder[_queryType] = ICrossChainVoteDecoder(_implementation);
   }
 
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
@@ -97,11 +97,11 @@ contract HubVotePool is QueryResponse, Ownable {
   function crossChainVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
-      ICrossChainVote voteQueryImpl = queryTypeVoteImpl[_queryResponse.responses[i].queryType];
+      ICrossChainVoteDecoder voteQueryImpl = voteTypeDecoder[_queryResponse.responses[i].queryType];
       if (address(voteQueryImpl) == address(0)) revert UnsupportedQueryType();
 
-      ICrossChainVote.QueryVote memory voteQuery = voteQueryImpl.crossChainVote(_queryResponse.responses[i]);
-      ICrossChainVote.ProposalVote memory proposalVote = voteQuery.proposalVote;
+      ICrossChainVoteDecoder.QueryVote memory voteQuery = voteQueryImpl.decode(_queryResponse.responses[i]);
+      ICrossChainVoteDecoder.ProposalVote memory proposalVote = voteQuery.proposalVote;
       ProposalVote memory existingSpokeVote = spokeProposalVotes[voteQuery.spokeProposalId];
 
       if (
