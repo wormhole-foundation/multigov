@@ -714,7 +714,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(CrossChainAggregateProposer.InvalidTimestamp.selector);
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[1]));
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
@@ -740,7 +740,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector));
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
@@ -756,7 +756,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     voteWeights[0] =
       VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 1, spokeAddress: makeAddr("SpokeAddress")});
 
-    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, address(hubGovernor), timestamps);
+    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, timestamps);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
     ProposalBuilder builder = _createArbitraryProposal();
@@ -765,7 +765,45 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector));
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
+    crossChainAggregateProposer.checkAndProposeIfEligible(
+      targets, values, calldatas, "Test Proposal", queryResponse, signatures
+    );
+  }
+
+  function testFuzz_RevertIf_QueryTimestampsNotSynchronized(address _caller) public {
+    _warpToValidTimestamp();
+
+    uint64[] memory timestamps = new uint64[](5);
+    timestamps[0] = uint64(vm.getBlockTimestamp());
+    timestamps[1] = uint64(vm.getBlockTimestamp());
+    timestamps[2] = uint64(vm.getBlockTimestamp());
+    timestamps[3] = uint64(vm.getBlockTimestamp() - 1);
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](5);
+    voteWeights[0] =
+      VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 1, spokeAddress: makeAddr("SpokeAddress1")});
+    voteWeights[1] =
+      VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 2, spokeAddress: makeAddr("SpokeAddress2")});
+    voteWeights[2] =
+      VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 3, spokeAddress: makeAddr("SpokeAddress3")});
+    voteWeights[3] =
+      VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 4, spokeAddress: makeAddr("SpokeAddress4")});
+    voteWeights[4] =
+      VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 5, spokeAddress: makeAddr("SpokeAddress5")});
+
+    _registerSpokes(voteWeights);
+
+    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, timestamps);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[3]));
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
