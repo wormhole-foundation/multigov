@@ -338,7 +338,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     vm.stopPrank();
   }
 
-  function _mockQueryResponseAndProposeIfEligible(
+  function _checkAndProposeIfEligible(
     VoteWeight[] memory _voteWeights,
     address[] memory _targets,
     uint256[] memory _values,
@@ -355,7 +355,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     );
   }
 
-  function _mockQueryResponseAndProposeIfEligibleCustomTimepoints(
+  function _checkAndProposeIfEligibleCustomTimepoints(
     VoteWeight[] memory _voteWeights,
     address[] memory _targets,
     uint256[] memory _values,
@@ -405,8 +405,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
-    uint256 proposalId =
-      _mockQueryResponseAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+    uint256 proposalId = _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
     assertEq(
       hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
@@ -442,8 +441,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
-    uint256 proposalId =
-      _mockQueryResponseAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+    uint256 proposalId = _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
     assertEq(
       hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
@@ -483,8 +481,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
-    uint256 proposalId =
-      _mockQueryResponseAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+    uint256 proposalId = _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
     assertEq(
       hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
@@ -518,9 +515,8 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory _values = builder.values();
     bytes[] memory _calldatas = builder.calldatas();
 
-    uint256 proposalId = _mockQueryResponseAndProposeIfEligibleCustomTimepoints(
-      voteWeights, _targets, _values, _calldatas, _caller, timestamps
-    );
+    uint256 proposalId =
+      _checkAndProposeIfEligibleCustomTimepoints(voteWeights, _targets, _values, _calldatas, _caller, timestamps);
 
     assertEq(hubGovernor.hashProposal(_targets, _values, _calldatas, keccak256(bytes("Test Proposal"))), proposalId);
   }
