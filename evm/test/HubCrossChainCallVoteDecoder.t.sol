@@ -6,9 +6,9 @@ import {Test} from "forge-std/Test.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {ParsedPerChainQueryResponse, ParsedQueryResponse} from "wormhole/query/QueryResponse.sol";
-import {HubCrossChainEvmCallVote} from "src/HubCrossChainEvmCallVote.sol";
+import {HubCrossChainEvmCallVoteDecoder} from "src/HubCrossChainEvmCallVoteDecoder.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
-import {ICrossChainVote} from "src/interfaces/ICrossChainVote.sol";
+import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
 import {HubVotePoolHarness} from "test/harnesses/HubVotePoolHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
@@ -18,7 +18,7 @@ import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 
 contract HubCrossChainCallVoteTest is WormholeEthQueryTest, AddressUtils {
   GovernorMock governor;
-  HubCrossChainEvmCallVote hubCrossChainEvmVote;
+  HubCrossChainEvmCallVoteDecoder hubCrossChainEvmVote;
   HubVotePoolHarness hubVotePool;
 
   struct VoteParams {
@@ -32,7 +32,7 @@ contract HubCrossChainCallVoteTest is WormholeEthQueryTest, AddressUtils {
     _setupWormhole();
     governor = new GovernorMock();
     hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
-    hubCrossChainEvmVote = new HubCrossChainEvmCallVote(address(wormhole), address(hubVotePool));
+    hubCrossChainEvmVote = new HubCrossChainEvmCallVoteDecoder(address(wormhole), address(hubVotePool));
   }
 
   function _buildParsedPerChainResponse(VoteParams memory _voteParams, uint16 _responseChainId, address _governance)
@@ -102,13 +102,13 @@ contract HubCrossChainCallVoteTest is WormholeEthQueryTest, AddressUtils {
 contract Constructor is HubCrossChainCallVoteTest {
   function testFuzz_CorrectlySetConstructorArgs(address _core, address _hubVotePool) public {
     vm.assume(_core != address(0));
-    HubCrossChainEvmCallVote vote = new HubCrossChainEvmCallVote(_core, _hubVotePool);
+    HubCrossChainEvmCallVoteDecoder vote = new HubCrossChainEvmCallVoteDecoder(_core, _hubVotePool);
     assertEq(address(vote.wormhole()), _core);
     assertEq(address(vote.HUB_VOTE_POOL()), _hubVotePool);
   }
 }
 
-contract CrossChainVote is HubCrossChainCallVoteTest {
+contract Decode is HubCrossChainCallVoteTest {
   function testFuzz_CorrectlyParseChainResponse(
     uint256 _proposalId,
     uint64 _againstVotes,
@@ -132,7 +132,7 @@ contract CrossChainVote is HubCrossChainCallVoteTest {
     vm.prank(address(governor));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
-    ICrossChainVote.QueryVote memory queryVote = hubCrossChainEvmVote.crossChainVote(_resp);
+    ICrossChainVoteDecoder.QueryVote memory queryVote = hubCrossChainEvmVote.decode(_resp);
     assertEq(queryVote.proposalId, _proposalId);
     assertEq(queryVote.spokeProposalId, keccak256(abi.encode(_queryChainId, _proposalId)));
     assertEq(queryVote.proposalVote.abstainVotes, _abstainVotes);
@@ -160,8 +160,8 @@ contract CrossChainVote is HubCrossChainCallVoteTest {
       _spokeContract
     );
 
-    vm.expectRevert(ICrossChainVote.UnknownMessageEmitter.selector);
-    hubCrossChainEvmVote.crossChainVote(_resp);
+    vm.expectRevert(ICrossChainVoteDecoder.UnknownMessageEmitter.selector);
+    hubCrossChainEvmVote.decode(_resp);
   }
 }
 
@@ -172,7 +172,7 @@ contract SupportsInterface is HubCrossChainCallVoteTest {
   }
 
   function test_CrossChainVoteInterfaceSupported() public {
-    bool isValid = hubCrossChainEvmVote.supportsInterface(type(ICrossChainVote).interfaceId);
+    bool isValid = hubCrossChainEvmVote.supportsInterface(type(ICrossChainVoteDecoder).interfaceId);
     assertTrue(isValid);
   }
 
