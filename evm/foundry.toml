@@ -4,8 +4,7 @@
   optimizer_runs = 10_000_000
   remappings = [
     "lib/wormhole/ethereum:@openzeppelin/contracts=lib/openzeppelin-contracts-4/contracts",
-    "@openzeppelin/contracts/=lib/flexible-voting/lib/openzeppelin-contracts/contracts",
-    "flexible-voting/=lib/flexible-voting/src",
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts",
     "wormhole/=lib/wormhole/ethereum/contracts",
     "wormhole-sdk/=lib/wormhole-solidity-sdk/src",
 
