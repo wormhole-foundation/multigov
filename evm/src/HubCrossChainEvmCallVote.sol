@@ -20,14 +20,13 @@ contract HubCrossChainEvmCallVote is ICrossChainVote, QueryResponse, ERC165 {
     HUB_VOTE_POOL = HubVotePool(_hubVotePool);
   }
 
-  function crossChainVote(ParsedPerChainQueryResponse memory _perChainResp) external view returns (QueryVote memory) {
+  function crossChainVote(ParsedPerChainQueryResponse memory _perChainResp) external returns (QueryVote memory) {
     EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_perChainResp);
 
     // verify contract and chain is correct
     bytes32 addr = HUB_VOTE_POOL.spokeRegistry(_perChainResp.chainId);
-    if (addr != bytes32(uint256(uint160(_ethCalls.result[0].contractAddress))) || addr == bytes32("")) {
-      revert UnknownMessageEmitter();
-    }
+    bool isValidSpokeAddress = _isValidSpokeAddress(addr, _ethCalls.result[0].contractAddress);
+    if (!isValidSpokeAddress) revert UnknownMessageEmitter();
 
     if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
@@ -47,5 +46,12 @@ contract HubCrossChainEvmCallVote is ICrossChainVote, QueryResponse, ERC165 {
 
   function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
     return interfaceId == type(ICrossChainVote).interfaceId || ERC165.supportsInterface(interfaceId);
+  }
+
+  function _isValidSpokeAddress(bytes32 registeredSpokeAddress, address queriedContract) internal returns (bool) {
+    if (registeredSpokeAddress != bytes32(uint256(uint160(queriedContract))) || registeredSpokeAddress == bytes32("")) {
+      return false;
+    }
+    return true;
   }
 }
