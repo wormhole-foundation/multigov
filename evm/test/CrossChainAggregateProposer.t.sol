@@ -93,20 +93,20 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 
   // Mocks a query response using the provided voteWeights
   // The voteWeights are representative of responses from calls to the SpokeVoteAggregator.getVotes() function
-  function _mockQueryResponse(VoteWeight[] memory voteWeights, address proposer) internal view returns (bytes memory) {
+  function _mockQueryResponse(VoteWeight[] memory _voteWeights, address _proposer) internal view returns (bytes memory) {
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
 
-    for (uint256 i = 0; i < voteWeights.length; i++) {
-      uint256 voteWeight = voteWeights[i].voteWeight;
-      uint16 chainId = voteWeights[i].chainId;
-      address spokeAddress = voteWeights[i].spokeAddress;
+    for (uint256 i = 0; i < _voteWeights.length; i++) {
+      uint256 voteWeight = _voteWeights[i].voteWeight;
+      uint16 chainId = _voteWeights[i].chainId;
+      address spokeAddress = _voteWeights[i].spokeAddress;
 
       bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
         bytes("0x1296c33"),
         1,
         QueryTest.buildEthCallDataBytes(
-          spokeAddress, abi.encodeWithSignature("getVotes(address,uint256)", proposer, vm.getBlockTimestamp())
+          spokeAddress, abi.encodeWithSignature("getVotes(address,uint256)", _proposer, vm.getBlockTimestamp())
         )
       );
 
@@ -133,8 +133,8 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
       VERSION,
       OFF_CHAIN_SENDER,
       OFF_CHAIN_SIGNATURE,
-      QueryTest.buildOffChainQueryRequestBytes(VERSION, 0, uint8(voteWeights.length), queryRequestBytes),
-      uint8(voteWeights.length),
+      QueryTest.buildOffChainQueryRequestBytes(VERSION, 0, uint8(_voteWeights.length), queryRequestBytes),
+      uint8(_voteWeights.length),
       perChainResponses
     );
 
@@ -248,25 +248,25 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
     return response;
   }
 
-  function _getSignatures(bytes memory response) internal view returns (IWormhole.Signature[] memory) {
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(response, address(crossChainAggregateProposer));
+  function _getSignatures(bytes memory _response) internal view returns (IWormhole.Signature[] memory) {
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_response, address(crossChainAggregateProposer));
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
     signatures[0] = IWormhole.Signature({r: sigR, s: sigS, v: sigV, guardianIndex: 0});
     return signatures;
   }
 
-  function _createProposal(bytes memory callData) internal returns (ProposalBuilder) {
+  function _createProposal(bytes memory _callData) internal returns (ProposalBuilder) {
     ProposalBuilder builder = new ProposalBuilder();
-    builder.push(address(hubGovernor), 0, callData);
+    builder.push(address(hubGovernor), 0, _callData);
     return builder;
   }
 
-  function _mintAndDelegate(address user, uint256 _amount) public returns (address) {
-    token.mint(user, _amount);
-    vm.prank(user);
-    token.delegate(user);
+  function _mintAndDelegate(address _user, uint256 _amount) public returns (address) {
+    token.mint(_user, _amount);
+    vm.prank(_user);
+    token.delegate(_user);
     vm.warp(vm.getBlockTimestamp() + 1);
-    return user;
+    return _user;
   }
 
   function _createArbitraryProposal() internal returns (ProposalBuilder) {
@@ -302,26 +302,26 @@ contract Constructor is Test {
 }
 
 contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
-  function _checkThresholdMet(VoteWeight[] memory voteWeights, uint256 hubVoteWeight, uint256 threshold)
+  function _checkThresholdMet(VoteWeight[] memory _voteWeights, uint256 _hubVoteWeight, uint256 _threshold)
     internal
     pure
     returns (bool)
   {
-    if (hubVoteWeight >= threshold) return true;
+    if (_hubVoteWeight >= _threshold) return true;
 
-    uint256 remainingThreshold = threshold - hubVoteWeight;
+    uint256 remainingThreshold = _threshold - _hubVoteWeight;
     uint256 accumulator = 0;
 
-    for (uint256 i = 0; i < voteWeights.length; i++) {
-      accumulator += voteWeights[i].voteWeight;
+    for (uint256 i = 0; i < _voteWeights.length; i++) {
+      accumulator += _voteWeights[i].voteWeight;
       if (accumulator >= remainingThreshold) return true;
     }
 
     return false;
   }
 
-  function _assumeThresholdMet(VoteWeight[] memory voteWeights) internal view {
-    bool thresholdMet = _checkThresholdMet(voteWeights, 0, hubGovernor.proposalThreshold());
+  function _assumeThresholdMet(VoteWeight[] memory _voteWeights) internal view {
+    bool thresholdMet = _checkThresholdMet(_voteWeights, 0, hubGovernor.proposalThreshold());
     vm.assume(thresholdMet);
   }
 
@@ -330,55 +330,53 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     vm.warp(vm.getBlockTimestamp() + windowLength);
   }
 
-  function _registerSpokes(VoteWeight[] memory voteWeights) internal {
+  function _registerSpokes(VoteWeight[] memory _voteWeights) internal {
     vm.startPrank(crossChainAggregateProposer.owner());
-    for (uint256 i = 0; i < voteWeights.length; i++) {
-      crossChainAggregateProposer.registerSpoke(voteWeights[i].chainId, voteWeights[i].spokeAddress);
+    for (uint256 i = 0; i < _voteWeights.length; i++) {
+      crossChainAggregateProposer.registerSpoke(_voteWeights[i].chainId, _voteWeights[i].spokeAddress);
     }
     vm.stopPrank();
   }
 
-  function _setupAndExecuteProposalIfEligible(
-    VoteWeight[] memory voteWeights,
-    address[] memory targets,
-    uint256[] memory values,
-    bytes[] memory calldatas,
+  function _checkAndProposeIfEligible(
+    VoteWeight[] memory _voteWeights,
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
     string memory _description,
     address _caller
   ) internal returns (uint256 proposalId) {
-    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
+    bytes memory queryResponse = _mockQueryResponse(_voteWeights, _caller);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
-    vm.startPrank(_caller);
+    vm.prank(_caller);
     proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
-      targets, values, calldatas, _description, queryResponse, signatures
+      _targets, _values, _calldatas, _description, queryResponse, signatures
     );
-    vm.stopPrank();
   }
 
-  function _setupAndExecuteProposalIfEligibleCustomTimepoints(
-    VoteWeight[] memory voteWeights,
-    address[] memory targets,
-    uint256[] memory values,
-    bytes[] memory calldatas,
+  function _checkAndProposeIfEligibleCustomTimepoints(
+    VoteWeight[] memory _voteWeights,
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
     address _caller,
     uint64[] memory _timestamps
   ) public returns (uint256) {
-    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, _timestamps);
+    bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(_voteWeights, _caller, _timestamps);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
 
-    vm.startPrank(_caller);
+    vm.prank(_caller);
     uint256 proposalId = crossChainAggregateProposer.checkAndProposeIfEligible(
-      targets, values, calldatas, "Test Proposal", queryResponse, signatures
+      _targets, _values, _calldatas, "Test Proposal", queryResponse, signatures
     );
-    vm.stopPrank();
 
     return proposalId;
   }
 
-  function _setupValidTimestamps() internal view returns (uint64[] memory) {
+  function _buildUniformTimestampArray(uint8 arrayLength) internal view returns (uint64[] memory) {
     uint64 timestamp = uint64(vm.getBlockTimestamp());
-    uint64[] memory timestamps = new uint64[](3);
+    uint64[] memory timestamps = new uint64[](arrayLength);
     timestamps[0] = timestamp;
     timestamps[1] = timestamp;
     timestamps[2] = timestamp;
@@ -407,8 +405,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
-    uint256 proposalId =
-      _setupAndExecuteProposalIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+    uint256 proposalId = _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
     assertEq(
       hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
@@ -444,8 +441,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
-    uint256 proposalId =
-      _setupAndExecuteProposalIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+    uint256 proposalId = _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
     assertEq(
       hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
@@ -485,8 +481,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
-    uint256 proposalId =
-      _setupAndExecuteProposalIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+    uint256 proposalId = _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
 
     assertEq(
       hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
@@ -509,7 +504,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     voteWeights[1] = VoteWeight({voteWeight: _voteWeight2, chainId: 2, spokeAddress: makeAddr("SpokeAddress2")});
     voteWeights[2] = VoteWeight({voteWeight: _voteWeight3, chainId: 3, spokeAddress: makeAddr("SpokeAddress3")});
 
-    uint64[] memory timestamps = _setupValidTimestamps();
+    uint64[] memory timestamps = _buildUniformTimestampArray(3);
 
     _assumeThresholdMet(voteWeights);
 
@@ -520,9 +515,8 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory _values = builder.values();
     bytes[] memory _calldatas = builder.calldatas();
 
-    uint256 proposalId = _setupAndExecuteProposalIfEligibleCustomTimepoints(
-      voteWeights, _targets, _values, _calldatas, _caller, timestamps
-    );
+    uint256 proposalId =
+      _checkAndProposeIfEligibleCustomTimepoints(voteWeights, _targets, _values, _calldatas, _caller, timestamps);
 
     assertEq(hubGovernor.hashProposal(_targets, _values, _calldatas, keccak256(bytes("Test Proposal"))), proposalId);
   }
