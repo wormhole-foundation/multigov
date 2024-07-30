@@ -74,7 +74,7 @@ contract HubVotePool is QueryResponse, Ownable {
   function registerQueryType(uint8 _queryType, address _implementation) external {
     _checkOwner();
     if (_implementation == address(0)) {
-      queryTypeVoteImpl[_queryType] = ICrossChainVote(_implementation);
+      delete queryTypeVoteImpl[_queryType];
       return;
     }
     bool isValid = _implementation.supportsInterface(type(ICrossChainVote).interfaceId);
