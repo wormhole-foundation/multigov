@@ -22,7 +22,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
   error InvalidCallDataLength();
   error InvalidCaller(address expected, address actual);
   error InvalidTimeDelta();
-  error InvalidTimestamp();
+  error InvalidTimestamp(uint64 invalidTimestamp);
   error TooManyEthCallResults(uint256);
   error UnregisteredSpoke(uint16 chainId, address tokenAddress);
 
@@ -83,10 +83,12 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
 
       uint64 queryBlockTime = _ethCalls.blockTime;
 
-      if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) revert InvalidTimestamp();
+      if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) {
+        revert InvalidTimestamp(queryBlockTime);
+      }
 
       if (sharedQueryBlockTime == 0) sharedQueryBlockTime = queryBlockTime;
-      else if (sharedQueryBlockTime != queryBlockTime) revert InvalidTimestamp();
+      if (sharedQueryBlockTime != queryBlockTime) revert InvalidTimestamp(queryBlockTime);
 
       address registeredSpokeAddress = registeredSpokes[perChainResp.chainId];
       address queriedAddress = _ethCalls.result[0].contractAddress;
