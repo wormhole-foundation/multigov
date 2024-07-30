@@ -16,7 +16,7 @@ import {GovernorMock} from "test/mocks/GovernorMock.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 
-contract HubCrossChainEvmCallVoteTest is WormholeEthQueryTest, AddressUtils {
+contract HubCrossChainEvmCallVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
   GovernorMock governor;
   HubCrossChainEvmCallVoteDecoder hubCrossChainEvmVote;
   HubVotePoolHarness hubVotePool;
@@ -99,7 +99,7 @@ contract HubCrossChainEvmCallVoteTest is WormholeEthQueryTest, AddressUtils {
   }
 }
 
-contract Constructor is HubCrossChainCallVoteTest {
+contract Constructor is HubCrossChainEvmCallVoteDecoderTest {
   function testFuzz_CorrectlySetConstructorArgs(address _core, address _hubVotePool) public {
     vm.assume(_core != address(0));
     HubCrossChainEvmCallVoteDecoder vote = new HubCrossChainEvmCallVoteDecoder(_core, _hubVotePool);
@@ -108,7 +108,7 @@ contract Constructor is HubCrossChainCallVoteTest {
   }
 }
 
-contract Decode is HubCrossChainCallVoteTest {
+contract Decode is HubCrossChainEvmCallVoteDecoderTest {
   function testFuzz_CorrectlyParseChainResponse(
     uint256 _proposalId,
     uint64 _againstVotes,
@@ -165,7 +165,7 @@ contract Decode is HubCrossChainCallVoteTest {
   }
 }
 
-contract SupportsInterface is HubCrossChainCallVoteTest {
+contract SupportsInterface is HubCrossChainEvmCallVoteDecoderTest {
   function test_Erc165InterfaceIsSupported() public {
     bool isValid = hubCrossChainEvmVote.supportsInterface(type(IERC165).interfaceId);
     assertTrue(isValid);
