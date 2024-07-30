@@ -67,6 +67,10 @@ export function getDummyAgreementHash2(): number[] {
   return Array.from({ length: 32 }, (_, i) => 2);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Deterministically determines the port for deploying the validator basing of the index of the testfile in the sorted
  * list of all testsfiles.
@@ -128,7 +132,7 @@ export async function startValidatorRaw(portNumber: number, otherArgs: string) {
   let numRetries = 0;
   while (true) {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await sleep(1000);
       await connection.getSlot();
       break;
     } catch (e) {
@@ -179,13 +183,31 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
     provider
   );
 
-  shell.exec(
-    `anchor idl init -f ${idlPath} ${programAddress.toBase58()}  --provider.cluster ${
-      connection.rpcEndpoint
-    }`
-  );
+  const command = `anchor idl init -f ${idlPath} ${programAddress.toBase58()} --provider.cluster ${connection.rpcEndpoint}`;
+  executeCommandWithRetry(command);
 
   return { controller, program, provider };
+}
+
+async function executeCommandWithRetry(command) {
+  await sleep(1000);
+
+  let result;
+  let success = false;
+
+  while (!success) {
+    result = shell.exec(command, { silent: true });
+
+    if (result.code !== 0) {
+      console.error(`Error executing command: ${command}`);
+      console.error(`Stderr: ${result.stderr}`);
+      console.log("Retrying the command...");
+    } else {
+      success = true;
+    }
+  }
+
+  // console.log(`Command executed successfully:\n${result.stdout}`);
 }
 
 export function getConnection(portNumber: number): Connection {
