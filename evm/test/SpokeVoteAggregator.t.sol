@@ -101,7 +101,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.warp(voteStart);
     spokeVoteAggregator.castVote(_proposalId, uint8(SpokeCountingFractional.VoteType.Against));
 
-    (uint256 against,,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (, uint256 against,,) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(against, _amount, "Votes against are not correct");
   }
 
@@ -120,7 +120,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.warp(voteStart);
     spokeVoteAggregator.castVote(_proposalId, uint8(SpokeCountingFractional.VoteType.For));
 
-    (, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (,, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
 
     assertEq(forVotes, _amount, "Votes for are not correct");
   }
@@ -140,7 +140,7 @@ contract CastVote is SpokeVoteAggregatorTest {
     vm.warp(voteStart);
     spokeVoteAggregator.castVote(_proposalId, uint8(SpokeCountingFractional.VoteType.Abstain));
 
-    (,, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (,,, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
 
     assertEq(abstain, _amount, "Abstained votes are not correct");
   }
@@ -228,7 +228,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.prank(_caller);
     spokeVoteAggregator.castVoteWithReason(_proposalId, uint8(SpokeCountingFractional.VoteType.Against), _reason);
 
-    (uint256 against,,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (, uint256 against,,) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(against, _amount, "Votes against are not correct");
   }
 
@@ -251,7 +251,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.prank(_caller);
     spokeVoteAggregator.castVoteWithReason(_proposalId, uint8(SpokeCountingFractional.VoteType.For), _reason);
 
-    (, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (,, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(forVotes, _amount, "Votes for are not correct");
   }
 
@@ -274,7 +274,7 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
     vm.prank(_caller);
     spokeVoteAggregator.castVoteWithReason(_proposalId, uint8(SpokeCountingFractional.VoteType.Abstain), _reason);
 
-    (,, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (,,, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(abstain, _amount, "Abstained votes are not correct");
   }
 
@@ -399,7 +399,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     uint128 _forVotes,
     uint128 _abstainVotes
   ) internal view {
-    (uint256 against, uint256 forVotes, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (, uint256 against, uint256 forVotes, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(against, _againstVotes, "Votes against are not correct");
     assertEq(forVotes, _forVotes, "Votes for are not correct");
     assertEq(abstain, _abstainVotes, "Abstained votes are not correct");
@@ -415,7 +415,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_amount, 0, 0));
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_proposalId, _amount, 0, 0));
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _boundVoteStart(_voteStart);
@@ -428,7 +428,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
       _proposalId, uint8(SpokeCountingFractional.VoteType.Against), _reason, _params
     );
 
-    (uint256 against,,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (, uint256 against,,) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(against, _amount, "Votes against are not correct");
   }
 
@@ -441,7 +441,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, _amount, 0));
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_proposalId, 0, _amount, 0));
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _boundVoteStart(_voteStart);
@@ -454,7 +454,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
       _proposalId, uint8(SpokeCountingFractional.VoteType.For), _reason, _params
     );
 
-    (, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (,, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(forVotes, _amount, "Votes for are not correct");
   }
 
@@ -467,7 +467,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, 0, _amount));
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_proposalId, 0, 0, _amount));
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _boundVoteStart(_voteStart);
@@ -480,7 +480,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
       _proposalId, uint8(SpokeCountingFractional.VoteType.Abstain), _reason, _params
     );
 
-    (,, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (,,, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(abstain, _amount, "Abstained votes are not correct");
   }
 
@@ -707,7 +707,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
 
     spokeVoteAggregator.castVoteBySig(_proposalId, _support, _caller, signature);
 
-    (uint256 againstVotes,,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (, uint256 againstVotes,,) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(againstVotes, _amount, "Against votes not counted correctly");
   }
 
@@ -733,7 +733,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
 
     spokeVoteAggregator.castVoteBySig(_proposalId, _support, _caller, signature);
 
-    (, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (,, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(forVotes, _amount, "For votes not counted correctly");
   }
 
@@ -759,7 +759,7 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
 
     spokeVoteAggregator.castVoteBySig(_proposalId, _support, _caller, signature);
 
-    (,, uint256 abstainVotes) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (,,, uint256 abstainVotes) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(abstainVotes, _amount, "Abstain votes not counted correctly");
   }
 

@@ -66,8 +66,8 @@ contract HubCrossChainCallVoteTest is WormholeEthQueryTest, AddressUtils {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
-          _voteParams.proposalId,
           SpokeCountingFractional.ProposalVote({
+            proposalId: _voteParams.proposalId,
             againstVotes: uint128(_voteParams.againstVotes),
             forVotes: uint128(_voteParams.forVotes),
             abstainVotes: uint128(_voteParams.abstainVotes)

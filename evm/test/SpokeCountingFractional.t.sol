@@ -99,11 +99,13 @@ contract ProposalVotes is SpokeCountingFractionalTest {
 
     spokeCountingFractional.workaround_createProposalVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
-    (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = spokeCountingFractional.proposalVotes(_proposalId);
+    (uint256 proposalId, uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) =
+      spokeCountingFractional.proposalVotes(_proposalId);
 
     assertEq(againstVotes, _votes.againstVotes);
     assertEq(forVotes, _votes.forVotes);
     assertEq(abstainVotes, _votes.abstainVotes);
+    assertEq(proposalId, _proposalId);
   }
 }
 
@@ -122,11 +124,13 @@ contract _CountVote is SpokeCountingFractionalTest {
 
     spokeCountingFractional.exposed_countVote(_proposalId, _account, _support, _totalWeight, _voteData);
 
-    (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = spokeCountingFractional.proposalVotes(_proposalId);
+    (uint256 proposalId, uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) =
+      spokeCountingFractional.proposalVotes(_proposalId);
 
     assertEq(againstVotes, _votes.againstVotes);
     assertEq(forVotes, _votes.forVotes);
     assertEq(abstainVotes, _votes.abstainVotes);
+    assertEq(proposalId, _proposalId);
   }
 
   function testFuzz_RevertIf_TotalWeightIsZero(
@@ -176,7 +180,7 @@ contract _CountVoteNominal is SpokeCountingFractionalTest {
       _proposalId, _account, _totalWeight, uint8(SpokeCountingFractional.VoteType.Against)
     );
 
-    (uint256 againstVotes,,) = spokeCountingFractional.proposalVotes(_proposalId);
+    (, uint256 againstVotes,,) = spokeCountingFractional.proposalVotes(_proposalId);
     assertEq(againstVotes, _totalWeight);
   }
 
@@ -187,7 +191,7 @@ contract _CountVoteNominal is SpokeCountingFractionalTest {
       _proposalId, _account, _totalWeight, uint8(SpokeCountingFractional.VoteType.For)
     );
 
-    (, uint256 forVotes,) = spokeCountingFractional.proposalVotes(_proposalId);
+    (,, uint256 forVotes,) = spokeCountingFractional.proposalVotes(_proposalId);
     assertEq(forVotes, _totalWeight);
   }
 
@@ -200,7 +204,7 @@ contract _CountVoteNominal is SpokeCountingFractionalTest {
       _proposalId, _account, _totalWeight, uint8(SpokeCountingFractional.VoteType.Abstain)
     );
 
-    (,, uint256 abstainVotes) = spokeCountingFractional.proposalVotes(_proposalId);
+    (,,, uint256 abstainVotes) = spokeCountingFractional.proposalVotes(_proposalId);
     assertEq(abstainVotes, _totalWeight);
   }
 
@@ -249,11 +253,13 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
 
     spokeCountingFractional.exposed_countVoteFractional(_proposalId, _account, uint128(_totalWeight), _voteData);
 
-    (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = spokeCountingFractional.proposalVotes(_proposalId);
+    (uint256 proposalId, uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) =
+      spokeCountingFractional.proposalVotes(_proposalId);
 
     assertEq(againstVotes, _votes.againstVotes);
     assertEq(forVotes, _votes.forVotes);
     assertEq(abstainVotes, _votes.abstainVotes);
+    assertEq(proposalId, _proposalId);
   }
 
   function testFuzz_RevertIf_InvalidVoteData(uint256 _proposalId, address _account, uint128 _totalWeight) public {
