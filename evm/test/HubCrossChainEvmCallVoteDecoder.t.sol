@@ -16,7 +16,7 @@ import {GovernorMock} from "test/mocks/GovernorMock.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 
-contract HubCrossChainCallVoteTest is WormholeEthQueryTest, AddressUtils {
+contract HubCrossChainEvmCallVoteTest is WormholeEthQueryTest, AddressUtils {
   GovernorMock governor;
   HubCrossChainEvmCallVoteDecoder hubCrossChainEvmVote;
   HubVotePoolHarness hubVotePool;

@@ -250,12 +250,12 @@ contract RegisterQueryType is HubVotePoolTest {
     vm.startPrank(address(governor));
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
     vm.stopPrank();
-    assertEq(address(hubVotePool.queryTypeVoteImpl(_queryType)), address(hubCrossChainEvmVote));
+    assertEq(address(hubVotePool.voteTypeDecoder(_queryType)), address(hubCrossChainEvmVote));
   }
 
   function testFuzz_RegisteringQueryTypeEmitsQueryTypeRegisteredEvent(uint8 _queryType) public {
     vm.startPrank(address(governor));
-    ICrossChainVoteDecoder current = hubVotePool.queryTypeVoteImpl(_queryType);
+    ICrossChainVoteDecoder current = hubVotePool.voteTypeDecoder(_queryType);
     vm.expectEmit();
     emit HubVotePool.QueryTypeRegistered(_queryType, address(current), address(hubCrossChainEvmVote));
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
@@ -267,7 +267,7 @@ contract RegisterQueryType is HubVotePoolTest {
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
     hubVotePool.registerQueryType(_queryType, address(0));
     vm.stopPrank();
-    assertEq(address(hubVotePool.queryTypeVoteImpl(_queryType)), address(0));
+    assertEq(address(hubVotePool.voteTypeDecoder(_queryType)), address(0));
   }
 
   function testFuzz_RevertIf_ERC165IsNotSupported(uint8 queryType) public {
