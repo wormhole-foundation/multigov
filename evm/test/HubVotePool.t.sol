@@ -80,8 +80,8 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
-          _voteParams.proposalId,
           SpokeCountingFractional.ProposalVote({
+            proposalId: _voteParams.proposalId,
             againstVotes: uint128(_voteParams.againstVotes),
             forVotes: uint128(_voteParams.forVotes),
             abstainVotes: uint128(_voteParams.abstainVotes)
@@ -130,6 +130,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     assertEq(_proposalVotes.againstVotes, _voteParams.againstVotes);
     assertEq(_proposalVotes.forVotes, _voteParams.forVotes);
     assertEq(_proposalVotes.abstainVotes, _voteParams.abstainVotes);
+    assertEq(_proposalVotes.proposalId, _voteParams.proposalId);
   }
 }
 
@@ -286,6 +287,7 @@ contract RegisterQueryType is HubVotePoolTest {
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(uint8 _queryType, address _caller) public {
+    vm.assume(_caller != address(governor));
     vm.startPrank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
@@ -359,6 +361,7 @@ contract CrossChainVote is HubVotePoolTest {
     _assertVotesEq(
       _voteParams,
       SpokeCountingFractional.ProposalVote({
+        proposalId: _voteParams.proposalId,
         againstVotes: _againstVotes,
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
@@ -394,8 +397,8 @@ contract CrossChainVote is HubVotePoolTest {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
-          _voteParams1.proposalId,
           SpokeCountingFractional.ProposalVote({
+            proposalId: _voteParams1.proposalId,
             againstVotes: uint128(_voteParams1.againstVotes),
             forVotes: uint128(_voteParams1.forVotes),
             abstainVotes: uint128(_voteParams1.abstainVotes)
@@ -414,8 +417,8 @@ contract CrossChainVote is HubVotePoolTest {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
-          _voteParams1.proposalId,
           SpokeCountingFractional.ProposalVote({
+            proposalId: _voteParams1.proposalId,
             againstVotes: uint128(_voteParams2.againstVotes),
             forVotes: uint128(_voteParams2.forVotes),
             abstainVotes: uint128(_voteParams2.abstainVotes)
@@ -493,8 +496,8 @@ contract CrossChainVote is HubVotePoolTest {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
-          _voteParams.proposalId,
           SpokeCountingFractional.ProposalVote({
+            proposalId: _voteParams.proposalId,
             againstVotes: uint128(_voteParams.againstVotes),
             forVotes: uint128(_voteParams.forVotes),
             abstainVotes: uint128(_voteParams.abstainVotes)
@@ -572,6 +575,7 @@ contract CrossChainVote is HubVotePoolTest {
     _assertVotesEq(
       _voteParams1,
       SpokeCountingFractional.ProposalVote({
+        proposalId: _voteParams1.proposalId,
         againstVotes: _againstVotes1,
         forVotes: _forVotes1,
         abstainVotes: _abstainVotes1
@@ -584,6 +588,7 @@ contract CrossChainVote is HubVotePoolTest {
     _assertVotesEq(
       _voteParams2,
       SpokeCountingFractional.ProposalVote({
+        proposalId: _voteParams2.proposalId,
         againstVotes: _againstVotes2,
         forVotes: _forVotes2,
         abstainVotes: _abstainVotes2
@@ -626,8 +631,8 @@ contract CrossChainVote is HubVotePoolTest {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
-          _proposalId,
           SpokeCountingFractional.ProposalVote({
+            proposalId: _proposalId,
             againstVotes: uint128(_votes),
             forVotes: uint128(_votes),
             abstainVotes: uint128(_votes)
