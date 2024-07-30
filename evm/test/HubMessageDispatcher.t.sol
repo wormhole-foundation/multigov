@@ -108,7 +108,7 @@ contract Dispatch is HubMessageDispatcherTest {
     uint16 _wormholeChainId
   ) public {
     vm.assume(
-      _targets.length != _values.length || _values.length != _calldatas.length || _calldatas.length != _targets.length
+      _targets.length != _values.length || _calldatas.length != _targets.length
     );
     bytes memory payload = abi.encode(_wormholeChainId, _targets, _values, _calldatas, keccak256(bytes(_description)));
 
