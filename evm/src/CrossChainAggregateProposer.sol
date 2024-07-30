@@ -81,7 +81,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
 
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
-      uint64 queryBlockTime = _ethCalls.targetBlockTime;
+      uint64 queryBlockTime = _ethCalls.requestTargetTimestamp;
 
       if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) {
         revert InvalidTimestamp(queryBlockTime);
