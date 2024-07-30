@@ -22,7 +22,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
   error InvalidCallDataLength();
   error InvalidCaller(address expected, address actual);
   error InvalidTimeDelta();
-  error InvalidTimestamp();
+  error InvalidTimestamp(uint64 invalidTimestamp);
   error TooManyEthCallResults(uint256);
   error UnregisteredSpoke(uint16 chainId, address tokenAddress);
 
@@ -73,6 +73,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
     uint256 totalVoteWeight = 0;
     uint256 currentTimestamp = block.timestamp;
     uint256 oldestAllowedTimestamp = currentTimestamp - maxQueryTimestampOffset;
+    uint256 sharedQueryBlockTime = 0;
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
@@ -81,7 +82,13 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
       uint64 queryBlockTime = _ethCalls.blockTime;
-      if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) revert InvalidTimestamp();
+
+      if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) {
+        revert InvalidTimestamp(queryBlockTime);
+      }
+
+      if (sharedQueryBlockTime == 0) sharedQueryBlockTime = queryBlockTime;
+      if (sharedQueryBlockTime != queryBlockTime) revert InvalidTimestamp(queryBlockTime);
 
       address registeredSpokeAddress = registeredSpokes[perChainResp.chainId];
       address queriedAddress = _ethCalls.result[0].contractAddress;
@@ -103,7 +110,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
     }
 
     // Use current timestamp (what all of the spoke query responses are checked against) to get the hub vote weight
-    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, currentTimestamp);
+    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, sharedQueryBlockTime);
     totalVoteWeight += hubVoteWeight;
 
     return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
