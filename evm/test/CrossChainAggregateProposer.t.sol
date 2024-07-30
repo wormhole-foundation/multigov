@@ -34,7 +34,7 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
   uint32 public constant INITIAL_VOTING_PERIOD = 1 days;
   uint208 public constant INITIAL_QUORUM = 100e18;
   uint256 public constant PROPOSAL_THRESHOLD = 1000e18;
-  uint48 public constant VOTE_WINDOW = 1 days;
+  uint48 public constant VOTE_WEIGHT_WINDOW = 1 days;
   uint8 public constant NUM_WEIGHTS_TO_USE = 3;
 
   uint48 VOTE_TIME_EXTENSION = 1 days;
@@ -71,7 +71,7 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
       initialQuorum: INITIAL_QUORUM,
       hubVotePool: address(hubVotePool),
       governorProposalExtender: address(extender),
-      initialVoteWindow: VOTE_WINDOW
+      initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
     });
 
     hubGovernor = new HubGovernorHarness(params);

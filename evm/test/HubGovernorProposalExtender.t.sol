@@ -18,7 +18,8 @@ contract HubGovernorProposalExtenderTest is Test, HubGovernorTest {
   uint32 voteWeightWindow = 1 days;
 
   function _boundProposalSafeWindow(uint48 _voteStart, uint48 _safeWindow) internal view returns (uint48, uint48) {
-    _voteStart = uint48(bound(_voteStart, VOTE_WINDOW + block.timestamp, type(uint48).max - governor.votingPeriod()));
+    _voteStart =
+      uint48(bound(_voteStart, VOTE_WEIGHT_WINDOW + block.timestamp, type(uint48).max - governor.votingPeriod()));
     _safeWindow = uint48(bound(_safeWindow, 1, governor.votingPeriod()));
     return (_voteStart, _safeWindow);
   }
@@ -285,8 +286,9 @@ contract IsVotingSafe is HubGovernorProposalExtenderTest {
     ProposalBuilder builder = new ProposalBuilder();
     builder.push(makeAddr("Hi"), 0, abi.encode(1));
 
-    _voteStart =
-      uint48(bound(_voteStart, VOTE_WINDOW + block.timestamp, type(uint48).max - _safeWindow - governor.votingDelay()));
+    _voteStart = uint48(
+      bound(_voteStart, VOTE_WEIGHT_WINDOW + block.timestamp, type(uint48).max - _safeWindow - governor.votingDelay())
+    );
 
     vm.warp(_voteStart);
     vm.startPrank(delegates[0]);
