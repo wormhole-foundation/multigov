@@ -492,16 +492,16 @@ export async function sendTransactions(
       if (maxRetries && maxRetries < retryCount) {
         break;
       }
-      console.log(
-        "Retrying transaction ",
-        index,
-        " of ",
-        transactions.length - 1,
-        " with signature: ",
-        txSignature,
-        " Retry count: ",
-        retryCount
-      );
+//       console.log(
+//         "Retrying transaction ",
+//         index,
+//         " of ",
+//         transactions.length - 1,
+//         " with signature: ",
+//         txSignature,
+//         " Retry count: ",
+//         retryCount
+//       );
       retryCount++;
 
       await connection.sendRawTransaction(tx.serialize(), {

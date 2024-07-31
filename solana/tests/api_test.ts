@@ -74,7 +74,7 @@ describe("api", async () => {
   });
 
   it("isVotingSafe", async () => {
-    const proposalId = new BN(4);
+    const proposalId = new BN(3);
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
@@ -95,17 +95,17 @@ describe("api", async () => {
 
     const stakeAccount = await stakeConnection.getMainAccount(owner);
 
-//     await stakeConnection.delegate2(
-//       stakeAccount.address,
-//       stakeAccount.address,
-//       WHTokenBalance.fromString("100")
-//     );
-// 
-//     await stakeConnection.delegate2(
-//       stakeAccount.address,
-//       undefined,
-//       WHTokenBalance.fromString("100")
-//     );
+    await stakeConnection.delegate(
+      stakeAccount.address,
+      stakeAccount.address,
+      WHTokenBalance.fromString("100")
+    );
+
+    await stakeConnection.delegate(
+      stakeAccount.address,
+      undefined,
+      WHTokenBalance.fromString("100")
+    );
   });
 
   it("default delegates", async () => {
@@ -134,7 +134,7 @@ describe("api", async () => {
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "300000000" // 300 * 10**6
+      "100000000" // 100 * 10**6
     );
 
     await stakeConnection.withdrawTokens(
@@ -146,7 +146,7 @@ describe("api", async () => {
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "250000000" // 250 * 10**6
+      "50000000" // 50 * 10**6
     );
   });
 
@@ -158,7 +158,7 @@ describe("api", async () => {
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "250000000" // 250 * 10**6
+      "50000000" // 50 * 10**6
     );
     
     await stakeConnection.delegate(
@@ -171,7 +171,7 @@ describe("api", async () => {
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "350000000" // 350 * 10**6
+      "100000000" // 100 * 10**6
     );
 
     assert.equal(
@@ -182,7 +182,7 @@ describe("api", async () => {
     await assertBalanceMatches(
       stakeConnection,
       owner,
-      WHTokenBalance.fromString("350")
+      WHTokenBalance.fromString("100")
     );
   });
 
@@ -190,23 +190,28 @@ describe("api", async () => {
     await stakeConnection.delegate(
       undefined,
       undefined,
-      WHTokenBalance.fromString("100")
+      WHTokenBalance.fromString("50")
     );
 
-    const proposalId = new BN(3);
-    const voteStart = new BN(Math.floor(Date.now()) - 100);
+    const proposalId = new BN(4);
+    const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
     await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
 
     let stakeAccount = await stakeConnection.getMainAccount(owner);
 
-    await stakeConnection.castVote(proposalId, stakeAccount, new BN(10), new BN(20), new BN(12));
-    await stakeConnection.castVote(proposalId, stakeAccount, new BN(10), new BN(10), new BN(0));
-    await stakeConnection.castVote(proposalId, stakeAccount, new BN(0), new BN(7), new BN(10));
+    await stakeConnection.delegate(
+      stakeAccount.address,
+      stakeAccount.address,
+      WHTokenBalance.fromString("100")
+    );
+
+    await stakeConnection.castVote(proposalId, stakeAccount.address, new BN(10), new BN(20), new BN(12));
+    await stakeConnection.castVote(proposalId, stakeAccount.address, new BN(10), new BN(10), new BN(0));
+    await stakeConnection.castVote(proposalId, stakeAccount.address, new BN(0), new BN(7), new BN(10));
 
     const { againstVotes, forVotes, abstainVotes } = await stakeConnection.proposalVotes(proposalId);
-
     assert.equal(againstVotes.toString(), '20');
     assert.equal(forVotes.toString(), '37');
     assert.equal(abstainVotes.toString(), '22');

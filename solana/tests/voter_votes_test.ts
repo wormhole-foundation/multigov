@@ -50,8 +50,8 @@ describe("voter_votes_test", async () => {
     await assertVoterVotesEquals(stakeAccount, new BN("50000000")); // 50 * 10**6
 
     await stakeConnection.delegate(
-      stakeAccount,
-      stakeAccount,
+      stakeAccount.address,
+      stakeAccount.address,
       WHTokenBalance.fromString("15")
     );
 

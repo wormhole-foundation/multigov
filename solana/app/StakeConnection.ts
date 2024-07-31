@@ -344,9 +344,9 @@ export class StakeConnection {
       nonce,
       this.program.programId
     );
-    console.log("nonce:", nonce)
-    console.log("stakeAccountAddress:", stakeAccountAddress)
-    console.log("wasm.Constants.CHECKPOINT_DATA_SIZE():", wasm.Constants.CHECKPOINT_DATA_SIZE())
+//     console.log("nonce:", nonce)
+//     console.log("stakeAccountAddress:", stakeAccountAddress)
+
     instructions.push(
       SystemProgram.createAccountWithSeed({
         fromPubkey: this.userPublicKey(),
