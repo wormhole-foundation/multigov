@@ -160,7 +160,7 @@ describe("staking", async () => {
       101
     );
     transaction.add(ix);
-    debugger;
+
     const tx = await provider.sendAndConfirm(transaction, [], {
       skipPreflight: DEBUG,
     });

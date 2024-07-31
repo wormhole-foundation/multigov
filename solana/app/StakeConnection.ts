@@ -149,7 +149,7 @@ export class StakeConnection {
       {
         encoding: "base64",
         filters: [
-          { memcmp: this.program.coder.accounts.memcmp("CheckpointData") },
+          { memcmp: this.program.coder.accounts.memcmp("checkpointData") },
         ],
       }
     );
@@ -164,7 +164,7 @@ export class StakeConnection {
         encoding: "base64",
         filters: [
           {
-            memcmp: this.program.coder.accounts.memcmp("CheckpointData"),
+            memcmp: this.program.coder.accounts.memcmp("checkpointData"),
           },
           {
             memcmp: {

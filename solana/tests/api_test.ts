@@ -93,8 +93,8 @@ describe("api", async () => {
       WHTokenBalance.fromString("100")
     );
 
-//     const stakeAccount = await stakeConnection.getMainAccount(owner);
-// 
+    const stakeAccount = await stakeConnection.getMainAccount(owner);
+
 //     await stakeConnection.delegate2(
 //       stakeAccount.address,
 //       stakeAccount.address,
