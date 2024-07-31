@@ -8,7 +8,7 @@ import {
   TransactionInstruction,
   Transaction
 } from "@solana/web3.js";
-import * as wasm2 from "@wormhole/staking-wasm";
+import * as importedWasm from "@wormhole/staking-wasm";
 import {
   createAssociatedTokenAccountInstruction,
   createTransferInstruction,
@@ -26,7 +26,7 @@ import {PriorityFeeConfig, sendTransactions, TransactionBuilder,} from "./transa
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import * as console from "node:console";
 
-let wasm = wasm2;
+let wasm = importedWasm;
 export { wasm };
 
 export type GlobalConfig = IdlAccounts<Staking>["globalConfig"];
@@ -240,6 +240,7 @@ export class StakeConnection {
     const inbuf = await this.program.provider.connection.getAccountInfo(
       address
     );
+
     const stakeAccountCheckpointsWasm = new wasm.WasmCheckpointData(
       inbuf!.data
     );

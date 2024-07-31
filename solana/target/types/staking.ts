@@ -1326,7 +1326,7 @@ export type Staking = {
                   24
                 ]
               },
-              424
+              32
             ]
           }
         ]
