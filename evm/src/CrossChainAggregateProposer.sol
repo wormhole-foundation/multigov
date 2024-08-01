@@ -8,7 +8,7 @@ import {
   QueryResponse,
   ParsedQueryResponse,
   ParsedPerChainQueryResponse,
-  EthCallQueryResponse
+  EthCallByTimestampQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
 contract CrossChainAggregateProposer is QueryResponse, Ownable {
@@ -77,18 +77,18 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
-      EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(perChainResp);
+      EthCallByTimestampQueryResponse memory _ethCalls = parseEthCallByTimestampQueryResponse(perChainResp);
 
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
-      uint64 queryBlockTime = _ethCalls.blockTime;
+      uint64 requestTargetTimestamp = _ethCalls.requestTargetTimestamp;
 
-      if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) {
-        revert InvalidTimestamp(queryBlockTime);
+      if (requestTargetTimestamp < oldestAllowedTimestamp || requestTargetTimestamp > currentTimestamp) {
+        revert InvalidTimestamp(requestTargetTimestamp);
       }
 
-      if (sharedQueryBlockTime == 0) sharedQueryBlockTime = queryBlockTime;
-      if (sharedQueryBlockTime != queryBlockTime) revert InvalidTimestamp(queryBlockTime);
+      if (sharedQueryBlockTime == 0) sharedQueryBlockTime = requestTargetTimestamp;
+      if (sharedQueryBlockTime != requestTargetTimestamp) revert InvalidTimestamp(requestTargetTimestamp);
 
       address registeredSpokeAddress = registeredSpokes[perChainResp.chainId];
       address queriedAddress = _ethCalls.result[0].contractAddress;
