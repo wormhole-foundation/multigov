@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {Test, console2} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
@@ -96,49 +96,79 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
   function _mockQueryResponse(VoteWeight[] memory _voteWeights, address _proposer) internal view returns (bytes memory) {
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
+    uint64 targetTime = uint64(vm.getBlockTimestamp());
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
-      uint256 voteWeight = _voteWeights[i].voteWeight;
-      uint16 chainId = _voteWeights[i].chainId;
-      address spokeAddress = _voteWeights[i].spokeAddress;
-
-      bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
-        bytes("0x1296c33"),
-        1,
-        QueryTest.buildEthCallDataBytes(
-          spokeAddress, abi.encodeWithSignature("getVotes(address,uint256)", _proposer, vm.getBlockTimestamp())
-        )
-      );
-
-      queryRequestBytes = abi.encodePacked(
-        queryRequestBytes,
-        QueryTest.buildPerChainRequestBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCall)
-      );
-
-      bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
-        uint64(block.number),
-        blockhash(block.number),
-        uint64(block.timestamp),
-        1,
-        QueryTest.buildEthCallResultBytes(abi.encode(voteWeight))
-      );
-
-      perChainResponses = abi.encodePacked(
-        perChainResponses,
-        QueryTest.buildPerChainResponseBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCallResp)
-      );
+      (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTime);
+      queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
+      perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
+    return _buildQueryResponse(_voteWeights, queryRequestBytes, perChainResponses);
+  }
 
-    bytes memory response = QueryTest.buildQueryResponseBytes(
+  function _buildQueryRequestAndPerChainResponse(
+    VoteWeight memory _voteWeight,
+    address _proposer,
+    uint64 _targetBlockTime
+  ) internal view returns (bytes memory queryRequestBytes, bytes memory perChainResponses) {
+    uint256 voteWeight = _voteWeight.voteWeight;
+    uint16 chainId = _voteWeight.chainId;
+    address spokeAddress = _voteWeight.spokeAddress;
+
+    bytes memory ethCall = QueryTest.buildEthCallByTimestampRequestBytes(
+      _targetBlockTime,
+      bytes(""), /* targetBlockHint */
+      bytes(""), /* followingBlockHint */
+      1,
+      QueryTest.buildEthCallDataBytes(
+        spokeAddress, abi.encodeWithSignature("getVotes(address,uint256)", _proposer, _targetBlockTime)
+      )
+    );
+
+    queryRequestBytes =
+      QueryTest.buildPerChainRequestBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL_BY_TIMESTAMP(), ethCall);
+
+    bytes memory ethCallResp = _buildResponseBytesWithLatestTimestamp(_targetBlockTime, uint128(voteWeight));
+
+    perChainResponses =
+      QueryTest.buildPerChainResponseBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL_BY_TIMESTAMP(), ethCallResp);
+  }
+
+  function _buildResponseBytesWithLatestTimestamp(uint64 targetBlockTime, uint256 voteWeight)
+    internal
+    view
+    returns (bytes memory)
+  {
+    uint64 targetBlockNumber = uint64(vm.getBlockNumber());
+    uint64 followingBlockNumber = targetBlockNumber + 1;
+    uint64 followingBlockTime = targetBlockTime + 1;
+
+    return QueryTest.buildEthCallByTimestampResponseBytes(
+      targetBlockNumber,
+      blockhash(targetBlockNumber),
+      targetBlockTime,
+      followingBlockNumber,
+      blockhash(followingBlockNumber),
+      followingBlockTime,
+      1,
+      QueryTest.buildEthCallResultBytes(abi.encode(voteWeight))
+    );
+  }
+
+  function _buildQueryResponse(
+    VoteWeight[] memory _voteWeights,
+    bytes memory _queryRequestBytes,
+    bytes memory _perChainResponses
+  ) internal pure returns (bytes memory) {
+    return QueryTest.buildQueryResponseBytes(
       VERSION,
       OFF_CHAIN_SENDER,
       OFF_CHAIN_SIGNATURE,
-      QueryTest.buildOffChainQueryRequestBytes(VERSION, 0, uint8(_voteWeights.length), queryRequestBytes),
+      QueryTest.buildOffChainQueryRequestBytes(VERSION, 0, uint8(_voteWeights.length), _queryRequestBytes),
       uint8(_voteWeights.length),
-      perChainResponses
+      _perChainResponses
     );
-
-    return response;
   }
 
   function _mockQueryResponseWithMultipleResults(
@@ -147,52 +177,61 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
     address _caller,
     uint128 _voteWeight
   ) internal view returns (bytes memory) {
-    bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
-      bytes("0x1296c33"), // blockId
+    uint64 targetBlockTime = uint64(vm.getBlockTimestamp());
+
+    bytes memory ethCall = QueryTest.buildEthCallByTimestampRequestBytes(
+      targetBlockTime,
+      bytes("latest"),
+      bytes("latest"),
       2, // numCallData
       abi.encodePacked(
-        QueryTest.buildEthCallDataBytes(_tokenAddress, abi.encodeWithSignature("getVotes(address)", _caller)),
-        QueryTest.buildEthCallDataBytes(_tokenAddress, abi.encodeWithSignature("getVotes(address)", _caller))
+        QueryTest.buildEthCallDataBytes(
+          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetBlockTime)
+        ),
+        QueryTest.buildEthCallDataBytes(
+          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetBlockTime)
+        )
       )
     );
 
-    bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
-      VERSION, // version
-      0, // nonce
-      1, // num per chain requests
-      abi.encodePacked(
-        QueryTest.buildPerChainRequestBytes(_chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCall)
-      )
+    bytes memory queryRequestBytes =
+      QueryTest.buildPerChainRequestBytes(_chainId, crossChainAggregateProposer.QT_ETH_CALL_BY_TIMESTAMP(), ethCall);
+
+    bytes memory ethCallResp = _buildInvalidEthCallRespMultiResults(_voteWeight, targetBlockTime);
+
+    bytes memory perChainResponses = QueryTest.buildPerChainResponseBytes(
+      _chainId, crossChainAggregateProposer.QT_ETH_CALL_BY_TIMESTAMP(), ethCallResp
     );
+
+    VoteWeight[] memory _voteWeights = new VoteWeight[](1);
+    _voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _tokenAddress});
+
+    return _buildQueryResponse(_voteWeights, queryRequestBytes, perChainResponses);
+  }
+
+  function _buildInvalidEthCallRespMultiResults(uint128 _voteWeight, uint64 targetBlockTime)
+    internal
+    view
+    returns (bytes memory ethCallResp)
+  {
+    uint64 targetBlockNumber = uint64(vm.getBlockNumber());
+    uint64 followingBlockNumber = targetBlockNumber + 1;
+    uint64 followingBlockTime = targetBlockTime + 1;
 
     bytes memory invalidEthCallResp = abi.encodePacked(
       QueryTest.buildEthCallResultBytes(abi.encode(_voteWeight)),
       QueryTest.buildEthCallResultBytes(abi.encode(_voteWeight))
     );
 
-    bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
-      uint64(block.number), // block number
-      blockhash(block.number), // block hash
-      uint64(block.timestamp), // block time US
+    ethCallResp = QueryTest.buildEthCallByTimestampResponseBytes(
+      targetBlockNumber,
+      blockhash(targetBlockNumber),
+      targetBlockTime,
+      followingBlockNumber,
+      blockhash(followingBlockNumber),
+      followingBlockTime,
       2, // numResults
       invalidEthCallResp
-    );
-
-    return _buildQueryResponseWithMultipleResults(_chainId, _queryRequestBytes, ethCallResp);
-  }
-
-  function _buildQueryResponseWithMultipleResults(
-    uint16 _chainId,
-    bytes memory _queryRequestBytes,
-    bytes memory _ethCallResp
-  ) internal view returns (bytes memory) {
-    return QueryTest.buildQueryResponseBytes(
-      VERSION,
-      OFF_CHAIN_SENDER,
-      OFF_CHAIN_SIGNATURE,
-      _queryRequestBytes,
-      1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(_chainId, crossChainAggregateProposer.QT_ETH_CALL(), _ethCallResp)
     );
   }
 
@@ -205,47 +244,14 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
     bytes memory perChainResponses = "";
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
-      uint256 voteWeight = _voteWeights[i].voteWeight;
-      uint16 chainId = _voteWeights[i].chainId;
-      address spokeAddress = _voteWeights[i].spokeAddress;
-
-      bytes memory ethCall = QueryTest.buildEthCallRequestBytes(
-        bytes("0x1296c33"),
-        1,
-        QueryTest.buildEthCallDataBytes(
-          spokeAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, vm.getBlockTimestamp())
-        )
-      );
-
-      queryRequestBytes = abi.encodePacked(
-        queryRequestBytes,
-        QueryTest.buildPerChainRequestBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCall)
-      );
-
-      bytes memory ethCallResp = QueryTest.buildEthCallResponseBytes(
-        uint64(block.number),
-        blockhash(block.number),
-        _timestamps[i], // Use custom timestamp
-        1,
-        QueryTest.buildEthCallResultBytes(abi.encode(voteWeight))
-      );
-
-      perChainResponses = abi.encodePacked(
-        perChainResponses,
-        QueryTest.buildPerChainResponseBytes(chainId, crossChainAggregateProposer.QT_ETH_CALL(), ethCallResp)
-      );
+      uint64 targetBlockTime = _timestamps[i];
+      (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _caller, targetBlockTime);
+      queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
+      perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
 
-    bytes memory response = QueryTest.buildQueryResponseBytes(
-      VERSION,
-      OFF_CHAIN_SENDER,
-      OFF_CHAIN_SIGNATURE,
-      QueryTest.buildOffChainQueryRequestBytes(VERSION, 0, uint8(_voteWeights.length), queryRequestBytes),
-      uint8(_voteWeights.length),
-      perChainResponses
-    );
-
-    return response;
+    return _buildQueryResponse(_voteWeights, queryRequestBytes, perChainResponses);
   }
 
   function _getSignatures(bytes memory _response) internal view returns (IWormhole.Signature[] memory) {
@@ -259,14 +265,6 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
     ProposalBuilder builder = new ProposalBuilder();
     builder.push(address(hubGovernor), 0, _callData);
     return builder;
-  }
-
-  function _mintAndDelegate(address _user, uint256 _amount) public returns (address) {
-    token.mint(_user, _amount);
-    vm.prank(_user);
-    token.delegate(_user);
-    vm.warp(vm.getBlockTimestamp() + 1);
-    return _user;
   }
 
   function _createArbitraryProposal() internal returns (ProposalBuilder) {
@@ -399,8 +397,8 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
 
     _warpToValidTimestamp();
     _assumeThresholdMet(voteWeights);
-
     _registerSpokes(voteWeights);
+
     ProposalBuilder builder = _createArbitraryProposal();
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
@@ -684,8 +682,11 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     crossChainAggregateProposer.checkAndProposeIfEligible(targets, values, calldatas, _description, _resp, signatures);
   }
 
-  function testFuzz_RevertIf_InvalidTimestamp(address _caller, uint128 _voteWeight1, uint128 _voteWeight2) public {
-    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
+  function testFuzz_RevertIf_EthCallPayloadsHaveDifferentTargetTimestamps(
+    address _caller,
+    uint128 _voteWeight1,
+    uint128 _voteWeight2
+  ) public {
     _warpToValidTimestamp();
 
     uint64 timestamp = uint64(vm.getBlockTimestamp());
