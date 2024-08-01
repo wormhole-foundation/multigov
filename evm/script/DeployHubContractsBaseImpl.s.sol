@@ -6,6 +6,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
+import {HubCrossChainEvmCallVoteDecoder} from "src/HubCrossChainEvmCallVoteDecoder.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
@@ -65,6 +66,10 @@ abstract contract DeployHubContractsBaseImpl is Script {
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
     HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0));
+	HubCrossChainEvmCallVoteDecoder decoder = new HubCrossChainEvmCallVoteDecoder(config.wormholeCore, address(pool));
+
+    // QT_ETH_CALL = 1;
+	pool.registerQueryType(1, address(decoder));
 
     HubGovernorProposalExtender extender = new HubGovernorProposalExtender(
       config.whitelistedVoteExtender,
