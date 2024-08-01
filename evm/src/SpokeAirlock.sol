@@ -49,8 +49,8 @@ contract SpokeAirlock {
   {
     _onlyMessageExecutor();
     for (uint256 i = 0; i < _targets.length; ++i) {
-      (bool success, bytes memory returndata) = _targets[i].call{value: _values[i]}(_calldatas[i]);
-      Address.verifyCallResult(success, returndata);
+      (bool _success, bytes memory _returndata) = _targets[i].call{value: _values[i]}(_calldatas[i]);
+      Address.verifyCallResult(_success, _returndata);
     }
   }
 }

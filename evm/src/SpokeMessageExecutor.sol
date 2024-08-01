@@ -63,13 +63,13 @@ contract SpokeMessageExecutor {
   /// @param _encodedMessage The encoded message id, wormhole chain id, targets, values, and calldatas.
   function receiveMessage(bytes memory _encodedMessage) external payable {
     // call the Wormhole core contract to parse and verify the encodedMessage
-    (IWormhole.VM memory wormholeMessage, bool valid, string memory reason) =
+    (IWormhole.VM memory _wormholeMessage, bool _valid, string memory _reason) =
       WORMHOLE_CORE.parseAndVerifyVM(_encodedMessage);
 
-    if (!valid) revert InvalidWormholeMessage(reason);
-    if (messageReceived[wormholeMessage.hash]) revert AlreadyProcessedMessage();
+    if (!_valid) revert InvalidWormholeMessage(_reason);
+    if (messageReceived[_wormholeMessage.hash]) revert AlreadyProcessedMessage();
 
-    if (wormholeMessage.emitterAddress != HUB_DISPATCHER || wormholeMessage.emitterChainId != HUB_CHAIN_ID) {
+    if (_wormholeMessage.emitterAddress != HUB_DISPATCHER || _wormholeMessage.emitterChainId != HUB_CHAIN_ID) {
       revert UnknownMessageEmitter();
     }
 
@@ -79,7 +79,7 @@ contract SpokeMessageExecutor {
       address[] memory _targets,
       uint256[] memory _values,
       bytes[] memory _calldatas
-    ) = abi.decode(wormholeMessage.payload, (uint256, uint16, address[], uint256[], bytes[]));
+    ) = abi.decode(_wormholeMessage.payload, (uint256, uint16, address[], uint256[], bytes[]));
 
     if (_targets.length != _values.length || _targets.length != _calldatas.length) {
       revert InvalidSpokeExecutorOperationLength(_targets.length, _values.length, _calldatas.length);
@@ -88,8 +88,8 @@ contract SpokeMessageExecutor {
     _validateChainId(_wormholeChainId);
 
     airlock.executeOperations(_targets, _values, _calldatas);
-    messageReceived[wormholeMessage.hash] = true;
-    emit ProposalExecuted(wormholeMessage.emitterChainId, wormholeMessage.emitterAddress, _messageId);
+    messageReceived[_wormholeMessage.hash] = true;
+    emit ProposalExecuted(_wormholeMessage.emitterChainId, _wormholeMessage.emitterAddress, _messageId);
   }
 
   /// @notice A function that updates the spoke airlock to a new address.

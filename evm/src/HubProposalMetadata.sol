@@ -19,7 +19,7 @@ contract HubProposalMetadata {
   /// Wormhole Queries when setting up a proposal to be voted on a spoke.
   /// @param _proposalId The proposal id from which to read metadata.
   function getProposalMetadata(uint256 _proposalId) external view returns (uint256, uint256) {
-    uint256 voteStart = GOVERNOR.proposalSnapshot(_proposalId);
-    return (_proposalId, voteStart);
+    uint256 _voteStart = GOVERNOR.proposalSnapshot(_proposalId);
+    return (_proposalId, _voteStart);
   }
 }
