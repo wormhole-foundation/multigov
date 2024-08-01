@@ -7,13 +7,13 @@ import {
   QueryResponse,
   ParsedPerChainQueryResponse,
   ParsedQueryResponse,
-  EthCallQueryResponse
+  EthCallWithFinalityQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 
-contract HubCrossChainEvmCallVoteDecoder is ICrossChainVoteDecoder, QueryResponse, ERC165 {
+contract HubCrossChainEvmCallWithFinalityVoteDecoder is ICrossChainVoteDecoder, QueryResponse, ERC165 {
   HubVotePool public immutable HUB_VOTE_POOL;
 
   constructor(address _core, address _hubVotePool) QueryResponse(_core) {
@@ -21,7 +21,10 @@ contract HubCrossChainEvmCallVoteDecoder is ICrossChainVoteDecoder, QueryRespons
   }
 
   function decode(ParsedPerChainQueryResponse memory _perChainResp) external view returns (QueryVote memory) {
-    EthCallQueryResponse memory _ethCalls = parseEthCallQueryResponse(_perChainResp);
+    EthCallWithFinalityQueryResponse memory _ethCalls = parseEthCallWithFinalityQueryResponse(_perChainResp);
+    if (keccak256(_ethCalls.requestFinality) != keccak256(bytes("finalized"))) {
+      revert InvalidQueryBlock(_ethCalls.requestBlockId);
+    }
 
     // verify contract and chain is correct
     bytes32 addr = HUB_VOTE_POOL.spokeRegistry(_perChainResp.chainId);
