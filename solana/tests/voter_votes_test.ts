@@ -32,7 +32,7 @@ describe("voter_votes_test", async () => {
       config,
       whMintAccount,
       whMintAuthority,
-      makeDefaultConfig(whMintAccount.publicKey)
+      makeDefaultConfig(whMintAccount.publicKey),
     ));
 
     owner = stakeConnection.provider.wallet.publicKey;
@@ -42,7 +42,7 @@ describe("voter_votes_test", async () => {
     await stakeConnection.delegate(
       undefined,
       undefined,
-      WHTokenBalance.fromString("50")
+      WHTokenBalance.fromString("50"),
     );
 
     let stakeAccount = await stakeConnection.getMainAccount(owner);
@@ -52,7 +52,7 @@ describe("voter_votes_test", async () => {
     await stakeConnection.delegate(
       stakeAccount.address,
       stakeAccount.address,
-      WHTokenBalance.fromString("15")
+      WHTokenBalance.fromString("15"),
     );
 
     stakeAccount = await stakeConnection.getMainAccount(owner);

@@ -1,4 +1,9 @@
-import { getMinimumBalanceForRentExemptMint, createInitializeMintInstruction, MintLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  getMinimumBalanceForRentExemptMint,
+  createInitializeMintInstruction,
+  MintLayout,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import {
   PublicKey,
   Keypair,
@@ -20,7 +25,7 @@ import { STAKING_ADDRESS } from "../../app";
 export function getConfigAccount(programId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [anchor.utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
-    programId
+    programId,
   )[0];
 }
 
@@ -32,11 +37,11 @@ export async function createMint(
   mintAccount: Keypair,
   mintAuthority: PublicKey,
   freezeAuthority: PublicKey | null,
-  decimals: number
+  decimals: number,
 ): Promise<void> {
   // Allocate memory for the account
   const balanceNeeded = await getMinimumBalanceForRentExemptMint(
-    provider.connection
+    provider.connection,
   );
 
   const transaction = new Transaction();
@@ -48,7 +53,7 @@ export async function createMint(
       lamports: balanceNeeded,
       space: MintLayout.span,
       programId: TOKEN_PROGRAM_ID,
-    })
+    }),
   );
 
   transaction.add(
@@ -56,8 +61,8 @@ export async function createMint(
       mintAccount.publicKey,
       decimals,
       mintAuthority,
-      freezeAuthority
-    )
+      freezeAuthority,
+    ),
   );
 
   // Send the two instructions
@@ -68,7 +73,7 @@ export async function createMint(
 
 export async function initAddressLookupTable(
   provider: anchor.AnchorProvider,
-  mint: PublicKey
+  mint: PublicKey,
 ) {
   const configAccount = getConfigAccount(STAKING_ADDRESS);
 
@@ -98,7 +103,7 @@ export async function initAddressLookupTable(
       payerKey: provider.publicKey,
       recentBlockhash: (await provider.connection.getLatestBlockhash())
         .blockhash,
-    }).compileToV0Message()
+    }).compileToV0Message(),
   );
   await provider.sendAndConfirm(createLookupTableTx, [], {
     skipPreflight: true,
@@ -115,7 +120,7 @@ export async function initAddressLookupTable(
 export async function expectFail(
   rpcCall,
   error: string,
-  idlErrors: Map<number, string>
+  idlErrors: Map<number, string>,
 ) {
   try {
     const tx = await rpcCall.rpc();

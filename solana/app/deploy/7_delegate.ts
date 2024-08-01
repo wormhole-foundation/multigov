@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { AnchorProvider, Wallet, } from "@coral-xyz/anchor";
+import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { WHTokenBalance } from "../whTokenBalance";
@@ -13,29 +13,29 @@ async function main() {
     const provider = new AnchorProvider(
       connection,
       new Wallet(USER_AUTHORITY_KEYPAIR),
-      {}
+      {},
     );
 
     const stakeConnection = await StakeConnection.createStakeConnection(
       connection,
       provider.wallet as Wallet,
-      STAKING_ADDRESS
+      STAKING_ADDRESS,
     );
 
     await stakeConnection.delegate(
       undefined,
       undefined,
-      WHTokenBalance.fromString("100")
+      WHTokenBalance.fromString("100"),
     );
 
     const user = provider.wallet.publicKey;
     const stakeAccount = await stakeConnection.getMainAccount(user);
-    console.log(stakeAccount)
+    console.log(stakeAccount);
 
     await stakeConnection.delegate(
       stakeAccount.address,
       stakeAccount.address,
-      WHTokenBalance.fromString("100")
+      WHTokenBalance.fromString("100"),
     );
   } catch (err) {
     console.error("Error:", err);
@@ -43,4 +43,3 @@ async function main() {
 }
 
 main();
-

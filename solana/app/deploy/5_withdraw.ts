@@ -1,12 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
-import { AnchorProvider, Program, Wallet, } from "@coral-xyz/anchor";
-import {
-  getAssociatedTokenAddress,
-} from "@solana/spl-token";
-import {
-  PublicKey,
-  Connection,
-} from "@solana/web3.js";
+import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
+import { PublicKey, Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
 import { USER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
@@ -18,7 +13,7 @@ async function main() {
 
     const stakeAccountAddress = new PublicKey(
       // stakeAccountSecret.publicKey generated in  3_create_stake_account.ts
-      "EHbjaCjypw3HAZMWskLhX1KtmVUDmNFrijPcBtfqH8S3"
+      "EHbjaCjypw3HAZMWskLhX1KtmVUDmNFrijPcBtfqH8S3",
     );
 
     const connection = new Connection(RPC_NODE);
@@ -26,7 +21,7 @@ async function main() {
     const provider = new AnchorProvider(
       connection,
       new Wallet(USER_AUTHORITY_KEYPAIR),
-      {}
+      {},
     );
 
     const idl = (await Program.fetchIdl(STAKING_ADDRESS, provider))!;
@@ -36,7 +31,7 @@ async function main() {
     const toAccount = await getAssociatedTokenAddress(
       WORMHOLE_TOKEN,
       provider.wallet.publicKey,
-      true
+      true,
     );
 
     await program.methods
@@ -53,4 +48,3 @@ async function main() {
 }
 
 main();
-

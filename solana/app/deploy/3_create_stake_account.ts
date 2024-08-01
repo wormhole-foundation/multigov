@@ -1,10 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
-import { AnchorProvider, Program, Wallet, } from "@coral-xyz/anchor";
-import {
-  PublicKey,
-  Keypair,
-  Connection,
-} from "@solana/web3.js";
+import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
+import { PublicKey, Keypair, Connection } from "@solana/web3.js";
 import * as wasm from "@wormhole/staking-wasm";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
@@ -18,21 +14,21 @@ async function main() {
 
     const stakeAccountSecret = new Keypair();
 
-    console.log(stakeAccountSecret)
-    console.log(stakeAccountSecret.publicKey)
+    console.log(stakeAccountSecret);
+    console.log(stakeAccountSecret.publicKey);
 
     const connection = new Connection(RPC_NODE);
 
     const provider = new AnchorProvider(
       connection,
       new Wallet(USER_AUTHORITY_KEYPAIR),
-      {}
+      {},
     );
 
     let program: Program<Staking>;
     program = new Program(
       JSON.parse(fs.readFileSync("./target/idl/staking.json").toString()),
-      provider
+      provider,
     );
 
     const user = provider.wallet.publicKey;
@@ -40,11 +36,11 @@ async function main() {
     const [metadataAccount, metadataBump] = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(
-          wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()
+          wasm.Constants.STAKE_ACCOUNT_METADATA_SEED(),
         ),
         stakeAccountSecret.publicKey.toBuffer(),
       ],
-      program.programId
+      program.programId,
     );
 
     const [custodyAccount, custodyBump] = PublicKey.findProgramAddressSync(
@@ -52,7 +48,7 @@ async function main() {
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
         stakeAccountSecret.publicKey.toBuffer(),
       ],
-      program.programId
+      program.programId,
     );
 
     const [authorityAccount, authorityBump] = PublicKey.findProgramAddressSync(
@@ -60,7 +56,7 @@ async function main() {
         anchor.utils.bytes.utf8.encode(wasm.Constants.AUTHORITY_SEED()),
         stakeAccountSecret.publicKey.toBuffer(),
       ],
-      program.programId
+      program.programId,
     );
 
     const tx = await program.methods
@@ -68,7 +64,7 @@ async function main() {
       .preInstructions([
         await program.account.checkpointData.createInstruction(
           stakeAccountSecret,
-          wasm.Constants.CHECKPOINT_DATA_SIZE()
+          wasm.Constants.CHECKPOINT_DATA_SIZE(),
         ),
       ])
       .accounts({
@@ -85,4 +81,3 @@ async function main() {
 }
 
 main();
-

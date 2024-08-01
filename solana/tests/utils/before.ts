@@ -14,7 +14,7 @@ import {
   TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
-  createMintToInstruction
+  createMintToInstruction,
 } from "@solana/spl-token";
 import shell from "shelljs";
 import BN from "bn.js";
@@ -53,7 +53,7 @@ export interface AnchorConfig {
 
 export function readAnchorConfig(pathToAnchorToml: string): AnchorConfig {
   const config: AnchorConfig = toml.parse(
-    fs.readFileSync(pathToAnchorToml).toString()
+    fs.readFileSync(pathToAnchorToml).toString(),
   );
 
   return config;
@@ -125,7 +125,7 @@ export async function startValidatorRaw(portNumber: number, otherArgs: string) {
       }
       console.log(`stdout: ${stdout}`);
       console.error(`stderr: ${stderr}`);
-    }
+    },
   );
   const controller = new CustomAbortController(internalController);
 
@@ -140,7 +140,7 @@ export async function startValidatorRaw(portNumber: number, otherArgs: string) {
       // the connection to the validator.
       if (numRetries == 30) {
         console.log(
-          `Failed to start validator or connect to running validator. Caught exception: ${e}`
+          `Failed to start validator or connect to running validator. Caught exception: ${e}`,
         );
         throw e;
       }
@@ -173,14 +173,14 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
 
   const { controller, connection } = await startValidatorRaw(
     portNumber,
-    otherArgs
+    otherArgs,
   );
 
   const provider = new AnchorProvider(connection, new Wallet(user), {});
 
   const program = new Program(
     JSON.parse(fs.readFileSync(idlPath).toString()),
-    provider
+    provider,
   );
 
   const command = `anchor idl init -f ${idlPath} ${programAddress.toBase58()} --provider.cluster ${connection.rpcEndpoint}`;
@@ -213,7 +213,7 @@ async function executeCommandWithRetry(command) {
 export function getConnection(portNumber: number): Connection {
   return new Connection(
     `http://127.0.0.1:${portNumber}`,
-    AnchorProvider.defaultOptions().commitment
+    AnchorProvider.defaultOptions().commitment,
   );
 }
 
@@ -225,7 +225,7 @@ export async function requestWHTokenAirdrop(
   whMintAccount: PublicKey,
   whMintAuthority: Keypair,
   amount: WHTokenBalance,
-  connection: Connection
+  connection: Connection,
 ) {
   // Testnet airdrop to ensure that the WH authority can pay for gas
   await connection.requestAirdrop(whMintAuthority.publicKey, 1_000_000_000);
@@ -233,7 +233,7 @@ export async function requestWHTokenAirdrop(
   const destinationAta = await getAssociatedTokenAddress(
     whMintAccount,
     destination,
-    true
+    true,
   );
 
   if ((await connection.getAccountInfo(destinationAta)) == null) {
@@ -241,7 +241,7 @@ export async function requestWHTokenAirdrop(
       whMintAuthority.publicKey,
       destinationAta,
       destination,
-      whMintAccount
+      whMintAccount,
     );
     transaction.add(createAtaIx);
   }
@@ -250,7 +250,7 @@ export async function requestWHTokenAirdrop(
     whMintAccount,
     destinationAta,
     whMintAuthority.publicKey,
-    amount.toBN().toNumber()
+    amount.toBN().toNumber(),
   );
   transaction.add(mintIx);
 
@@ -262,11 +262,11 @@ export async function requestWHTokenAirdrop(
 export async function initConfig(
   program: Program,
   whMintAccount: PublicKey,
-  globalConfig: GlobalConfig
+  globalConfig: GlobalConfig,
 ) {
   const [configAccount, bump] = PublicKey.findProgramAddressSync(
     [utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
-    program.programId
+    program.programId,
   );
 
   await program.methods.initConfig(globalConfig).rpc({
@@ -276,7 +276,7 @@ export async function initConfig(
 
 export function makeDefaultConfig(
   whMint: PublicKey,
-  pdaAuthority: PublicKey = PublicKey.unique()
+  pdaAuthority: PublicKey = PublicKey.unique(),
 ): GlobalConfig {
   return {
     governanceAuthority: null,
@@ -303,11 +303,11 @@ export async function standardSetup(
   whMintAccount: Keypair,
   whMintAuthority: Keypair,
   globalConfig: GlobalConfig,
-  amount?: WHTokenBalance
+  amount?: WHTokenBalance,
 ) {
   const { controller, program, provider } = await startValidator(
     portNumber,
-    config
+    config,
   );
 
   await createMint(
@@ -325,7 +325,7 @@ export async function standardSetup(
     whMintAccount.publicKey,
     whMintAuthority,
     amount ? amount : WHTokenBalance.fromString("200"),
-    program.provider.connection
+    program.provider.connection,
   );
 
   globalConfig.governanceAuthority = Keypair.generate().publicKey;
@@ -342,10 +342,10 @@ export async function standardSetup(
 
   const lookupTableAddress = await initAddressLookupTable(
     provider,
-    whMintAccount.publicKey
+    whMintAccount.publicKey,
   );
 
-//   console.log("Lookup table address: ", lookupTableAddress.toBase58());
+  //   console.log("Lookup table address: ", lookupTableAddress.toBase58());
 
   // Give the power back to the people
   await program.methods
@@ -355,13 +355,13 @@ export async function standardSetup(
 
   const connection = new Connection(
     `http://127.0.0.1:${portNumber}`,
-    AnchorProvider.defaultOptions().commitment
+    AnchorProvider.defaultOptions().commitment,
   );
 
   const stakeConnection = await StakeConnection.createStakeConnection(
     connection,
     provider.wallet as Wallet,
-    new PublicKey(config.programs.localnet.staking)
+    new PublicKey(config.programs.localnet.staking),
   );
 
   return { controller, stakeConnection };

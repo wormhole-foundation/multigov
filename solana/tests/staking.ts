@@ -60,15 +60,15 @@ describe("staking", async () => {
       config,
       whMintAccount,
       whMintAuthority,
-      makeDefaultConfig(whMintAccount.publicKey)
+      makeDefaultConfig(whMintAccount.publicKey),
     ));
     program = stakeConnection.program;
     provider = stakeConnection.provider;
-      
+
     userAta = await getAssociatedTokenAddress(
       whMintAccount.publicKey,
       provider.wallet.publicKey,
-      true
+      true,
     );
 
     errMap = parseIdlErrors(program.idl);
@@ -80,11 +80,11 @@ describe("staking", async () => {
     const [metadataAccount, metadataBump] = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(
-          wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()
+          wasm.Constants.STAKE_ACCOUNT_METADATA_SEED(),
         ),
         stakeAccountSecret.publicKey.toBuffer(),
       ],
-      program.programId
+      program.programId,
     );
 
     const [custodyAccount, custodyBump] = PublicKey.findProgramAddressSync(
@@ -92,7 +92,7 @@ describe("staking", async () => {
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
         stakeAccountSecret.publicKey.toBuffer(),
       ],
-      program.programId
+      program.programId,
     );
 
     const [authorityAccount, authorityBump] = PublicKey.findProgramAddressSync(
@@ -100,7 +100,7 @@ describe("staking", async () => {
         anchor.utils.bytes.utf8.encode(wasm.Constants.AUTHORITY_SEED()),
         stakeAccountSecret.publicKey.toBuffer(),
       ],
-      program.programId
+      program.programId,
     );
 
     const tx = await program.methods
@@ -108,7 +108,7 @@ describe("staking", async () => {
       .preInstructions([
         await program.account.checkpointData.createInstruction(
           stakeAccountSecret,
-          wasm.Constants.CHECKPOINT_DATA_SIZE()
+          wasm.Constants.CHECKPOINT_DATA_SIZE(),
         ),
       ])
       .accounts({
@@ -123,7 +123,7 @@ describe("staking", async () => {
     const stake_account_metadata_data =
       await program.account.stakeAccountMetadata.fetch(metadataAccount);
 
-    const expectedRecordedBalance = (0).toString(16).padStart(2, '0');
+    const expectedRecordedBalance = (0).toString(16).padStart(2, "0");
 
     assert.equal(
       JSON.stringify(stake_account_metadata_data),
@@ -135,7 +135,7 @@ describe("staking", async () => {
         delegate: zeroPubkey,
         recordedBalance: expectedRecordedBalance,
         signedAgreementHash: null,
-      })
+      }),
     );
   });
 
@@ -143,21 +143,19 @@ describe("staking", async () => {
     const transaction = new Transaction();
     const from_account = userAta;
 
-    const toAccount = (
-      PublicKey.findProgramAddressSync(
-        [
-          anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-          stakeAccountSecret.publicKey.toBuffer(),
-        ],
-        program.programId
-      )
+    const toAccount = PublicKey.findProgramAddressSync(
+      [
+        anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
+        stakeAccountSecret.publicKey.toBuffer(),
+      ],
+      program.programId,
     )[0];
 
     const ix = createTransferInstruction(
       from_account,
       toAccount,
       provider.wallet.publicKey,
-      101
+      101,
     );
     transaction.add(ix);
 

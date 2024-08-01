@@ -1,4 +1,11 @@
-import {AnchorProvider, Idl, IdlAccounts, Program, utils, Wallet,} from "@coral-xyz/anchor";
+import {
+  AnchorProvider,
+  Idl,
+  IdlAccounts,
+  Program,
+  utils,
+  Wallet,
+} from "@coral-xyz/anchor";
 import {
   Connection,
   PublicKey,
@@ -6,7 +13,7 @@ import {
   SystemProgram,
   SYSVAR_CLOCK_PUBKEY,
   TransactionInstruction,
-  Transaction
+  Transaction,
 } from "@solana/web3.js";
 import * as importedWasm from "@wormhole/staking-wasm";
 import {
@@ -17,12 +24,16 @@ import {
   getMint,
 } from "@solana/spl-token";
 import BN from "bn.js";
-import {Staking} from "../target/types/staking";
+import { Staking } from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
-import {WHTokenBalance} from "./whTokenBalance";
-import {STAKING_ADDRESS,} from "./constants";
+import { WHTokenBalance } from "./whTokenBalance";
+import { STAKING_ADDRESS } from "./constants";
 import * as crypto from "crypto";
-import {PriorityFeeConfig, sendTransactions, TransactionBuilder,} from "./transaction";
+import {
+  PriorityFeeConfig,
+  sendTransactions,
+  TransactionBuilder,
+} from "./transaction";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import * as console from "node:console";
 
@@ -47,7 +58,7 @@ export class StakeConnection {
     config: GlobalConfig,
     configAddress: PublicKey,
     addressLookupTable: PublicKey | undefined,
-    priorityFeeConfig: PriorityFeeConfig | undefined
+    priorityFeeConfig: PriorityFeeConfig | undefined,
   ) {
     this.program = program;
     this.provider = provider;
@@ -59,12 +70,12 @@ export class StakeConnection {
 
   public static async connect(
     connection: Connection,
-    wallet: Wallet
+    wallet: Wallet,
   ): Promise<StakeConnection> {
     return await StakeConnection.createStakeConnection(
       connection,
       wallet,
-      STAKING_ADDRESS
+      STAKING_ADDRESS,
     );
   }
 
@@ -76,12 +87,12 @@ export class StakeConnection {
     wallet: Wallet,
     stakingProgramAddress: PublicKey,
     addressLookupTable?: PublicKey,
-    priorityFeeConfig?: PriorityFeeConfig
+    priorityFeeConfig?: PriorityFeeConfig,
   ): Promise<StakeConnection> {
     const provider = new AnchorProvider(connection, wallet, {});
     const program = new Program(
       IDL as Idl,
-      provider
+      provider,
     ) as unknown as Program<Staking>;
     // Sometimes in the browser, the import returns a promise.
     // Don't fully understand, but this workaround is not terrible
@@ -89,11 +100,9 @@ export class StakeConnection {
       wasm = await (wasm as any).default;
     }
 
-    const configAddress = (
-      PublicKey.findProgramAddressSync(
-        [utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
-        program.programId
-      )
+    const configAddress = PublicKey.findProgramAddressSync(
+      [utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
+      program.programId,
     )[0];
 
     const config = await program.account.globalConfig.fetch(configAddress);
@@ -104,17 +113,17 @@ export class StakeConnection {
       config,
       configAddress,
       addressLookupTable,
-      priorityFeeConfig
+      priorityFeeConfig,
     );
   }
 
   private async sendAndConfirmAsVersionedTransaction(
-    instructions: TransactionInstruction[]
+    instructions: TransactionInstruction[],
   ) {
     const addressLookupTableAccount = this.addressLookupTable
       ? (
           await this.provider.connection.getAddressLookupTable(
-            this.addressLookupTable
+            this.addressLookupTable,
           )
         ).value
       : undefined;
@@ -127,13 +136,13 @@ export class StakeConnection {
           return { instruction, signers: [] };
         }),
         this.priorityFeeConfig,
-        addressLookupTableAccount
+        addressLookupTableAccount,
       );
 
     return sendTransactions(
       transactions,
       this.provider.connection,
-      this.provider.wallet as NodeWallet
+      this.provider.wallet as NodeWallet,
     );
   }
 
@@ -151,7 +160,7 @@ export class StakeConnection {
         filters: [
           { memcmp: this.program.coder.accounts.memcmp("checkpointData") },
         ],
-      }
+      },
     );
     return allAccts.map((acct) => acct.pubkey);
   }
@@ -173,18 +182,18 @@ export class StakeConnection {
             },
           },
         ],
-      }
+      },
     );
     return await Promise.all(
       res.map(async (account) => {
         return await this.loadStakeAccount(account.pubkey);
-      })
+      }),
     );
   }
 
   /** Gets the user's stake account with the most tokens or undefined if it doesn't exist */
   public async getMainAccount(
-    user: PublicKey
+    user: PublicKey,
   ): Promise<StakeAccount | undefined> {
     const accounts = await this.getStakeAccounts(user);
     if (accounts.length == 0) {
@@ -193,20 +202,18 @@ export class StakeConnection {
       return accounts.reduce(
         (prev: StakeAccount, curr: StakeAccount): StakeAccount => {
           return prev.tokenBalance > curr.tokenBalance ? curr : prev;
-        }
+        },
       );
     }
   }
 
   async fetchProposalAccount(proposalId: BN) {
-    const proposalAccount = (
-      PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()),
-          proposalId.toArrayLike(Buffer, "be", 8)
-        ],
-        this.program.programId
-      )
+    const proposalAccount = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()),
+        proposalId.toArrayLike(Buffer, "be", 8),
+      ],
+      this.program.programId,
     )[0];
 
     return { proposalAccount };
@@ -216,13 +223,9 @@ export class StakeConnection {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
     const inbuf =
-      await this.program.provider.connection.getAccountInfo(
-        proposalAccount
-      );
+      await this.program.provider.connection.getAccountInfo(proposalAccount);
 
-    const proposalAccountWasm = new wasm.WasmProposalData(
-      inbuf!.data
-    );
+    const proposalAccountWasm = new wasm.WasmProposalData(inbuf!.data);
 
     return { proposalAccountWasm };
   }
@@ -237,73 +240,63 @@ export class StakeConnection {
   }
 
   async fetchCheckpointAccount(address: PublicKey) {
-    const inbuf = await this.program.provider.connection.getAccountInfo(
-      address
-    );
+    const inbuf =
+      await this.program.provider.connection.getAccountInfo(address);
 
     const stakeAccountCheckpointsWasm = new wasm.WasmCheckpointData(
-      inbuf!.data
+      inbuf!.data,
     );
 
     return { stakeAccountCheckpointsWasm };
   }
 
-  public async fetchStakeAccountMetadata(address: PublicKey): Promise<StakeAccountMetadata> {
-    const metadataAddress = (
-      PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()),
-          address.toBuffer(),
-        ],
-        this.program.programId
-      )
+  public async fetchStakeAccountMetadata(
+    address: PublicKey,
+  ): Promise<StakeAccountMetadata> {
+    const metadataAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()),
+        address.toBuffer(),
+      ],
+      this.program.programId,
     )[0];
 
     const fetchedData =
-      (await this.program.account.stakeAccountMetadata.fetch(
-        metadataAddress
-      ));
+      await this.program.account.stakeAccountMetadata.fetch(metadataAddress);
 
     return fetchedData as StakeAccountMetadata;
   }
 
   /** Stake accounts are loaded by a StakeConnection object */
   public async loadStakeAccount(address: PublicKey): Promise<StakeAccount> {
-    const { stakeAccountCheckpointsWasm } = await this.fetchCheckpointAccount(
-      address
-    );
+    const { stakeAccountCheckpointsWasm } =
+      await this.fetchCheckpointAccount(address);
 
     const stakeAccountMetadata = await this.fetchStakeAccountMetadata(address);
 
-    const custodyAddress = (
-      PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-          address.toBuffer(),
-        ],
-        this.program.programId
-      )
+    const custodyAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
+        address.toBuffer(),
+      ],
+      this.program.programId,
     )[0];
 
-    const authorityAddress = (
-      PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(wasm.Constants.AUTHORITY_SEED()),
-          address.toBuffer(),
-        ],
-        this.program.programId
-      )
+    const authorityAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.AUTHORITY_SEED()),
+        address.toBuffer(),
+      ],
+      this.program.programId,
     )[0];
 
-    const tokenBalance = (await getAccount(
-      this.program.provider.connection,
-      custodyAddress
-    )).amount;
+    const tokenBalance = (
+      await getAccount(this.program.provider.connection, custodyAddress)
+    ).amount;
 
-    const totalSupply = (await getMint(
-      this.program.provider.connection,
-      this.config.whTokenMint
-    )).supply
+    const totalSupply = (
+      await getMint(this.program.provider.connection, this.config.whTokenMint)
+    ).supply;
 
     return new StakeAccount(
       address,
@@ -312,7 +305,7 @@ export class StakeConnection {
       tokenBalance,
       authorityAddress,
       totalSupply,
-      this.config
+      this.config,
     );
   }
 
@@ -322,30 +315,31 @@ export class StakeConnection {
     if (this.config.freeze) {
       // On chain program using mock clock, so get that time
       const updatedConfig = await this.program.account.globalConfig.fetch(
-        this.configAddress
+        this.configAddress,
       );
       return updatedConfig.mockClockTime;
     } else {
       // Using Sysvar clock
-      const clockBuf = await this.program.provider.connection.getAccountInfo(
-        SYSVAR_CLOCK_PUBKEY
-      );
+      const clockBuf =
+        await this.program.provider.connection.getAccountInfo(
+          SYSVAR_CLOCK_PUBKEY,
+        );
       return new BN(wasm.getUnixTime(clockBuf!.data).toString());
     }
   }
 
   public async withCreateAccount(
     instructions: TransactionInstruction[],
-    owner: PublicKey
+    owner: PublicKey,
   ): Promise<PublicKey> {
     const nonce = crypto.randomBytes(16).toString("hex");
     const stakeAccountAddress = await PublicKey.createWithSeed(
       this.userPublicKey(),
       nonce,
-      this.program.programId
+      this.program.programId,
     );
-//     console.log("nonce:", nonce)
-//     console.log("stakeAccountAddress:", stakeAccountAddress)
+    //     console.log("nonce:", nonce)
+    //     console.log("stakeAccountAddress:", stakeAccountAddress)
 
     instructions.push(
       SystemProgram.createAccountWithSeed({
@@ -355,11 +349,11 @@ export class StakeConnection {
         seed: nonce,
         lamports:
           await this.program.provider.connection.getMinimumBalanceForRentExemption(
-            wasm.Constants.CHECKPOINT_DATA_SIZE()
+            wasm.Constants.CHECKPOINT_DATA_SIZE(),
           ),
         space: wasm.Constants.CHECKPOINT_DATA_SIZE(),
         programId: this.program.programId,
-      })
+      }),
     );
 
     instructions.push(
@@ -369,14 +363,15 @@ export class StakeConnection {
           stakeAccountCheckpoints: stakeAccountAddress,
           mint: this.config.whTokenMint,
         })
-        .instruction()
+        .instruction(),
     );
 
     return stakeAccountAddress;
   }
 
   public async isLlcMember(stakeAccount: PublicKey) {
-    const stakeAccountMetadata = await this.fetchStakeAccountMetadata(stakeAccount);
+    const stakeAccountMetadata =
+      await this.fetchStakeAccountMetadata(stakeAccount);
     return (
       JSON.stringify(stakeAccountMetadata.signedAgreementHash) ==
       JSON.stringify(this.config.agreementHash)
@@ -385,7 +380,7 @@ export class StakeConnection {
 
   public async withJoinDaoLlc(
     instructions: TransactionInstruction[],
-    stakeAccountAddress: PublicKey
+    stakeAccountAddress: PublicKey,
   ) {
     instructions.push(
       await this.program.methods
@@ -393,36 +388,33 @@ export class StakeConnection {
         .accounts({
           stakeAccountCheckpoints: stakeAccountAddress,
         })
-        .instruction()
+        .instruction(),
     );
   }
 
   public async buildTransferInstruction(
     stakeAccountCheckpointsAddress: PublicKey,
-    amount: BN
+    amount: BN,
   ): Promise<TransactionInstruction> {
-
     const from_account = await getAssociatedTokenAddress(
       this.config.whTokenMint,
       this.provider.wallet.publicKey,
-      true
+      true,
     );
 
-    const toAccount = (
-      PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-          stakeAccountCheckpointsAddress.toBuffer(),
-        ],
-        this.program.programId
-      )
+    const toAccount = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
+        stakeAccountCheckpointsAddress.toBuffer(),
+      ],
+      this.program.programId,
     )[0];
 
     const ix = createTransferInstruction(
       from_account,
       toAccount,
       this.provider.wallet.publicKey,
-      amount.toNumber()
+      amount.toNumber(),
     );
 
     return ix;
@@ -431,7 +423,7 @@ export class StakeConnection {
   public async delegate(
     stakeAccount: PublicKey | undefined,
     delegateeStakeAccount: PublicKey | undefined,
-    amount: WHTokenBalance
+    amount: WHTokenBalance,
   ) {
     let currentStakeAccount: PublicKey;
     let currentDelegateStakeAccount: PublicKey;
@@ -440,7 +432,7 @@ export class StakeConnection {
     if (!stakeAccount) {
       currentStakeAccount = await this.withCreateAccount(
         instructions,
-        this.provider.wallet.publicKey
+        this.provider.wallet.publicKey,
       );
       currentDelegateStakeAccount = currentStakeAccount;
     } else {
@@ -457,7 +449,7 @@ export class StakeConnection {
     }
 
     instructions.push(
-      await this.buildTransferInstruction(currentStakeAccount, amount.toBN())
+      await this.buildTransferInstruction(currentStakeAccount, amount.toBN()),
     );
 
     instructions.push(
@@ -469,7 +461,7 @@ export class StakeConnection {
           stakeAccountCheckpoints: currentStakeAccount,
           mint: this.config.whTokenMint,
         })
-        .instruction()
+        .instruction(),
     );
 
     await this.sendAndConfirmAsVersionedTransaction(instructions);
@@ -492,7 +484,7 @@ export class StakeConnection {
           proposal: proposalAccount,
           voterCheckpoints: stakeAccount,
         })
-        .instruction()
+        .instruction(),
     );
 
     await this.sendAndConfirmAsVersionedTransaction(instructions);
@@ -503,9 +495,8 @@ export class StakeConnection {
     forVotes: BN;
     abstainVotes: BN;
   }> {
-    const { proposalAccountWasm } = await this.fetchProposalAccountWasm(
-      proposalId
-    );
+    const { proposalAccountWasm } =
+      await this.fetchProposalAccountWasm(proposalId);
 
     const proposalData = proposalAccountWasm.proposalVotes();
 
@@ -517,9 +508,8 @@ export class StakeConnection {
   }
 
   public async isVotingSafe(proposalId: BN): Promise<boolean> {
-    const { proposalAccountWasm } = await this.fetchProposalAccountWasm(
-      proposalId
-    );
+    const { proposalAccountWasm } =
+      await this.fetchProposalAccountWasm(proposalId);
 
     const currentTimestamp = Math.floor(Date.now() / 1000);
     return proposalAccountWasm.isVotingSafe(BigInt(currentTimestamp));
@@ -538,9 +528,9 @@ export class StakeConnection {
       await this.program.methods
         .addProposal(proposalId, vote_start, safe_window)
         .accountsPartial({
-          proposal: proposalAccount
+          proposal: proposalAccount,
         })
-        .instruction()
+        .instruction(),
     );
 
     await this.sendAndConfirmAsVersionedTransaction(instructions);
@@ -552,37 +542,30 @@ export class StakeConnection {
   }
 
   /** Gets the voting power of the delegate's stake account at a specified past timestamp. */
-  public getPastVotes(
-    delegateStakeAccount: StakeAccount,
-    timestamp: BN
-  ): BN {
+  public getPastVotes(delegateStakeAccount: StakeAccount, timestamp: BN): BN {
     return delegateStakeAccount.getPastVotes(timestamp);
   }
 
   /** Gets the current delegate's stake account associated with the specified stake account. */
   public async delegates(stakeAccount: PublicKey): Promise<PublicKey> {
-    const stakeAccountMetadata = await this.fetchStakeAccountMetadata(stakeAccount);
+    const stakeAccountMetadata =
+      await this.fetchStakeAccountMetadata(stakeAccount);
     return stakeAccountMetadata.delegate;
   }
 
   /** Withdraws tokens */
-  public async withdrawTokens(stakeAccount: StakeAccount, amount: WHTokenBalance) {
-    if (
-      amount
-        .toBN()
-        .gt(
-          stakeAccount
-            .getBalanceSummary()
-            .balance.toBN()
-        )
-    ) {
+  public async withdrawTokens(
+    stakeAccount: StakeAccount,
+    amount: WHTokenBalance,
+  ) {
+    if (amount.toBN().gt(stakeAccount.getBalanceSummary().balance.toBN())) {
       throw new Error("Amount exceeds withdrawable.");
     }
 
     const toAccount = await getAssociatedTokenAddress(
       this.config.whTokenMint,
       this.provider.wallet.publicKey,
-      true
+      true,
     );
 
     const instructions: TransactionInstruction[] = [];
@@ -592,22 +575,25 @@ export class StakeConnection {
           this.provider.wallet.publicKey,
           toAccount,
           this.provider.wallet.publicKey,
-          this.config.whTokenMint
-        )
+          this.config.whTokenMint,
+        ),
       );
     }
 
-    let currentDelegateStakeAccountAddress = await this.delegates(stakeAccount.address);
+    let currentDelegateStakeAccountAddress = await this.delegates(
+      stakeAccount.address,
+    );
 
     instructions.push(
       await this.program.methods
         .withdrawTokens(amount.toBN())
         .accounts({
-          currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccountAddress,
+          currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountAddress,
           stakeAccountCheckpoints: stakeAccount.address,
           destination: toAccount,
         })
-        .instruction()
+        .instruction(),
     );
 
     await this.sendAndConfirmAsVersionedTransaction(instructions);
@@ -634,7 +620,7 @@ export class StakeAccount {
     tokenBalance: bigint,
     authorityAddress: PublicKey,
     totalSupply: bigint,
-    config: GlobalConfig
+    config: GlobalConfig,
   ) {
     this.address = address;
     this.stakeAccountCheckpointsWasm = stakeAccountCheckpointsWasm;

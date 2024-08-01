@@ -10,19 +10,16 @@ import assert from "assert";
 export async function assertBalanceMatches(
   stakeConnection: StakeConnection,
   owner: PublicKey,
-  expected: WHTokenBalance
+  expected: WHTokenBalance,
 ) {
   const stakeAccount = await stakeConnection.getMainAccount(owner);
   const balanceSummary = stakeAccount.getBalanceSummary();
-  assert.equal(
-    balanceSummary.balance.toString(),
-    expected.toString()
-  );
+  assert.equal(balanceSummary.balance.toString(), expected.toString());
 }
 
 export async function assertVoterVotesEquals(
   stakeAccount: StakeAccount,
-  expectedVoterVotes: BN
+  expectedVoterVotes: BN,
 ) {
   const currentActual = stakeAccount.getVotes();
   assert.equal(currentActual.toString(), expectedVoterVotes.toString());

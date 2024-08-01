@@ -10,12 +10,12 @@ async function main() {
     const provider = new AnchorProvider(
       connection,
       new Wallet(DEPLOYER_AUTHORITY_KEYPAIR),
-      {}
+      {},
     );
 
     const lookupTableAddress = await initAddressLookupTable(
       provider,
-      WORMHOLE_TOKEN
+      WORMHOLE_TOKEN,
     );
 
     console.log("Lookup table address: ", lookupTableAddress.toBase58());

@@ -43,6 +43,7 @@
     "test:ci": "npm run build_wasm && ./scripts/build_verifiable_staking_program.sh -t && ts-mocha --parallel -p ./tsconfig.json -t 1000000 tests/*.ts",
     "build": "npm run build_wasm && tsc -p tsconfig.api.json",
     "build_wasm": "./scripts/build_wasm.sh",
-    "localnet": "anchor build && ts-node ./app/scripts/localnet.ts"
+    "localnet": "anchor build && ts-node ./app/scripts/localnet.ts",
+    "format": "prettier --write 'app/**/*.ts' 'tests/**/*.ts'"
   }
 }

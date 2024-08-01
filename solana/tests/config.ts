@@ -54,14 +54,14 @@ describe("config", async () => {
       whMintAccount,
       whMintAuthority.publicKey,
       null,
-      WH_TOKEN_DECIMALS
+      WH_TOKEN_DECIMALS,
     );
   });
 
   it("initializes config", async () => {
     [configAccount, bump] = PublicKey.findProgramAddressSync(
       [utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
-      program.programId
+      program.programId,
     );
 
     await program.methods
@@ -82,12 +82,11 @@ describe("config", async () => {
       whMintAccount.publicKey,
       whMintAuthority,
       WHTokenBalance.fromString("100"),
-      program.provider.connection
+      program.provider.connection,
     );
 
-    const configAccountData = await program.account.globalConfig.fetch(
-      configAccount
-    );
+    const configAccountData =
+      await program.account.globalConfig.fetch(configAccount);
 
     assert.equal(
       JSON.stringify(configAccountData),
@@ -99,14 +98,13 @@ describe("config", async () => {
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
         mockClockTime: new BN(10),
-      })
+      }),
     );
   });
 
   it("create account", async () => {
-    const configAccountData = await program.account.globalConfig.fetch(
-      configAccount
-    );
+    const configAccountData =
+      await program.account.globalConfig.fetch(configAccount);
 
     assert.equal(
       JSON.stringify(configAccountData),
@@ -118,7 +116,7 @@ describe("config", async () => {
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
         mockClockTime: new BN(10),
-      })
+      }),
     );
 
     const owner = program.provider.wallet.publicKey;
@@ -128,8 +126,8 @@ describe("config", async () => {
     instructions.push(
       await program.account.checkpointData.createInstruction(
         stakeAccountKeypair,
-        wasm.Constants.CHECKPOINT_DATA_SIZE()
-      )
+        wasm.Constants.CHECKPOINT_DATA_SIZE(),
+      ),
     );
 
     await program.methods
@@ -150,12 +148,12 @@ describe("config", async () => {
     const samConnection = await StakeConnection.createStakeConnection(
       program.provider.connection,
       new Wallet(sam),
-      program.programId
+      program.programId,
     );
 
     await samConnection.program.provider.connection.requestAirdrop(
       sam.publicKey,
-      1_000_000_000_000
+      1_000_000_000_000,
     );
 
     // Airdrops are not instant unfortunately, wait
@@ -164,15 +162,15 @@ describe("config", async () => {
     await expectFail(
       samConnection.program.methods.updateGovernanceAuthority(new PublicKey(0)),
       "An address constraint was violated",
-      errMap
+      errMap,
     );
 
     await expectFail(
       samConnection.program.methods.updateAgreementHash(
-        Array.from(Buffer.alloc(32))
+        Array.from(Buffer.alloc(32)),
       ),
       "An address constraint was violated",
-      errMap
+      errMap,
     );
   });
 
@@ -181,18 +179,18 @@ describe("config", async () => {
     await expectFail(
       program.methods.updatePdaAuthority(program.provider.wallet.publicKey),
       "An address constraint was violated",
-      errMap
+      errMap,
     );
 
     const pdaConnection = await StakeConnection.createStakeConnection(
       program.provider.connection,
       new Wallet(pdaAuthorityKeypair),
-      program.programId
+      program.programId,
     );
 
     await pdaConnection.program.provider.connection.requestAirdrop(
       pdaAuthorityKeypair.publicKey,
-      1_000_000_000_000
+      1_000_000_000_000,
     );
 
     // Airdrops are not instant unfortunately, wait
@@ -203,9 +201,8 @@ describe("config", async () => {
       .updatePdaAuthority(program.provider.wallet.publicKey)
       .rpc();
 
-    let configAccountData = await program.account.globalConfig.fetch(
-      configAccount
-    );
+    let configAccountData =
+      await program.account.globalConfig.fetch(configAccount);
 
     assert.equal(
       JSON.stringify(configAccountData),
@@ -217,7 +214,7 @@ describe("config", async () => {
         pdaAuthority: program.provider.wallet.publicKey,
         agreementHash: getDummyAgreementHash(),
         mockClockTime: new BN(10),
-      })
+      }),
     );
 
     // the authority gets returned to the original pda_authority
@@ -235,21 +232,20 @@ describe("config", async () => {
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
         mockClockTime: new BN(10),
-      })
+      }),
     );
   });
 
   it("updates agreement hash", async () => {
     assert.notEqual(
       JSON.stringify(getDummyAgreementHash()),
-      JSON.stringify(getDummyAgreementHash2())
+      JSON.stringify(getDummyAgreementHash2()),
     );
 
     await program.methods.updateAgreementHash(getDummyAgreementHash2()).rpc();
 
-    let configAccountData = await program.account.globalConfig.fetch(
-      configAccount
-    );
+    let configAccountData =
+      await program.account.globalConfig.fetch(configAccount);
     assert.equal(
       JSON.stringify(configAccountData),
       JSON.stringify({
@@ -260,7 +256,7 @@ describe("config", async () => {
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash2(),
         mockClockTime: new BN(10),
-      })
+      }),
     );
   });
 });

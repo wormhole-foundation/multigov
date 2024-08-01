@@ -22,7 +22,7 @@ export function getRandomTipAccount(): PublicKey {
 
 export function buildJitoTipInstruction(
   payer: PublicKey,
-  lamports: number
+  lamports: number,
 ): TransactionInstruction {
   return SystemProgram.transfer({
     fromPubkey: payer,
