@@ -327,6 +327,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     string memory blockId,
     bytes memory finality
   ) public {
+    vm.assume(keccak256(finality) != keccak256("finalized"));
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes(blockId), // random blockId: a hash of the block number
       finality, // finality
