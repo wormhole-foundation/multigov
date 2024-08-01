@@ -81,14 +81,14 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
 
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
-      uint64 queryBlockTime = _ethCalls.requestTargetTimestamp;
+      uint64 requestTargetTimestamp = _ethCalls.requestTargetTimestamp;
 
-      if (queryBlockTime < oldestAllowedTimestamp || queryBlockTime > currentTimestamp) {
-        revert InvalidTimestamp(queryBlockTime);
+      if (requestTargetTimestamp < oldestAllowedTimestamp || requestTargetTimestamp > currentTimestamp) {
+        revert InvalidTimestamp(requestTargetTimestamp);
       }
 
-      if (sharedQueryBlockTime == 0) sharedQueryBlockTime = queryBlockTime;
-      if (sharedQueryBlockTime != queryBlockTime) revert InvalidTimestamp(queryBlockTime);
+      if (sharedQueryBlockTime == 0) sharedQueryBlockTime = requestTargetTimestamp;
+      if (sharedQueryBlockTime != requestTargetTimestamp) revert InvalidTimestamp(requestTargetTimestamp);
 
       address registeredSpokeAddress = registeredSpokes[perChainResp.chainId];
       address queriedAddress = _ethCalls.result[0].contractAddress;
