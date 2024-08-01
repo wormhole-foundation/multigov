@@ -168,13 +168,13 @@ contract Decode is HubCrossChainEvmCallWithFinalityVoteDecoderTest {
 
   function testFuzz_RevertIf_QueryBlockIsNotFinalized(
     uint256 _proposalId,
-    uint64 _againstVotes,
-    uint64 _forVotes,
-    uint64 _abstainVotes
+    uint64 _abstainVotes,
+    string memory blockId,
+    bytes memory finality
   ) public {
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
-      bytes("0x1296c33"), // random blockId: a hash of the block number
-      "finalized", // finality
+      bytes(blockId), // random blockId: a hash of the block number
+      finality, // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         GOVERNANCE_CONTRACT, abi.encodeWithSignature("proposalVotes(uint256)", _proposalId)
@@ -201,8 +201,8 @@ contract Decode is HubCrossChainEvmCallWithFinalityVoteDecoderTest {
         abi.encode(
           SpokeCountingFractional.ProposalVote({
             proposalId: _proposalId,
-            againstVotes: uint128(_againstVotes),
-            forVotes: uint128(_forVotes),
+            againstVotes: uint128(_abstainVotes),
+            forVotes: uint128(_abstainVotes),
             abstainVotes: uint128(_abstainVotes)
           })
         )
@@ -223,7 +223,7 @@ contract Decode is HubCrossChainEvmCallWithFinalityVoteDecoderTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
     ParsedQueryResponse memory parsedResp = hubCrossChainEvmVote.parseAndVerifyQueryResponse(_resp, signatures);
-    vm.expectRevert(ICrossChainVoteDecoder.UnknownMessageEmitter.selector);
+    vm.expectRevert(abi.encodeWithSelector(ICrossChainVoteDecoder.InvalidQueryBlock.selector, bytes(blockId)));
     hubCrossChainEvmVote.decode(parsedResp.responses[0]);
   }
 }
