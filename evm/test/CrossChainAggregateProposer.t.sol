@@ -682,7 +682,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     crossChainAggregateProposer.checkAndProposeIfEligible(targets, values, calldatas, _description, _resp, signatures);
   }
 
-  function testFuzz_RevertIf_QueriesHaveDifferentTimestamps(address _caller, uint128 _voteWeight1, uint128 _voteWeight2)
+  function testFuzz_RevertIf_EthCallPayloadsHaveDifferentTargetTimestamps(address _caller, uint128 _voteWeight1, uint128 _voteWeight2)
     public
   {
     _warpToValidTimestamp();
