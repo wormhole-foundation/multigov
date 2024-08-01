@@ -12,12 +12,12 @@ contract HubGovernorProposalExtender is Ownable {
   uint48 public proposalExtension;
   uint48 public safeWindow;
   address public whitelistedVoteExtender;
-  uint48 public immutable MINIMUM_EXTENSION_TIME;
+  uint48 public immutable MINIMUM_EXTENSION_DURATION;
   uint48 public immutable MINIMUM_DECISION_WINDOW;
 
   mapping(uint256 proposalId => uint48 newVoteEnd) public extendedDeadlines;
 
-  event ProposalExtensionTimeUpdated(uint48 oldExtension, uint48 newExtension);
+  event ExtensionDurationUpdated(uint48 oldExtension, uint48 newExtension);
   event SafeWindowUpdated(uint48 oldSafeWindow, uint48 newSafeWindow);
   event WhitelistedVoteExtenderUpdated(address oldExtender, address newExtender);
 
@@ -26,30 +26,48 @@ contract HubGovernorProposalExtender is Ownable {
   error ProposalAlreadyExtended();
   error ProposalCannotBeExtended();
   error ProposalDoesNotExist();
-  error InvalidExtensionTime();
+  error InvalidExtensionDuration();
   error InvalidUnsafeWindow();
 
+  /**
+   * @param _whitelistedVoteExtender Address of the trusted actor able to extend proposals.
+   * @param _proposalExtension Amount of time for which target proposals will be extended.
+   * @param _owner Owner of the contract.
+   * @param _minimumExtensionDuration Lower limit for proposalExtension.
+   * @param _safeWindow The period of time after a proposal's voteStart during which spoke votes are expected to be
+   * reliably counted. It's the inverse of unsafeWindow, which is the period of time between the safeWindow and voteEnd.
+   * Proposals can be extended during the unsafeWindow.
+   * @param _minimumDecisionWindow Lower limit for unsafeWindow.
+   */
   constructor(
     address _whitelistedVoteExtender,
-    uint48 _voteTimeExtension,
+    uint48 _proposalExtension,
     address _owner,
-    uint48 _minimumExtensionTime,
+    uint48 _minimumExtensionDuration,
     uint32 _safeWindow,
     uint48 _minimumDecisionWindow
   ) Ownable(_owner) {
     _setSafeWindow(_safeWindow);
-    _setProposalExtension(_voteTimeExtension);
+    _setExtensionDuration(_proposalExtension);
     _setWhitelistedVoteExtender(_whitelistedVoteExtender);
-    MINIMUM_EXTENSION_TIME = _minimumExtensionTime;
+    MINIMUM_EXTENSION_DURATION = _minimumExtensionDuration;
     MINIMUM_DECISION_WINDOW = _minimumDecisionWindow;
   }
 
+  /**
+   * @notice Initializes the contract with the governor address.
+   * @param _governor Address of the hub governor.
+   */
   function initialize(address payable _governor) external {
     if (initialized) revert AlreadyInitialized();
     initialized = true;
     governor = HubGovernor(_governor);
   }
 
+  /**
+   * @notice Extends the deadline of a proposal.
+   * @param _proposalId The ID of the proposal to extend.
+   */
   function extendProposal(uint256 _proposalId) external {
     uint256 exists = governor.proposalSnapshot(_proposalId);
     if (msg.sender != whitelistedVoteExtender) revert AddressCannotExtendProposal();
@@ -64,18 +82,31 @@ contract HubGovernorProposalExtender is Ownable {
     extendedDeadlines[_proposalId] = uint48(governor.proposalDeadline(_proposalId)) + proposalExtension;
   }
 
+  /**
+   * @notice Checks if voting on a proposal on a spoke can be considered "safe," meaning that the vote is expected to be
+   * relayed before the proposal ends on the hub.
+   * @param _proposalId The ID of the proposal to check.
+   */
   function isVotingSafe(uint256 _proposalId) external view returns (bool) {
     return _isVotingSafe(_proposalId);
   }
 
-  function setProposalExtension(uint48 _extensionTime) external {
+  /**
+   * @notice Sets the proposal extension duration.
+   * @param _extensionDuration The new proposal extension duration.
+   */
+  function setExtensionDuration(uint48 _extensionDuration) external {
     _checkOwner();
-    if (_extensionTime > governor.votingPeriod() || _extensionTime < MINIMUM_EXTENSION_TIME) {
-      revert InvalidExtensionTime();
+    if (_extensionDuration > governor.votingPeriod() || _extensionDuration < MINIMUM_EXTENSION_DURATION) {
+      revert InvalidExtensionDuration();
     }
-    _setProposalExtension(_extensionTime);
+    _setExtensionDuration(_extensionDuration);
   }
 
+  /**
+   * @notice Sets the safe window duration.
+   * @param _safeWindow The new safe window duration.
+   */
   function setSafeWindow(uint48 _safeWindow) external {
     _checkOwner();
     if (_safeWindow > governor.votingPeriod()) revert InvalidUnsafeWindow();
@@ -84,6 +115,10 @@ contract HubGovernorProposalExtender is Ownable {
     _setSafeWindow(_safeWindow);
   }
 
+  /**
+   * @notice Sets the address of the whitelisted vote extender.
+   * @param _voteExtender The new whitelisted vote extender address.
+   */
   function setWhitelistedVoteExtender(address _voteExtender) external {
     _checkOwner();
     _setWhitelistedVoteExtender(_voteExtender);
@@ -94,8 +129,8 @@ contract HubGovernorProposalExtender is Ownable {
     return (voteStart + safeWindow) >= block.timestamp;
   }
 
-  function _setProposalExtension(uint48 _extensionTime) internal {
-    emit ProposalExtensionTimeUpdated(proposalExtension, _extensionTime);
+  function _setExtensionDuration(uint48 _extensionTime) internal {
+    emit ExtensionDurationUpdated(proposalExtension, _extensionTime);
     proposalExtension = _extensionTime;
   }
 
