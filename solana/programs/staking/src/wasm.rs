@@ -2,11 +2,8 @@
 use crate::state::checkpoints::CheckpointData;
 use crate::state::proposal::ProposalData;
 use anchor_lang::{
-        prelude::{
-            Clock,
-            Error,
-        },
-        AccountDeserialize,
+    prelude::{Clock, Error},
+    AccountDeserialize,
 };
 use wasm_bindgen::prelude::*;
 
@@ -48,7 +45,7 @@ impl WasmCheckpointData {
 #[wasm_bindgen]
 pub struct VotesSummary {
     pub against_votes: u64,
-    pub for_votes:     u64,
+    pub for_votes: u64,
     pub abstain_votes: u64,
 }
 
@@ -76,13 +73,14 @@ impl WasmProposalData {
 
     #[wasm_bindgen(js_name=proposalVotes)]
     pub fn proposal_votes(&self) -> Result<VotesSummary, JsValue> {
-        let Ok(Some((against_votes, for_votes, abstain_votes))) = self.wrapped.proposal_votes() else {
+        let Ok(Some((against_votes, for_votes, abstain_votes))) = self.wrapped.proposal_votes()
+        else {
             return Err("Failed to get proposal votes".into());
         };
         convert_error::<_, std::convert::Infallible>(Ok(VotesSummary {
             against_votes,
             for_votes,
-            abstain_votes
+            abstain_votes,
         }))
     }
 

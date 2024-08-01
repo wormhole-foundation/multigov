@@ -22,25 +22,25 @@ pub mod wasm;
 
 #[event]
 pub struct DelegateChanged {
-  pub delegator: Pubkey,
-  pub from_delegate: Pubkey,
-  pub to_delegate: Pubkey,
+    pub delegator: Pubkey,
+    pub from_delegate: Pubkey,
+    pub to_delegate: Pubkey,
 }
 
 #[event]
 pub struct VoteCast {
-  pub voter: Pubkey,
-  pub proposal_id: u64,
-  pub weight: u64,
-  pub against_votes: u64,
-  pub for_votes: u64,
-  pub abstain_votes: u64,
+    pub voter: Pubkey,
+    pub proposal_id: u64,
+    pub weight: u64,
+    pub against_votes: u64,
+    pub for_votes: u64,
+    pub abstain_votes: u64,
 }
 
 #[event]
 pub struct ProposalCreated {
-  pub proposal_id: u64,
-  pub vote_start: u64,
+    pub proposal_id: u64,
+    pub vote_start: u64,
 }
 
 declare_id!("5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ");
@@ -228,8 +228,8 @@ pub mod staking {
 
     pub fn add_proposal(
         ctx: Context<AddProposal>,
-        proposal_id:  u64,
-        vote_start:  u64,
+        proposal_id: u64,
+        vote_start: u64,
         safe_window: u64,
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
@@ -248,25 +248,18 @@ pub mod staking {
         proposal_id: u64,
         against_votes: u64,
         for_votes: u64,
-        abstain_votes: u64
+        abstain_votes: u64,
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
 
-        let voter_checkpoints = &mut ctx
-            .accounts
-            .voter_checkpoints
-            .load_mut()?;
+        let voter_checkpoints = &mut ctx.accounts.voter_checkpoints.load_mut()?;
 
-        let total_weight = utils::voter_votes::get_past_votes(voter_checkpoints, proposal.vote_start)?;
+        let total_weight =
+            utils::voter_votes::get_past_votes(voter_checkpoints, proposal.vote_start)?;
 
-        require!(
-            total_weight.clone() > 0,
-            ErrorCode::NoWeight
-        );
+        require!(total_weight.clone() > 0, ErrorCode::NoWeight);
 
-        let proposal_voters_weight_cast = &mut ctx
-            .accounts
-            .proposal_voters_weight_cast;
+        let proposal_voters_weight_cast = &mut ctx.accounts.proposal_voters_weight_cast;
 
         // Initialize proposal_voters_weight_cast if it hasn't been initialized yet
         if proposal_voters_weight_cast.value == 0 {
@@ -278,12 +271,10 @@ pub mod staking {
             ErrorCode::AllWeightCast
         );
 
-        let new_weight = against_votes + for_votes + abstain_votes + proposal_voters_weight_cast.value;
+        let new_weight =
+            against_votes + for_votes + abstain_votes + proposal_voters_weight_cast.value;
 
-        require!(
-            new_weight <= total_weight,
-            ErrorCode::VoteWouldExceedWeight
-        );
+        require!(new_weight <= total_weight, ErrorCode::VoteWouldExceedWeight);
 
         proposal_voters_weight_cast.set(new_weight);
 

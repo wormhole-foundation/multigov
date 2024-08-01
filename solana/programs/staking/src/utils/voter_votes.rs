@@ -16,10 +16,7 @@ pub fn get_past_votes(stake_account_checkpoints: &CheckpointData, timestamp: u64
 #[cfg(test)]
 pub mod tests {
     use crate::state::checkpoints::CheckpointData;
-    use crate::utils::voter_votes::{
-        get_past_votes,
-        get_votes,
-    };
+    use crate::utils::voter_votes::{get_past_votes, get_votes};
 
     #[test]
     fn test_get_votes() {

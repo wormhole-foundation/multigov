@@ -1,12 +1,7 @@
 use crate::error::ErrorCode;
 use crate::state::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{
-    Mint,
-    Token,
-    TokenAccount,
-    Transfer
-};
+use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
 pub const AUTHORITY_SEED: &str = "authority";
 pub const CUSTODY_SEED: &str = "custody";
@@ -18,7 +13,7 @@ pub const PROPOSAL_SEED: &str = "proposal";
 pub struct InitConfig<'info> {
     // Native payer
     #[account(mut)]
-    pub payer:          Signer<'info>,
+    pub payer: Signer<'info>,
     #[account(
         init_if_needed,
         seeds = [CONFIG_SEED.as_bytes()],
@@ -29,7 +24,7 @@ pub struct InitConfig<'info> {
     // Stake program accounts:
     pub config_account: Account<'info, global_config::GlobalConfig>,
     // Primitive accounts:
-    pub rent:           Sysvar<'info, Rent>,
+    pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
 
@@ -69,10 +64,10 @@ pub struct Delegate<'info> {
         seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
         bump = stake_account_metadata.metadata_bump
     )]
-    pub stake_account_metadata:    Box<Account<'info, stake_account::StakeAccountMetadata>>,
+    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
-    pub custody_authority:         AccountInfo<'info>,
+    pub custody_authority: AccountInfo<'info>,
     #[account(
         mut,
         seeds = [
@@ -83,13 +78,13 @@ pub struct Delegate<'info> {
         token::mint = mint,
         token::authority = custody_authority,
     )]
-    pub stake_account_custody:     Box<Account<'info, TokenAccount>>,
+    pub stake_account_custody: Box<Account<'info, TokenAccount>>,
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Box<Account<'info, global_config::GlobalConfig>>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
-    pub mint:   Account<'info, Mint>,
+    pub mint: Account<'info, Mint>,
 }
 
 #[derive(Accounts)]
@@ -115,7 +110,8 @@ pub struct CastVote<'info> {
         seeds = [b"proposal_voters_weight_cast", proposal.key().as_ref(), voter_checkpoints.key().as_ref()],
         bump
     )]
-    pub proposal_voters_weight_cast: Account<'info, proposal_voters_weight_cast::ProposalVotersWeightCast>,
+    pub proposal_voters_weight_cast:
+        Account<'info, proposal_voters_weight_cast::ProposalVotersWeightCast>,
 
     pub system_program: Program<'info, System>,
 }
@@ -143,7 +139,7 @@ pub struct UpdateGovernanceAuthority<'info> {
     #[account(address = config.governance_authority)]
     pub governance_signer: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config:            Account<'info, global_config::GlobalConfig>,
+    pub config: Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]
@@ -151,7 +147,7 @@ pub struct UpdatePdaAuthority<'info> {
     #[account(address = config.pda_authority)]
     pub governance_signer: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config:            Account<'info, global_config::GlobalConfig>,
+    pub config: Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]
@@ -159,27 +155,27 @@ pub struct UpdateAgreementHash<'info> {
     #[account(address = config.governance_authority)]
     pub governance_signer: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config:            Account<'info, global_config::GlobalConfig>,
+    pub config: Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]
 pub struct CreateStakeAccount<'info> {
     // Native payer:
     #[account(mut)]
-    pub payer:                     Signer<'info>,
+    pub payer: Signer<'info>,
     // Stake program accounts:
     #[account(zero)]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(init, payer = payer, space = stake_account::StakeAccountMetadata::LEN, seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
-    pub stake_account_metadata:    Box<Account<'info, stake_account::StakeAccountMetadata>>,
+    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
-    pub custody_authority:         AccountInfo<'info>,
+    pub custody_authority: AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config:                    Account<'info, global_config::GlobalConfig>,
+    pub config: Account<'info, global_config::GlobalConfig>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
-    pub mint:                      Account<'info, Mint>,
+    pub mint: Account<'info, Mint>,
     #[account(
         init,
         seeds = [
@@ -191,18 +187,18 @@ pub struct CreateStakeAccount<'info> {
         token::mint = mint,
         token::authority = custody_authority,
     )]
-    pub stake_account_custody:     Account<'info, TokenAccount>,
+    pub stake_account_custody: Account<'info, TokenAccount>,
     // Primitive accounts :
-    pub rent:                      Sysvar<'info, Rent>,
-    pub token_program:             Program<'info, Token>,
-    pub system_program:            Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct WithdrawTokens<'info> {
     // Native payer:
     #[account( address = stake_account_metadata.owner)]
-    pub payer:                   Signer<'info>,
+    pub payer: Signer<'info>,
 
     // Current delegate stake account:
     #[account(mut)]
@@ -218,24 +214,24 @@ pub struct WithdrawTokens<'info> {
 
     // Destination
     #[account(mut)]
-    pub destination:             Account<'info, TokenAccount>,
+    pub destination: Account<'info, TokenAccount>,
     // Stake program accounts:
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump = stake_account_metadata.metadata_bump)]
-    pub stake_account_metadata:  Account<'info, stake_account::StakeAccountMetadata>,
+    pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
     #[account(
         mut,
         seeds = [CUSTODY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
         bump = stake_account_metadata.custody_bump,
     )]
-    pub stake_account_custody:   Account<'info, TokenAccount>,
+    pub stake_account_custody: Account<'info, TokenAccount>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump = stake_account_metadata.authority_bump)]
-    pub custody_authority:       AccountInfo<'info>,
+    pub custody_authority: AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config:                  Account<'info, global_config::GlobalConfig>,
+    pub config: Account<'info, global_config::GlobalConfig>,
     // Primitive accounts :
-    pub token_program:           Program<'info, Token>,
+    pub token_program: Program<'info, Token>,
 }
 
 impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
@@ -243,8 +239,8 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
 {
     fn from(accounts: &WithdrawTokens<'info>) -> CpiContext<'a, 'b, 'c, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {
-            from:      accounts.stake_account_custody.to_account_info(),
-            to:        accounts.destination.to_account_info(),
+            from: accounts.stake_account_custody.to_account_info(),
+            to: accounts.destination.to_account_info(),
             authority: accounts.custody_authority.to_account_info(),
         };
         let cpi_program = accounts.token_program.to_account_info();
@@ -257,7 +253,7 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
 pub struct JoinDaoLlc<'info> {
     // Native payer:
     #[account(mut, address = stake_account_metadata.owner)]
-    pub payer:                     Signer<'info>,
+    pub payer: Signer<'info>,
     // Stake program accounts:
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(mut,
@@ -267,12 +263,12 @@ pub struct JoinDaoLlc<'info> {
         ],
         bump = stake_account_metadata.metadata_bump
     )]
-    pub stake_account_metadata:    Account<'info, stake_account::StakeAccountMetadata>,
+    pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
     #[account(
         seeds = [CONFIG_SEED.as_bytes()],
         bump = config.bump, constraint = config.agreement_hash == agreement_hash @ ErrorCode::InvalidLlcAgreement
     )]
-    pub config:                    Account<'info, global_config::GlobalConfig>,
+    pub config: Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]

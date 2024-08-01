@@ -1,7 +1,7 @@
 use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
-use std::fmt::Debug;
 use bytemuck::{Pod, Zeroable};
+use std::fmt::Debug;
 
 pub const MAX_CHECKPOINTS: usize = 32;
 pub const CHECKPOINT_BUFFER_SIZE: usize = 24;
@@ -26,9 +26,9 @@ impl Checkpoints {
 #[account(zero_copy)]
 #[repr(C)]
 pub struct CheckpointData {
-    pub owner:      Pubkey,
+    pub owner: Pubkey,
     pub next_index: u64,
-    checkpoints:    Checkpoints,
+    checkpoints: Checkpoints,
 }
 
 #[cfg(test)]
@@ -36,8 +36,8 @@ impl Default for CheckpointData {
     // Only used for testing, so unwrap is acceptable
     fn default() -> Self {
         CheckpointData {
-            owner:       Pubkey::default(),
-            next_index:  0,
+            owner: Pubkey::default(),
+            next_index: 0,
             checkpoints: Checkpoints([[0u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS]),
         }
     }
@@ -45,9 +45,9 @@ impl Default for CheckpointData {
 
 #[event]
 pub struct DelegateVotesChanged {
-  pub delegate: Pubkey,
-  pub previous_balance: u64,
-  pub new_balance: u64,
+    pub delegate: Pubkey,
+    pub previous_balance: u64,
+    pub new_balance: u64,
 }
 
 impl CheckpointData {
@@ -131,7 +131,7 @@ impl CheckpointData {
                 previous_balance: last_value,
                 new_balance: value
             });
-            
+
             Ok((last_value, value))
         } else {
             let new_checkpoint = Checkpoint { timestamp, value };
@@ -199,19 +199,14 @@ impl CheckpointData {
         Ok(high)
     }
 
-    fn write_option_checkpoint(
-        checkpoint: Option<&Checkpoint>,
-        slice: &mut [u8],
-    ) -> Result<()> {
+    fn write_option_checkpoint(checkpoint: Option<&Checkpoint>, slice: &mut [u8]) -> Result<()> {
         let mut cursor = std::io::Cursor::new(slice);
         checkpoint
             .serialize(&mut cursor)
             .map_err(|_| error!(ErrorCode::CheckpointSerDe))
     }
 
-    fn read_option_checkpoint(
-        slice: &[u8],
-    ) -> Result<Option<Checkpoint>> {
+    fn read_option_checkpoint(slice: &[u8]) -> Result<Option<Checkpoint>> {
         let mut bytes = slice;
         Option::<Checkpoint>::deserialize(&mut bytes)
             .map_err(|_| error!(ErrorCode::CheckpointSerDe))
@@ -221,26 +216,20 @@ impl CheckpointData {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone, Copy)]
 #[cfg_attr(test, derive(Hash, PartialEq, Eq))]
 pub struct Checkpoint {
-    pub value:     u64,
+    pub value: u64,
     pub timestamp: u64,
 }
 
 #[cfg(test)]
 pub mod tests {
     use crate::state::checkpoints::{
-        Checkpoint,
-        CheckpointData,
-        CHECKPOINT_BUFFER_SIZE,
-        MAX_CHECKPOINTS,
+        Checkpoint, CheckpointData, CHECKPOINT_BUFFER_SIZE, MAX_CHECKPOINTS,
     };
-    use quickcheck::{
-        Arbitrary,
-        Gen,
-    };
+    use anchor_lang::Discriminator;
+    use quickcheck::{Arbitrary, Gen};
     use quickcheck_macros::quickcheck;
     use rand::Rng;
     use std::collections::HashSet;
-    use anchor_lang::Discriminator;
 
     #[test]
     fn test_serialized_size() {
@@ -249,8 +238,7 @@ pub mod tests {
             32 + 8 + MAX_CHECKPOINTS * CHECKPOINT_BUFFER_SIZE
         );
         assert!(
-            std::mem::size_of::<CheckpointData>()
-                + CheckpointData::discriminator().len()
+            std::mem::size_of::<CheckpointData>() + CheckpointData::discriminator().len()
                 <= CheckpointData::LEN
         );
         // Checks that the checkpoint struct fits in the individual checkpoint buffer
@@ -261,7 +249,9 @@ pub mod tests {
     fn test_none_is_zero() {
         // Checks that it's fine to initialize a checkpoint buffer with zeros
         let buffer = [0u8; CHECKPOINT_BUFFER_SIZE];
-        assert!(CheckpointData::read_option_checkpoint(&buffer).unwrap().is_none());
+        assert!(CheckpointData::read_option_checkpoint(&buffer)
+            .unwrap()
+            .is_none());
     }
 
     // A vector of DataOperation will be tested on both our struct and on a HashSet
@@ -275,7 +265,7 @@ pub mod tests {
     impl Arbitrary for Checkpoint {
         fn arbitrary(g: &mut Gen) -> Self {
             return Checkpoint {
-                value:     u64::arbitrary(g),
+                value: u64::arbitrary(g),
                 timestamp: u64::arbitrary(g),
             };
         }

@@ -1,6 +1,6 @@
 use crate::error::ErrorCode;
-use anchor_lang::prelude::*;
 use anchor_lang::prelude::borsh::BorshSchema;
+use anchor_lang::prelude::*;
 
 /// This is the metadata account for each staker
 /// It is derived from the checkpoints account with seeds "stake_metadata"
@@ -10,12 +10,12 @@ use anchor_lang::prelude::borsh::BorshSchema;
 #[account]
 #[derive(BorshSchema)]
 pub struct StakeAccountMetadata {
-    pub metadata_bump:         u8,
-    pub custody_bump:          u8,
-    pub authority_bump:        u8,
-    pub owner:                 Pubkey,
-    pub delegate:              Pubkey,
-    pub recorded_balance:      u64,
+    pub metadata_bump: u8,
+    pub custody_bump: u8,
+    pub authority_bump: u8,
+    pub owner: Pubkey,
+    pub delegate: Pubkey,
+    pub recorded_balance: u64,
     pub signed_agreement_hash: Option<[u8; 32]>,
 }
 
@@ -54,8 +54,8 @@ impl StakeAccountMetadata {
 #[cfg(test)]
 pub mod tests {
     use super::StakeAccountMetadata;
-    use anchor_lang::Discriminator;
     use anchor_lang::prelude::Pubkey;
+    use anchor_lang::Discriminator;
 
     #[test]
     fn check_size() {
@@ -69,12 +69,12 @@ pub mod tests {
     #[test]
     fn check_is_llc_member() {
         let stake_account_metadata_llc_member = StakeAccountMetadata {
-            metadata_bump:         0,
-            custody_bump:          0,
-            authority_bump:        0,
-            owner:                 Pubkey::default(),
-            delegate:              Pubkey::default(),
-            recorded_balance:      0,
+            metadata_bump: 0,
+            custody_bump: 0,
+            authority_bump: 0,
+            owner: Pubkey::default(),
+            delegate: Pubkey::default(),
+            recorded_balance: 0,
             signed_agreement_hash: Some([0; 32]),
         };
         assert!(stake_account_metadata_llc_member
@@ -86,12 +86,12 @@ pub mod tests {
             .is_err());
 
         let stake_account_metadata_non_llc_member = StakeAccountMetadata {
-            metadata_bump:         0,
-            custody_bump:          0,
-            authority_bump:        0,
-            owner:                 Pubkey::default(),
-            delegate:              Pubkey::default(),
-            recorded_balance:      0,
+            metadata_bump: 0,
+            custody_bump: 0,
+            authority_bump: 0,
+            owner: Pubkey::default(),
+            delegate: Pubkey::default(),
+            recorded_balance: 0,
             signed_agreement_hash: None,
         };
         assert!(stake_account_metadata_non_llc_member
