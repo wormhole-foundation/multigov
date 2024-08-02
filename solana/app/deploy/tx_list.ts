@@ -1,51 +1,13 @@
-import {
-  Connection,
-  PublicKey,
-  ConfirmedSignatureInfo,
-  ParsedTransactionWithMeta,
-} from '@solana/web3.js';
-
+import { Connection } from '@solana/web3.js';
 import { RPC_NODE } from "./devnet";
-
-async function getProgramTransactions(
-  programId: string,
-  limit: number = 10
-): Promise<ParsedTransactionWithMeta[]> {
-  const connection = new Connection(RPC_NODE, 'confirmed');
-
-  const pubKey = new PublicKey(programId);
-
-  try {
-    // Fetch the signatures of recent transactions for the program
-    const signatures: ConfirmedSignatureInfo[] = await connection.getSignaturesForAddress(
-      pubKey,
-      { limit }
-    );
-
-    // Fetch the transaction details for each signature
-    const transactions: (ParsedTransactionWithMeta | null)[] = await Promise.all(
-      signatures.map((sig) => 
-        connection.getParsedTransaction(sig.signature, {
-          maxSupportedTransactionVersion: 0
-        }).catch(error => {
-          console.error(`Error fetching transaction ${sig.signature}:`, error);
-          return null;
-        })
-      )
-    );
-
-    return transactions.filter((tx): tx is ParsedTransactionWithMeta => tx !== null);
-  } catch (error) {
-    console.error('Error fetching program transactions:', error);
-    return [];
-  }
-}
+import { getProgramTransactions } from "../utils/parse_transactions";
 
 async function main() {
+  const connection = new Connection(RPC_NODE, 'confirmed');
   const programId = '5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ';
-  const limit = 5;
+  const limit = 15;
 
-  getProgramTransactions(programId, limit)
+  getProgramTransactions(connection, programId, limit)
     .then((transactions) => {
       console.log(`Found ${transactions.length} transactions for program ${programId}:`);
       transactions.forEach((tx, index) => {
@@ -57,9 +19,8 @@ async function main() {
         console.log('---');
       });
     })
-    .catch((error) => {
-      console.error('Error:', error);
-    });
+    .then(() => console.log('Transactions successfully found.'))
+    .catch((error) => console.error('Error:', error));
 }
 
 main();
