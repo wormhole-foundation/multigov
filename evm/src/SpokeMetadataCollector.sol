@@ -60,9 +60,9 @@ contract SpokeMetadataCollector is QueryResponse {
     ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[0];
     if (perChainResp.chainId != HUB_CHAIN_ID) revert SenderChainMismatch();
 
-    uint256 numResponses = _queryResponse.responses.length;
+    uint256 _numResponses = _queryResponse.responses.length;
 
-    for (uint256 i = 0; i < numResponses; i++) {
+    for (uint256 i = 0; i < _numResponses; i++) {
       EthCallWithFinalityQueryResponse memory _ethCalls =
         parseEthCallWithFinalityQueryResponse(_queryResponse.responses[i]);
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(i, _ethCalls.result.length);

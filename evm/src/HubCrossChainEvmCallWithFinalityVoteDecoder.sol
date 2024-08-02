@@ -34,21 +34,21 @@ contract HubCrossChainEvmCallWithFinalityVoteDecoder is ICrossChainVoteDecoder, 
     }
 
     // verify contract and chain is correct
-    bytes32 addr = HUB_VOTE_POOL.spokeRegistry(_perChainResp.chainId);
-    bool isValidSpokeAddress = _isValidSpokeAddress(addr, _ethCalls.result[0].contractAddress);
-    if (!isValidSpokeAddress) revert UnknownMessageEmitter();
+    bytes32 _addr = HUB_VOTE_POOL.spokeRegistry(_perChainResp.chainId);
+    bool _isValid = _isValidSpokeAddress(_addr, _ethCalls.result[0].contractAddress);
+    if (!_isValid) revert UnknownMessageEmitter();
 
     if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
-    (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
+    (uint256 _proposalId, uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
       abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));
 
-    bytes32 _spokeProposalId = keccak256(abi.encode(_perChainResp.chainId, proposalId));
+    bytes32 _spokeProposalId = keccak256(abi.encode(_perChainResp.chainId, _proposalId));
     return (
       QueryVote({
-        proposalId: proposalId,
+        proposalId: _proposalId,
         spokeProposalId: _spokeProposalId,
-        proposalVote: ProposalVote(againstVotes, forVotes, abstainVotes),
+        proposalVote: ProposalVote(_againstVotes, _forVotes, _abstainVotes),
         chainId: _perChainResp.chainId
       })
     );

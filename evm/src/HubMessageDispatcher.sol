@@ -30,16 +30,16 @@ contract HubMessageDispatcher is WormholeDispatcher {
   function dispatch(bytes calldata _payload) external {
     _checkOwner();
 
-    (uint16 wormholeChainId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas) =
+    (uint16 _wormholeChainId, address[] memory _targets, uint256[] memory _values, bytes[] memory _calldatas) =
       abi.decode(_payload, (uint16, address[], uint256[], bytes[]));
 
-    if (targets.length != values.length || targets.length != calldatas.length) {
-      revert InvalidSpokeExecutorOperationLength(targets.length, values.length, calldatas.length);
+    if (_targets.length != _values.length || _targets.length != _calldatas.length) {
+      revert InvalidSpokeExecutorOperationLength(_targets.length, _values.length, _calldatas.length);
     }
 
-    bytes memory payload = abi.encode(nextMessageId, wormholeChainId, targets, values, calldatas);
+    bytes memory payload = abi.encode(nextMessageId, _wormholeChainId, _targets, _values, _calldatas);
     _publishMessage(payload);
     emit MessageDispatched(nextMessageId, payload);
-    nextMessageId += 1;
+    nextMessageId++;
   }
 }

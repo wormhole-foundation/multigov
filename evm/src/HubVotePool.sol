@@ -5,8 +5,7 @@ import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165C
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {QueryResponse, ParsedQueryResponse, EthCallQueryResponse} from "wormhole/query/QueryResponse.sol";
-
+import {QueryResponse, ParsedQueryResponse} from "wormhole/query/QueryResponse.sol";
 import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
 
 /// @title HubVotePool
@@ -69,10 +68,10 @@ contract HubVotePool is QueryResponse, Ownable {
   {
     hubGovernor = IGovernor(_hubGovernor);
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
-      SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];
-      spokeRegistry[aggregator.wormholeChainId] = bytes32(uint256(uint160(aggregator.addr)));
+      SpokeVoteAggregator memory _aggregator = _initialSpokeRegistry[i];
+      spokeRegistry[_aggregator.wormholeChainId] = bytes32(uint256(uint160(_aggregator.addr)));
       emit SpokeRegistered(
-        aggregator.wormholeChainId, bytes32(uint256(uint160(address(0)))), bytes32(uint256(uint160(aggregator.addr)))
+        _aggregator.wormholeChainId, bytes32(uint256(uint160(address(0)))), bytes32(uint256(uint160(_aggregator.addr)))
       );
     }
   }
@@ -83,8 +82,8 @@ contract HubVotePool is QueryResponse, Ownable {
       delete voteTypeDecoder[_queryType];
       return;
     }
-    bool isValid = _implementation.supportsInterface(type(ICrossChainVoteDecoder).interfaceId);
-    if (!isValid) revert InvalidQueryVoteImpl();
+    bool _isValid = _implementation.supportsInterface(type(ICrossChainVoteDecoder).interfaceId);
+    if (!_isValid) revert InvalidQueryVoteImpl();
     emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
     voteTypeDecoder[_queryType] = ICrossChainVoteDecoder(_implementation);
   }
@@ -103,39 +102,40 @@ contract HubVotePool is QueryResponse, Ownable {
   function crossChainVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
-      ICrossChainVoteDecoder voteQueryImpl = voteTypeDecoder[_queryResponse.responses[i].queryType];
-      if (address(voteQueryImpl) == address(0)) revert UnsupportedQueryType();
+      ICrossChainVoteDecoder _voteQueryImpl = voteTypeDecoder[_queryResponse.responses[i].queryType];
+      if (address(_voteQueryImpl) == address(0)) revert UnsupportedQueryType();
 
-      ICrossChainVoteDecoder.QueryVote memory voteQuery = voteQueryImpl.decode(_queryResponse.responses[i]);
-      ICrossChainVoteDecoder.ProposalVote memory proposalVote = voteQuery.proposalVote;
-      ProposalVote memory existingSpokeVote = spokeProposalVotes[voteQuery.spokeProposalId];
+      ICrossChainVoteDecoder.QueryVote memory _voteQuery = _voteQueryImpl.decode(_queryResponse.responses[i]);
+      ICrossChainVoteDecoder.ProposalVote memory _proposalVote = _voteQuery.proposalVote;
+      ProposalVote memory _existingSpokeVote = spokeProposalVotes[_voteQuery.spokeProposalId];
 
       if (
-        existingSpokeVote.againstVotes > proposalVote.againstVotes || existingSpokeVote.forVotes > proposalVote.forVotes
-          || existingSpokeVote.abstainVotes > proposalVote.abstainVotes
+        _existingSpokeVote.againstVotes > _proposalVote.againstVotes
+          || _existingSpokeVote.forVotes > _proposalVote.forVotes
+          || _existingSpokeVote.abstainVotes > _proposalVote.abstainVotes
       ) revert InvalidProposalVote();
 
-      spokeProposalVotes[voteQuery.spokeProposalId] =
-        ProposalVote(proposalVote.againstVotes, proposalVote.forVotes, proposalVote.abstainVotes);
+      spokeProposalVotes[_voteQuery.spokeProposalId] =
+        ProposalVote(_proposalVote.againstVotes, _proposalVote.forVotes, _proposalVote.abstainVotes);
       _castVote(
-        voteQuery.proposalId,
+        _voteQuery.proposalId,
         ProposalVote(
-          proposalVote.againstVotes - existingSpokeVote.againstVotes,
-          proposalVote.forVotes - existingSpokeVote.forVotes,
-          proposalVote.abstainVotes - existingSpokeVote.abstainVotes
+          _proposalVote.againstVotes - _existingSpokeVote.againstVotes,
+          _proposalVote.forVotes - _existingSpokeVote.forVotes,
+          _proposalVote.abstainVotes - _existingSpokeVote.abstainVotes
         ),
-        voteQuery.chainId
+        _voteQuery.chainId
       );
     }
   }
 
-  function _castVote(uint256 proposalId, ProposalVote memory vote, uint16 emitterChainId) internal {
-    bytes memory votes = abi.encodePacked(vote.againstVotes, vote.forVotes, vote.abstainVotes);
+  function _castVote(uint256 _proposalId, ProposalVote memory _vote, uint16 _emitterChainId) internal {
+    bytes memory _votes = abi.encodePacked(_vote.againstVotes, _vote.forVotes, _vote.abstainVotes);
 
     hubGovernor.castVoteWithReasonAndParams(
-      proposalId, UNUSED_SUPPORT_PARAM, "rolled-up vote from governance spoke token holders", votes
+      _proposalId, UNUSED_SUPPORT_PARAM, "rolled-up vote from governance spoke token holders", _votes
     );
 
-    emit SpokeVoteCast(emitterChainId, proposalId, vote.againstVotes, vote.forVotes, vote.abstainVotes);
+    emit SpokeVoteCast(_emitterChainId, _proposalId, _vote.againstVotes, _vote.forVotes, _vote.abstainVotes);
   }
 }

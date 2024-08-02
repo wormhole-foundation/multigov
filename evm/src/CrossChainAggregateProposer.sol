@@ -84,12 +84,12 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
     bytes memory _queryResponseRaw,
     IWormhole.Signature[] memory _signatures
   ) external returns (uint256) {
-    bool isEligible = _checkProposalEligibility(_queryResponseRaw, _signatures);
-    if (!isEligible) revert InsufficientVoteWeight();
+    bool _isEligible = _checkProposalEligibility(_queryResponseRaw, _signatures);
+    if (!_isEligible) revert InsufficientVoteWeight();
 
-    uint256 proposalId = HUB_GOVERNOR.propose(_targets, _values, _calldatas, _description);
+    uint256 _proposalId = HUB_GOVERNOR.propose(_targets, _values, _calldatas, _description);
 
-    return proposalId;
+    return _proposalId;
   }
 
   /// @notice The owner registers a new chain and spoke vote aggregator address.
@@ -118,50 +118,50 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
     returns (bool)
   {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
-    uint256 totalVoteWeight = 0;
-    uint256 currentTimestamp = block.timestamp;
-    uint256 oldestAllowedTimestamp = currentTimestamp - maxQueryTimestampOffset;
-    uint256 sharedQueryBlockTime = 0;
+    uint256 _totalVoteWeight = 0;
+    uint256 _currentTimestamp = block.timestamp;
+    uint256 _oldestAllowedTimestamp = _currentTimestamp - maxQueryTimestampOffset;
+    uint256 _sharedQueryBlockTime = 0;
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
-      ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[i];
-      EthCallByTimestampQueryResponse memory _ethCalls = parseEthCallByTimestampQueryResponse(perChainResp);
+      ParsedPerChainQueryResponse memory _perChainResp = _queryResponse.responses[i];
+      EthCallByTimestampQueryResponse memory _ethCalls = parseEthCallByTimestampQueryResponse(_perChainResp);
 
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
-      uint64 requestTargetTimestamp = _ethCalls.requestTargetTimestamp;
+      uint64 _requestTargetTimestamp = _ethCalls.requestTargetTimestamp;
 
-      if (requestTargetTimestamp < oldestAllowedTimestamp || requestTargetTimestamp > currentTimestamp) {
-        revert InvalidTimestamp(requestTargetTimestamp);
+      if (_requestTargetTimestamp < _oldestAllowedTimestamp || _requestTargetTimestamp > _currentTimestamp) {
+        revert InvalidTimestamp(_requestTargetTimestamp);
       }
 
-      if (sharedQueryBlockTime == 0) sharedQueryBlockTime = requestTargetTimestamp;
-      if (sharedQueryBlockTime != requestTargetTimestamp) revert InvalidTimestamp(requestTargetTimestamp);
+      if (_sharedQueryBlockTime == 0) _sharedQueryBlockTime = _requestTargetTimestamp;
+      if (_sharedQueryBlockTime != _requestTargetTimestamp) revert InvalidTimestamp(_requestTargetTimestamp);
 
-      address registeredSpokeAddress = registeredSpokes[perChainResp.chainId];
-      address queriedAddress = _ethCalls.result[0].contractAddress;
+      address _registeredSpokeAddress = registeredSpokes[_perChainResp.chainId];
+      address _queriedAddress = _ethCalls.result[0].contractAddress;
 
-      if (registeredSpokeAddress == address(0) || queriedAddress != registeredSpokeAddress) {
-        revert UnregisteredSpoke(perChainResp.chainId, queriedAddress);
+      if (_registeredSpokeAddress == address(0) || _queriedAddress != _registeredSpokeAddress) {
+        revert UnregisteredSpoke(_perChainResp.chainId, _queriedAddress);
       }
 
-      bytes memory callData = _ethCalls.result[0].callData;
+      bytes memory _callData = _ethCalls.result[0].callData;
 
       // Extract the address from callData (skip first 4 bytes of function selector)
-      address queriedAccount = _extractAccountFromCalldata(callData);
+      address _queriedAccount = _extractAccountFromCalldata(_callData);
 
       // Check that the address being queried is the caller
-      if (queriedAccount != msg.sender) revert InvalidCaller(msg.sender, queriedAccount);
+      if (_queriedAccount != msg.sender) revert InvalidCaller(msg.sender, _queriedAccount);
 
-      uint256 voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
-      totalVoteWeight += voteWeight;
+      uint256 _voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
+      _totalVoteWeight += _voteWeight;
     }
 
     // Use current timestamp (what all of the spoke query responses are checked against) to get the hub vote weight
-    uint256 hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, sharedQueryBlockTime);
-    totalVoteWeight += hubVoteWeight;
+    uint256 _hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, _sharedQueryBlockTime);
+    _totalVoteWeight += _hubVoteWeight;
 
-    return totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
+    return _totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
   }
 
   /// @notice Extracts the address used to get the voting weight from the query.
@@ -170,12 +170,12 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
     // Ensure callData is long enough to contain function selector (4 bytes) and an address (20 bytes)
     if (_callData.length < 24) revert InvalidCallDataLength();
 
-    address extractedAccount;
+    address _extractedAccount;
     assembly {
-      extractedAccount := mload(add(add(_callData, 0x20), 4))
+      _extractedAccount := mload(add(add(_callData, 0x20), 4))
     }
 
-    return extractedAccount;
+    return _extractedAccount;
   }
 
   /// @notice Registers a new chain and address from where to receive queries.
