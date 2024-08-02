@@ -113,7 +113,7 @@ contract HubGovernor is
     return GovernorSettings.proposalThreshold();
   }
 
-  /// @notice This funciton creates a new proposal if the proposer is either the `whitelistedPropser` or has enough
+  /// @notice This function creates a new proposal if the proposer is either the `whitelistedProposer` or has enough
   /// voting weight to exceed the proposal threshold.
   /// @dev This function differs from the overridden implemenation by supporting a `whitelistedProposer`. A
   /// `whitelisted` propser is able to create proposal without having any voting weight.
