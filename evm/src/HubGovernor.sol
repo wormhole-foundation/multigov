@@ -45,7 +45,7 @@ contract HubGovernor is
   /// @notice Emitted when a whitelisted proposer is changed.
   event HubVotePoolUpdated(address oldHubVotePool, address newHubVotePool);
 
-  /// @notice Emitted When a whitelisted proposer is changed.
+  /// @notice Emitted when a whitelisted proposer is changed.
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
 
   /// @notice Thrown if `GOVERNOR_PROPPOSAL_EXTENDER` is attempted to be set to an EOA.
