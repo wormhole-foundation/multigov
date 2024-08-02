@@ -48,7 +48,7 @@ contract HubGovernor is
   /// @notice Emitted when a whitelisted proposer is changed.
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
 
-  /// @notice Thrown if `GOVERNOR_PROPPOSAL_EXTENDER` is attempted to be set to an EOA.
+  /// @notice Thrown if `GOVERNOR_PROPOSAL_EXTENDER` is attempted to be set to an EOA.
   error InvalidProposalExtender();
 
   /// @param name The name used as the EIP712 signing domain.
