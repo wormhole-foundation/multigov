@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.23;
 
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 
 /// @title WormholeDispatcher
 /// @author [ScopeLift](https://scopelift.co)
