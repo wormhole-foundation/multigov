@@ -80,8 +80,8 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
+          _voteParams.proposalId,
           SpokeCountingFractional.ProposalVote({
-            proposalId: _voteParams.proposalId,
             againstVotes: uint128(_voteParams.againstVotes),
             forVotes: uint128(_voteParams.forVotes),
             abstainVotes: uint128(_voteParams.abstainVotes)
@@ -130,7 +130,6 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     assertEq(_proposalVotes.againstVotes, _voteParams.againstVotes);
     assertEq(_proposalVotes.forVotes, _voteParams.forVotes);
     assertEq(_proposalVotes.abstainVotes, _voteParams.abstainVotes);
-    assertEq(_proposalVotes.proposalId, _voteParams.proposalId);
   }
 }
 
@@ -361,7 +360,6 @@ contract CrossChainVote is HubVotePoolTest {
     _assertVotesEq(
       _voteParams,
       SpokeCountingFractional.ProposalVote({
-        proposalId: _voteParams.proposalId,
         againstVotes: _againstVotes,
         forVotes: _forVotes,
         abstainVotes: _abstainVotes
@@ -397,8 +395,8 @@ contract CrossChainVote is HubVotePoolTest {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
+          _voteParams1.proposalId,
           SpokeCountingFractional.ProposalVote({
-            proposalId: _voteParams1.proposalId,
             againstVotes: uint128(_voteParams1.againstVotes),
             forVotes: uint128(_voteParams1.forVotes),
             abstainVotes: uint128(_voteParams1.abstainVotes)
@@ -417,8 +415,8 @@ contract CrossChainVote is HubVotePoolTest {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
+          _voteParams1.proposalId,
           SpokeCountingFractional.ProposalVote({
-            proposalId: _voteParams1.proposalId,
             againstVotes: uint128(_voteParams2.againstVotes),
             forVotes: uint128(_voteParams2.forVotes),
             abstainVotes: uint128(_voteParams2.abstainVotes)
@@ -496,8 +494,8 @@ contract CrossChainVote is HubVotePoolTest {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
+          _voteParams.proposalId,
           SpokeCountingFractional.ProposalVote({
-            proposalId: _voteParams.proposalId,
             againstVotes: uint128(_voteParams.againstVotes),
             forVotes: uint128(_voteParams.forVotes),
             abstainVotes: uint128(_voteParams.abstainVotes)
@@ -575,7 +573,6 @@ contract CrossChainVote is HubVotePoolTest {
     _assertVotesEq(
       _voteParams1,
       SpokeCountingFractional.ProposalVote({
-        proposalId: _voteParams1.proposalId,
         againstVotes: _againstVotes1,
         forVotes: _forVotes1,
         abstainVotes: _abstainVotes1
@@ -588,7 +585,6 @@ contract CrossChainVote is HubVotePoolTest {
     _assertVotesEq(
       _voteParams2,
       SpokeCountingFractional.ProposalVote({
-        proposalId: _voteParams2.proposalId,
         againstVotes: _againstVotes2,
         forVotes: _forVotes2,
         abstainVotes: _abstainVotes2
@@ -632,7 +628,6 @@ contract CrossChainVote is HubVotePoolTest {
       QueryTest.buildEthCallResultBytes(
         abi.encode(
           SpokeCountingFractional.ProposalVote({
-            proposalId: _proposalId,
             againstVotes: uint128(_votes),
             forVotes: uint128(_votes),
             abstainVotes: uint128(_votes)
@@ -783,6 +778,15 @@ contract CrossChainVote is HubVotePoolTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
     vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
+    hubVotePool.crossChainVote(_resp, signatures);
+  }
+
+  function test_t() public {
+    bytes memory _resp =
+      hex"0100009166cc7e006d9222ebe83e579d04627ebd2032b63f77c87f6b0b242f38d052de311dab2524ca2bd3a5c1792c0df5ccab0156b01408225ee4c996637957c70a7a01000000560100000000012715010000004900000008307865613931623201d9f2ff4daedc0c836baf4f875c9158b9972efb7100000024544ffc9c25fd1cfb48bae84532c5786e272e24f2b9e1401dc4316fdc23bf54e7e811ab2101271501000000b50000000000ea91b2e2740e64f55cd308fdcedab57073b4cf2af4d556c7e65c7a73d6bfb950d7130700061ea5f4b1e400010000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000174876e8000000000000000000000000000000000000000000000000000000000000000000";
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+    vm.prank(address(governor));
+    hubVotePool.registerSpoke(10_005, bytes32(uint256(uint160(0xD9f2FF4dAEDc0C836BAf4F875C9158B9972eFb71))));
     hubVotePool.crossChainVote(_resp, signatures);
   }
 }

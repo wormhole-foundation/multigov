@@ -415,7 +415,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_proposalId, _amount, 0, 0));
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_amount, 0, 0));
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _boundVoteStart(_voteStart);
@@ -441,7 +441,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_proposalId, 0, _amount, 0));
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, _amount, 0));
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _boundVoteStart(_voteStart);
@@ -454,8 +454,9 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
       _proposalId, uint8(SpokeCountingFractional.VoteType.For), _reason, _params
     );
 
-    (,, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (uint256 proposalId,, uint256 forVotes,) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(forVotes, _amount, "Votes for are not correct");
+    assertEq(proposalId, _proposalId);
   }
 
   function testFuzz_CorrectlyCastVoteAbstain(
@@ -467,7 +468,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_proposalId, 0, 0, _amount));
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, 0, _amount));
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _boundVoteStart(_voteStart);
@@ -480,8 +481,9 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
       _proposalId, uint8(SpokeCountingFractional.VoteType.Abstain), _reason, _params
     );
 
-    (,,, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
+    (uint256 proposalId,,, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(abstain, _amount, "Abstained votes are not correct");
+    assertEq(proposalId, _proposalId);
   }
 
   function testFuzz_EmitsVoteCastWithParams(

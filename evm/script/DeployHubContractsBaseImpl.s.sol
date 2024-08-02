@@ -66,10 +66,10 @@ abstract contract DeployHubContractsBaseImpl is Script {
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
     HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0));
-	HubCrossChainEvmCallVoteDecoder decoder = new HubCrossChainEvmCallVoteDecoder(config.wormholeCore, address(pool));
+    HubCrossChainEvmCallVoteDecoder decoder = new HubCrossChainEvmCallVoteDecoder(config.wormholeCore, address(pool));
 
     // QT_ETH_CALL = 1;
-	pool.registerQueryType(1, address(decoder));
+    pool.registerQueryType(1, address(decoder));
 
     HubGovernorProposalExtender extender = new HubGovernorProposalExtender(
       config.whitelistedVoteExtender,
