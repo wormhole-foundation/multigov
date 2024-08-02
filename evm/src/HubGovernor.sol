@@ -42,7 +42,7 @@ contract HubGovernor is
   /// implementation that is meant to be set as teh proopsal extender.
   IVoteExtender public immutable GOVERNOR_PROPOSAL_EXTENDER;
 
-  /// @notice Emitted When a whitelisted proposer is changed.
+  /// @notice Emitted when a whitelisted proposer is changed.
   event HubVotePoolUpdated(address oldHubVotePool, address newHubVotePool);
 
   /// @notice Emitted When a whitelisted proposer is changed.
