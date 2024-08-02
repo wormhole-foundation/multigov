@@ -191,7 +191,7 @@ contract HubGovernor is
     if (address(hubVotePool) != account) {
       require(totalWeight > 0, "GovernorCountingFractional: no weight");
       if (voteWeightCast(proposalId, account) >= totalWeight) revert("GovernorCountingFractional: all weight cast");
-	  _safeTotalWeight = SafeCast.toUint128(totalWeight);
+      _safeTotalWeight = SafeCast.toUint128(totalWeight);
     }
 
     if (voteData.length == 0) _countVoteNominal(proposalId, account, _safeTotalWeight, support);
