@@ -171,7 +171,6 @@ contract Constructor is Test, AddressUtils {
     HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
 
     _assertSpokesRegistered(hubVotePool.spokeRegistry, _initialSpokeRegistry);
-    assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
   }
 
@@ -204,7 +203,6 @@ contract Constructor is Test, AddressUtils {
 
     HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, emptyRegistry);
 
-    assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
     assertEq(hubVotePool.spokeRegistry(_spokeChainId), addressToBytes32(address(0)));
   }
@@ -223,7 +221,6 @@ contract Constructor is Test, AddressUtils {
 
     _assertSpokesRegistered(hubVotePool.spokeRegistry, _nonEmptyInitialSpokeRegistry);
 
-    assertEq(address(hubVotePool.WORMHOLE_CORE()), _core);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
   }
 
@@ -728,7 +725,7 @@ contract CrossChainVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
+    vm.expectRevert(ICrossChainVoteDecoder.UnknownMessageEmitter.selector);
     hubVotePool.crossChainVote(_resp, signatures);
   }
 
@@ -788,7 +785,7 @@ contract CrossChainVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    vm.expectRevert(HubVotePool.UnknownMessageEmitter.selector);
+    vm.expectRevert(ICrossChainVoteDecoder.UnknownMessageEmitter.selector);
     hubVotePool.crossChainVote(_resp, signatures);
   }
 }

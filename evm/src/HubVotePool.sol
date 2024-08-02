@@ -5,36 +5,42 @@ import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165C
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {
-  QueryResponse,
-  ParsedQueryResponse,
-  ParsedPerChainQueryResponse,
-  EthCallQueryResponse
-} from "wormhole/query/QueryResponse.sol";
+import {QueryResponse, ParsedQueryResponse, EthCallQueryResponse} from "wormhole/query/QueryResponse.sol";
 
 import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
-import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
 
+/// @title HubVotePool
+/// @author [ScopeLift](https://scopelift.co)
+/// @notice A contract that parses a specific wormhole query type from the `SpokeVoteAggregator`.
 contract HubVotePool is QueryResponse, Ownable {
   using ERC165Checker for address;
 
-  IWormhole public immutable WORMHOLE_CORE;
+  /// @notice The governor where cross chain votes are submitted.
   IGovernor public hubGovernor;
+
+  /// @notice A necessary param which is ignored when submitting a vote.
   uint8 constant UNUSED_SUPPORT_PARAM = 1;
 
-  error InvalidWormholeMessage(string);
-  error UnknownMessageEmitter();
+  /// @notice Thrown when the submitted spoke aggregator vote has a vote that is inconsistent with the previously
+  /// submitted vote.
   error InvalidProposalVote();
-  error TooManyEthCallResults(uint256, uint256);
-  error TooManyQueryResponses(uint256);
-  error UnsupportedQueryType();
+
+  /// @notice Thrown if a query vote implementation is set to an address that does not support the
+  /// `ICrossChainVoteDecoder` interface.
   error InvalidQueryVoteImpl();
 
+  /// @notice Thrown if a vote query is submitted with an unsupported query type.
+  error UnsupportedQueryType();
+
+  /// @notice Emitted when a new query type is registered.
   event QueryTypeRegistered(uint16 indexed targetChain, address oldQueryTypeImpl, address newQueryTypeImpl);
+
+  /// @notice Emitted when a vote is recorded from a registered spoke vote aggregator.
   event SpokeVoteCast(
     uint16 indexed emitterChainId, uint256 proposalId, uint256 voteAgainst, uint256 voteFor, uint256 voteAbstain
   );
 
+  /// @notice Emitted whtn a new spoke vote address is registered.
   event SpokeRegistered(uint16 indexed targetChain, bytes32 oldSpokeVoteAddress, bytes32 newSpokeVoteAddress);
 
   /// @dev Contains the distribution of a proposal vote.
@@ -44,14 +50,15 @@ contract HubVotePool is QueryResponse, Ownable {
     uint128 abstainVotes;
   }
 
+  /// @dev Contains the information to register a spoke.
   struct SpokeVoteAggregator {
     uint16 wormholeChainId;
     address addr;
   }
 
+  /// @notice A mapping of a chain and emitter address that determines valid spokes and addresses for receiving votes.
   mapping(uint16 emitterChain => bytes32 emitterAddress) public spokeRegistry;
 
-  // Instead of nested mapping create encoding for the key
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
   mapping(uint8 queryType => ICrossChainVoteDecoder voteImpl) public voteTypeDecoder;
@@ -60,7 +67,6 @@ contract HubVotePool is QueryResponse, Ownable {
     QueryResponse(_core)
     Ownable(_hubGovernor)
   {
-    WORMHOLE_CORE = IWormhole(_core);
     hubGovernor = IGovernor(_hubGovernor);
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
       SpokeVoteAggregator memory aggregator = _initialSpokeRegistry[i];

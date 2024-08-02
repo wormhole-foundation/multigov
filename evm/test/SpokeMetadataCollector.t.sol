@@ -87,7 +87,6 @@ contract Constructor is Test {
     vm.assume(_core != address(0));
 
     SpokeMetadataCollector spokeMetadataCollector = new SpokeMetadataCollector(_core, _hubChainId, _hubProposalMetadata);
-    assertEq(address(spokeMetadataCollector.WORMHOLE_CORE()), _core);
     assertEq(spokeMetadataCollector.HUB_CHAIN_ID(), _hubChainId);
     assertEq(spokeMetadataCollector.HUB_PROPOSAL_METADATA(), _hubProposalMetadata);
   }
