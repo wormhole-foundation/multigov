@@ -15,7 +15,7 @@ contract HubProposalMetadata {
     GOVERNOR = IGovernor(_governor);
   }
 
-  /// @notice A method to read both proposal proposal id and proposal vote start. This is meant to be read using
+  /// @notice A method to read both proposal id and proposal vote start. This is meant to be read using
   /// Wormhole Queries when setting up a proposal to be voted on a spoke.
   /// @param _proposalId The proposal id from which to read metadata.
   function getProposalMetadata(uint256 _proposalId) external view returns (uint256, uint256) {
