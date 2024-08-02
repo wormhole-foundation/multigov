@@ -2,7 +2,6 @@
 pragma solidity ^0.8.23;
 
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
@@ -156,7 +155,7 @@ contract HubGovernor is
   /// @param _newVotingPeriod The new vote period length.
   function setVotingPeriod(uint32 _newVotingPeriod) public virtual override {
     _checkGovernance();
-    if (_newVotingPeriod < GOVERNOR_PROPOSAL_EXTENDER.MINIMUM_EXTENSION_TIME()) {
+    if (_newVotingPeriod < GOVERNOR_PROPOSAL_EXTENDER.MINIMUM_EXTENSION_DURATION()) {
       revert GovernorInvalidVotingPeriod(_newVotingPeriod);
     }
     return _setVotingPeriod(_newVotingPeriod);
