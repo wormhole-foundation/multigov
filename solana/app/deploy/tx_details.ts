@@ -1,6 +1,6 @@
 import { Connection } from '@solana/web3.js';
 import { RPC_NODE } from "./devnet";
-import { getProgramTransactions, getTransactionDetails } from "../utils/parse_transactions";
+import { getProgramTransactions, printTransactionDetails } from "../utils/parse_transactions";
 
 async function main() {
   const connection = new Connection(RPC_NODE, 'confirmed');
@@ -15,7 +15,7 @@ async function main() {
       console.log(`Transaction ${index + 1} details:\n`);
 
       const signature = tx.transaction.signatures[0];
-      await getTransactionDetails(connection, signature);
+      await printTransactionDetails(connection, signature);
       console.log('-------------------------------------');
     }
 
