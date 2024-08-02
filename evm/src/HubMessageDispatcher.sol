@@ -13,7 +13,7 @@ contract HubMessageDispatcher is WormholeDispatcher {
   /// @notice Thrown if the encoded payload is invalid.
   error InvalidSpokeExecutorOperationLength(uint256, uint256, uint256);
 
-  /// @notice Emitted when a message is puhlished.
+  /// @notice Emitted when a message is dispatched.
   event MessageDispatched(uint256 indexed proposalId, bytes payload);
 
   /// @param _timelock The timelock that will call the hub dispatcher to initiate a cross chain execution.
