@@ -115,7 +115,7 @@ contract HubGovernor is
 
   /// @notice This funciton creates a new proposal if the proposer is either the `whitelistedPropser` or has enough
   /// voting weight to exceed the proposal threshold.
-  /// @dev This function differs from the overridden implmenenation by supporting a `whitelistedProposer`. A
+  /// @dev This function differs from the overridden implemenation by supporting a `whitelistedProposer`. A
   /// `whitelisted` propser is able to create proposal without having any voting weight.
   /// @param _targets A list of contracts to call when a proposal is executed.
   /// @param _values A list of values to send when calling each target.
