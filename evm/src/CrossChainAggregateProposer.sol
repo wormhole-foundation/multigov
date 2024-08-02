@@ -24,7 +24,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
   /// the hub.
   uint48 public maxQueryTimestampOffset;
 
-  /// @notice Emitted when the max timestamp offeset is updated.
+  /// @notice Emitted when the max timestamp offset is updated.
   event MaxQueryTimestampOffsetUpdated(uint48 oldMaxQueryTimestampOffset, uint48 newMaxQueryTimestampOffset);
 
   /// @notice Emitted when a spoke is registered.
