@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
@@ -9,37 +9,49 @@ import {
   EthCallWithFinalityQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
+/// @title SpokeMetadataCollector
+/// @author [ScopeLift](https://scopelift.co)
+/// @notice A contract that receives proposal metadata from the hub governor.
 contract SpokeMetadataCollector is QueryResponse {
-  IWormhole public immutable WORMHOLE_CORE;
+  /// @notice The wormhole chain id of the hub.
   uint16 public immutable HUB_CHAIN_ID;
+  /// @notice The address of the metadata contract to be read on the hub.
   address public immutable HUB_PROPOSAL_METADATA;
 
+  /// @notice A struct that contains the proposal metadata
   struct Proposal {
     uint256 voteStart;
   }
 
-  // TODO: Add underscore here
+  /// @notice A mapping of proposal id to a proposal on the spoke.
   mapping(uint256 proposalId => Proposal) internal proposals;
 
+  /// @notice Thrown if the query is from a non-finalized block.
+  error InvalidQueryBlock(bytes blockId);
+  /// @notice Thrown if the wormhole query was from a contract other than the hub proposal metadata.
+  error InvalidWormholeMessage(string reason);
+  /// @notice Thrown if the proposal already exists on the spoke.
   error ProposalAlreadyExists();
-  error InvalidWormholeMessage(string);
-  error TooManyQueryResponses(uint256);
+  /// @notice Thrown if the chain of the sender does not match the chain of the hub.
   error SenderChainMismatch();
-  error TooManyEthCallResults(uint256, uint256);
-  error InvalidQueryBlock(bytes);
+  /// @notice Thrown if there is more than a single eth call within a query.
+  error TooManyEthCallResults(uint256 queryIndex, uint256 numResults);
 
+  /// @notice Emitted when a new proposal is created on the spoke.
   event ProposalCreated(uint256 proposalId, uint256 start);
 
+  /// @param _core The wormhole core contract that handles parsing and verifying incoming wormhole queries.
+  /// @param _hubChainId The wormhole chain id of the hub.
+  /// @param _hubProposalMetadata The proposal metadata contract address on the hub.
   constructor(address _core, uint16 _hubChainId, address _hubProposalMetadata) QueryResponse(_core) {
-    WORMHOLE_CORE = IWormhole(_core);
     HUB_CHAIN_ID = _hubChainId;
     HUB_PROPOSAL_METADATA = _hubProposalMetadata;
   }
 
-  function getProposal(uint256 proposalId) public view returns (Proposal memory) {
-    return proposals[proposalId];
-  }
-
+  /// @notice A function that takes in a wormhole query, verifies, validtates it and then creates a proposal on the
+  /// spoke that can be used for voting.
+  /// @param _queryResponseRaw A encoded wormhole query with an id and vote start of one or multiple hub proposals.
+  /// @param _signatures An array of signatures of the hash of the query response.
   function addProposal(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) public {
     // Validate the query response signatures
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
@@ -68,8 +80,18 @@ contract SpokeMetadataCollector is QueryResponse {
     }
   }
 
-  function _addProposal(uint256 proposalId, uint256 voteStart) internal {
-    proposals[proposalId] = Proposal(voteStart);
-    emit ProposalCreated(proposalId, voteStart);
+  /// @notice A function to read the proposal metadata for a given proposal id.
+  /// @param _proposalId The proposal id of the metadata to return.
+  /// @return The proposal metadata for a given id.
+  function getProposal(uint256 _proposalId) public view returns (Proposal memory) {
+    return proposals[_proposalId];
+  }
+
+  /// @notice A function that stores a spoke proposal.
+  /// @param _proposalId The proposal id of the proposal to create on the spoke.
+  /// @param _voteStart The start of the voting period for the proposal.
+  function _addProposal(uint256 _proposalId, uint256 _voteStart) internal {
+    proposals[_proposalId] = Proposal(_voteStart);
+    emit ProposalCreated(_proposalId, _voteStart);
   }
 }

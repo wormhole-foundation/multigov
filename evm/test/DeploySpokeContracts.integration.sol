@@ -31,7 +31,6 @@ contract DeploySpokeContractsTest is DeploySpokeContractsBase {
       SpokeAirlock airlock
     ) = script.run();
 
-    assertEq(address(spokeMetadataCollector.WORMHOLE_CORE()), 0x31377888146f3253211EFEf5c676D41ECe7D58Fe);
     assertEq(spokeMetadataCollector.HUB_CHAIN_ID(), 10_002);
     assertEq(spokeMetadataCollector.HUB_PROPOSAL_METADATA(), 0x336Ac4C729F5E3696508460B40c12B065D86E612);
 
@@ -40,8 +39,6 @@ contract DeploySpokeContractsTest is DeploySpokeContractsBase {
     assertEq(aggregator.owner(), deployer);
     assertEq(aggregator.getVoteWeightWindowLength(uint48(block.timestamp)), 10 minutes);
 
-    // Need to deploy first
-    //assertEq(messageExecutor.HUB_DISPATCHER(), );
     assertEq(messageExecutor.HUB_CHAIN_ID(), 10_002);
     assertEq(address(messageExecutor.WORMHOLE_CORE()), 0x31377888146f3253211EFEf5c676D41ECe7D58Fe);
     assertEq(messageExecutor.SPOKE_CHAIN_ID(), 10_005);

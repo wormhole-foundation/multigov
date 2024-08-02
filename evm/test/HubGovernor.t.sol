@@ -8,6 +8,7 @@ import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/Go
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 
+import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
@@ -246,6 +247,32 @@ contract SetHubVotePool is HubGovernorTest {
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
 
     assertEq(address(governor.hubVotePool()), _hubVotePool);
+  }
+
+  function testFuzz_SettingANewHubVotePoolEmitsAnEvent(address _hubVotePool, string memory _proposalDescription) public {
+    vm.assume(_hubVotePool != address(0));
+    vm.assume(_hubVotePool != address(timelock));
+
+    (, address[] memory delegates) = _setGovernorAndDelegates();
+
+    ProposalBuilder builder = _createHubVotePoolProposal(_hubVotePool);
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    vm.prank(delegates[0]);
+    uint256 proposalId = governor.propose(targets, values, calldatas, _proposalDescription);
+
+    _jumpToActiveProposal(proposalId);
+
+    _delegatesVote(proposalId, uint8(VoteType.For));
+    _jumpPastVoteComplete(proposalId);
+
+    governor.queue(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
+
+    _jumpPastProposalEta(proposalId);
+    vm.expectEmit();
+    emit HubGovernor.HubVotePoolUpdated(address(hubVotePool), _hubVotePool);
+    governor.execute(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
   }
 
   function testFuzz_ChangeHubVotePoolMultipleTimes(
@@ -561,8 +588,46 @@ contract SetVoteWeightWindow is HubGovernorTest {
     builder.push(address(governor), 0, abi.encodeWithSignature("setVoteWeightWindow(uint48)", _window));
 
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
-    // uint48 setWindow = governor.voteWeightWindowLength();
-    // assertEq(setWindow, _window);
+    uint48 setWindow = governor.getVoteWeightWindowLength(uint48(block.timestamp));
+    assertEq(setWindow, _window);
+  }
+
+  function testFuzz_UpdatingVoteWeightWindowEmitAnEvent(uint48 _window) public {
+    address delegate = makeAddr("delegate");
+    token.mint(delegate, governor.proposalThreshold());
+
+    vm.prank(delegate);
+    token.delegate(delegate);
+
+    vm.warp(vm.getBlockTimestamp() + VOTE_WEIGHT_WINDOW + 1);
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(address(governor), 0, abi.encodeWithSignature("setVoteWeightWindow(uint48)", _window));
+
+    address[] memory _targets = builder.targets();
+    uint256[] memory _values = builder.values();
+    bytes[] memory _calldatas = builder.calldatas();
+    string memory _description = "Hi";
+
+    _setGovernor(governor);
+
+    vm.prank(delegate);
+    uint256 _proposalId = governor.propose(_targets, _values, _calldatas, _description);
+
+    _jumpToActiveProposal(_proposalId);
+
+    vm.prank(delegate);
+    governor.castVote(_proposalId, uint8(VoteType.For));
+    _jumpPastVoteComplete(_proposalId);
+
+    governor.queue(_targets, _values, _calldatas, keccak256(bytes(_description)));
+
+    _jumpPastProposalEta(_proposalId);
+
+    vm.expectEmit();
+    emit GovernorMinimumWeightedVoteWindow.VoteWeightWindowUpdated(
+      governor.getVoteWeightWindowLength(uint48(block.timestamp)), _window
+    );
+    governor.execute(_targets, _values, _calldatas, keccak256(bytes(_description)));
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(address _caller, uint16 _window) public {
