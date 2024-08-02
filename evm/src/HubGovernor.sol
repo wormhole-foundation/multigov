@@ -206,7 +206,7 @@ contract HubGovernor is
   }
 
   /// @notice GovernorCountingFractional
-  /// @dev If the account is the `hubVotePool` then we allow a vote to be recorded without checking it's weight cast. It
+  /// @dev If the account is the `hubVotePool` then we allow a vote to be recorded without checking its weight cast. It
   /// is the responsibility of the `hubVotePool` to prevent voting inconsistent with the vote weight held on spoke
   /// chains.
   function _countVote(
