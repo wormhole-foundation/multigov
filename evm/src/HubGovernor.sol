@@ -40,7 +40,6 @@ contract HubGovernor is
 
   /// @notice A contract that will be able to extend the proposal deadline. The `HubProposalExtender` is an
   /// implementation that is meant to be set as teh proopsal extender.
-
   IVoteExtender public immutable GOVERNOR_PROPOSAL_EXTENDER;
 
   /// @notice Emitted When a whitelisted proposer is changed.
