@@ -127,21 +127,21 @@ contract HubGovernor is
     bytes[] memory _calldatas,
     string memory _description
   ) public override returns (uint256) {
-    address proposer = _msgSender();
+    address _proposer = _msgSender();
 
     // check description restriction
-    if (!_isValidDescriptionForProposer(proposer, _description)) revert GovernorRestrictedProposer(proposer);
+    if (!_isValidDescriptionForProposer(_proposer, _description)) revert GovernorRestrictedProposer(_proposer);
 
     // check if whitelisted proposer
-    if (proposer == whitelistedProposer) return _propose(_targets, _values, _calldatas, _description, proposer);
+    if (_proposer == whitelistedProposer) return _propose(_targets, _values, _calldatas, _description, _proposer);
 
     // check proposal threshold
-    uint256 proposerVotes = getVotes(proposer, clock() - 1);
-    uint256 votesThreshold = proposalThreshold();
-    if (proposerVotes < votesThreshold) {
-      revert GovernorInsufficientProposerVotes(proposer, proposerVotes, votesThreshold);
+    uint256 _proposerVotes = getVotes(_proposer, clock() - 1);
+    uint256 _votesThreshold = proposalThreshold();
+    if (_proposerVotes < _votesThreshold) {
+      revert GovernorInsufficientProposerVotes(_proposer, _proposerVotes, _votesThreshold);
     }
-    return _propose(_targets, _values, _calldatas, _description, proposer);
+    return _propose(_targets, _values, _calldatas, _description, _proposer);
   }
 
   /// @notice A function that will set the hub vote pool on the governor and can only be called through governance.
@@ -221,10 +221,10 @@ contract HubGovernor is
       if (voteWeightCast(_proposalId, _account) >= _totalWeight) revert("GovernorCountingFractional: all weight cast");
     }
 
-    uint128 safeTotalWeight = SafeCast.toUint128(_totalWeight);
+    uint128 _safeTotalWeight = SafeCast.toUint128(_totalWeight);
 
-    if (_voteData.length == 0) _countVoteNominal(_proposalId, _account, safeTotalWeight, _support);
-    else _countVoteFractional(_proposalId, _account, safeTotalWeight, _voteData);
+    if (_voteData.length == 0) _countVoteNominal(_proposalId, _account, _safeTotalWeight, _support);
+    else _countVoteFractional(_proposalId, _account, _safeTotalWeight, _voteData);
   }
 
   /// @inheritdoc GovernorTimelockControl
