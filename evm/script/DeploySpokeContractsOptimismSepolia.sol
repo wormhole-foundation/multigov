@@ -8,10 +8,10 @@ contract DeploySpokeContractsOptimismSepolia is DeploySpokeContractsBaseImpl {
     return DeploymentConfiguration({
       wormholeCore: 0x31377888146f3253211EFEf5c676D41ECe7D58Fe,
       hubChainId: 10_002,
-      hubProposalMetadata: 0xd422Dc51613D2e09d193F50d0E29724f368947bD,
+      hubProposalMetadata: 0x73D661E8b3841cddab14a447C6f2459544dEa27b,
       votingToken: 0x74f00907CFC6E44Fb72535cdD1eC52a37EacAbE4,
       voteWeightWindow: 10 minutes,
-      hubDispatcher: 0x0000000000000000000000009a585829817f6751800872d0f2d07950517de0cf,
+      hubDispatcher: 0x00000000000000000000000002cd4a674a29973911d5d291b14cab75b267062c,
       spokeChainId: 10_005
     });
   }
