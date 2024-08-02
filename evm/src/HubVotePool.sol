@@ -21,7 +21,7 @@ contract HubVotePool is QueryResponse, Ownable {
   /// @notice A necessary param which is ignored when submitting a vote.
   uint8 constant UNUSED_SUPPORT_PARAM = 1;
 
-  /// @notice Thrown when the submited spoke aggregator vote has a vote that is inconsistent with the previously
+  /// @notice Thrown when the submitted spoke aggregator vote has a vote that is inconsistent with the previously
   /// submitted vote.
   error InvalidProposalVote();
 
