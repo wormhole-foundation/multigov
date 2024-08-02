@@ -583,8 +583,6 @@ contract _CountVote is HubGovernorTest {
     uint32 _abstainVotes,
     string memory _proposalDescription
   ) public {
-    uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
-    vm.assume(_totalWeight != 0);
     _support = uint8(bound(_support, 0, 2));
 
     (, delegates) = _setGovernorAndDelegates();
@@ -598,7 +596,7 @@ contract _CountVote is HubGovernorTest {
     _jumpToActiveProposal(_proposalId);
 
     bytes memory voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    governor.exposed_countVote(_proposalId, address(hubVotePool), _support, _totalWeight, voteData);
+    governor.exposed_countVote(_proposalId, address(hubVotePool), _support, 0, voteData);
 
     uint256 votingWeight = token.getVotes(address(hubVotePool));
 
