@@ -30,7 +30,7 @@ contract CrossChainAggregateProposer is QueryResponse, Ownable {
   /// @notice Emitted when a spoke is registered.
   event SpokeRegistered(uint16 indexed chainId, address oldSpokeAddress, address newSpokeAddress);
 
-  /// @notice Thrown when the aggregation of voting weight is less than the propoosal threshold on the `HUB_GOVERNOR`.
+  /// @notice Thrown when the aggregation of voting weight is less than the proposal threshold on the `HUB_GOVERNOR`.
   error InsufficientVoteWeight();
 
   /// @notice Thrown when calldata in the query response is too short.
