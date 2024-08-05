@@ -76,6 +76,10 @@ contract HubVotePool is QueryResponse, Ownable {
     }
   }
 
+  /// @notice Registers or unregisters a query type implementation.
+  /// @dev Can only be called by the contract owner. Unregisters if the implementation address is zero.
+  /// @param _queryType The type of query to register.
+  /// @param _implementation The address of the implementation contract for the query type.
   function registerQueryType(uint8 _queryType, address _implementation) external {
     _checkOwner();
     if (_implementation == address(0)) {
