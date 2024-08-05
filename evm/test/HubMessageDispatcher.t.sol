@@ -2,9 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
-
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
-import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 import {WormholeCoreMock} from "test/mocks/WormholeCoreMock.sol";

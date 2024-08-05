@@ -6,7 +6,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
-
 import {CrossChainAggregateProposer} from "src/CrossChainAggregateProposer.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";

@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-
 import {HubGovernor} from "src/HubGovernor.sol";
 
 contract HubGovernorHarness is HubGovernor {

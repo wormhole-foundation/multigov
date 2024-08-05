@@ -2,12 +2,11 @@
 pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
-
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubGovernorProposalExtenderHarness} from "test/harnesses/HubGovernorProposalExtenderHarness.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
-import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubGovernorTest} from "test/HubGovernor.t.sol";
 
 contract HubGovernorProposalExtenderTest is Test, HubGovernorTest {

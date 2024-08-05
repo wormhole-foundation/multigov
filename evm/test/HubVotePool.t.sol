@@ -1,24 +1,21 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Test, console2} from "forge-std/Test.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {QueryResponse} from "wormhole/query/QueryResponse.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-
 import {HubCrossChainEvmCallWithFinalityVoteDecoder} from "src/HubCrossChainEvmCallWithFinalityVoteDecoder.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
+import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {ERC165Fake} from "test/fakes/ERC165Fake.sol";
-import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
 import {HubVotePoolHarness} from "test/harnesses/HubVotePoolHarness.sol";
-import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 import {GovernorMock} from "test/mocks/GovernorMock.sol";
 
 contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
