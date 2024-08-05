@@ -37,8 +37,8 @@ contract HubGovernor is
   HubVotePool public hubVotePool;
 
   /// @notice A contract that will be able to extend the proposal deadline. The `HubProposalExtender` is an
-  /// implementation that is meant to be set as teh proopsal extender.
-  IVoteExtender public immutable GOVERNOR_PROPOSAL_EXTENDER;
+  /// implementation that is meant to be set as the proposal extender.
+  IVoteExtender public immutable HUB_PROPOSAL_EXTENDER;
 
   /// @notice Emitted when a whitelisted proposer is changed.
   event HubVotePoolUpdated(address oldHubVotePool, address newHubVotePool);
@@ -46,7 +46,7 @@ contract HubGovernor is
   /// @notice Emitted when a whitelisted proposer is changed.
   event WhitelistedProposerUpdated(address oldProposer, address newProposer);
 
-  /// @notice Thrown if `GOVERNOR_PROPOSAL_EXTENDER` is attempted to be set to an EOA.
+  /// @notice Thrown if `HUB_PROPOSAL_EXTENDER` is attempted to be set to an EOA.
   error InvalidProposalExtender();
 
   /// @param name The name used as the EIP712 signing domain.
@@ -83,14 +83,14 @@ contract HubGovernor is
   {
     _setHubVotePool(_params.hubVotePool);
     if (_params.governorProposalExtender.code.length == 0) revert InvalidProposalExtender();
-    GOVERNOR_PROPOSAL_EXTENDER = IVoteExtender(_params.governorProposalExtender);
+    HUB_PROPOSAL_EXTENDER = IVoteExtender(_params.governorProposalExtender);
   }
 
   /// @notice The timepoint at which a proposal vote ends. This time can be extended by the
-  /// `GOVERNOR_PROPOSAL_EXTENDER`.
+  /// `HUB_PROPOSAL_EXTENDER`.
   /// @param _proposalId The id of the proposal for which to get the vote end.
   function proposalDeadline(uint256 _proposalId) public view virtual override returns (uint256) {
-    return Math.max(super.proposalDeadline(_proposalId), GOVERNOR_PROPOSAL_EXTENDER.extendedDeadlines(_proposalId));
+    return Math.max(super.proposalDeadline(_proposalId), HUB_PROPOSAL_EXTENDER.extendedDeadlines(_proposalId));
   }
 
   /// @inheritdoc GovernorTimelockControl
@@ -150,11 +150,11 @@ contract HubGovernor is
   }
 
   /// @notice This allows governance to update the voting period as long as it is greater than the minimum extension
-  /// time on the `GOVERNOR_PROPOSAL_EXTENDER`.
+  /// time on the `HUB_PROPOSAL_EXTENDER`.
   /// @param _newVotingPeriod The new vote period length.
   function setVotingPeriod(uint32 _newVotingPeriod) public virtual override {
     _checkGovernance();
-    if (_newVotingPeriod < GOVERNOR_PROPOSAL_EXTENDER.MINIMUM_EXTENSION_DURATION()) {
+    if (_newVotingPeriod < HUB_PROPOSAL_EXTENDER.MINIMUM_EXTENSION_DURATION()) {
       revert GovernorInvalidVotingPeriod(_newVotingPeriod);
     }
     return _setVotingPeriod(_newVotingPeriod);

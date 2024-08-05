@@ -231,24 +231,22 @@ contract setExtensionDuration is HubProposalExtenderTest {
   }
 }
 
-contract SetWhitelistedVoteExtender is HubProposalExtenderTest {
+contract SetVoteExtenderAdmin is HubProposalExtenderTest {
   function testFuzz_CorrectlyChangeExtensionTime(address _voteExtender) public {
     _setGovernorAndDelegates();
-    ProposalBuilder builder = _createProposal(
-      address(hubExtender), abi.encodeWithSignature("setWhitelistedVoteExtender(address)", _voteExtender)
-    );
+    ProposalBuilder builder =
+      _createProposal(address(hubExtender), abi.encodeWithSignature("setVoteExtenderAdmin(address)", _voteExtender));
 
     _queueAndVoteAndExecuteProposal(builder.targets(), builder.values(), builder.calldatas(), "Hi");
 
     assertEq(hubExtender.voteExtenderAdmin(), _voteExtender);
   }
 
-  function testFuzz_EmitsWhitelistedVotedExtenderUpdatedEvent(address _voteExtender) public {
+  function testFuzz_EmitsdVotedExtenderAdminUpdatedEvent(address _voteExtender) public {
     vm.assume(_voteExtender != address(timelock));
     (, address[] memory delegates) = _setGovernorAndDelegates();
-    ProposalBuilder builder = _createProposal(
-      address(hubExtender), abi.encodeWithSignature("setWhitelistedVoteExtender(address)", _voteExtender)
-    );
+    ProposalBuilder builder =
+      _createProposal(address(hubExtender), abi.encodeWithSignature("setVoteExtenderAdmin(address)", _voteExtender));
 
     string memory _description = "Hi";
     vm.startPrank(delegates[0]);
@@ -268,7 +266,7 @@ contract SetWhitelistedVoteExtender is HubProposalExtenderTest {
     _jumpPastProposalEta(_proposalId);
 
     vm.expectEmit();
-    emit HubProposalExtender.WhitelistedVoteExtenderUpdated(whitelistedExtender, _voteExtender);
+    emit HubProposalExtender.VoteExtenderAdminUpdated(whitelistedExtender, _voteExtender);
     governor.execute(builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes(_description)));
   }
 
@@ -276,7 +274,7 @@ contract SetWhitelistedVoteExtender is HubProposalExtenderTest {
     vm.assume(_caller != address(timelock));
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
-    hubExtender.setWhitelistedVoteExtender(_voteExtender);
+    hubExtender.setVoteExtenderAdmin(_voteExtender);
   }
 }
 

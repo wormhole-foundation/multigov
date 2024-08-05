@@ -28,7 +28,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint208 initialQuorum;
     address wormholeCore;
     uint48 voteWeightWindow;
-    address whitelistedVoteExtender;
+    address voteExtenderAdmin;
     uint48 voteTimeExtension;
     uint48 minimumDecisionWindow;
     uint48 minimumExtensionTime;
@@ -67,9 +67,9 @@ abstract contract DeployHubContractsBaseImpl is Script {
     HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0));
 
     HubProposalExtender extender = new HubProposalExtender(
-      config.whitelistedVoteExtender,
+      config.voteExtenderAdmin,
       config.voteTimeExtension,
-      config.whitelistedVoteExtender,
+      config.voteExtenderAdmin,
       config.minimumExtensionTime,
       1 days,
       config.minimumDecisionWindow

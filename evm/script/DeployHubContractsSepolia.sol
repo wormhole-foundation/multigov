@@ -17,7 +17,7 @@ contract DeployHubContractsSepolia is DeployHubContractsBaseImpl {
       initialQuorum: 1_000_000e18,
       wormholeCore: 0x31377888146f3253211EFEf5c676D41ECe7D58Fe,
       voteWeightWindow: 10 minutes,
-      whitelistedVoteExtender: wallet.addr,
+      voteExtenderAdmin: wallet.addr,
       voteTimeExtension: 5 minutes,
       minimumDecisionWindow: 5 minutes,
       minimumExtensionTime: 1 minutes,

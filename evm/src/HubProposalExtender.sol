@@ -38,10 +38,10 @@ contract HubProposalExtender is Ownable {
   /// @notice Emitted when the safe window is updated.
   event SafeWindowUpdated(uint48 oldSafeWindow, uint48 newSafeWindow);
 
-  /// @notice Emitted when the whitelisted vote extender is updated.
-  event WhitelistedVoteExtenderUpdated(address oldExtender, address newExtender);
+  /// @notice Emitted when the vote extender admin is updated.
+  event VoteExtenderAdminUpdated(address oldAdmin, address newAdmin);
 
-  /// @notice Thrown when the caller is not the owner.
+  /// @notice Thrown when the caller is not the vote extender admin.
   error AddressCannotExtendProposal();
 
   /// @notice Thrown when the contract has already been initialized.
@@ -136,11 +136,11 @@ contract HubProposalExtender is Ownable {
     _setSafeWindow(_safeWindow);
   }
 
-  /// @notice Sets the address of the whitelisted vote extender.
-  /// @param _voteExtender The new whitelisted vote extender address.
-  function setWhitelistedVoteExtender(address _voteExtender) external {
+  /// @notice Sets the address of the vote extender admin.
+  /// @param _voteExtenderAdmin The new vote extender admin address.
+  function setVoteExtenderAdmin(address _voteExtenderAdmin) external {
     _checkOwner();
-    _setWhitelistedVoteExtender(_voteExtender);
+    _setWhitelistedVoteExtender(_voteExtenderAdmin);
   }
 
   function _isVotingSafe(uint256 _proposalId) internal view returns (bool) {
@@ -153,9 +153,9 @@ contract HubProposalExtender is Ownable {
     extensionDuration = _extensionTime;
   }
 
-  function _setWhitelistedVoteExtender(address _voteExtender) internal {
-    emit WhitelistedVoteExtenderUpdated(voteExtenderAdmin, _voteExtender);
-    voteExtenderAdmin = _voteExtender;
+  function _setWhitelistedVoteExtender(address _voteExtenderAdmin) internal {
+    emit VoteExtenderAdminUpdated(voteExtenderAdmin, _voteExtenderAdmin);
+    voteExtenderAdmin = _voteExtenderAdmin;
   }
 
   function _setSafeWindow(uint48 _safeWindow) internal {
