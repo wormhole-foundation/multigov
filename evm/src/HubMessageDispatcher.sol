@@ -26,7 +26,7 @@ contract HubMessageDispatcher is WormholeDispatcher {
 
   /// @notice Publishes a message to be sent to the appropriate spoke for cross chain execution.
   /// @param _payload An encoding of the target wormhole chain id and the cross chain calls that follow the same
-  /// structure as Governor proposal: targets, values and calladata.
+  /// structure as Governor proposal: targets, values, and calldata.
   function dispatch(bytes calldata _payload) external {
     _checkOwner();
 
