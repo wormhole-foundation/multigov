@@ -6,6 +6,7 @@ import {
   TransactionSignature
 } from '@solana/web3.js';
 import { BorshCoder } from '@coral-xyz/anchor';
+import IDL from '../../target/idl/staking.json';
 
 // Gets program transactions
 export async function getProgramTransactions(
@@ -85,6 +86,42 @@ export async function printTransactionDetails(
     });
   } catch (error) {
     console.error('Error fetching transaction details:', error);
+  }
+}
+
+// Prints events of the transaction to the console
+export async function printTransactionEvents(
+  connection: Connection,
+  signature: TransactionSignature
+): Promise<void> {
+  try {
+    const transaction = await connection.getParsedTransaction(signature, {
+      maxSupportedTransactionVersion: 0
+    });
+
+    if (!transaction) {
+      console.log(`Transaction with signature ${signature} not found.`);
+      return;
+    }
+
+    console.log('Transaction signature:', signature);
+    const decodedEvents = decodeEventsFromLogMessages(
+      transaction.meta?.logMessages || [],
+      IDL
+    );
+  //   console.log(decodedEvents);
+
+    if (decodedEvents) {
+      console.log('\nEvents:');
+      decodedEvents.forEach((event, index) => {
+        console.log(`${index + 1}. Event: ${event.name}`);
+        console.log('Data:', JSON.stringify(event.data, null, 2));
+      });
+    } else {
+      console.log('Events not found.');
+    }
+  } catch (error) {
+    console.error('Error printing transaction events:', error);
   }
 }
 
