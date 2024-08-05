@@ -759,7 +759,7 @@ contract _CountVote is HubGovernorTest {
     _jumpToActiveProposal(_proposalId);
 
     bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    vm.expectRevert(GovernorCountingFractional.GovernorCountingFractional_NoVoteWeight.selector);
+    vm.expectRevert(GovernorCountingFractional.GovernorCountingFractional__NoVoteWeight.selector);
     governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, support, ZERO_TOTAL_WEIGHT, _voteData);
   }
 
