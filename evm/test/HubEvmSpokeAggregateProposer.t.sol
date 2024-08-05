@@ -6,11 +6,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
-import {CrossChainAggregateProposer} from "src/CrossChainAggregateProposer.sol";
+import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
-import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
+import {HubProposalExtender} from "src/HubProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
-import {CrossChainAggregateProposerHarness} from "test/harnesses/CrossChainAggregateProposerHarness.sol";
+import {HubEvmSpokeAggregateProposerHarness} from "test/harnesses/HubEvmSpokeAggregateProposerHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
@@ -19,13 +19,13 @@ import {HubGovernorHarness} from "test/harnesses/HubGovernorHarness.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {ProposalTest} from "test/helpers/ProposalTest.sol";
 
-contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, ProposalTest {
-  CrossChainAggregateProposerHarness public crossChainAggregateProposer;
+contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils, ProposalTest {
+  HubEvmSpokeAggregateProposerHarness public crossChainAggregateProposer;
   HubGovernorHarness public hubGovernor;
   HubVotePool public hubVotePool;
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
-  HubGovernorProposalExtender public extender;
+  HubProposalExtender public extender;
 
   uint48 public constant INITIAL_MAX_QUERY_TIMESTAMP_OFFSET = 1 hours;
 
@@ -56,7 +56,7 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 
     hubVotePool = new HubVotePool(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
 
-    extender = new HubGovernorProposalExtender(
+    extender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
     );
 
@@ -75,7 +75,7 @@ contract CrossChainAggregateProposerTest is WormholeEthQueryTest, AddressUtils, 
 
     hubGovernor = new HubGovernorHarness(params);
 
-    crossChainAggregateProposer = new CrossChainAggregateProposerHarness(
+    crossChainAggregateProposer = new HubEvmSpokeAggregateProposerHarness(
       address(wormhole), address(hubGovernor), INITIAL_MAX_QUERY_TIMESTAMP_OFFSET
     );
     hubGovernor.exposed_setWhitelistedProposer(address(crossChainAggregateProposer));
@@ -280,24 +280,24 @@ contract Constructor is Test {
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
 
-    CrossChainAggregateProposer crossChainAggregateProposer =
-      new CrossChainAggregateProposer(_core, _hubGovernor, _initialMaxQueryTimestampOffset);
+    HubEvmSpokeAggregateProposer crossChainAggregateProposer =
+      new HubEvmSpokeAggregateProposer(_core, _hubGovernor, _initialMaxQueryTimestampOffset);
     assertEq(address(crossChainAggregateProposer.HUB_GOVERNOR()), _hubGovernor);
   }
 
   function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, uint48 _initialMaxQueryTimestampOffset) public {
     vm.expectRevert(EmptyWormholeAddress.selector);
-    new CrossChainAggregateProposer(address(0), _hubGovernor, _initialMaxQueryTimestampOffset);
+    new HubEvmSpokeAggregateProposer(address(0), _hubGovernor, _initialMaxQueryTimestampOffset);
   }
 
   function testFuzz_RevertIf_HubGovernorIsZeroAddress(address _core, uint48 _initialMaxQueryTimestampOffset) public {
     vm.assume(_core != address(0));
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-    new CrossChainAggregateProposer(_core, address(0), _initialMaxQueryTimestampOffset);
+    new HubEvmSpokeAggregateProposer(_core, address(0), _initialMaxQueryTimestampOffset);
   }
 }
 
-contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
+contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
   function _checkThresholdMet(VoteWeight[] memory _voteWeights, uint256 _hubVoteWeight, uint256 _threshold)
     internal
     pure
@@ -537,7 +537,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(CrossChainAggregateProposer.InsufficientVoteWeight.selector);
+    vm.expectRevert(HubEvmSpokeAggregateProposer.InsufficientVoteWeight.selector);
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, _description, queryResponse, signatures
@@ -572,7 +572,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.expectRevert(
-      abi.encodeWithSelector(CrossChainAggregateProposer.InvalidCaller.selector, _caller, _expectedAccount)
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidCaller.selector, _caller, _expectedAccount)
     );
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
@@ -604,7 +604,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.expectRevert(
-      abi.encodeWithSelector(CrossChainAggregateProposer.UnregisteredSpoke.selector, _chainId, _spokeAddress)
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.UnregisteredSpoke.selector, _chainId, _spokeAddress)
     );
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
@@ -641,7 +641,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.expectRevert(
-      abi.encodeWithSelector(CrossChainAggregateProposer.UnregisteredSpoke.selector, _chainId, _queriedSpokeAddress)
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.UnregisteredSpoke.selector, _chainId, _queriedSpokeAddress)
     );
 
     vm.prank(_caller);
@@ -675,7 +675,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.TooManyEthCallResults.selector, 2));
+    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.TooManyEthCallResults.selector, 2));
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(targets, values, calldatas, _description, _resp, signatures);
   }
@@ -705,7 +705,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[1]));
+    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[1]));
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
@@ -731,7 +731,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
+    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
@@ -756,7 +756,7 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
+    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
@@ -794,14 +794,14 @@ contract CheckAndProposeIfEligible is CrossChainAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(CrossChainAggregateProposer.InvalidTimestamp.selector, timestamps[3]));
+    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[3]));
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
   }
 }
 
-contract RegisterSpoke is CrossChainAggregateProposerTest {
+contract RegisterSpoke is HubEvmSpokeAggregateProposerTest {
   function testFuzz_CorrectlyRegisterSpoke(uint16 _chainId, address _spokeAddress) public {
     vm.assume(_spokeAddress != address(0));
 
@@ -817,7 +817,7 @@ contract RegisterSpoke is CrossChainAggregateProposerTest {
     address existingAddress = crossChainAggregateProposer.registeredSpokes(_chainId);
     vm.prank(crossChainAggregateProposer.owner());
     vm.expectEmit();
-    emit CrossChainAggregateProposer.SpokeRegistered(_chainId, existingAddress, _spokeAddress);
+    emit HubEvmSpokeAggregateProposer.SpokeRegistered(_chainId, existingAddress, _spokeAddress);
     crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
   }
 
@@ -831,7 +831,7 @@ contract RegisterSpoke is CrossChainAggregateProposerTest {
   }
 }
 
-contract SetMaxQueryTimestampOffset is CrossChainAggregateProposerTest {
+contract SetMaxQueryTimestampOffset is HubEvmSpokeAggregateProposerTest {
   function testFuzz_CorrectlySetMaxQueryTimestampOffset(uint48 _maxQueryTimestampOffset) public {
     vm.assume(_maxQueryTimestampOffset != 0);
     vm.prank(crossChainAggregateProposer.owner());
@@ -842,7 +842,7 @@ contract SetMaxQueryTimestampOffset is CrossChainAggregateProposerTest {
   function testFuzz_EmitsMaxQueryTimestampOffsetUpdatedEvent(uint48 _maxQueryTimestampOffset) public {
     vm.assume(_maxQueryTimestampOffset != 0);
     vm.expectEmit();
-    emit CrossChainAggregateProposer.MaxQueryTimestampOffsetUpdated(
+    emit HubEvmSpokeAggregateProposer.MaxQueryTimestampOffsetUpdated(
       crossChainAggregateProposer.maxQueryTimestampOffset(), _maxQueryTimestampOffset
     );
     vm.prank(crossChainAggregateProposer.owner());
@@ -859,12 +859,12 @@ contract SetMaxQueryTimestampOffset is CrossChainAggregateProposerTest {
 
   function test_RevertIf_ZeroTimeDelta() public {
     vm.prank(crossChainAggregateProposer.owner());
-    vm.expectRevert(CrossChainAggregateProposer.InvalidOffset.selector);
+    vm.expectRevert(HubEvmSpokeAggregateProposer.InvalidOffset.selector);
     crossChainAggregateProposer.setMaxQueryTimestampOffset(0);
   }
 }
 
-contract _ExtractAccountFromCalldata is CrossChainAggregateProposerTest {
+contract _ExtractAccountFromCalldata is HubEvmSpokeAggregateProposerTest {
   function testFuzz_CorrectlyExtractsAccountFromCalldata(address _account) public view {
     // Simulate the calldata for a getVotes(address) function call
     bytes4 selector = bytes4(keccak256("getVotes(address)"));
@@ -876,7 +876,7 @@ contract _ExtractAccountFromCalldata is CrossChainAggregateProposerTest {
 
   function testFuzz_RevertIf_InvalidCallDataLength(bytes memory _callData) public {
     vm.assume(_callData.length < 24);
-    vm.expectRevert(CrossChainAggregateProposer.InvalidCallDataLength.selector);
+    vm.expectRevert(HubEvmSpokeAggregateProposer.InvalidCallDataLength.selector);
     crossChainAggregateProposer.exposed_extractAccountFromCalldata(_callData);
   }
 }

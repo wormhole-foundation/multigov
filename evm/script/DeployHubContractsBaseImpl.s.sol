@@ -7,7 +7,7 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
 import {HubGovernor} from "src/HubGovernor.sol";
-import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
+import {HubProposalExtender} from "src/HubProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
@@ -28,7 +28,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint208 initialQuorum;
     address wormholeCore;
     uint48 voteWeightWindow;
-    address whitelistedVoteExtender;
+    address voteExtenderAdmin;
     uint48 voteTimeExtension;
     uint48 minimumDecisionWindow;
     uint48 minimumExtensionTime;
@@ -55,7 +55,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
       HubGovernor,
       HubProposalMetadata,
       HubMessageDispatcher,
-      HubGovernorProposalExtender
+      HubProposalExtender
     )
   {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
@@ -66,10 +66,10 @@ abstract contract DeployHubContractsBaseImpl is Script {
 
     HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0));
 
-    HubGovernorProposalExtender extender = new HubGovernorProposalExtender(
-      config.whitelistedVoteExtender,
+    HubProposalExtender extender = new HubProposalExtender(
+      config.voteExtenderAdmin,
       config.voteTimeExtension,
-      config.whitelistedVoteExtender,
+      config.voteExtenderAdmin,
       config.minimumExtensionTime,
       1 days,
       config.minimumDecisionWindow
