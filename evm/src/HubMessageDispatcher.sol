@@ -12,7 +12,7 @@ contract HubMessageDispatcher is WormholeDispatcher {
   uint256 public nextMessageId = 1;
 
   /// @notice Thrown if the encoded payload is invalid.
-  error InvalidSpokeExecutorOperationLength(uint256, uint256, uint256);
+  error InvalidSpokeExecutorOperationLength(uint256 targetsLength, uint256 valuesLength, uint256 calldatasLength);
 
   /// @notice Emitted when a message is dispatched.
   event MessageDispatched(uint256 indexed proposalId, bytes payload);
