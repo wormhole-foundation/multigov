@@ -102,6 +102,9 @@ contract HubVotePool is QueryResponse, Ownable {
     spokeRegistry[_targetChain] = _spokeVoteAddress;
   }
 
+  /// @notice Updates the address of the hub governor.
+  /// @dev Can only be called by the contract owner.
+  /// @param _newGovernor The address of the new hub governor.
   function setGovernor(address _newGovernor) external {
     _checkOwner();
     hubGovernor = IGovernor(_newGovernor);
