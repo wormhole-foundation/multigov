@@ -20,7 +20,7 @@ abstract contract GovernorMinimumWeightedVoteWindow {
   Checkpoints.Trace160 internal voteWeightWindowLengths;
 
   /// @notice Emitted When the vote weight window is updated.
-  event VoteWeightWindowUpdated(uint48 oldVoteWeightWind, uint48 newVoteWeightWindow);
+  event VoteWeightWindowUpdated(uint48 oldVoteWeightWindow, uint48 newVoteWeightWindow);
 
   /// @param _initialVoteWeightWindowLength The length of time to set the vote weight window.
   constructor(uint48 _initialVoteWeightWindowLength) {
