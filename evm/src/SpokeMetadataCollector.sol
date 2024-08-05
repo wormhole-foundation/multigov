@@ -48,7 +48,7 @@ contract SpokeMetadataCollector is QueryResponse {
     HUB_PROPOSAL_METADATA = _hubProposalMetadata;
   }
 
-  /// @notice A function that takes in a wormhole query, verifies, validtates it and then creates a proposal on the
+  /// @notice A function that takes in a wormhole query, verifies, validates it and then creates a proposal on the
   /// spoke that can be used for voting.
   /// @param _queryResponseRaw A encoded wormhole query with an id and vote start of one or multiple hub proposals.
   /// @param _signatures An array of signatures of the hash of the query response.
