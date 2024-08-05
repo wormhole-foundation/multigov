@@ -110,6 +110,10 @@ contract HubVotePool is QueryResponse, Ownable {
     hubGovernor = IGovernor(_newGovernor);
   }
 
+  /// @notice Processes cross chain votes from the spokes. Parses and verifies the Wormhole query response, then casts
+  /// votes on the hub governor.
+  /// @param _queryResponseRaw The raw bytes of the query response from Wormhole.
+  /// @param _signatures The signatures verifying the Wormhole message.
   function crossChainVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
