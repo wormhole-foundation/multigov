@@ -6,6 +6,7 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
+import {GovernorCountingFractional} from "src/lib/GovernorCountingFractional.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
@@ -759,7 +760,7 @@ contract _CountVote is HubGovernorTest {
     _jumpToActiveProposal(_proposalId);
 
     bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    vm.expectRevert("GovernorCountingFractional: no weight");
+    vm.expectRevert(GovernorCountingFractional.GovernorCountingFractional_NoVoteWeight.selector);
     governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, support, ZERO_TOTAL_WEIGHT, _voteData);
   }
 
@@ -800,7 +801,7 @@ contract _CountVote is HubGovernorTest {
 
     // Cast another vote where the second call to _countVote uses a total weight that is less than or equal to the total
     // weight from the first call to _countVote
-    vm.expectRevert("GovernorCountingFractional: all weight cast");
+    vm.expectRevert(GovernorCountingFractional.GovernorCountingFractional__VoteWeightExceeded.selector);
     governor.exposed_countVote(
       _proposalId, _nonWhitelistedAddress, _support, _secondCallTotalWeight, _secondCallVoteData
     );

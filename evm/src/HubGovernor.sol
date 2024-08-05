@@ -214,15 +214,9 @@ contract HubGovernor is
     uint256 _totalWeight,
     bytes memory _voteData
   ) internal virtual override(Governor, GovernorCountingFractional) {
-    uint128 _safeTotalWeight = type(uint128).max;
-    if (address(hubVotePool) != _account) {
-      require(_totalWeight > 0, "GovernorCountingFractional: no weight");
-      if (voteWeightCast(_proposalId, _account) >= _totalWeight) revert("GovernorCountingFractional: all weight cast");
-      _safeTotalWeight = SafeCast.toUint128(_totalWeight);
-    }
-
-    if (_voteData.length == 0) _countVoteNominal(_proposalId, _account, _safeTotalWeight, _support);
-    else _countVoteFractional(_proposalId, _account, _safeTotalWeight, _voteData);
+    // if the account is the hub vote pool then we allow the vote to be counted without checking the weight
+    if (_account == address(hubVotePool)) _totalWeight = type(uint128).max;
+    GovernorCountingFractional._countVote(_proposalId, _account, _support, _totalWeight, _voteData);
   }
 
   /// @inheritdoc GovernorTimelockControl
