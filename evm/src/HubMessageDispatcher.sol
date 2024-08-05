@@ -8,6 +8,7 @@ import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
 /// @notice A contract that will publish a message that can be relayed to the appropriate `SpokeExecutor`.
 contract HubMessageDispatcher is WormholeDispatcher {
   /// @notice The id for the next message published.
+  /// @dev This value is incremented after each successful message dispatch.
   uint256 public nextMessageId = 1;
 
   /// @notice Thrown if the encoded payload is invalid.
