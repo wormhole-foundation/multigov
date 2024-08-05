@@ -89,6 +89,7 @@ contract HubGovernor is
   /// @notice The timepoint at which a proposal vote ends. This time can be extended by the
   /// `HUB_PROPOSAL_EXTENDER`.
   /// @param _proposalId The id of the proposal for which to get the vote end.
+  /// @return The timestamp of the proposal deadline.
   function proposalDeadline(uint256 _proposalId) public view virtual override returns (uint256) {
     return Math.max(super.proposalDeadline(_proposalId), HUB_PROPOSAL_EXTENDER.extendedDeadlines(_proposalId));
   }
