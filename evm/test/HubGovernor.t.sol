@@ -8,7 +8,7 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
 import {GovernorCountingFractional} from "src/lib/GovernorCountingFractional.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
-import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
+import {HubProposalExtender} from "src/HubProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
@@ -23,7 +23,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
   HubVotePoolHarness public hubVotePool;
-  HubGovernorProposalExtender public extender;
+  HubProposalExtender public extender;
 
   address initialOwner;
 
@@ -38,7 +38,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    extender = new HubGovernorProposalExtender(
+    extender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DECISION_WINDOW
     );
 

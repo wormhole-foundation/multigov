@@ -5,9 +5,9 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 
-/// @title HubGovernorProposalExtender
+/// @title HubProposalExtender
 /// @notice A contract that enables the extension of proposals on the hub governor.
-contract HubGovernorProposalExtender is Ownable {
+contract HubProposalExtender is Ownable {
   /// @notice The hub governor.
   HubGovernor public governor;
 
@@ -21,7 +21,7 @@ contract HubGovernorProposalExtender is Ownable {
   uint48 public safeWindow;
 
   /// @notice The address of the trusted actor able to extend proposals.
-  address public whitelistedVoteExtender;
+  address public voteExtenderAdmin;
 
   /// @notice The lower limit for extension duration.
   uint48 public immutable MINIMUM_EXTENSION_DURATION;
@@ -97,7 +97,7 @@ contract HubGovernorProposalExtender is Ownable {
   /// @param _proposalId The id of the proposal to extend.
   function extendProposal(uint256 _proposalId) external {
     uint256 exists = governor.proposalSnapshot(_proposalId);
-    if (msg.sender != whitelistedVoteExtender) revert AddressCannotExtendProposal();
+    if (msg.sender != voteExtenderAdmin) revert AddressCannotExtendProposal();
     if (exists == 0) revert ProposalDoesNotExist();
     if (extendedDeadlines[_proposalId] != 0) revert ProposalAlreadyExtended();
     IGovernor.ProposalState state = governor.state(_proposalId);
@@ -154,8 +154,8 @@ contract HubGovernorProposalExtender is Ownable {
   }
 
   function _setWhitelistedVoteExtender(address _voteExtender) internal {
-    emit WhitelistedVoteExtenderUpdated(whitelistedVoteExtender, _voteExtender);
-    whitelistedVoteExtender = _voteExtender;
+    emit WhitelistedVoteExtenderUpdated(voteExtenderAdmin, _voteExtender);
+    voteExtenderAdmin = _voteExtender;
   }
 
   function _setSafeWindow(uint48 _safeWindow) internal {

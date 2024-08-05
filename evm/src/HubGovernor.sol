@@ -29,7 +29,7 @@ contract HubGovernor is
 {
   /// @notice An address that can create a proposal without having any voting weight to support an address creating a
   /// proposal when their voting weight is distributed on multiple chains. Typically, this will be set to a deployed
-  /// `CrossChainAggregateProposer`.
+  /// `HubEvmSpokeAggregateProposer`.
   address public whitelistedProposer;
 
   /// @notice This is a contract that will recieve votes from the spokes and cast votes to the `HubGovernor` without

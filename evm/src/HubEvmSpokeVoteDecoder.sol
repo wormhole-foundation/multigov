@@ -9,12 +9,12 @@ import {
   EthCallWithFinalityQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
-import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
+import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 
-/// @title HubCrossChainEvmCallWithFinalityVoteDecoder
+/// @title HubEvmSpokeVoteDecoder
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice A contract that parses a specific wormhole query type from the `SpokeVoteAggregator`.
-contract HubCrossChainEvmCallWithFinalityVoteDecoder is ICrossChainVoteDecoder, QueryResponse, ERC165 {
+contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @notice The hub vote pool used to validate message emitter.
   HubVotePool public immutable HUB_VOTE_POOL;
 
@@ -58,7 +58,7 @@ contract HubCrossChainEvmCallWithFinalityVoteDecoder is ICrossChainVoteDecoder, 
   /// @param _interfaceId The id of the interface that is checked.
   /// @return Whether the interface id is supported.
   function supportsInterface(bytes4 _interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-    return _interfaceId == type(ICrossChainVoteDecoder).interfaceId || ERC165.supportsInterface(_interfaceId);
+    return _interfaceId == type(ISpokeVoteDecoder).interfaceId || ERC165.supportsInterface(_interfaceId);
   }
 
   /// @notice A helper function to compare a registered spoke address to the address in the query.
