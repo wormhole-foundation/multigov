@@ -229,17 +229,17 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
 }
 
 contract SupportsInterface is HubEvmSpokeVoteDecoderTest {
-  function test_Erc165InterfaceIsSupported() public {
+  function test_Erc165InterfaceIsSupported() public view {
     bool isValid = hubCrossChainEvmVote.supportsInterface(type(IERC165).interfaceId);
     assertTrue(isValid);
   }
 
-  function test_CrossChainVoteInterfaceSupported() public {
+  function test_CrossChainVoteInterfaceSupported() public view {
     bool isValid = hubCrossChainEvmVote.supportsInterface(type(ISpokeVoteDecoder).interfaceId);
     assertTrue(isValid);
   }
 
-  function test_InterfaceIsNotSupported() public {
+  function test_InterfaceIsNotSupported() public view {
     bool isValid = hubCrossChainEvmVote.supportsInterface(type(IWormhole).interfaceId);
     assertFalse(isValid);
   }
