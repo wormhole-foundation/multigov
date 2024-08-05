@@ -33,7 +33,7 @@ contract SpokeAirlock {
 
   /// @notice Updates the message executor to a new address.
   /// @param _messageExecutor The address of the new message executor.
-  function setMessageExecutor(address _messageExecutor) public {
+  function setMessageExecutor(address _messageExecutor) external {
     _onlyMessageExecutor();
     messageExecutor = _messageExecutor;
     emit MessageExecutorUpdated(_messageExecutor);
