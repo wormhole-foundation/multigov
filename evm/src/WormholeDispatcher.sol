@@ -29,7 +29,7 @@ contract WormholeDispatcher is Ownable {
     consistencyLevel = _consistencyLevel;
   }
 
-  /// @notice Sets the consistency level for crosschain messages.
+  /// @notice Sets the consistency level for cross chain messages.
   /// @param _consistencyLevel The new consistency level.
   function setConsistencyLevel(uint8 _consistencyLevel) external {
     _checkOwner();
