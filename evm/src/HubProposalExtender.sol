@@ -2,8 +2,8 @@
 pragma solidity ^0.8.23;
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 
 /// @title HubProposalExtender
