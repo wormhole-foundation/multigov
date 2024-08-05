@@ -6,6 +6,7 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
+import {GovernorCountingFractional} from "src/lib/GovernorCountingFractional.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
@@ -638,17 +639,49 @@ contract SetVoteWeightWindow is HubGovernorTest {
 }
 
 contract _CountVote is HubGovernorTest {
-  function testFuzz_WhitelistedAddressCanVote(
+  function testFuzz_WhitelistedAddressCanVoteWhenTotalWeightIsZero(
     uint8 _support,
     uint32 _forVotes,
     uint32 _againstVotes,
     uint32 _abstainVotes,
+    uint128 _totalWeight,
     string memory _proposalDescription
   ) public {
-    uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
-    vm.assume(_totalWeight != 0);
     _support = uint8(bound(_support, 0, 2));
 
+    (, delegates) = _setGovernorAndDelegates();
+    (ProposalBuilder builder) = _createArbitraryProposal();
+
+    vm.startPrank(delegates[0]);
+    uint256 _proposalId =
+      governor.propose(builder.targets(), builder.values(), builder.calldatas(), _proposalDescription);
+    vm.stopPrank();
+
+    _jumpToActiveProposal(_proposalId);
+
+    bytes memory voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
+    governor.exposed_countVote(_proposalId, address(hubVotePool), _support, 0, voteData);
+
+    uint256 votingWeight = token.getVotes(address(hubVotePool));
+
+    (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
+    assertEq(votingWeight, 0);
+    assertEq(againstVotes, _againstVotes);
+    assertEq(forVotes, _forVotes);
+    assertEq(abstainVotes, _abstainVotes);
+  }
+
+  function testFuzz_WhitelistedAddressCanVoteWhenTotalWeightIsRandom(
+    uint8 _support,
+    uint32 _forVotes,
+    uint32 _againstVotes,
+    uint32 _abstainVotes,
+    uint128 _totalWeight,
+    string memory _proposalDescription
+  ) public {
+    _support = uint8(bound(_support, 0, 2));
+
+    _mintAndDelegate(address(hubVotePool), _totalWeight);
     (, delegates) = _setGovernorAndDelegates();
     (ProposalBuilder builder) = _createArbitraryProposal();
 
@@ -665,7 +698,7 @@ contract _CountVote is HubGovernorTest {
     uint256 votingWeight = token.getVotes(address(hubVotePool));
 
     (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
-    assertEq(votingWeight, 0);
+    assertEq(votingWeight, _totalWeight);
     assertEq(againstVotes, _againstVotes);
     assertEq(forVotes, _forVotes);
     assertEq(abstainVotes, _abstainVotes);
@@ -680,7 +713,6 @@ contract _CountVote is HubGovernorTest {
     string memory _proposalDescription
   ) public {
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
-    vm.assume(_totalWeight != 0);
     vm.assume(_nonWhitelistedAddress != address(hubVotePool));
     _support = uint8(bound(_support, 0, 2));
 
@@ -728,7 +760,7 @@ contract _CountVote is HubGovernorTest {
     _jumpToActiveProposal(_proposalId);
 
     bytes memory _voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    vm.expectRevert("GovernorCountingFractional: no weight");
+    vm.expectRevert(GovernorCountingFractional.GovernorCountingFractional_NoVoteWeight.selector);
     governor.exposed_countVote(_proposalId, _nonWhitelistedAddress, support, ZERO_TOTAL_WEIGHT, _voteData);
   }
 
@@ -769,7 +801,7 @@ contract _CountVote is HubGovernorTest {
 
     // Cast another vote where the second call to _countVote uses a total weight that is less than or equal to the total
     // weight from the first call to _countVote
-    vm.expectRevert("GovernorCountingFractional: all weight cast");
+    vm.expectRevert(GovernorCountingFractional.GovernorCountingFractional__VoteWeightExceeded.selector);
     governor.exposed_countVote(
       _proposalId, _nonWhitelistedAddress, _support, _secondCallTotalWeight, _secondCallVoteData
     );

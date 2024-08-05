@@ -412,7 +412,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_proposalId, _amount, 0, 0));
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_amount, 0, 0));
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _boundVoteStart(_voteStart);
@@ -438,7 +438,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_proposalId, 0, _amount, 0));
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, _amount, 0));
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _boundVoteStart(_voteStart);
@@ -464,7 +464,7 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   ) public {
     vm.assume(_amount != 0);
     vm.assume(_caller != address(0));
-    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(_proposalId, 0, 0, _amount));
+    bytes memory _params = _getVoteData(SpokeCountingFractional.ProposalVote(0, 0, _amount));
 
     _mintAndDelegate(_caller, _amount);
     uint48 voteStart = _boundVoteStart(_voteStart);
