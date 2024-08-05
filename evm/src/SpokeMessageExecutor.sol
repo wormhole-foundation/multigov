@@ -61,7 +61,7 @@ contract SpokeMessageExecutor {
     initialized = true;
   }
 
-  /// @notice A function that takes in an encoded proposal messagge that is meant to be executed on the spoke. There are
+  /// @notice A function that takes in an encoded proposal message that is meant to be executed on the spoke. There are
   /// no deadlines for these messages and can be replayed until they succeed. It is recommend to encode calls that have
   /// some expiry.
   /// @param _encodedMessage The encoded message id, wormhole chain id, targets, values, and calldatas.
@@ -108,7 +108,7 @@ contract SpokeMessageExecutor {
     if (msg.sender != address(airlock)) revert InvalidCaller();
   }
 
-  /// @notice A funciton to verify the message was meant for this spoke chain.
+  /// @notice A function to verify the message was meant for this spoke chain.
   /// @param _messageChainId The wormhole message chain id.
   function _validateChainId(uint16 _messageChainId) internal view {
     if (SPOKE_CHAIN_ID != _messageChainId) revert InvalidWormholeMessage("Message is not meant for this chain.");
