@@ -65,7 +65,7 @@ contract HubProposalExtender is Ownable {
   /// @param _whitelistedVoteExtender Address of the trusted actor able to extend proposals.
   /// @param _extensionDuration Amount of time for which target proposals will be extended.
   /// @param _owner Owner of the contract.
-  /// @param _minimumExtensionDuration Lower limit for extension duratio`.
+  /// @param _minimumExtensionDuration Lower limit for extension duration.
   /// @param _safeWindow The period of time after a proposal's vote start, during which spoke votes are expected to be
   /// reliably counted. It's the inverse of "unsafe window," which is the period of time between the safe window and
   /// vote end. Proposals can be extended during the unsafe window.
