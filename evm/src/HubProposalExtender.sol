@@ -67,7 +67,7 @@ contract HubProposalExtender is Ownable {
   /// @param _owner Owner of the contract.
   /// @param _minimumExtensionDuration Lower limit for extension duration.
   /// @param _safeWindow The period of time after a proposal's vote start, during which spoke votes are expected to be
-  /// reliably counted. It's the inverse of "unsafe window," which is the period of time between the safe window and
+  /// reliably counted. It's the inverse of "unsafe window", which is the period of time between the safe window and
   /// vote end. Proposals can be extended during the unsafe window.
   /// @param _minimumDecisionWindow Lower limit for unsafe window.
   constructor(
