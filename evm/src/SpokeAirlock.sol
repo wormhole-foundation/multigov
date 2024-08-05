@@ -3,7 +3,7 @@ pragma solidity ^0.8.23;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
-// @title SpokeAirlock
+/// @title SpokeAirlock
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice A contract that executes cross chain proposals in the `SpokeMessageExecutor`. It is meant to function as a
 /// spoke account for the DAO, and to create a simple upgrade path for the `SpokeMessageExecutor`.
