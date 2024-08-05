@@ -712,7 +712,6 @@ contract _CountVote is HubGovernorTest {
     string memory _proposalDescription
   ) public {
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
-    vm.assume(_totalWeight != 0);
     vm.assume(_nonWhitelistedAddress != address(hubVotePool));
     _support = uint8(bound(_support, 0, 2));
 
