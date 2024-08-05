@@ -6,6 +6,7 @@ import {
   Keypair,
   Transaction,
   LAMPORTS_PER_SOL,
+  SystemProgram,
 } from "@solana/web3.js";
 import fs from "fs";
 import { Program, Wallet, utils, AnchorProvider } from "@coral-xyz/anchor";
@@ -290,6 +291,61 @@ export function makeDefaultConfig(
 }
 
 /**
+ * Creates a new user's StakeConnection for testing:
+ * - Airdrops Wormhole token to the currently connected wallet
+ * - Creates a connection to the localnet wormhole staking program
+ * */
+export async function newUserStakeConnection(
+  stakeConnection: StakeConnection,
+  config: AnchorConfig,
+  whMintAccount: PublicKey,
+  whMintAuthority: Keypair,
+  amount?: WHTokenBalance,
+): Promise<StakeConnection> {
+  const connection = stakeConnection.provider.connection;
+  const userKeypair = Keypair.generate();
+  const provider = new AnchorProvider(connection, new Wallet(userKeypair), {});
+
+  await requestWHTokenAirdrop(
+    userKeypair.publicKey,
+    whMintAccount.publicKey,
+    whMintAuthority,
+    amount ? amount : WHTokenBalance.fromString("200"),
+    connection,
+  );
+
+  const userStakeConnection = await StakeConnection.createStakeConnection(
+    connection,
+    provider.wallet as Wallet,
+    new PublicKey(config.programs.localnet.staking),
+  );
+
+  await transferSolFromValidatorWallet(stakeConnection.provider, userKeypair.publicKey, 10000);
+  
+  return userStakeConnection;
+}
+
+export async function transferSolFromValidatorWallet(
+  provider: AnchorProvider,
+  to: PublicKey,
+  amount: number
+) {
+  const payer = provider.wallet.payer;
+
+  const transaction = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: payer.publicKey,
+      toPubkey: to,
+      lamports: amount * LAMPORTS_PER_SOL,
+    })
+  );
+  const signature = await provider.connection.sendTransaction(transaction, [payer]);
+  await provider.connection.confirmTransaction(signature, 'confirmed');
+
+//   console.log(`Successfully transferred ${amount} SOL from ${payer.publicKey.toBase58()} to ${to.toBase58()}`);
+}
+
+/**
  * Standard setup for test, this function :
  * - Launches at validator at `portNumber`
  * - Creates a Wormhole token in the localnet environment
@@ -353,10 +409,7 @@ export async function standardSetup(
     .accounts({ governanceSigner: user })
     .rpc();
 
-  const connection = new Connection(
-    `http://127.0.0.1:${portNumber}`,
-    AnchorProvider.defaultOptions().commitment,
-  );
+  const connection = getConnection(portNumber);
 
   const stakeConnection = await StakeConnection.createStakeConnection(
     connection,
