@@ -67,8 +67,8 @@ contract HubCrossChainEvmCallWithFinalityVoteDecoderTest is WormholeEthQueryTest
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
+          _voteParams.proposalId,
           SpokeCountingFractional.ProposalVote({
-            proposalId: _voteParams.proposalId,
             againstVotes: uint128(_voteParams.againstVotes),
             forVotes: uint128(_voteParams.forVotes),
             abstainVotes: uint128(_voteParams.abstainVotes)
@@ -200,8 +200,8 @@ contract Decode is HubCrossChainEvmCallWithFinalityVoteDecoderTest {
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
+          _proposalId,
           SpokeCountingFractional.ProposalVote({
-            proposalId: _proposalId,
             againstVotes: uint128(_abstainVotes),
             forVotes: uint128(_abstainVotes),
             abstainVotes: uint128(_abstainVotes)
