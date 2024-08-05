@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {Test, console2} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
-import {Test, console2} from "forge-std/Test.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 import {SpokeVoteAggregatorHarness} from "test/harnesses/SpokeVoteAggregatorHarness.sol";
-import {ProposalTest} from "test/helpers/ProposalTest.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 
 contract SpokeVoteAggregatorTest is Test {

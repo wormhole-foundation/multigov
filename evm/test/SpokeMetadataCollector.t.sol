@@ -3,12 +3,11 @@ pragma solidity ^0.8.23;
 
 import {console2, Test} from "forge-std/Test.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
-
+import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
-import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 
 contract SpokeMetadataCollectorTest is WormholeEthQueryTest {
   function setUp() public {

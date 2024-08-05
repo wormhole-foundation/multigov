@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {ParsedPerChainQueryResponse} from "wormhole/query/QueryResponse.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {ParsedPerChainQueryResponse} from "wormhole/query/QueryResponse.sol";
 
 interface ICrossChainVoteDecoder is IERC165 {
   struct ProposalVote {
