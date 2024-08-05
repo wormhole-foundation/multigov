@@ -61,7 +61,6 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   /// @param _initialVoteWindow The moving window for vote weight checkpoints, meant to mitigate crosschain double
   /// voting attacks.
   constructor(address _spokeMetadataCollector, address _votingToken, address _owner, uint48 _initialVoteWindow)
-    // TODO: name, version
     EIP712("SpokeVoteAggregator", "1")
     Ownable(_owner)
     GovernorMinimumWeightedVoteWindow(_initialVoteWindow)
@@ -120,7 +119,6 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     public
     returns (uint256)
   {
-    // TODO: remove nonce pending a double-check that votes can't replay (think we're casting full weight vote)
     bool valid = SignatureChecker.isValidSignatureNow(
       _voter,
       _hashTypedDataV4(keccak256(abi.encode(BALLOT_TYPEHASH, _proposalId, _support, _voter, _useNonce(_voter)))),
@@ -145,7 +143,6 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
     return _castVote(_proposalId, _voter, _support, _reason, "");
   }
 
-  // TODO Update for flexible voting, this will change with Flexible voting
   function _castVote(uint256 _proposalId, address _voter, uint8 _support, string memory _reason, bytes memory _params)
     internal
     returns (uint256)
@@ -168,7 +165,6 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   /// @return True if the proposal is active, false otherwise.
   function voteActiveInternal(uint256 _proposalId) public view returns (bool) {
     SpokeMetadataCollector.Proposal memory _proposal = spokeMetadataCollector.getProposal(_proposalId);
-    // TODO: do we need to use voting token clock or can we replace w more efficient block.timestamp
     return VOTING_TOKEN.clock() >= _proposal.voteStart;
   }
 
