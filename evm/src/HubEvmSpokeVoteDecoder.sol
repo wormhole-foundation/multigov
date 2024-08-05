@@ -64,6 +64,7 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @notice A helper function to compare a registered spoke address to the address in the query.
   /// @param _registeredSpokeAddress The wormhole representation of a registered address.
   /// @param _queriedContract An ethereum address used in the query.
+  /// @return A boolean indicating whether the addresses match.
   function _isValidSpokeAddress(bytes32 _registeredSpokeAddress, address _queriedContract) internal pure returns (bool) {
     if (
       _registeredSpokeAddress != bytes32(uint256(uint160(_queriedContract))) || _registeredSpokeAddress == bytes32("")

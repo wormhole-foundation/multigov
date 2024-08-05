@@ -76,6 +76,7 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   /// @param _description A description of the proposal.
   /// @param _queryResponseRaw The raw bytes of the query requests and response.
   /// @param _signatures Signatures from the guardians validating the queries are correct.
+  /// @return The id of the proposal created.
   function checkAndProposeIfEligible(
     address[] memory _targets,
     uint256[] memory _values,
@@ -109,9 +110,10 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
 
   /// @notice Verifies that a caller has the appropriate voting weight and has submitted valid queries. A valid query
   /// will share the same timestamp with all of the other queries, be greater than the offset timestamp, less than or
-  /// equal to the current timestamp and use the callers address to get the weight.
+  /// equal to the current timestamp, and use the callers address to get the weight.
   /// @param _queryResponseRaw The raw bytes of the query requests and response.
-  /// @param _signatures Signatures from the guardians validating the queries are correct.
+  /// @param _signatures Signatures validating that the queries are correct from the guardians.
+  /// @return A boolean indicating whether the caller is eligible to create a proposal.
   function _checkProposalEligibility(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures)
     internal
     view
@@ -166,6 +168,7 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
 
   /// @notice Extracts the address used to get the voting weight from the query.
   /// @param _callData The calldata from which to extract the address.
+  /// @return The extracted address.
   function _extractAccountFromCalldata(bytes memory _callData) internal pure returns (address) {
     // Ensure callData is long enough to contain function selector (4 bytes) and an address (20 bytes)
     if (_callData.length < 24) revert InvalidCallDataLength();
