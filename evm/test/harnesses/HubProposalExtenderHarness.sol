@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
+import {HubProposalExtender} from "src/HubProposalExtender.sol";
 
 // , 1 days, minimumTime
-contract HubGovernorProposalExtenderHarness is HubGovernorProposalExtender {
+contract HubProposalExtenderHarness is HubProposalExtender {
   constructor(
     address _whitelistedVoteExtender,
     uint48 _voteTimeExtension,
@@ -13,7 +13,7 @@ contract HubGovernorProposalExtenderHarness is HubGovernorProposalExtender {
     uint32 _safeWindow,
     uint48 _minimumDecisionWindow
   )
-    HubGovernorProposalExtender(
+    HubProposalExtender(
       _whitelistedVoteExtender,
       _voteTimeExtension,
       _owner,

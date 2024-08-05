@@ -7,7 +7,7 @@ import {HubGovernor} from "src/HubGovernor.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
-import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
+import {HubProposalExtender} from "src/HubProposalExtender.sol";
 import {DeployHubContractsSepolia} from "script/DeployHubContractsSepolia.sol";
 import {TestConstants} from "test/TestConstants.sol";
 
@@ -32,7 +32,7 @@ contract DeployHubContractsTest is DeployHubContractsBase {
       HubGovernor governor,
       HubProposalMetadata proposalMetadata,
       HubMessageDispatcher dispatcher,
-      HubGovernorProposalExtender extender
+      HubProposalExtender extender
     ) = script.run();
 
     assertEq(timelock.getMinDelay(), 300);
@@ -46,7 +46,7 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     assertEq(governor.proposalThreshold(), 500_000e18);
     assertEq(governor.quorum(block.timestamp), 1_000_000e18);
     assertEq(governor.name(), "Wormhole Sepolia Governor");
-    assertEq(address(governor.GOVERNOR_PROPOSAL_EXTENDER()), address(extender));
+    assertEq(address(governor.HUB_PROPOSAL_EXTENDER()), address(extender));
     assertEq(governor.getVoteWeightWindowLength(uint48(block.timestamp)), 10 minutes);
     assertEq(governor.whitelistedProposer(), address(0));
 
@@ -56,7 +56,7 @@ contract DeployHubContractsTest is DeployHubContractsBase {
 
     assertEq(address(proposalMetadata.GOVERNOR()), address(governor));
 
-    assertEq(extender.whitelistedVoteExtender(), address(deployer));
+    assertEq(extender.voteExtenderAdmin(), address(deployer));
     assertEq(extender.extensionDuration(), 5 minutes);
     assertEq(extender.MINIMUM_EXTENSION_DURATION(), 1 minutes);
     assertEq(address(extender.governor()), address(governor));

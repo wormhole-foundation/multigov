@@ -7,9 +7,9 @@ import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {QueryResponse} from "wormhole/query/QueryResponse.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {HubCrossChainEvmCallWithFinalityVoteDecoder} from "src/HubCrossChainEvmCallWithFinalityVoteDecoder.sol";
+import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
-import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
+import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {ERC165Fake} from "test/fakes/ERC165Fake.sol";
@@ -24,7 +24,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
   uint16 QUERY_CHAIN_ID = 2;
   uint48 minimumTime = 1 hours;
   uint8 ethCallQuery;
-  HubCrossChainEvmCallWithFinalityVoteDecoder hubCrossChainEvmVote;
+  HubEvmSpokeVoteDecoder hubCrossChainEvmVote;
 
   struct VoteParams {
     uint256 proposalId;
@@ -38,7 +38,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     governor = new GovernorMock();
     hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
 
-    hubCrossChainEvmVote = new HubCrossChainEvmCallWithFinalityVoteDecoder(address(wormhole), address(hubVotePool));
+    hubCrossChainEvmVote = new HubEvmSpokeVoteDecoder(address(wormhole), address(hubVotePool));
 
     ethCallQuery = hubVotePool.QT_ETH_CALL_WITH_FINALITY();
     vm.startPrank(address(governor));
@@ -249,7 +249,7 @@ contract RegisterQueryType is HubVotePoolTest {
 
   function testFuzz_RegisteringQueryTypeEmitsQueryTypeRegisteredEvent(uint8 _queryType) public {
     vm.startPrank(address(governor));
-    ICrossChainVoteDecoder current = hubVotePool.voteTypeDecoder(_queryType);
+    ISpokeVoteDecoder current = hubVotePool.voteTypeDecoder(_queryType);
     vm.expectEmit();
     emit HubVotePool.QueryTypeRegistered(_queryType, address(current), address(hubCrossChainEvmVote));
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
@@ -718,7 +718,7 @@ contract CrossChainVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    vm.expectRevert(ICrossChainVoteDecoder.UnknownMessageEmitter.selector);
+    vm.expectRevert(ISpokeVoteDecoder.UnknownMessageEmitter.selector);
     hubVotePool.crossChainVote(_resp, signatures);
   }
 
@@ -769,7 +769,7 @@ contract CrossChainVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    vm.expectRevert(abi.encodeWithSelector(ICrossChainVoteDecoder.TooManyEthCallResults.selector, 2));
+    vm.expectRevert(abi.encodeWithSelector(ISpokeVoteDecoder.TooManyEthCallResults.selector, 2));
     hubVotePool.crossChainVote(_resp, signatures);
   }
 
@@ -778,7 +778,7 @@ contract CrossChainVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    vm.expectRevert(ICrossChainVoteDecoder.UnknownMessageEmitter.selector);
+    vm.expectRevert(ISpokeVoteDecoder.UnknownMessageEmitter.selector);
     hubVotePool.crossChainVote(_resp, signatures);
   }
 }

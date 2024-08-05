@@ -6,7 +6,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryResponse, ParsedQueryResponse} from "wormhole/query/QueryResponse.sol";
-import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
+import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 
 /// @title HubVotePool
 /// @author [ScopeLift](https://scopelift.co)
@@ -25,7 +25,7 @@ contract HubVotePool is QueryResponse, Ownable {
   error InvalidProposalVote();
 
   /// @notice Thrown if a query vote implementation is set to an address that does not support the
-  /// `ICrossChainVoteDecoder` interface.
+  /// `ISpokeVoteDecoder` interface.
   error InvalidQueryVoteImpl();
 
   /// @notice Thrown if a vote query is submitted with an unsupported query type.
@@ -60,7 +60,7 @@ contract HubVotePool is QueryResponse, Ownable {
 
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
-  mapping(uint8 queryType => ICrossChainVoteDecoder voteImpl) public voteTypeDecoder;
+  mapping(uint8 queryType => ISpokeVoteDecoder voteImpl) public voteTypeDecoder;
 
   constructor(address _core, address _hubGovernor, SpokeVoteAggregator[] memory _initialSpokeRegistry)
     QueryResponse(_core)
@@ -82,10 +82,10 @@ contract HubVotePool is QueryResponse, Ownable {
       delete voteTypeDecoder[_queryType];
       return;
     }
-    bool _isValid = _implementation.supportsInterface(type(ICrossChainVoteDecoder).interfaceId);
+    bool _isValid = _implementation.supportsInterface(type(ISpokeVoteDecoder).interfaceId);
     if (!_isValid) revert InvalidQueryVoteImpl();
     emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
-    voteTypeDecoder[_queryType] = ICrossChainVoteDecoder(_implementation);
+    voteTypeDecoder[_queryType] = ISpokeVoteDecoder(_implementation);
   }
 
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
@@ -102,11 +102,11 @@ contract HubVotePool is QueryResponse, Ownable {
   function crossChainVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
-      ICrossChainVoteDecoder _voteQueryImpl = voteTypeDecoder[_queryResponse.responses[i].queryType];
+      ISpokeVoteDecoder _voteQueryImpl = voteTypeDecoder[_queryResponse.responses[i].queryType];
       if (address(_voteQueryImpl) == address(0)) revert UnsupportedQueryType();
 
-      ICrossChainVoteDecoder.QueryVote memory _voteQuery = _voteQueryImpl.decode(_queryResponse.responses[i]);
-      ICrossChainVoteDecoder.ProposalVote memory _proposalVote = _voteQuery.proposalVote;
+      ISpokeVoteDecoder.QueryVote memory _voteQuery = _voteQueryImpl.decode(_queryResponse.responses[i]);
+      ISpokeVoteDecoder.ProposalVote memory _proposalVote = _voteQuery.proposalVote;
       ProposalVote memory _existingSpokeVote = spokeProposalVotes[_voteQuery.spokeProposalId];
 
       if (

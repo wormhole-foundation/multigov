@@ -11,12 +11,12 @@ import {
   EthCallByTimestampQueryResponse
 } from "wormhole/query/QueryResponse.sol";
 
-/// @title CrossChainAggregateProposer
+/// @title HubEvmSpokeAggregateProposer
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice A contract that gives addresses with voting weight fractured across multiple chains the ability to aggregate
 /// their voting weight and create a proposal on the `HubGovernor`.
 /// @dev This contract is meant to only support queries from EVM compatible chains.
-contract CrossChainAggregateProposer is QueryResponse, Ownable {
+contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   /// @notice The governor where new proposals will be created.
   IGovernor public immutable HUB_GOVERNOR;
 
