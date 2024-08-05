@@ -32,7 +32,7 @@ contract HubGovernor is
   /// `HubEvmSpokeAggregateProposer`.
   address public whitelistedProposer;
 
-  /// @notice This is a contract that will recieve votes from the spokes and cast votes to the `HubGovernor` without
+  /// @notice This is a contract that will receive votes from the spokes and cast votes to the `HubGovernor` without
   /// having any voting weight.
   HubVotePool public hubVotePool;
 
