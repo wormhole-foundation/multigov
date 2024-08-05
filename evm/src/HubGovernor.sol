@@ -262,7 +262,7 @@ contract HubGovernor is
     return GovernorTimelockControl._queueOperations(_proposalId, _targets, _values, _calldatas, _description);
   }
 
-  /// @notice An internal fucntion to update the hub vote pool to a new address.
+  /// @notice An internal function to update the hub vote pool to a new address.
   /// @param _hubVotePool The address of the new hub vote pool.
   function _setHubVotePool(address _hubVotePool) internal {
     emit HubVotePoolUpdated(address(hubVotePool), _hubVotePool);
