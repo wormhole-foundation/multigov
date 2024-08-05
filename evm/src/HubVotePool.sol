@@ -92,6 +92,10 @@ contract HubVotePool is QueryResponse, Ownable {
     voteTypeDecoder[_queryType] = ISpokeVoteDecoder(_implementation);
   }
 
+  /// @notice Registers a new spoke chain and its vote aggregator address.
+  /// @dev Can only be called by the contract owner.
+  /// @param _targetChain The Wormhole chain ID of the spoke chain.
+  /// @param _spokeVoteAddress The address of the vote aggregator on the spoke chain.
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
     _checkOwner();
     emit SpokeRegistered(_targetChain, spokeRegistry[_targetChain], _spokeVoteAddress);
