@@ -3,8 +3,8 @@ pragma solidity ^0.8.23;
 
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryResponse, ParsedQueryResponse} from "wormhole/query/QueryResponse.sol";
 import {ICrossChainVoteDecoder} from "src/interfaces/ICrossChainVoteDecoder.sol";
 

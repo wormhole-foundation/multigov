@@ -3,7 +3,6 @@ pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 import {GovernorSettableFixedQuorumFakeHarness} from "test/harnesses/GovernorSettableFixedQuorumFakeHarness.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";

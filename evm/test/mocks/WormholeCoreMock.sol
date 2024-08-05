@@ -3,7 +3,6 @@ pragma solidity ^0.8.23;
 
 import {WormholeMock} from "wormhole-sdk/testing/helpers/WormholeMock.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
-import {Structs} from "wormhole/Structs.sol";
 
 contract WormholeCoreMock is WormholeMock {
   uint32 public ghostPublishMessageNonce;

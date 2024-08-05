@@ -6,7 +6,6 @@ import {Implementation} from "wormhole/Implementation.sol";
 import {Setup} from "wormhole/Setup.sol";
 import {Wormhole} from "wormhole/Wormhole.sol";
 import {QueryResponse} from "wormhole/query/QueryResponse.sol";
-
 import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 
 contract WormholeEthQueryTest is Test {

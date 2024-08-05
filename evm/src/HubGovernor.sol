@@ -11,11 +11,10 @@ import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {GovernorCountingFractional} from "src/lib/GovernorCountingFractional.sol";
-
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
-import {HubVotePool} from "src/HubVotePool.sol";
 import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
+import {HubVotePool} from "src/HubVotePool.sol";
 
 /// @title HubGovernor
 /// @author [ScopeLift](https://scopelift.co)

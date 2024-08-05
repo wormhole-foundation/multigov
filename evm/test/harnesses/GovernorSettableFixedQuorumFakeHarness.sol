@@ -3,8 +3,6 @@ pragma solidity ^0.8.23;
 
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-
 import {GovernorSettableFixedQuorumFake} from "test/fakes/GovernorSettableFixedQuorumFake.sol";
 
 contract GovernorSettableFixedQuorumFakeHarness is GovernorSettableFixedQuorumFake {
