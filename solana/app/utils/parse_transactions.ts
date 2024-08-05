@@ -5,12 +5,7 @@ import {
   ParsedTransactionWithMeta,
   TransactionSignature
 } from '@solana/web3.js';
-import {
-  Program,
-  AnchorProvider,
-  BorshCoder,
-  EventParser
-} from '@coral-xyz/anchor';
+import { BorshCoder } from '@coral-xyz/anchor';
 
 // Gets program transactions
 export async function getProgramTransactions(
@@ -95,18 +90,10 @@ export async function printTransactionDetails(
 
 // Decodes events from log messages using IDL
 export function decodeEventsFromLogMessages(
-  connection: Connection,
   logMessages: string[],
   idl: any
 ): any[] {
-  const provider = new AnchorProvider(
-    connection,
-    {} as any,
-    AnchorProvider.defaultOptions()
-  );
-  const program = new Program(idl, provider);
-  const coder = new BorshCoder(program.idl);
-
+  const coder = new BorshCoder(idl);
   const decodedEvents: any[] = [];
 
   for (const log of logMessages) {

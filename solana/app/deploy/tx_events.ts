@@ -19,7 +19,6 @@ async function main() {
 
   console.log('Transaction signature:', transactionSignature);
   const decodedEvents = decodeEventsFromLogMessages(
-    connection,
     transaction.meta?.logMessages || [],
     IDL
   );
