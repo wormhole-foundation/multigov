@@ -8,10 +8,11 @@ import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
 /// @notice A contract that will publish a message that can be relayed to the appropriate `SpokeExecutor`.
 contract HubMessageDispatcher is WormholeDispatcher {
   /// @notice The id for the next message published.
+  /// @dev This value is incremented after each successful message dispatch.
   uint256 public nextMessageId = 1;
 
   /// @notice Thrown if the encoded payload is invalid.
-  error InvalidSpokeExecutorOperationLength(uint256, uint256, uint256);
+  error InvalidSpokeExecutorOperationLength(uint256 targetsLength, uint256 valuesLength, uint256 calldatasLength);
 
   /// @notice Emitted when a message is dispatched.
   event MessageDispatched(uint256 indexed proposalId, bytes payload);
@@ -26,7 +27,7 @@ contract HubMessageDispatcher is WormholeDispatcher {
 
   /// @notice Publishes a message to be sent to the appropriate spoke for cross chain execution.
   /// @param _payload An encoding of the target wormhole chain id and the cross chain calls that follow the same
-  /// structure as Governor proposal: targets, values and calladata.
+  /// structure as Governor proposal: targets, values, and calldata.
   function dispatch(bytes calldata _payload) external {
     _checkOwner();
 

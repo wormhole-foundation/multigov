@@ -4,6 +4,10 @@ pragma solidity ^0.8.23;
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {SpokeAirlock} from "src/SpokeAirlock.sol";
 
+/// @title SpokeMessageExecutor
+/// @notice A contract that executes messages from a hub chain on a spoke chain.
+/// @dev This contract verifies and processes Wormhole messages, executing the encoded operations through a
+/// SpokeAirlock.
 contract SpokeMessageExecutor {
   /// @notice The hub contract that publishes the message to be consumed by the spoke executor.
   bytes32 public immutable HUB_DISPATCHER;
@@ -11,7 +15,7 @@ contract SpokeMessageExecutor {
   uint16 public immutable HUB_CHAIN_ID;
   /// @notice The wormhole id of the current spoke.
   uint16 public immutable SPOKE_CHAIN_ID;
-  /// @notice  The wormhole contract that will handle parsing an encoded cross chain message.
+  /// @notice The wormhole contract that will handle parsing an encoded cross chain message.
   IWormhole public immutable WORMHOLE_CORE;
   /// @notice An account that will execute the cross chain proposal.
   SpokeAirlock public airlock;

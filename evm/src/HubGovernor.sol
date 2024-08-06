@@ -32,7 +32,7 @@ contract HubGovernor is
   /// `HubEvmSpokeAggregateProposer`.
   address public whitelistedProposer;
 
-  /// @notice This is a contract that will recieve votes from the spokes and cast votes to the `HubGovernor` without
+  /// @notice This is a contract that will receive votes from the spokes and cast votes to the `HubGovernor` without
   /// having any voting weight.
   HubVotePool public hubVotePool;
 
@@ -40,7 +40,7 @@ contract HubGovernor is
   /// implementation that is meant to be set as the proposal extender.
   IVoteExtender public immutable HUB_PROPOSAL_EXTENDER;
 
-  /// @notice Emitted when a whitelisted proposer is changed.
+  /// @notice Emitted when the `hubVotePool` is changed.
   event HubVotePoolUpdated(address oldHubVotePool, address newHubVotePool);
 
   /// @notice Emitted when a whitelisted proposer is changed.
@@ -89,6 +89,7 @@ contract HubGovernor is
   /// @notice The timepoint at which a proposal vote ends. This time can be extended by the
   /// `HUB_PROPOSAL_EXTENDER`.
   /// @param _proposalId The id of the proposal for which to get the vote end.
+  /// @return The timestamp of the proposal deadline.
   function proposalDeadline(uint256 _proposalId) public view virtual override returns (uint256) {
     return Math.max(super.proposalDeadline(_proposalId), HUB_PROPOSAL_EXTENDER.extendedDeadlines(_proposalId));
   }
