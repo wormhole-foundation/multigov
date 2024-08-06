@@ -113,93 +113,94 @@ describe("api", async () => {
   });
 
   it("delegate", async () => {
-    await stakeConnection.delegate(
-      undefined,
-      undefined,
-      WHTokenBalance.fromString("100"),
-    );
-
-    const stakeAccount = await stakeConnection.getMainAccount(owner);
-
-    await stakeConnection.delegate(
-      stakeAccount.address,
-      stakeAccount.address,
+    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
+    stakeAccountAddress = await stakeConnection.delegate(
+      stakeAccountAddress,
+      stakeAccountAddress,
       WHTokenBalance.fromString("100"),
     );
 
     await stakeConnection.delegate(
-      stakeAccount.address,
+      stakeAccountAddress,
+      stakeAccountAddress,
+      WHTokenBalance.fromString("100"),
+    );
+
+    await stakeConnection.delegate(
+      stakeAccountAddress,
       undefined,
       WHTokenBalance.fromString("100"),
     );
   });
 
   it("should delegate to the user stack account if delegate is not defined", async () => {
-    await stakeConnection.delegate(
+    const stakeAccountAddress = await stakeConnection.delegate(
       undefined,
       undefined,
       WHTokenBalance.fromString("100"),
     );
 
-    const stakeAccount = await stakeConnection.getMainAccount(owner);
-    const delegate = await stakeConnection.delegates(stakeAccount.address);
-    assert.equal(delegate.toBase58(), stakeAccount.address.toBase58());
+    const delegate = await stakeConnection.delegates(stakeAccountAddress);
+    assert.equal(delegate.toBase58(), stakeAccountAddress.toBase58());
   });
 
   it("should change delegate account correctly", async () => {
-    await stakeConnection.delegate(
+    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
+    stakeAccountAddress = await stakeConnection.delegate(
+      stakeAccountAddress,
+      undefined,
+      WHTokenBalance.fromString("10"),
+    );
+
+    const stakeAccountAddress2 = await user2StakeConnection.delegate(
       undefined,
       undefined,
       WHTokenBalance.fromString("10"),
     );
 
-    await user2StakeConnection.delegate(
+    const stakeAccountAddress3 = await user3StakeConnection.delegate(
       undefined,
       undefined,
       WHTokenBalance.fromString("10"),
     );
-
-    await user3StakeConnection.delegate(
-      undefined,
-      undefined,
-      WHTokenBalance.fromString("10"),
-    );
-
-    const stakeAccount = await stakeConnection.getMainAccount(owner);
-    const stakeAccount2 = await stakeConnection.getMainAccount(user2);
-    const stakeAccount3 = await stakeConnection.getMainAccount(user3);
 
     await stakeConnection.delegate(
-      stakeAccount.address,
-      stakeAccount2.address,
+      stakeAccountAddress,
+      stakeAccountAddress2,
       WHTokenBalance.fromString("10"),
     );
 
-    delegate = await stakeConnection.delegates(stakeAccount.address);
-    assert.equal(delegate.toBase58(), stakeAccount2.address.toBase58());
+    delegate = await stakeConnection.delegates(stakeAccountAddress);
+    assert.equal(delegate.toBase58(), stakeAccountAddress2.toBase58());
 
     await stakeConnection.delegate(
-      stakeAccount.address,
-      stakeAccount3.address,
+      stakeAccountAddress,
+      stakeAccountAddress3,
       WHTokenBalance.fromString("10"),
     );
 
-    delegate = await stakeConnection.delegates(stakeAccount.address);
-    assert.equal(delegate.toBase58(), stakeAccount3.address.toBase58());
+    delegate = await stakeConnection.delegates(stakeAccountAddress);
+    assert.equal(delegate.toBase58(), stakeAccountAddress3.toBase58());
   });
 
   it("withdrawTokens", async () => {
-    await stakeConnection.delegate(
-      undefined,
+    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
+    let stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
+    assert.equal(
+      stakeAccount.tokenBalance.toString(),
+      "130000000", // 130 * 10**6
+    );
+
+    stakeAccountAddress = await stakeConnection.delegate(
+      stakeAccountAddress,
       undefined,
       WHTokenBalance.fromString("100"),
     );
 
-    let stakeAccount = await stakeConnection.getMainAccount(owner);
-
+    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "100000000", // 100 * 10**6
+      "230000000", // 230 * 10**6
     );
 
     await stakeConnection.withdrawTokens(
@@ -207,36 +208,35 @@ describe("api", async () => {
       WHTokenBalance.fromString("50"),
     );
 
-    stakeAccount = await stakeConnection.getMainAccount(owner);
-
+    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "50000000", // 50 * 10**6
+      "180000000", // 180 * 10**6
     );
   });
 
   it("find and parse stake accounts", async () => {
     const res = await stakeConnection.getStakeAccounts(owner);
-    assert.equal(res.length, 4);
+    assert.equal(res.length, 2);
 
-    let stakeAccount = await stakeConnection.getMainAccount(owner);
+    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
+    let stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "30000000", // 30 * 10**6
+      "180000000", // 180 * 10**6
     );
 
-    await stakeConnection.delegate(
-      stakeAccount.address,
-      stakeAccount.address,
+    stakeAccountAddress = await stakeConnection.delegate(
+      stakeAccountAddress,
+      undefined,
       WHTokenBalance.fromString("100"),
     );
 
-    stakeAccount = await stakeConnection.getMainAccount(owner);
-
+    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "100000000", // 100 * 10**6
+      "280000000", // 280 * 10**6
     );
 
     assert.equal(
@@ -247,55 +247,55 @@ describe("api", async () => {
     await assertBalanceMatches(
       stakeConnection,
       owner,
-      WHTokenBalance.fromString("100"),
+      WHTokenBalance.fromString("280"),
     );
   });
 
   it("castVote", async () => {
-    await stakeConnection.delegate(
+    let stakeAccountAddress = await user2StakeConnection.getMainAccountAddress(user2);
+
+    stakeAccountAddress = await user2StakeConnection.delegate(
+      stakeAccountAddress,
       undefined,
-      undefined,
-      WHTokenBalance.fromString("50"),
+      WHTokenBalance.fromString("150"),
     );
 
     const proposalId = new BN(4);
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
-    await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
+    await user2StakeConnection.addProposal(proposalId, voteStart, safeWindow);
 
-    let stakeAccount = await stakeConnection.getMainAccount(owner);
-
-    await stakeConnection.delegate(
-      stakeAccount.address,
-      stakeAccount.address,
-      WHTokenBalance.fromString("100"),
+    await user2StakeConnection.delegate(
+      stakeAccountAddress,
+      undefined,
+      WHTokenBalance.fromString("200"),
     );
 
-    await stakeConnection.castVote(
+    await user2StakeConnection.castVote(
       proposalId,
-      stakeAccount.address,
+      stakeAccountAddress,
       new BN(10),
       new BN(20),
       new BN(12),
     );
-    await stakeConnection.castVote(
+    await user2StakeConnection.castVote(
       proposalId,
-      stakeAccount.address,
+      stakeAccountAddress,
       new BN(10),
       new BN(10),
       new BN(0),
     );
-    await stakeConnection.castVote(
+    await user2StakeConnection.castVote(
       proposalId,
-      stakeAccount.address,
+      stakeAccountAddress,
       new BN(0),
       new BN(7),
       new BN(10),
     );
 
     const { againstVotes, forVotes, abstainVotes } =
-      await stakeConnection.proposalVotes(proposalId);
+      await user2StakeConnection.proposalVotes(proposalId);
     assert.equal(againstVotes.toString(), "20");
     assert.equal(forVotes.toString(), "37");
     assert.equal(abstainVotes.toString(), "22");

@@ -191,17 +191,20 @@ export class StakeConnection {
     );
   }
 
-  /** Gets the user's stake account with the most tokens or undefined if it doesn't exist */
-  public async getMainAccount(
+  /** Gets the user's stake account address with the most tokens or undefined if it doesn't exist */
+  public async getMainAccountAddress(
     user: PublicKey,
-  ): Promise<StakeAccount | undefined> {
+  ): Promise<PublicKey | undefined> {
     const accounts = await this.getStakeAccounts(user);
+
     if (accounts.length == 0) {
       return undefined;
+    } else if (accounts.length == 1) {
+      return accounts[0].address;
     } else {
       return accounts.reduce(
         (prev: StakeAccount, curr: StakeAccount): StakeAccount => {
-          return prev.tokenBalance > curr.tokenBalance ? curr : prev;
+          return prev.tokenBalance > curr.tokenBalance ? curr.address : prev.address;
         },
       );
     }
@@ -424,7 +427,7 @@ export class StakeConnection {
     stakeAccount: PublicKey | undefined,
     delegateeStakeAccount: PublicKey | undefined,
     amount: WHTokenBalance,
-  ) {
+  ): Promise<PublicKey> {
     let currentStakeAccount: PublicKey;
     let currentDelegateStakeAccount: PublicKey;
     const instructions: TransactionInstruction[] = [];
@@ -467,6 +470,8 @@ export class StakeConnection {
     );
 
     await this.sendAndConfirmAsVersionedTransaction(instructions);
+
+    return currentStakeAccount;
   }
 
   public async castVote(

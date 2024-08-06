@@ -39,24 +39,24 @@ describe("voter_votes_test", async () => {
   });
 
   it("delegate votes appear after delegation", async () => {
-    await stakeConnection.delegate(
-      undefined,
+    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
+
+    stakeAccountAddress = await stakeConnection.delegate(
+      stakeAccountAddress,
       undefined,
       WHTokenBalance.fromString("50"),
     );
 
-    let stakeAccount = await stakeConnection.getMainAccount(owner);
-
+    let stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
     await assertVoterVotesEquals(stakeAccount, new BN("50000000")); // 50 * 10**6
 
     await stakeConnection.delegate(
-      stakeAccount.address,
-      stakeAccount.address,
+      stakeAccountAddress,
+      stakeAccountAddress,
       WHTokenBalance.fromString("15"),
     );
 
-    stakeAccount = await stakeConnection.getMainAccount(owner);
-
+    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
     await assertVoterVotesEquals(stakeAccount, new BN("65000000")); // 65 * 10**6
   });
 
