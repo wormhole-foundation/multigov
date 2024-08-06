@@ -448,9 +448,11 @@ export class StakeConnection {
       await this.withJoinDaoLlc(instructions, currentStakeAccount);
     }
 
-    instructions.push(
-      await this.buildTransferInstruction(currentStakeAccount, amount.toBN()),
-    );
+    if (amount.toBN().gt(new BN(0))) {
+      instructions.push(
+        await this.buildTransferInstruction(currentStakeAccount, amount.toBN()),
+      );
+    }
 
     instructions.push(
       await this.program.methods
