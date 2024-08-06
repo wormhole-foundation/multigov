@@ -644,7 +644,6 @@ contract _CountVote is HubGovernorTest {
     uint32 _forVotes,
     uint32 _againstVotes,
     uint32 _abstainVotes,
-    uint128 _totalWeight,
     string memory _proposalDescription
   ) public {
     _support = uint8(bound(_support, 0, 2));

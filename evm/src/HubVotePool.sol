@@ -76,6 +76,10 @@ contract HubVotePool is QueryResponse, Ownable {
     }
   }
 
+  /// @notice Registers or unregisters a query type implementation.
+  /// @dev Can only be called by the contract owner. Unregisters if the implementation address is zero.
+  /// @param _queryType The type of query to register.
+  /// @param _implementation The address of the implementation contract for the query type.
   function registerQueryType(uint8 _queryType, address _implementation) external {
     _checkOwner();
     if (_implementation == address(0)) {
@@ -88,17 +92,28 @@ contract HubVotePool is QueryResponse, Ownable {
     voteTypeDecoder[_queryType] = ISpokeVoteDecoder(_implementation);
   }
 
+  /// @notice Registers a new spoke chain and its vote aggregator address.
+  /// @dev Can only be called by the contract owner.
+  /// @param _targetChain The Wormhole chain ID of the spoke chain.
+  /// @param _spokeVoteAddress The address of the vote aggregator on the spoke chain.
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
     _checkOwner();
     emit SpokeRegistered(_targetChain, spokeRegistry[_targetChain], _spokeVoteAddress);
     spokeRegistry[_targetChain] = _spokeVoteAddress;
   }
 
+  /// @notice Updates the address of the hub governor.
+  /// @dev Can only be called by the contract owner.
+  /// @param _newGovernor The address of the new hub governor.
   function setGovernor(address _newGovernor) external {
     _checkOwner();
     hubGovernor = IGovernor(_newGovernor);
   }
 
+  /// @notice Processes cross chain votes from the spokes. Parses and verifies the Wormhole query response, then casts
+  /// votes on the hub governor.
+  /// @param _queryResponseRaw The raw bytes of the query response from Wormhole.
+  /// @param _signatures The signatures verifying the Wormhole message.
   function crossChainVote(bytes memory _queryResponseRaw, IWormhole.Signature[] memory _signatures) external {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {

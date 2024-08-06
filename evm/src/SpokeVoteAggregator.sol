@@ -169,9 +169,10 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   }
 
   /// @notice Returns the vote weight for a given account at a specific timepoint.
+  /// @dev This function uses the minimum weighted vote window to determine the vote weight.
   /// @param _account The address used to get the voting weight.
   /// @param _timepoint The timestamp used as the end of the vote window.
-  /// @return The voting weight.
+  /// @return The voting weight of the account at the given timepoint.
   function getVotes(address _account, uint256 _timepoint) public view returns (uint256) {
     return _getVotes(_account, _timepoint, "");
   }

@@ -65,9 +65,9 @@ contract HubProposalExtender is Ownable {
   /// @param _whitelistedVoteExtender Address of the trusted actor able to extend proposals.
   /// @param _extensionDuration Amount of time for which target proposals will be extended.
   /// @param _owner Owner of the contract.
-  /// @param _minimumExtensionDuration Lower limit for extension duratio`.
+  /// @param _minimumExtensionDuration Lower limit for extension duration.
   /// @param _safeWindow The period of time after a proposal's vote start, during which spoke votes are expected to be
-  /// reliably counted. It's the inverse of "unsafe window," which is the period of time between the safe window and
+  /// reliably counted. It's the inverse of "unsafe window", which is the period of time between the safe window and
   /// vote end. Proposals can be extended during the unsafe window.
   /// @param _minimumDecisionWindow Lower limit for unsafe window.
   constructor(
@@ -112,6 +112,7 @@ contract HubProposalExtender is Ownable {
   /// @notice Checks if voting on a proposal on a spoke can be considered "safe," meaning that the vote is expected to
   /// be relayed before the proposal ends on the hub.
   /// @param _proposalId The id of the proposal to check.
+  /// @return A boolean indicating whether voting on the proposal is considered "safe."
   function isVotingSafe(uint256 _proposalId) external view returns (bool) {
     return _isVotingSafe(_proposalId);
   }
