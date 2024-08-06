@@ -169,7 +169,7 @@ contract HubGovernor is
   }
 
   /// @notice This allows governance to set a new vote weight window.
-  /// @param _weightWindow The new vote weight window
+  /// @param _weightWindow The new vote weight window.
   function setVoteWeightWindow(uint48 _weightWindow) external {
     _checkGovernance();
     _setVoteWeightWindow(_weightWindow);
@@ -262,7 +262,7 @@ contract HubGovernor is
     return GovernorTimelockControl._queueOperations(_proposalId, _targets, _values, _calldatas, _description);
   }
 
-  /// @notice An internal fucntion to update the hub vote pool to a new address.
+  /// @notice An internal function to update the hub vote pool to a new address.
   /// @param _hubVotePool The address of the new hub vote pool.
   function _setHubVotePool(address _hubVotePool) internal {
     emit HubVotePoolUpdated(address(hubVotePool), _hubVotePool);

@@ -31,7 +31,7 @@ contract SpokeMetadataCollector is QueryResponse {
   /// @notice Thrown if the wormhole query was from a contract other than the hub proposal metadata.
   error InvalidWormholeMessage(string reason);
   /// @notice Thrown if the proposal already exists on the spoke.
-  error ProposalAlreadyExists();
+  error ProposalAlreadyExists(uint256 proposalId);
   /// @notice Thrown if the chain of the sender does not match the chain of the hub.
   error SenderChainMismatch();
   /// @notice Thrown if there is more than a single eth call within a query.
@@ -48,7 +48,7 @@ contract SpokeMetadataCollector is QueryResponse {
     HUB_PROPOSAL_METADATA = _hubProposalMetadata;
   }
 
-  /// @notice A function that takes in a wormhole query, verifies, validtates it and then creates a proposal on the
+  /// @notice A function that takes in a wormhole query, verifies, validates it and then creates a proposal on the
   /// spoke that can be used for voting.
   /// @param _queryResponseRaw A encoded wormhole query with an id and vote start of one or multiple hub proposals.
   /// @param _signatures An array of signatures of the hash of the query response.
@@ -75,7 +75,7 @@ contract SpokeMetadataCollector is QueryResponse {
       (uint256 proposalId, uint256 voteStart) = abi.decode(_ethCalls.result[0].result, (uint256, uint256));
 
       // If the proposal exists we can revert (prevent overwriting existing proposals with old zeroes)
-      if (proposals[proposalId].voteStart != 0) revert ProposalAlreadyExists();
+      if (proposals[proposalId].voteStart != 0) revert ProposalAlreadyExists(proposalId);
       _addProposal(proposalId, voteStart);
     }
   }

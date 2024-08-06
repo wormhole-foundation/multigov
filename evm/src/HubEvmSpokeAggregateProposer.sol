@@ -167,15 +167,14 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   }
 
   /// @notice Extracts the address used to get the voting weight from the query.
-  /// @param _callData The calldata from which to extract the address.
-  /// @return The extracted address.
-  function _extractAccountFromCalldata(bytes memory _callData) internal pure returns (address) {
-    // Ensure callData is long enough to contain function selector (4 bytes) and an address (20 bytes)
-    if (_callData.length < 24) revert InvalidCallDataLength();
+  /// @param _calldata The calldata from which to extract the address.
+  function _extractAccountFromCalldata(bytes memory _calldata) internal pure returns (address) {
+    // Ensure calldata is long enough to contain function selector (4 bytes) and an address (20 bytes)
+    if (_calldata.length < 24) revert InvalidCallDataLength();
 
     address _extractedAccount;
     assembly {
-      _extractedAccount := mload(add(add(_callData, 0x20), 4))
+      _extractedAccount := mload(add(add(_calldata, 0x20), 4))
     }
 
     return _extractedAccount;

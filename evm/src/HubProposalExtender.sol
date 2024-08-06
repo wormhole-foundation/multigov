@@ -3,11 +3,12 @@ pragma solidity ^0.8.23;
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IVoteExtender} from "src/interfaces/IVoteExtender.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 
 /// @title HubProposalExtender
 /// @notice A contract that enables the extension of proposals on the hub governor.
-contract HubProposalExtender is Ownable {
+contract HubProposalExtender is Ownable, IVoteExtender {
   /// @notice The hub governor.
   HubGovernor public governor;
 
@@ -62,7 +63,7 @@ contract HubProposalExtender is Ownable {
   /// @notice Thrown when the unsafe window is invalid.
   error InvalidUnsafeWindow();
 
-  /// @param _whitelistedVoteExtender Address of the trusted actor able to extend proposals.
+  /// @param _voteExtenderAdmin Address of the trusted actor able to extend proposals.
   /// @param _extensionDuration Amount of time for which target proposals will be extended.
   /// @param _owner Owner of the contract.
   /// @param _minimumExtensionDuration Lower limit for extension duration.
@@ -71,7 +72,7 @@ contract HubProposalExtender is Ownable {
   /// vote end. Proposals can be extended during the unsafe window.
   /// @param _minimumDecisionWindow Lower limit for unsafe window.
   constructor(
-    address _whitelistedVoteExtender,
+    address _voteExtenderAdmin,
     uint48 _extensionDuration,
     address _owner,
     uint48 _minimumExtensionDuration,
@@ -80,7 +81,7 @@ contract HubProposalExtender is Ownable {
   ) Ownable(_owner) {
     _setSafeWindow(_safeWindow);
     _setExtensionDuration(_extensionDuration);
-    _setWhitelistedVoteExtender(_whitelistedVoteExtender);
+    _setVoteExtenderAdmin(_voteExtenderAdmin);
     MINIMUM_EXTENSION_DURATION = _minimumExtensionDuration;
     MINIMUM_DECISION_WINDOW = _minimumDecisionWindow;
   }
@@ -141,7 +142,7 @@ contract HubProposalExtender is Ownable {
   /// @param _voteExtenderAdmin The new vote extender admin address.
   function setVoteExtenderAdmin(address _voteExtenderAdmin) external {
     _checkOwner();
-    _setWhitelistedVoteExtender(_voteExtenderAdmin);
+    _setVoteExtenderAdmin(_voteExtenderAdmin);
   }
 
   function _isVotingSafe(uint256 _proposalId) internal view returns (bool) {
@@ -154,7 +155,7 @@ contract HubProposalExtender is Ownable {
     extensionDuration = _extensionTime;
   }
 
-  function _setWhitelistedVoteExtender(address _voteExtenderAdmin) internal {
+  function _setVoteExtenderAdmin(address _voteExtenderAdmin) internal {
     emit VoteExtenderAdminUpdated(voteExtenderAdmin, _voteExtenderAdmin);
     voteExtenderAdmin = _voteExtenderAdmin;
   }

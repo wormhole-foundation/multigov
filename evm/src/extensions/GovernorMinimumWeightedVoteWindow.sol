@@ -20,7 +20,7 @@ abstract contract GovernorMinimumWeightedVoteWindow {
   Checkpoints.Trace160 internal voteWeightWindowLengths;
 
   /// @notice Emitted When the vote weight window is updated.
-  event VoteWeightWindowUpdated(uint48 oldVoteWeightWind, uint48 newVoteWeightWindow);
+  event VoteWeightWindowUpdated(uint48 oldVoteWeightWindow, uint48 newVoteWeightWindow);
 
   /// @param _initialVoteWeightWindowLength The length of time to set the vote weight window.
   constructor(uint48 _initialVoteWeightWindowLength) {
@@ -72,7 +72,7 @@ abstract contract GovernorMinimumWeightedVoteWindow {
   /// NOTE: This is a variant of {upperLookup} that is optimised to find "recent" checkpoint (checkpoints with high
   /// keys).
   /// @dev This function was taken from
-  /// https://github.com/OpenZeppelin/openzeppelin-contrac_upperBinaryLookupts/blob/v5.0.2/contracts/utils/structs/Checkpoints.sol#L70.
+  /// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/dbb6104ce834628e473d2173bbc9d47f81a9eec3/contracts/utils/structs/Checkpoints.sol#L70
   /// The only change we made was we interpolated the upperBinaryLookup into upperLookupRecent and return the position.
   function _upperLookupRecent(address _account, uint32 _key, uint256 _len) internal view returns (uint256) {
     uint256 _low = 0;

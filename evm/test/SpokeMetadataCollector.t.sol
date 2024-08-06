@@ -178,7 +178,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
 
     spokeMetadataCollector.addProposal(_resp, signatures);
 
-    vm.expectRevert(SpokeMetadataCollector.ProposalAlreadyExists.selector);
+    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.ProposalAlreadyExists.selector, _proposalId));
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 

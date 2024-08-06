@@ -16,7 +16,7 @@
   via_ir = true
 
 [profile.ci]
-  fuzz = { runs = 2500 }
+  fuzz = { runs = 5000 }
   invariant = { runs = 1000 }
 
 [profile.lite]
