@@ -29,7 +29,7 @@ A deployed extension contract to the `HubGovernor` that is owned by the `HubGove
 
 #### HubProposalMetadata
 
-A helper contract that returns both the proposalId and the vote start for a given proposal on the `HubGovernor`.A `SpokeMetadataCollector` will use this helper contract to query proposal data from the Hub.
+A helper contract that returns both the proposalId and the vote start for a given proposal on the `HubGovernor`. A `SpokeMetadataCollector` will use this helper contract to query proposal data from the Hub.
 
 #### HubVotePool
 
