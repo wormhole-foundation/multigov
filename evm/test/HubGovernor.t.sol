@@ -703,6 +703,7 @@ contract _CountVote is HubGovernorTest {
     assertEq(abstainVotes, _abstainVotes);
   }
 
+  /// forge-config: default.fuzz.runs = 5000
   function testFuzz_NonWhitelistedAddressCanVote(
     address _nonWhitelistedAddress,
     uint8 _support,
@@ -712,6 +713,7 @@ contract _CountVote is HubGovernorTest {
     string memory _proposalDescription
   ) public {
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
+    vm.assume(_totalWeight != 0);
     vm.assume(_nonWhitelistedAddress != address(hubVotePool));
     _support = uint8(bound(_support, 0, 2));
 
