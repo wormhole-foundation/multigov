@@ -703,7 +703,6 @@ contract _CountVote is HubGovernorTest {
     assertEq(abstainVotes, _abstainVotes);
   }
 
-  /// forge-config: default.fuzz.runs = 5000
   function testFuzz_NonWhitelistedAddressCanVote(
     address _nonWhitelistedAddress,
     uint8 _support,
