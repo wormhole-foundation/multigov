@@ -169,7 +169,7 @@ contract HubGovernor is
   }
 
   /// @notice This allows governance to set a new vote weight window.
-  /// @param _weightWindow The new vote weight window
+  /// @param _weightWindow The new vote weight window.
   function setVoteWeightWindow(uint48 _weightWindow) external {
     _checkGovernance();
     _setVoteWeightWindow(_weightWindow);
