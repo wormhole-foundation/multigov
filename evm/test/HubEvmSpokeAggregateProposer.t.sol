@@ -92,10 +92,11 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
     uint64 targetTime = uint64(vm.getBlockTimestamp());
+    uint64 targetTimeUs = targetTime * 1_000_000;
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTime, targetTime);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTimeUs, targetTimeUs);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
@@ -110,10 +111,11 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
     uint64 targetTime = uint64(vm.getBlockTimestamp());
+    uint64 targetBlockTimeUs = targetTime * 1_000_000;
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTime, _calldataTimepoint);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetBlockTimeUs, _calldataTimepoint);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
@@ -156,7 +158,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
   {
     uint64 targetBlockNumber = uint64(vm.getBlockNumber());
     uint64 followingBlockNumber = targetBlockNumber + 1;
-    uint64 followingBlockTime = targetBlockTime + 1;
+    uint64 followingBlockTime = targetBlockTime + 1_000_000; // Add 1 second in microseconds
 
     return QueryTest.buildEthCallByTimestampResponseBytes(
       targetBlockNumber,
@@ -192,18 +194,19 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     uint128 _voteWeight
   ) internal view returns (bytes memory) {
     uint64 targetBlockTime = uint64(vm.getBlockTimestamp());
+    uint64 targetBlockTimeUs = targetBlockTime * 1_000_000;
 
     bytes memory ethCall = QueryTest.buildEthCallByTimestampRequestBytes(
-      targetBlockTime,
+      targetBlockTimeUs,
       bytes(""),
       bytes(""),
       2, // numCallData
       abi.encodePacked(
         QueryTest.buildEthCallDataBytes(
-          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetBlockTime)
+          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetBlockTimeUs)
         ),
         QueryTest.buildEthCallDataBytes(
-          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetBlockTime)
+          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetBlockTimeUs)
         )
       )
     );
@@ -211,7 +214,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     bytes memory queryRequestBytes =
       QueryTest.buildPerChainRequestBytes(_chainId, crossChainAggregateProposer.QT_ETH_CALL_BY_TIMESTAMP(), ethCall);
 
-    bytes memory ethCallResp = _buildInvalidEthCallRespMultiResults(_voteWeight, targetBlockTime);
+    bytes memory ethCallResp = _buildInvalidEthCallRespMultiResults(_voteWeight, targetBlockTimeUs);
 
     bytes memory perChainResponses = QueryTest.buildPerChainResponseBytes(
       _chainId, crossChainAggregateProposer.QT_ETH_CALL_BY_TIMESTAMP(), ethCallResp
@@ -259,8 +262,9 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       uint64 targetBlockTime = _timestamps[i];
+      uint64 targetBlockTimeUs = targetBlockTime * 1_000_000;
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _caller, targetBlockTime, targetBlockTime);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _caller, targetBlockTimeUs, targetBlockTimeUs);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }

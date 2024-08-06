@@ -162,7 +162,9 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
       _validateEthCallData(_perChainResp.chainId, _ethCalls.result[0]);
 
-      uint64 _requestTargetTimestamp = _ethCalls.requestTargetTimestamp;
+      uint64 _requestTargetTimestampUs = _ethCalls.requestTargetTimestamp;
+      // Convert microseconds to seconds
+      uint64 _requestTargetTimestamp = _requestTargetTimestampUs / 1_000_000;
 
       if (_requestTargetTimestamp < _oldestAllowedTimestamp || _requestTargetTimestamp > _currentTimestamp) {
         revert InvalidTimestamp(_requestTargetTimestamp);
@@ -178,7 +180,7 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
 
       // Check that the address being queried is the caller
       if (_queriedAccount != msg.sender) revert InvalidCaller(msg.sender, _queriedAccount);
-      if (_queriedTimepoint != _requestTargetTimestamp) revert InvalidTimestamp(_requestTargetTimestamp);
+      if (_queriedTimepoint / 1_000_000 != _requestTargetTimestamp) revert InvalidTimestamp(_requestTargetTimestamp);
 
       uint256 _voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
       _totalVoteWeight += _voteWeight;
