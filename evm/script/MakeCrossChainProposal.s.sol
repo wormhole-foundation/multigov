@@ -37,7 +37,7 @@ contract MakeProposal is Script {
 	addresses.push(0x74f00907CFC6E44Fb72535cdD1eC52a37EacAbE4);
 	values.push(0);
 	calldatas.push(abi.encodeWithSignature("balanceOf(address)", 0xEAC5F0d4A9a45E1f9FdD0e7e2882e9f60E301156));
-	console2.logBytes(abi.encode(78490997653762854881569986464094818757617383956191955689716645725551406444010, addresses, values, calldatas));
+	console2.logBytes(abi.encode(10005, addresses, values, calldatas));
 
   }
 }
