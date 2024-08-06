@@ -43,6 +43,10 @@ A contract that parses and decodes the data for an EVM spoke vote. The spoke vot
 
 This is the contract used to relay proposal execution to a spoke or spokes. A proposal can encode a call to this contract, which in turn forwards calldata to a `SpokeMessageExecutor` on a specific spoke. The proposal will be sent to the spoke using specialized relaying and can be retried until the proposal is executed successfully.
 
+#### HubEvmSpokeAggregateProposer
+
+A contract that allows an address with voting weight across multiple chains to aggregate their weight in order to create a proposal. If the aggregated weight is greater than the proposal threshold then the proposal will be created. This contract can be changed through a governance proposal and currently does not rely on outside state.
+
 ### Component summary: Spoke
 
 #### SpokeMetadataCollector
