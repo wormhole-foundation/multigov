@@ -27,7 +27,7 @@ abstract contract GovernorCountingFractional is Governor {
   error GovernorCountingFractional__InvalidVoteData();
 
   /// @notice Thrown when vote is cast by an account that has no voting weight.
-  error GovernorCountingFractional_NoVoteWeight();
+  error GovernorCountingFractional__NoVoteWeight();
 
   /**
    * @notice Supported vote types.
@@ -141,7 +141,7 @@ abstract contract GovernorCountingFractional is Governor {
     virtual
     override
   {
-    if (totalWeight == 0) revert GovernorCountingFractional_NoVoteWeight();
+    if (totalWeight == 0) revert GovernorCountingFractional__NoVoteWeight();
 
     if (_proposalVotersWeightCast[proposalId][account] >= totalWeight) {
       revert GovernorCountingFractional__VoteWeightExceeded();

@@ -23,5 +23,5 @@ interface ISpokeVoteDecoder is IERC165 {
   error InvalidProposalVote();
   error InvalidQueryBlock(bytes);
 
-  function decode(ParsedPerChainQueryResponse memory _queryResponse) external returns (QueryVote memory);
+  function decode(ParsedPerChainQueryResponse memory _queryResponse) external view returns (QueryVote memory);
 }

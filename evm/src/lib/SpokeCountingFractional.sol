@@ -30,7 +30,6 @@ abstract contract SpokeCountingFractional {
    * has cast on that proposal, e.g. _proposalVotersWeightCast[42][0xBEEF]
    * would tell you the number of votes that 0xBEEF has cast on proposal 42.
    */
-  // Made both of these internal
   mapping(uint256 => mapping(address => uint128)) internal _proposalVotersWeightCast;
 
   /**
