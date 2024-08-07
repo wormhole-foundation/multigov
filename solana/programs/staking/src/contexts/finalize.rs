@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
-use crate::{errors::VestingError, state::Config};
+use crate::{error::VestingError, state::Config};
 
 #[derive(Accounts)]
 pub struct Finalize<'info> {

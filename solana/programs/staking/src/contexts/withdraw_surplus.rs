@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked}};
 
-use crate::{errors::VestingError, state::Config};
+use crate::{error::VestingError, state::Config};
 
 #[derive(Accounts)]
 pub struct WithdrawSurplus<'info> {
