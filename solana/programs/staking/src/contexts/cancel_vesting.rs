@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
-use crate::{errors::VestingError, state::{Config, Vesting}};
+use crate::{error::VestingError, state::{Config, Vesting}};
 
 #[derive(Accounts)]
 pub struct CancelVesting<'info> {
