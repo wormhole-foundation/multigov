@@ -335,6 +335,11 @@ pub mod staking {
         ctx.accounts.initialize(seed, ctx.bumps.config)
     }
 
+    // Create a vesting balance account
+    pub fn create_vesting_balance(ctx: Context<CreateVestingBalance>) -> Result<()> {
+        ctx.accounts.create_vesting_balance()
+    }
+
     // Finalize a Config, disabling any further creation or cancellation of Vesting accounts
     pub fn finalize_vesting_config(ctx: Context<Finalize>) -> Result<()> {
         ctx.accounts.finalize()

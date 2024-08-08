@@ -16,11 +16,12 @@ pub struct StakeAccountMetadata {
     pub owner: Pubkey,
     pub delegate: Pubkey,
     pub recorded_balance: u64,
+    pub recorded_vesting_balance: u64,
     pub signed_agreement_hash: Option<[u8; 32]>,
 }
 
 impl StakeAccountMetadata {
-    pub const LEN: usize = 120; // 8 + 3 * 1 + 32 + 32 + 8 + 32 + 1 + 4
+    pub const LEN: usize = 128; // 8 + 3 * 1 + 32 + 32 + 8 + 8 + 32 + 1 + 4
 
     pub fn check_is_llc_member(&self, expected_agreement_hash: &[u8; 32]) -> Result<()> {
         if let Some(agreement_hash) = self.signed_agreement_hash {
@@ -47,6 +48,7 @@ impl StakeAccountMetadata {
         self.owner = *owner;
         self.delegate = anchor_lang::prelude::Pubkey::default();
         self.recorded_balance = 0;
+        self.recorded_vesting_balance = 0;
         self.signed_agreement_hash = None;
     }
 }
@@ -75,6 +77,7 @@ pub mod tests {
             owner: Pubkey::default(),
             delegate: Pubkey::default(),
             recorded_balance: 0,
+            recorded_vesting_balance: 0,
             signed_agreement_hash: Some([0; 32]),
         };
         assert!(stake_account_metadata_llc_member
@@ -92,6 +95,7 @@ pub mod tests {
             owner: Pubkey::default(),
             delegate: Pubkey::default(),
             recorded_balance: 0,
+            recorded_vesting_balance: 0,
             signed_agreement_hash: None,
         };
         assert!(stake_account_metadata_non_llc_member
