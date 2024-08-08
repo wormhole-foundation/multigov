@@ -3,13 +3,18 @@ pragma solidity ^0.8.23;
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {
   QueryResponse,
   ParsedQueryResponse,
   ParsedPerChainQueryResponse,
-  EthCallByTimestampQueryResponse
-} from "wormhole/query/QueryResponse.sol";
+  EthCallByTimestampQueryResponse,
+  EthCallData,
+  InvalidContractAddress,
+  InvalidChainId,
+  InvalidFunctionSignature
+} from "wormhole-sdk/QueryResponse.sol";
+import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 
 /// @title HubEvmSpokeAggregateProposer
 /// @author [ScopeLift](https://scopelift.co)
@@ -17,6 +22,8 @@ import {
 /// their voting weight and create a proposal on the `HubGovernor`.
 /// @dev This contract is meant to only support queries from EVM compatible chains.
 contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
+  using BytesParsing for bytes;
+
   /// @notice The governor where new proposals will be created.
   IGovernor public immutable HUB_GOVERNOR;
 
@@ -145,12 +152,15 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
     uint256 _currentTimestamp = block.timestamp;
     uint256 _oldestAllowedTimestamp = _currentTimestamp - maxQueryTimestampOffset;
     uint256 _sharedQueryBlockTime = 0;
+    uint16[] memory seenValues = new uint16[](_queryResponse.responses.length);
 
     for (uint256 i = 0; i < _queryResponse.responses.length; i++) {
       ParsedPerChainQueryResponse memory _perChainResp = _queryResponse.responses[i];
       EthCallByTimestampQueryResponse memory _ethCalls = parseEthCallByTimestampQueryResponse(_perChainResp);
+      _containsExistingChainId(seenValues, _perChainResp.chainId, i);
 
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
+      _validateEthCallData(_perChainResp.chainId, _ethCalls.result[0]);
 
       uint64 _requestTargetTimestamp = _ethCalls.requestTargetTimestamp;
 
@@ -161,20 +171,14 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
       if (_sharedQueryBlockTime == 0) _sharedQueryBlockTime = _requestTargetTimestamp;
       if (_sharedQueryBlockTime != _requestTargetTimestamp) revert InvalidTimestamp(_requestTargetTimestamp);
 
-      address _registeredSpokeAddress = registeredSpokes[_perChainResp.chainId];
-      address _queriedAddress = _ethCalls.result[0].contractAddress;
-
-      if (_registeredSpokeAddress == address(0) || _queriedAddress != _registeredSpokeAddress) {
-        revert UnregisteredSpoke(_perChainResp.chainId, _queriedAddress);
-      }
-
       bytes memory _callData = _ethCalls.result[0].callData;
 
       // Extract the address from callData (skip first 4 bytes of function selector)
-      address _queriedAccount = _extractAccountFromCalldata(_callData);
+      (address _queriedAccount, uint256 _queriedTimepoint) = _extractAccountFromCalldata(_callData);
 
       // Check that the address being queried is the caller
       if (_queriedAccount != msg.sender) revert InvalidCaller(msg.sender, _queriedAccount);
+      if (_queriedTimepoint != _requestTargetTimestamp) revert InvalidTimestamp(_requestTargetTimestamp);
 
       uint256 _voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
       _totalVoteWeight += _voteWeight;
@@ -189,16 +193,16 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
 
   /// @notice Extracts the address used to get the voting weight from the query.
   /// @param _calldata The calldata from which to extract the address.
-  function _extractAccountFromCalldata(bytes memory _calldata) internal pure returns (address) {
-    // Ensure calldata is long enough to contain function selector (4 bytes) and an address (20 bytes)
-    if (_calldata.length < 24) revert InvalidCallDataLength();
+  /// @return Address and timepoint in the calldata that was used to get votes.
+  function _extractAccountFromCalldata(bytes memory _calldata) internal pure returns (address, uint256) {
+    (uint256 _extractedAccount, uint256 _nextOffset) = _calldata.asUint256Unchecked(4);
+    (uint256 _extractedTimepoint,) = _calldata.asUint256Unchecked(_nextOffset);
 
-    address _extractedAccount;
-    assembly {
-      _extractedAccount := mload(add(add(_calldata, 0x20), 4))
-    }
+    // Ensure calldata is long enough to contain function selector (4 bytes), a padded address (32 bytes) and uint256
+    // (32 bytes)
+    _calldata.checkLength(68);
 
-    return _extractedAccount;
+    return (address(uint160(_extractedAccount)), _extractedTimepoint);
   }
 
   /// @notice Registers a new chain and address from where to receive queries.
@@ -215,5 +219,30 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
     if (_newMaxQueryTimestampOffset == 0) revert InvalidOffset();
     emit MaxQueryTimestampOffsetUpdated(maxQueryTimestampOffset, _newMaxQueryTimestampOffset);
     maxQueryTimestampOffset = _newMaxQueryTimestampOffset;
+  }
+
+  /// @notice Validates the query eth calldata was from the expected spoke contract and contains the expected function
+  /// signature.
+  /// @param _chainId The wormhole chain id of the query.
+  /// @param _r The Eth calldata of the query.
+  function _validateEthCallData(uint16 _chainId, EthCallData memory _r) internal view {
+    address _registeredSpokeAddress = registeredSpokes[_chainId];
+    if (_registeredSpokeAddress == address(0) || _r.contractAddress != _registeredSpokeAddress) {
+      revert InvalidContractAddress();
+    }
+    (bytes4 funcSig,) = _r.callData.asBytes4Unchecked(0);
+    // Expected function hash is bytes4(keccak256("getVotes(address,uint256)"))
+    if (funcSig != bytes4(hex"eb9019d4")) revert InvalidFunctionSignature();
+  }
+
+  /// @notice Verifies that the same chain id has not been seen already.
+  /// @param _seenChainIds An array of chain ids that have already been seen.
+  /// @param _newChainId The chain id that is checked against the seen ids.
+  /// @param _endIdx The per chain query response index.
+  function _containsExistingChainId(uint16[] memory _seenChainIds, uint16 _newChainId, uint256 _endIdx) internal pure {
+    for (uint256 i = 0; i < _endIdx; i++) {
+      if (_seenChainIds[i] == _newChainId) revert InvalidChainId();
+    }
+    _seenChainIds[_endIdx] = _newChainId;
   }
 }

@@ -8,7 +8,7 @@ contract HubEvmSpokeAggregateProposerHarness is HubEvmSpokeAggregateProposer {
     HubEvmSpokeAggregateProposer(_core, _hubGovernor, _maxQueryTimestampOffset)
   {}
 
-  function exposed_extractAccountFromCalldata(bytes memory callData) public pure returns (address) {
+  function exposed_extractAccountFromCalldata(bytes memory callData) public pure returns (address, uint256) {
     return _extractAccountFromCalldata(callData);
   }
 }

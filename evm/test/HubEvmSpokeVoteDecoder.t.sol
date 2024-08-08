@@ -3,10 +3,13 @@ pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
-import {ParsedPerChainQueryResponse, ParsedQueryResponse} from "wormhole/query/QueryResponse.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {
+  ParsedPerChainQueryResponse, ParsedQueryResponse, InvalidContractAddress
+} from "wormhole-sdk/QueryResponse.sol";
+import {toWormholeFormat} from "wormhole-sdk/Utils.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
@@ -163,7 +166,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
       _spokeContract
     );
 
-    vm.expectRevert(ISpokeVoteDecoder.UnknownMessageEmitter.selector);
+    vm.expectRevert(InvalidContractAddress.selector);
     hubCrossChainEvmVote.decode(_resp);
   }
 
@@ -174,6 +177,8 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
     bytes memory finality
   ) public {
     vm.assume(keccak256(finality) != keccak256("finalized"));
+    vm.prank(address(timelock));
+    hubVotePool.registerSpoke(MAINNET_CHAIN_ID, toWormholeFormat(GOVERNANCE_CONTRACT));
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes(blockId), // random blockId: a hash of the block number
       finality, // finality

@@ -4,10 +4,10 @@ pragma solidity ^0.8.23;
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {toWormholeFormat} from "wormhole-solidity-sdk/Utils.sol";
+import {toWormholeFormat} from "wormhole-sdk/Utils.sol";
 import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
-import {QueryResponse, ParsedQueryResponse} from "wormhole/query/QueryResponse.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
+import {QueryResponse, ParsedQueryResponse} from "wormhole-sdk/QueryResponse.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 
 /// @title HubVotePool

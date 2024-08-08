@@ -6,15 +6,22 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {
   QueryResponse,
   ParsedPerChainQueryResponse,
-  EthCallWithFinalityQueryResponse
-} from "wormhole/query/QueryResponse.sol";
+  EthCallData,
+  EthCallWithFinalityQueryResponse,
+  InvalidContractAddress,
+  InvalidFunctionSignature
+} from "wormhole-sdk/QueryResponse.sol";
+import {fromWormholeFormat} from "wormhole-sdk/Utils.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
+import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 
 /// @title HubEvmSpokeVoteDecoder
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice A contract that parses a specific wormhole query type from the `SpokeVoteAggregator`.
 contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
+  using BytesParsing for bytes;
+
   /// @notice The hub vote pool used to validate message emitter.
   HubVotePool public immutable HUB_VOTE_POOL;
 
@@ -29,17 +36,16 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @return The parsed query vote.
   function decode(ParsedPerChainQueryResponse memory _perChainResp) external view returns (QueryVote memory) {
     EthCallWithFinalityQueryResponse memory _ethCalls = parseEthCallWithFinalityQueryResponse(_perChainResp);
+
+    // verify contract and chain is correct
+    if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
+
+    _validateEthCallData(_perChainResp.chainId, _ethCalls.result[0]);
     if (keccak256(_ethCalls.requestFinality) != keccak256(bytes("finalized"))) {
       revert InvalidQueryBlock(_ethCalls.requestBlockId);
     }
 
-    // verify contract and chain is correct
-    bytes32 _addr = HUB_VOTE_POOL.spokeRegistry(_perChainResp.chainId);
-    bool _isValid = _isValidSpokeAddress(_addr, _ethCalls.result[0].contractAddress);
-    if (!_isValid) revert UnknownMessageEmitter();
-
-    if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
-
+    _ethCalls.result[0].result.checkLength(128);
     (uint256 _proposalId, uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
       abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));
 
@@ -61,14 +67,17 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     return _interfaceId == type(ISpokeVoteDecoder).interfaceId || ERC165.supportsInterface(_interfaceId);
   }
 
-  /// @notice A helper function to compare a registered spoke address to the address in the query.
-  /// @param _registeredSpokeAddress The wormhole representation of a registered address.
-  /// @param _queriedContract An ethereum address used in the query.
-  /// @return A boolean indicating whether the addresses match.
-  function _isValidSpokeAddress(bytes32 _registeredSpokeAddress, address _queriedContract) internal pure returns (bool) {
-    if (
-      _registeredSpokeAddress != bytes32(uint256(uint160(_queriedContract))) || _registeredSpokeAddress == bytes32("")
-    ) return false;
-    return true;
+  /// @notice Validate the query eth calldata was from the expected spoke contract and contains the expected function
+  /// signature.
+  /// @param _chainId The wormhole chain id of the query.
+  /// @param _r The Eth calldata of the query.
+  function _validateEthCallData(uint16 _chainId, EthCallData memory _r) internal view {
+    bytes32 _registeredAddress = HUB_VOTE_POOL.spokeRegistry(_chainId);
+    if (_registeredAddress == bytes32("") || _r.contractAddress != fromWormholeFormat(_registeredAddress)) {
+      revert InvalidContractAddress();
+    }
+    (bytes4 funcSig,) = _r.callData.asBytes4Unchecked(0);
+    // The function signature should be bytes4(keccak256(bytes("proposalVotes(uint256)")))
+    if (funcSig != bytes4(hex"544ffc9c")) revert InvalidFunctionSignature();
   }
 }
