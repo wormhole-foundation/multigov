@@ -28,6 +28,7 @@ import {
 } from "./utils/before";
 import path from "path";
 import { AnchorError, AnchorProvider, Program } from "@coral-xyz/anchor";
+import * as console from "node:console";
 
 const portNumber = getPortNumber(path.basename(__filename));
 
@@ -229,7 +230,6 @@ describe("vesting", () => {
   });
 
   it("Create a matured vest", async () => {
-    const NOW = new BN(Math.floor(new Date().getTime() / 1000));
     await program.methods
       .createVesting(NOW, new BN(1337e6))
       .accounts({ ...accounts, vest: vestNow })
