@@ -91,8 +91,8 @@ contract SpokeMessageExecutor {
 
     _validateChainId(_wormholeChainId);
 
-    airlock.executeOperations(_targets, _values, _calldatas);
     messageReceived[_wormholeMessage.hash] = true;
+    airlock.executeOperations(_targets, _values, _calldatas);
     emit ProposalExecuted(_wormholeMessage.emitterChainId, _wormholeMessage.emitterAddress, _messageId);
   }
 
