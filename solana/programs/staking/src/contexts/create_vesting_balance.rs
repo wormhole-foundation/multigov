@@ -27,10 +27,11 @@ pub struct CreateVestingBalance<'info> {
 }
 
 impl<'info> CreateVestingBalance<'info> {
-    pub fn create_vesting_balance(&mut self) -> Result<()> {
+    pub fn create_vesting_balance(&mut self,  bump: u8) -> Result<()> {
         self.vesting_balance.set_inner(VestingBalance {
             vester_ta: self.vester_ta.key(),
             total_vesting_balance: 0,
+            bump,
         });
 
         Ok(())
