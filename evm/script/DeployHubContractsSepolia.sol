@@ -19,7 +19,6 @@ contract DeployHubContractsSepolia is DeployHubContractsBaseImpl {
       voteWeightWindow: 10 minutes,
       voteExtenderAdmin: wallet.addr,
       voteTimeExtension: 5 minutes,
-      minimumDecisionWindow: 5 minutes,
       minimumExtensionTime: 1 minutes,
       consistencyLevel: 0
     });

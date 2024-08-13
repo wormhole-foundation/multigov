@@ -17,13 +17,7 @@ contract HubProposalExtenderHarness is HubProposalExtender {
       _whitelistedVoteExtender,
       _voteTimeExtension,
       _owner,
-      _minimumExtensionTime,
-      _safeWindow,
-      _minimumDecisionWindow
+      _minimumExtensionTime
     )
   {}
-
-  function exposed_setSafeWindow(uint48 _safeWindow) external {
-    return _setSafeWindow(_safeWindow);
-  }
 }

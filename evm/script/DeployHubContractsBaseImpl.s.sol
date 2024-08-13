@@ -30,7 +30,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint48 voteWeightWindow;
     address voteExtenderAdmin;
     uint48 voteTimeExtension;
-    uint48 minimumDecisionWindow;
     uint48 minimumExtensionTime;
     uint8 consistencyLevel;
   }
@@ -70,9 +69,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
       config.voteExtenderAdmin,
       config.voteTimeExtension,
       config.voteExtenderAdmin,
-      config.minimumExtensionTime,
-      1 days,
-      config.minimumDecisionWindow
+      config.minimumExtensionTime
     );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({

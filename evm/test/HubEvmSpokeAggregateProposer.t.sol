@@ -38,8 +38,6 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
 
   uint48 VOTE_TIME_EXTENSION = 1 days;
   uint48 MINIMUM_VOTE_EXTENSION = 1 hours;
-  uint32 SAFE_WINDOW = 1 days;
-  uint48 MINIMUM_DESCISION_WINDOW = 1 hours;
 
   struct VoteWeight {
     uint256 voteWeight;
@@ -57,7 +55,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     hubVotePool = new HubVotePool(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
 
     extender = new HubProposalExtender(
-      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
+      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION
     );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
