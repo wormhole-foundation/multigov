@@ -67,7 +67,8 @@ describe("vesting", () => {
     vestNow,
     vestEvenLater,
     vestLater,
-    vestEvenLaterAgain;
+    vestEvenLaterAgain,
+    vestingBalance
 
   before(async () => {
     ({ program, provider } = await startValidator(portNumber, anchorConfig));
@@ -140,6 +141,11 @@ describe("vesting", () => {
       program.programId,
     )[0];
 
+    vestingBalance = PublicKey.findProgramAddressSync(
+        [Buffer.from("vesting_balance"), vesterTa.toBuffer()],
+        program.programId,
+    )[0];
+
     accounts = {
       admin: admin.publicKey,
       payer: admin.publicKey,
@@ -153,6 +159,7 @@ describe("vesting", () => {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
+      // vestingBalance: vestingBalance
     };
   });
 
@@ -217,13 +224,10 @@ describe("vesting", () => {
   });
 
   it("Create vesting balance", async () => {
-    const vestBalance = PublicKey.findProgramAddressSync(
-      [Buffer.from("vesting_balance"), vesterTa.toBuffer()],
-      program.programId,
-    )[0];
+
     await program.methods
       .createVestingBalance()
-      .accounts({ ...accounts, vestingBalance: vestBalance })
+      .accounts({ ...accounts, vestingBalance: vestingBalance })
       .signers([admin])
       .rpc()
       .then(confirm);
