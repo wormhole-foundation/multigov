@@ -64,7 +64,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     TimelockController timelock =
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
-    HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0));
+    HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, address(timelock), new HubVotePool.SpokeVoteAggregator[](0));
 
     HubProposalExtender extender = new HubProposalExtender(
       config.voteExtenderAdmin,

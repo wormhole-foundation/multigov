@@ -36,7 +36,8 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
   function setUp() public {
     _setupWormhole();
     governor = new GovernorMock();
-    hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), new HubVotePool.SpokeVoteAggregator[](0));
+	address timelock = makeAddr("Timelock");
+    hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), timelock, new HubVotePool.SpokeVoteAggregator[](0));
 
     hubCrossChainEvmVote = new HubEvmSpokeVoteDecoder(address(wormhole), address(hubVotePool));
 
@@ -158,21 +159,24 @@ contract Constructor is Test, AddressUtils {
   function testFuzz_CorrectlySetConstructorArgs(
     address _core,
     address _hubGovernor,
+	address _timelock,
     HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
   ) public {
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
     vm.assume(_isUnique(_initialSpokeRegistry));
 
-    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
+    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _timelock, _initialSpokeRegistry);
 
     _assertSpokesRegistered(hubVotePool.spokeRegistry, _initialSpokeRegistry);
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
+    assertEq(hubVotePool.owner(), _timelock);
   }
 
   function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(
     address _core,
     address _hubGovernor,
+	address _timelock,
     HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
   ) public {
     vm.assume(_core != address(0));
@@ -188,24 +192,26 @@ contract Constructor is Test, AddressUtils {
       );
     }
 
-    new HubVotePool(_core, _hubGovernor, _initialSpokeRegistry);
+    new HubVotePool(_core, _hubGovernor, _timelock, _initialSpokeRegistry);
   }
 
-  function testFuzz_ConstructorWithEmptySpokeRegistry(address _core, address _hubGovernor, uint16 _spokeChainId) public {
+  function testFuzz_ConstructorWithEmptySpokeRegistry(address _core, address _hubGovernor, address _timelock, uint16 _spokeChainId) public {
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
 
     HubVotePool.SpokeVoteAggregator[] memory emptyRegistry = new HubVotePool.SpokeVoteAggregator[](0);
 
-    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, emptyRegistry);
+    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _timelock, emptyRegistry);
 
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
+    assertEq(hubVotePool.owner(), _timelock);
     assertEq(hubVotePool.spokeRegistry(_spokeChainId), addressToBytes32(address(0)));
   }
 
   function testFuzz_ConstructorWithNonEmptySpokeRegistry(
     address _core,
     address _hubGovernor,
+	address _timelock,
     HubVotePool.SpokeVoteAggregator[] memory _nonEmptyInitialSpokeRegistry
   ) public {
     vm.assume(_nonEmptyInitialSpokeRegistry.length != 0);
@@ -213,29 +219,32 @@ contract Constructor is Test, AddressUtils {
     vm.assume(_hubGovernor != address(0));
     vm.assume(_isUnique(_nonEmptyInitialSpokeRegistry));
 
-    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _nonEmptyInitialSpokeRegistry);
+    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _timelock, _nonEmptyInitialSpokeRegistry);
 
     _assertSpokesRegistered(hubVotePool.spokeRegistry, _nonEmptyInitialSpokeRegistry);
 
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
+    assertEq(hubVotePool.owner(), _timelock);
   }
 
   function testFuzz_RevertIf_CoreIsZeroAddress(
     address _hubGovernor,
+	address _timelock,
     HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
   ) public {
     vm.assume(_hubGovernor != address(0));
     vm.expectRevert(EmptyWormholeAddress.selector);
-    new HubVotePool(address(0), _hubGovernor, _initialSpokeRegistry);
+    new HubVotePool(address(0), _hubGovernor, _timelock, _initialSpokeRegistry);
   }
 
   function testFuzz_RevertIf_HubGovernorIsZeroAddress(
     address _core,
+	address _timelock,
     HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
   ) public {
     vm.assume(_core != address(0));
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-    new HubVotePool(_core, address(0), _initialSpokeRegistry);
+    new HubVotePool(_core, address(0), _timelock, _initialSpokeRegistry);
   }
 }
 
