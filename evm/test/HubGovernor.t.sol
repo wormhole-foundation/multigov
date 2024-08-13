@@ -270,7 +270,7 @@ contract SetHubVotePool is HubGovernorTest {
 
     _jumpPastProposalEta(proposalId);
     vm.expectEmit();
-    emit HubGovernor.HubVotePoolUpdated(address(hubVotePool), _hubVotePool);
+    emit HubGovernor.HubVotePoolUpdated(address(governor.hubVotePool()), _hubVotePool);
     governor.execute(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
   }
 
@@ -660,9 +660,9 @@ contract _CountVote is HubGovernorTest {
     _jumpToActiveProposal(_proposalId);
 
     bytes memory voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    governor.exposed_countVote(_proposalId, address(hubVotePool), _support, 0, voteData);
+    governor.exposed_countVote(_proposalId, address(governor.hubVotePool()), _support, 0, voteData);
 
-    uint256 votingWeight = token.getVotes(address(hubVotePool));
+    uint256 votingWeight = token.getVotes(address(governor.hubVotePool()));
 
     (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
     assertEq(votingWeight, 0);
@@ -681,7 +681,7 @@ contract _CountVote is HubGovernorTest {
   ) public {
     _support = uint8(bound(_support, 0, 2));
 
-    _mintAndDelegate(address(hubVotePool), _totalWeight);
+    _mintAndDelegate(address(governor.hubVotePool()), _totalWeight);
     (, delegates) = _setGovernorAndDelegates();
     (ProposalBuilder builder) = _createArbitraryProposal();
 
@@ -693,9 +693,9 @@ contract _CountVote is HubGovernorTest {
     _jumpToActiveProposal(_proposalId);
 
     bytes memory voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    governor.exposed_countVote(_proposalId, address(hubVotePool), _support, _totalWeight, voteData);
+    governor.exposed_countVote(_proposalId, address(governor.hubVotePool()), _support, _totalWeight, voteData);
 
-    uint256 votingWeight = token.getVotes(address(hubVotePool));
+    uint256 votingWeight = token.getVotes(address(governor.hubVotePool()));
 
     (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
     assertEq(votingWeight, _totalWeight);
