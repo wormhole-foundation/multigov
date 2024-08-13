@@ -58,12 +58,9 @@ contract HubProposalExtender is Ownable, IVoteExtender {
   /// @param _extensionDuration Amount of time for which target proposals will be extended.
   /// @param _owner Owner of the contract.
   /// @param _minimumExtensionDuration Lower limit for extension duration.
-  constructor(
-    address _voteExtenderAdmin,
-    uint48 _extensionDuration,
-    address _owner,
-    uint48 _minimumExtensionDuration
-  ) Ownable(_owner) {
+  constructor(address _voteExtenderAdmin, uint48 _extensionDuration, address _owner, uint48 _minimumExtensionDuration)
+    Ownable(_owner)
+  {
     _setExtensionDuration(_extensionDuration);
     _setVoteExtenderAdmin(_voteExtenderAdmin);
     MINIMUM_EXTENSION_DURATION = _minimumExtensionDuration;

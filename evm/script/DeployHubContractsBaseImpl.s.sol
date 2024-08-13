@@ -66,10 +66,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0));
 
     HubProposalExtender extender = new HubProposalExtender(
-      config.voteExtenderAdmin,
-      config.voteTimeExtension,
-      config.voteExtenderAdmin,
-      config.minimumExtensionTime
+      config.voteExtenderAdmin, config.voteTimeExtension, config.voteExtenderAdmin, config.minimumExtensionTime
     );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
