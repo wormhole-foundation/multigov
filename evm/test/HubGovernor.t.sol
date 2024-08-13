@@ -42,8 +42,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DECISION_WINDOW
     );
 
-    hubVotePool = new HubVotePoolHarness(
-      address(wormhole), initialOwner, address(timelock)    );
+    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",

@@ -38,8 +38,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     _setupWormhole();
     governor = new GovernorMock();
     timelock = makeAddr("Timelock");
-    hubVotePool =
-      new HubVotePoolHarness(address(wormhole), address(governor), timelock);
+    hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), timelock);
 
     hubCrossChainEvmVote = new HubEvmSpokeVoteDecoder(address(wormhole), address(hubVotePool));
 
@@ -158,11 +157,7 @@ contract Constructor is Test, AddressUtils {
   //   }
   // }
 
-  function testFuzz_CorrectlySetConstructorArgs(
-    address _core,
-    address _hubGovernor,
-    address _timelock
-  ) public {
+  function testFuzz_CorrectlySetConstructorArgs(address _core, address _hubGovernor, address _timelock) public {
     vm.assume(_core != address(0));
     vm.assume(_timelock != address(0));
 
@@ -181,10 +176,7 @@ contract Constructor is Test, AddressUtils {
     new HubVotePool(address(0), _hubGovernor, _timelock);
   }
 
-  function testFuzz_RevertIf_TimelockIsZeroAddress(
-    address _core,
-    address _governor
-  ) public {
+  function testFuzz_RevertIf_TimelockIsZeroAddress(address _core, address _governor) public {
     vm.assume(_core != address(0));
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
     new HubVotePool(_core, _governor, address(0));
