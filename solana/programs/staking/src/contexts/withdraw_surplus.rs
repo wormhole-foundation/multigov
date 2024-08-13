@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{associated_token::AssociatedToken, token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked}};
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
+};
 
 use crate::{error::VestingError, state::Config};
 
@@ -31,7 +34,7 @@ pub struct WithdrawSurplus<'info> {
     config: Account<'info, Config>,
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
-    system_program: Program<'info, System>
+    system_program: Program<'info, System>,
 }
 
 impl<'info> WithdrawSurplus<'info> {
@@ -40,15 +43,13 @@ impl<'info> WithdrawSurplus<'info> {
         let seed = self.config.seed.to_le_bytes();
         let bump = [self.config.bump];
 
-        let signer_seeds = [&
-            [
-                b"config", 
-                self.config.admin.as_ref(), 
-                self.config.mint.as_ref(), 
-                &seed,
-                &bump
-            ][..]
-        ];
+        let signer_seeds = [&[
+            b"config",
+            self.config.admin.as_ref(),
+            self.config.mint.as_ref(),
+            &seed,
+            &bump,
+        ][..]];
 
         let ctx = CpiContext::new_with_signer(
             self.token_program.to_account_info(),
@@ -56,11 +57,15 @@ impl<'info> WithdrawSurplus<'info> {
                 from: self.vault.to_account_info(),
                 to: self.recovery.to_account_info(),
                 mint: self.mint.to_account_info(),
-                authority: self.config.to_account_info()
+                authority: self.config.to_account_info(),
             },
-            &signer_seeds
+            &signer_seeds,
         );
 
-        transfer_checked(ctx, self.vault.amount - self.config.vested, self.mint.decimals)
+        transfer_checked(
+            ctx,
+            self.vault.amount - self.config.vested,
+            self.mint.decimals,
+        )
     }
 }

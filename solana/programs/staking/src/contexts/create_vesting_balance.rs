@@ -23,11 +23,11 @@ pub struct CreateVestingBalance<'info> {
     )]
     vester_ta: InterfaceAccount<'info, TokenAccount>,
     token_program: Interface<'info, TokenInterface>,
-    system_program: Program<'info, System>
+    system_program: Program<'info, System>,
 }
 
 impl<'info> CreateVestingBalance<'info> {
-    pub fn create_vesting_balance(&mut self,  bump: u8) -> Result<()> {
+    pub fn create_vesting_balance(&mut self, bump: u8) -> Result<()> {
         self.vesting_balance.set_inner(VestingBalance {
             vester_ta: self.vester_ta.key(),
             total_vesting_balance: 0,

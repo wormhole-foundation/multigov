@@ -10,15 +10,15 @@ use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
+use contexts::*;
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
-use contexts::*;
 
 mod context;
+mod contexts;
 mod error;
 mod state;
 mod utils;
-mod contexts;
 #[cfg(feature = "wasm")]
 pub mod wasm;
 
@@ -337,7 +337,8 @@ pub mod staking {
 
     // Create a vesting balance account
     pub fn create_vesting_balance(ctx: Context<CreateVestingBalance>) -> Result<()> {
-        ctx.accounts.create_vesting_balance(ctx.bumps.vesting_balance)
+        ctx.accounts
+          .create_vesting_balance(ctx.bumps.vesting_balance)
     }
 
     // Finalize a Config, disabling any further creation or cancellation of Vesting accounts
@@ -347,7 +348,8 @@ pub mod staking {
 
     // Open a new Vesting account and deposit equivalent vested tokens to vault
     pub fn create_vesting(ctx: Context<CreateVesting>, maturation: i64, amount: u64) -> Result<()> {
-        ctx.accounts.create_vesting(maturation, amount, ctx.bumps.vest)
+        ctx.accounts
+          .create_vesting(maturation, amount, ctx.bumps.vest)
     }
 
     // Claim from and close a Vesting account

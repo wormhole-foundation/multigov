@@ -24,7 +24,7 @@ pub struct Finalize<'info> {
         bump = config.bump
     )]
     config: Account<'info, Config>,
-    token_program: Interface<'info, TokenInterface>
+    token_program: Interface<'info, TokenInterface>,
 }
 
 impl<'info> Finalize<'info> {
