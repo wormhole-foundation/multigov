@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::{error::VestingError, state::{Config, Vesting}};
+use crate::state::VestingBalance;
 
 #[derive(Accounts)]
 #[instruction(maturation: i64)]
@@ -31,6 +32,12 @@ pub struct CreateVesting<'info> {
         bump
     )]
     vest: Account<'info, Vesting>,
+    #[account(
+        mut,
+        seeds = [b"vesting_balance",  vester_ta.key().as_ref()],
+        bump = vesting_balance.bump
+    )]
+    vesting_balance: Account<'info, VestingBalance>,
     token_program: Interface<'info, TokenInterface>,
     system_program: Program<'info, System>
 }
@@ -40,6 +47,8 @@ impl<'info> CreateVesting<'info> {
         // Add to total vested amount
         self.config.vested = self.config.vested.checked_add(amount).ok_or(VestingError::Overflow)?;
 
+        self.vesting_balance.total_vesting_balance = self.vesting_balance.total_vesting_balance.checked_add(amount).ok_or(VestingError::Overflow)?;
+        
         self.vest.set_inner(Vesting {
             vester_ta: self.vester_ta.key(),
             config: self.config.key(),
@@ -50,4 +59,5 @@ impl<'info> CreateVesting<'info> {
 
         Ok(())
     }
+    
 }
