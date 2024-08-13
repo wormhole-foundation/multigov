@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{associated_token::AssociatedToken, token_interface::{Mint, TokenAccount, TokenInterface}};
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token_interface::{Mint, TokenAccount, TokenInterface},
+};
 
 use crate::state::Config;
 
@@ -35,7 +38,7 @@ pub struct Initialize<'info> {
     config: Account<'info, Config>,
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
-    system_program: Program<'info, System>
+    system_program: Program<'info, System>,
 }
 
 impl<'info> Initialize<'info> {
@@ -47,7 +50,7 @@ impl<'info> Initialize<'info> {
             vested: 0,
             finalized: false,
             seed,
-            bump
+            bump,
         });
         Ok(())
     }

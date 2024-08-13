@@ -1,8 +1,11 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
-use crate::{error::VestingError, state::{Config, Vesting}};
 use crate::state::VestingBalance;
+use crate::{
+    error::VestingError,
+    state::{Config, Vesting},
+};
 
 #[derive(Accounts)]
 pub struct CancelVesting<'info> {
@@ -38,14 +41,22 @@ pub struct CancelVesting<'info> {
     )]
     vesting_balance: Account<'info, VestingBalance>,
     token_program: Interface<'info, TokenInterface>,
-    system_program: Program<'info, System>
+    system_program: Program<'info, System>,
 }
 
 impl<'info> CancelVesting<'info> {
     pub fn cancel_vesting(&mut self) -> Result<()> {
-        self.config.vested = self.config.vested.checked_sub(self.vest.amount).ok_or(VestingError::Underflow)?;
-        
-        self.vesting_balance.total_vesting_balance = self.vesting_balance.total_vesting_balance.checked_sub(self.vest.amount).ok_or(VestingError::Underflow)?;
+        self.config.vested = self
+            .config
+            .vested
+            .checked_sub(self.vest.amount)
+            .ok_or(VestingError::Underflow)?;
+
+        self.vesting_balance.total_vesting_balance = self
+            .vesting_balance
+            .total_vesting_balance
+            .checked_sub(self.vest.amount)
+            .ok_or(VestingError::Underflow)?;
 
         Ok(())
     }

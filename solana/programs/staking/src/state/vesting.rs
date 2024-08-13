@@ -6,7 +6,7 @@ pub struct Vesting {
     pub config: Pubkey,
     pub amount: u64,
     pub maturation: i64,
-    pub bump: u8
+    pub bump: u8,
 }
 
 impl Space for Vesting {

@@ -8,7 +8,7 @@ pub struct Config {
     pub seed: u64,
     pub vested: u64,
     pub finalized: bool,
-    pub bump: u8
+    pub bump: u8,
 }
 
 impl Space for Config {
