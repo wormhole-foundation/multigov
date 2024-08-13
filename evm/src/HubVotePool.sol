@@ -5,6 +5,7 @@ import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165C
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {toWormholeFormat} from "wormhole-solidity-sdk/Utils.sol";
+import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryResponse, ParsedQueryResponse} from "wormhole/query/QueryResponse.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
@@ -65,6 +66,8 @@ contract HubVotePool is QueryResponse, Ownable {
 
   constructor(address _core, address _hubGovernor, address _owner) QueryResponse(_core) Ownable(_owner) {
     hubGovernor = IGovernor(_hubGovernor);
+    HubEvmSpokeVoteDecoder evmDecoder = new HubEvmSpokeVoteDecoder(_core, address(this));
+    _registerQueryType(address(evmDecoder), QueryResponse.QT_ETH_CALL_WITH_FINALITY);
   }
 
   /// @notice Registers or unregisters a query type implementation.
@@ -73,14 +76,7 @@ contract HubVotePool is QueryResponse, Ownable {
   /// @param _implementation The address of the implementation contract for the query type.
   function registerQueryType(uint8 _queryType, address _implementation) external {
     _checkOwner();
-    if (_implementation == address(0)) {
-      delete voteTypeDecoder[_queryType];
-      return;
-    }
-    bool _isValid = _implementation.supportsInterface(type(ISpokeVoteDecoder).interfaceId);
-    if (!_isValid) revert InvalidQueryVoteImpl();
-    emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
-    voteTypeDecoder[_queryType] = ISpokeVoteDecoder(_implementation);
+    _registerQueryType(_implementation, _queryType);
   }
 
   /// @notice Registers a new spoke chain and its vote aggregator address.
@@ -157,5 +153,16 @@ contract HubVotePool is QueryResponse, Ownable {
   function _registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) internal {
     emit SpokeRegistered(_targetChain, spokeRegistry[_targetChain], _spokeVoteAddress);
     spokeRegistry[_targetChain] = _spokeVoteAddress;
+  }
+
+  function _registerQueryType(address _implementation, uint8 _queryType) internal {
+    if (_implementation == address(0)) {
+      delete voteTypeDecoder[_queryType];
+      return;
+    }
+    bool _isValid = _implementation.supportsInterface(type(ISpokeVoteDecoder).interfaceId);
+    if (!_isValid) revert InvalidQueryVoteImpl();
+    emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
+    voteTypeDecoder[_queryType] = ISpokeVoteDecoder(_implementation);
   }
 }

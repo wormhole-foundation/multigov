@@ -52,7 +52,8 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialVotingPeriod: 3 days,
       initialProposalThreshold: 500_000e18,
       initialQuorum: 100e18,
-      hubVotePool: address(hubVotePool),
+      hubVotePoolOwner: address(timelock),
+      wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
     });
@@ -135,10 +136,10 @@ contract Constructor is HubGovernorTest {
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _hubVotePool,
     address _voteExtender
   ) public {
     vm.assume(_initialVotingPeriod != 0);
+    vm.assume(_timelock != address(0));
     // Prevent the etching over of precompiles
     _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
 
@@ -151,7 +152,8 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePool: _hubVotePool,
+      hubVotePoolOwner: _timelock,
+      wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
     });
@@ -164,7 +166,6 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.votingDelay(), _initialVotingDelay);
     assertEq(_governor.votingPeriod(), _initialVotingPeriod);
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
-    assertEq(address(_governor.hubVotePool()), _hubVotePool);
     assertEq(address(_governor.HUB_PROPOSAL_EXTENDER()), _voteExtender);
   }
 
@@ -181,6 +182,7 @@ contract Constructor is HubGovernorTest {
   ) public {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_voteExtender.code.length == 0);
+    vm.assume(_timelock != address(0));
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
@@ -190,7 +192,8 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePool: _hubVotePool,
+      hubVotePoolOwner: _timelock,
+      wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
     });
@@ -217,7 +220,8 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: 0,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePool: _hubVotePool,
+      hubVotePoolOwner: _timelock,
+      wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
     });
