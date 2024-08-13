@@ -55,7 +55,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     token = new ERC20VotesFake();
 
     hubVotePool =
-      new HubVotePool(address(wormhole), initialOwner, address(timelock), new HubVotePool.SpokeVoteAggregator[](1));
+      new HubVotePool(address(wormhole), initialOwner, address(timelock));
 
     extender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW

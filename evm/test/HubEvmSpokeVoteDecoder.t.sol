@@ -34,7 +34,7 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     governor = new GovernorMock();
     timelock = makeAddr("Timelock");
     hubVotePool =
-      new HubVotePoolHarness(address(wormhole), address(governor), timelock, new HubVotePool.SpokeVoteAggregator[](0));
+      new HubVotePoolHarness(address(wormhole), address(governor), timelock);
     hubCrossChainEvmVote = new HubEvmSpokeVoteDecoder(address(wormhole), address(hubVotePool));
   }
 

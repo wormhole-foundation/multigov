@@ -39,7 +39,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     governor = new GovernorMock();
     timelock = makeAddr("Timelock");
     hubVotePool =
-      new HubVotePoolHarness(address(wormhole), address(governor), timelock, new HubVotePool.SpokeVoteAggregator[](0));
+      new HubVotePoolHarness(address(wormhole), address(governor), timelock);
 
     hubCrossChainEvmVote = new HubEvmSpokeVoteDecoder(address(wormhole), address(hubVotePool));
 
@@ -135,100 +135,38 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
 }
 
 contract Constructor is Test, AddressUtils {
-  mapping(uint16 => bool) public initialSpokeRegistrySeen;
+  // mapping(uint16 => bool) public initialSpokeRegistrySeen;
 
-  function _isUnique(HubVotePool.SpokeVoteAggregator[] memory _array) internal returns (bool) {
-    for (uint256 i = 0; i < _array.length; i++) {
-      uint16 chainId = _array[i].wormholeChainId;
-      if (initialSpokeRegistrySeen[chainId]) return false;
-      initialSpokeRegistrySeen[chainId] = true;
-    }
-    return true;
-  }
+  // function _isUnique(HubVotePool.SpokeVoteAggregator[] memory _array) internal returns (bool) {
+  //   for (uint256 i = 0; i < _array.length; i++) {
+  //     uint16 chainId = _array[i].wormholeChainId;
+  //     if (initialSpokeRegistrySeen[chainId]) return false;
+  //     initialSpokeRegistrySeen[chainId] = true;
+  //   }
+  //   return true;
+  // }
 
-  function _assertSpokesRegistered(
-    function(uint16) external view returns (bytes32) spokeRegistryFunc,
-    HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry
-  ) internal view {
-    for (uint256 i = 0; i < _spokeRegistry.length; i++) {
-      uint16 chainId = _spokeRegistry[i].wormholeChainId;
-      bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
-      bytes32 storedAddress = spokeRegistryFunc(chainId);
-      assertEq(storedAddress, expectedAddress);
-    }
-  }
+  // function _assertSpokesRegistered(
+  //   function(uint16) external view returns (bytes32) spokeRegistryFunc,
+  //   HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry
+  // ) internal view {
+  //   for (uint256 i = 0; i < _spokeRegistry.length; i++) {
+  //     uint16 chainId = _spokeRegistry[i].wormholeChainId;
+  //     bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
+  //     bytes32 storedAddress = spokeRegistryFunc(chainId);
+  //     assertEq(storedAddress, expectedAddress);
+  //   }
+  // }
 
   function testFuzz_CorrectlySetConstructorArgs(
     address _core,
     address _hubGovernor,
-    address _timelock,
-    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
-  ) public {
-    vm.assume(_core != address(0));
-    vm.assume(_timelock != address(0));
-    vm.assume(_isUnique(_initialSpokeRegistry));
-
-    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _timelock, _initialSpokeRegistry);
-
-    _assertSpokesRegistered(hubVotePool.spokeRegistry, _initialSpokeRegistry);
-    assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
-    assertEq(hubVotePool.owner(), _timelock);
-  }
-
-  function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(
-    address _core,
-    address _hubGovernor,
-    address _timelock,
-    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
-  ) public {
-    vm.assume(_core != address(0));
-    vm.assume(_timelock != address(0));
-    vm.assume(_isUnique(_initialSpokeRegistry));
-
-    for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
-      vm.expectEmit();
-      emit HubVotePool.SpokeRegistered(
-        _initialSpokeRegistry[i].wormholeChainId,
-        addressToBytes32(address(0)),
-        addressToBytes32(_initialSpokeRegistry[i].addr)
-      );
-    }
-
-    new HubVotePool(_core, _hubGovernor, _timelock, _initialSpokeRegistry);
-  }
-
-  function testFuzz_ConstructorWithEmptySpokeRegistry(
-    address _core,
-    address _hubGovernor,
-    address _timelock,
-    uint16 _spokeChainId
+    address _timelock
   ) public {
     vm.assume(_core != address(0));
     vm.assume(_timelock != address(0));
 
-    HubVotePool.SpokeVoteAggregator[] memory emptyRegistry = new HubVotePool.SpokeVoteAggregator[](0);
-
-    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _timelock, emptyRegistry);
-
-    assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
-    assertEq(hubVotePool.owner(), _timelock);
-    assertEq(hubVotePool.spokeRegistry(_spokeChainId), addressToBytes32(address(0)));
-  }
-
-  function testFuzz_ConstructorWithNonEmptySpokeRegistry(
-    address _core,
-    address _hubGovernor,
-    address _timelock,
-    HubVotePool.SpokeVoteAggregator[] memory _nonEmptyInitialSpokeRegistry
-  ) public {
-    vm.assume(_nonEmptyInitialSpokeRegistry.length != 0);
-    vm.assume(_core != address(0));
-    vm.assume(_timelock != address(0));
-    vm.assume(_isUnique(_nonEmptyInitialSpokeRegistry));
-
-    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _timelock, _nonEmptyInitialSpokeRegistry);
-
-    _assertSpokesRegistered(hubVotePool.spokeRegistry, _nonEmptyInitialSpokeRegistry);
+    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _timelock);
 
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
     assertEq(hubVotePool.owner(), _timelock);
@@ -240,17 +178,16 @@ contract Constructor is Test, AddressUtils {
     HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
   ) public {
     vm.expectRevert(EmptyWormholeAddress.selector);
-    new HubVotePool(address(0), _hubGovernor, _timelock, _initialSpokeRegistry);
+    new HubVotePool(address(0), _hubGovernor, _timelock);
   }
 
   function testFuzz_RevertIf_TimelockIsZeroAddress(
     address _core,
-    address _governor,
-    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
+    address _governor
   ) public {
     vm.assume(_core != address(0));
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-    new HubVotePool(_core, _governor, address(0), _initialSpokeRegistry);
+    new HubVotePool(_core, _governor, address(0));
   }
 }
 

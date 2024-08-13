@@ -7,7 +7,6 @@ contract HubVotePoolHarness is HubVotePool {
   constructor(
     address _core,
     address _hubGovernor,
-    address _timelock,
-    SpokeVoteAggregator[] memory _initialSpokeRegistry
-  ) HubVotePool(_core, _hubGovernor, _timelock, _initialSpokeRegistry) {}
+    address _timelock
+  ) HubVotePool(_core, _hubGovernor, _timelock) {}
 }
