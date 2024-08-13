@@ -42,7 +42,9 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DECISION_WINDOW
     );
 
-    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock), new HubVotePool.SpokeVoteAggregator[](1));
+    hubVotePool = new HubVotePoolHarness(
+      address(wormhole), initialOwner, address(timelock), new HubVotePool.SpokeVoteAggregator[](1)
+    );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",
@@ -65,11 +67,8 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("EXECUTOR_ROLE"), address(governor));
 
-    vm.prank(initialOwner);
+    vm.prank(address(timelock));
     hubVotePool.setGovernor(address(governor));
-
-    vm.prank(initialOwner);
-    hubVotePool.transferOwnership(address(governor));
 
     vm.prank(initialOwner);
     extender.transferOwnership(address(timelock));

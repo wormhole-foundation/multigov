@@ -62,10 +62,12 @@ contract HubVotePool is QueryResponse, Ownable {
 
   mapping(uint8 queryType => ISpokeVoteDecoder voteImpl) public voteTypeDecoder;
 
-  constructor(address _core, address _hubGovernor, address _timelock, SpokeVoteAggregator[] memory _initialSpokeRegistry)
-    QueryResponse(_core)
-    Ownable(_timelock)
-  {
+  constructor(
+    address _core,
+    address _hubGovernor,
+    address _timelock,
+    SpokeVoteAggregator[] memory _initialSpokeRegistry
+  ) QueryResponse(_core) Ownable(_timelock) {
     hubGovernor = IGovernor(_hubGovernor);
     for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
       SpokeVoteAggregator memory _aggregator = _initialSpokeRegistry[i];
