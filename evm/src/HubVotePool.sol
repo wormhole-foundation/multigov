@@ -92,8 +92,8 @@ contract HubVotePool is QueryResponse, Ownable {
   /// @param _spokes An an array of spoke vote aggregators to be registered.
   function registerSpokes(SpokeVoteAggregator[] memory _spokes) external {
     _checkOwner();
-    for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
-      SpokeVoteAggregator memory _aggregator = _initialSpokeRegistry[i];
+    for (uint256 i = 0; i < _spokes.length; i++) {
+      SpokeVoteAggregator memory _aggregator = _spokes[i];
       _registerSpoke(_aggregator.wormholeChainId, toWormholeFormat(_aggregator.addr));
     }
   }
