@@ -320,15 +320,19 @@ export async function newUserStakeConnection(
     new PublicKey(config.programs.localnet.staking),
   );
 
-  await transferSolFromValidatorWallet(stakeConnection.provider, userKeypair.publicKey, 10000);
-  
+  await transferSolFromValidatorWallet(
+    stakeConnection.provider,
+    userKeypair.publicKey,
+    10000,
+  );
+
   return userStakeConnection;
 }
 
 export async function transferSolFromValidatorWallet(
   provider: AnchorProvider,
   to: PublicKey,
-  amount: number
+  amount: number,
 ) {
   const payer = provider.wallet.payer;
 
@@ -337,12 +341,14 @@ export async function transferSolFromValidatorWallet(
       fromPubkey: payer.publicKey,
       toPubkey: to,
       lamports: amount * LAMPORTS_PER_SOL,
-    })
+    }),
   );
-  const signature = await provider.connection.sendTransaction(transaction, [payer]);
-  await provider.connection.confirmTransaction(signature, 'confirmed');
+  const signature = await provider.connection.sendTransaction(transaction, [
+    payer,
+  ]);
+  await provider.connection.confirmTransaction(signature, "confirmed");
 
-//   console.log(`Successfully transferred ${amount} SOL from ${payer.publicKey.toBase58()} to ${to.toBase58()}`);
+  //   console.log(`Successfully transferred ${amount} SOL from ${payer.publicKey.toBase58()} to ${to.toBase58()}`);
 }
 
 /**
