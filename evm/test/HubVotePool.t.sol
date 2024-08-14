@@ -142,6 +142,7 @@ contract Constructor is Test, AddressUtils {
 
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
     assertEq(hubVotePool.owner(), _timelock);
+    assertNotEq(address(hubVotePool.voteTypeDecoder(hubVotePool.QT_ETH_CALL_WITH_FINALITY())), address(0));
   }
 
   function testFuzz_RevertIf_CoreIsZeroAddress(

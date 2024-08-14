@@ -167,6 +167,7 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.votingPeriod(), _initialVotingPeriod);
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
     assertEq(address(_governor.HUB_PROPOSAL_EXTENDER()), _voteExtender);
+    assertNotEq(address(_governor.hubVotePool()), address(0));
   }
 
   function testFuzz_RevertIf_HubProposalExtenderIsEOA(
