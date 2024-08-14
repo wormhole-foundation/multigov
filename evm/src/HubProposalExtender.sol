@@ -51,9 +51,6 @@ contract HubProposalExtender is Ownable, IVoteExtender {
   /// @notice Thrown when the extension duration is invalid.
   error InvalidExtensionDuration();
 
-  /// @notice Thrown when the unsafe window is invalid.
-  error InvalidUnsafeWindow();
-
   /// @param _voteExtenderAdmin Address of the trusted actor able to extend proposals.
   /// @param _extensionDuration Amount of time for which target proposals will be extended.
   /// @param _owner Owner of the contract.
