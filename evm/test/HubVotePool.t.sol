@@ -134,29 +134,6 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
 }
 
 contract Constructor is Test, AddressUtils {
-  // mapping(uint16 => bool) public initialSpokeRegistrySeen;
-
-  // function _isUnique(HubVotePool.SpokeVoteAggregator[] memory _array) internal returns (bool) {
-  //   for (uint256 i = 0; i < _array.length; i++) {
-  //     uint16 chainId = _array[i].wormholeChainId;
-  //     if (initialSpokeRegistrySeen[chainId]) return false;
-  //     initialSpokeRegistrySeen[chainId] = true;
-  //   }
-  //   return true;
-  // }
-
-  // function _assertSpokesRegistered(
-  //   function(uint16) external view returns (bytes32) spokeRegistryFunc,
-  //   HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry
-  // ) internal view {
-  //   for (uint256 i = 0; i < _spokeRegistry.length; i++) {
-  //     uint16 chainId = _spokeRegistry[i].wormholeChainId;
-  //     bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
-  //     bytes32 storedAddress = spokeRegistryFunc(chainId);
-  //     assertEq(storedAddress, expectedAddress);
-  //   }
-  // }
-
   function testFuzz_CorrectlySetConstructorArgs(address _core, address _hubGovernor, address _timelock) public {
     vm.assume(_core != address(0));
     vm.assume(_timelock != address(0));
@@ -258,6 +235,59 @@ contract RegisterSpoke is HubVotePoolTest {
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
+  }
+}
+
+contract RegisterSpokes is HubVotePoolTest {
+  mapping(uint16 => bool) public initialSpokeRegistrySeen;
+
+  function _isUnique(HubVotePool.SpokeVoteAggregator[] memory _array) internal returns (bool) {
+    for (uint256 i = 0; i < _array.length; i++) {
+      uint16 chainId = _array[i].wormholeChainId;
+      if (initialSpokeRegistrySeen[chainId]) return false;
+      initialSpokeRegistrySeen[chainId] = true;
+    }
+    return true;
+  }
+
+  function _assertSpokesRegistered(
+    function(uint16) external view returns (bytes32) spokeRegistryFunc,
+    HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry
+  ) internal view {
+    for (uint256 i = 0; i < _spokeRegistry.length; i++) {
+      uint16 chainId = _spokeRegistry[i].wormholeChainId;
+      bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
+      bytes32 storedAddress = spokeRegistryFunc(chainId);
+      assertEq(storedAddress, expectedAddress);
+    }
+  }
+
+  function testFuzz_RegisterNewSpokes(HubVotePool.SpokeVoteAggregator[] memory _spokes) public {
+    vm.assume(_isUnique(_spokes));
+    vm.prank(timelock);
+    hubVotePool.registerSpokes(_spokes);
+    _assertSpokesRegistered(hubVotePool.spokeRegistry, _spokes);
+  }
+
+  function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(HubVotePool.SpokeVoteAggregator[] memory _spokes) public {
+    vm.assume(_isUnique(_spokes));
+
+    for (uint256 i = 0; i < _spokes.length; i++) {
+      vm.expectEmit();
+      emit HubVotePool.SpokeRegistered(
+        _spokes[i].wormholeChainId, addressToBytes32(address(0)), addressToBytes32(_spokes[i].addr)
+      );
+    }
+
+    vm.prank(timelock);
+    hubVotePool.registerSpokes(_spokes);
+  }
+
+  function testFuzz_RevertIf_NotCalledByOwner(HubVotePool.SpokeVoteAggregator[] memory _spokes, address _caller) public {
+    vm.assume(_caller != timelock);
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    hubVotePool.registerSpokes(_spokes);
   }
 }
 
