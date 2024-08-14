@@ -46,6 +46,7 @@ pub struct ProposalCreated {
 }
 
 declare_id!("5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ");
+
 #[program]
 pub mod staking {
     /// Creates a global config for the program
@@ -114,6 +115,13 @@ pub mod staking {
 
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+
+        if let Some(vesting_balance) = &ctx.accounts.vesting_balance {
+            stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
+        } else {
+            stake_account_metadata.recorded_vesting_balance = 0;
+        }
+
         let current_delegate = stake_account_metadata.delegate;
         stake_account_metadata.delegate = delegatee;
 
@@ -124,7 +132,10 @@ pub mod staking {
         });
 
         let recorded_balance = stake_account_metadata.recorded_balance;
+        let recorded_vesting_balance = stake_account_metadata.recorded_vesting_balance;
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
+
+        let total_balance = recorded_balance + recorded_vesting_balance;
 
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
@@ -148,7 +159,7 @@ pub mod staking {
 
                 if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
                     current_timestamp,
-                    latest_current_delegate_checkpoint_value - recorded_balance,
+                    latest_current_delegate_checkpoint_value - total_balance,
                 ) {};
             }
 
@@ -165,12 +176,12 @@ pub mod staking {
                 stake_account_metadata.recorded_balance = *current_stake_balance;
             }
         } else {
-            if *current_stake_balance != recorded_balance {
+            if *current_stake_balance != total_balance {
                 let latest_delegatee_checkpoint_value =
                     delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
                 if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
                     current_timestamp,
-                    latest_delegatee_checkpoint_value + *current_stake_balance - recorded_balance,
+                    latest_delegatee_checkpoint_value + *current_stake_balance - total_balance,
                 ) {};
                 stake_account_metadata.recorded_balance = *current_stake_balance;
             }
@@ -338,7 +349,7 @@ pub mod staking {
     // Create a vesting balance account
     pub fn create_vesting_balance(ctx: Context<CreateVestingBalance>) -> Result<()> {
         ctx.accounts
-          .create_vesting_balance(ctx.bumps.vesting_balance)
+            .create_vesting_balance(ctx.bumps.vesting_balance)
     }
 
     // Finalize a Config, disabling any further creation or cancellation of Vesting accounts
@@ -349,7 +360,7 @@ pub mod staking {
     // Open a new Vesting account and deposit equivalent vested tokens to vault
     pub fn create_vesting(ctx: Context<CreateVesting>, maturation: i64, amount: u64) -> Result<()> {
         ctx.accounts
-          .create_vesting(maturation, amount, ctx.bumps.vest)
+            .create_vesting(maturation, amount, ctx.bumps.vest)
     }
 
     // Claim from and close a Vesting account
@@ -367,6 +378,3 @@ pub mod staking {
         ctx.accounts.withdraw_surplus()
     }
 }
-
-
-

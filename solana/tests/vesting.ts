@@ -68,7 +68,7 @@ describe("vesting", () => {
     vestEvenLater,
     vestLater,
     vestEvenLaterAgain,
-    vestingBalance
+    vestingBalance;
 
   before(async () => {
     ({ program, provider } = await startValidator(portNumber, anchorConfig));
@@ -142,8 +142,8 @@ describe("vesting", () => {
     )[0];
 
     vestingBalance = PublicKey.findProgramAddressSync(
-        [Buffer.from("vesting_balance"), vesterTa.toBuffer()],
-        program.programId,
+      [Buffer.from("vesting_balance"), vesterTa.toBuffer()],
+      program.programId,
     )[0];
 
     accounts = {
@@ -224,7 +224,6 @@ describe("vesting", () => {
   });
 
   it("Create vesting balance", async () => {
-
     await program.methods
       .createVestingBalance()
       .accounts({ ...accounts, vestingBalance: vestingBalance })
