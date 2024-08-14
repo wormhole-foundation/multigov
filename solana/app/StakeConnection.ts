@@ -204,7 +204,9 @@ export class StakeConnection {
     } else {
       return accounts.reduce(
         (prev: StakeAccount, curr: StakeAccount): StakeAccount => {
-          return prev.tokenBalance > curr.tokenBalance ? curr.address : prev.address;
+          return prev.tokenBalance > curr.tokenBalance
+            ? curr.address
+            : prev.address;
         },
       );
     }
