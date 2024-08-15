@@ -158,7 +158,6 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     bytes[] memory calldatas,
     string memory description
   ) internal returns (uint256 proposalId) {
-    // Create proposal on hub
     hubGovernor.exposed_setWhitelistedProposer(proposer);
     vm.prank(proposer);
     proposalId = hubGovernor.propose(targets, values, calldatas, description);
@@ -213,9 +212,9 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     returns (bytes memory)
   {
     return QueryTest.buildEthCallWithFinalityResponseBytes(
-      uint64(block.number),
-      blockhash(block.number),
-      uint64(block.timestamp),
+      uint64(vm.getBlockNumber()),
+      blockhash(vm.getBlockNumber()),
+      uint64(vm.getBlockTimestamp()),
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
