@@ -54,7 +54,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
 
-    hubVotePool = new HubVotePool(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
+    hubVotePool = new HubVotePool(address(wormhole), initialOwner, address(timelock));
 
     extender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
@@ -68,7 +68,8 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePool: address(hubVotePool),
+      hubVotePoolOwner: address(timelock),
+      wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
     });
@@ -85,9 +86,6 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("EXECUTOR_ROLE"), address(hubGovernor));
-
-    vm.prank(initialOwner);
-    hubVotePool.transferOwnership(address(hubGovernor));
   }
 
   // Mocks a query response using the provided voteWeights

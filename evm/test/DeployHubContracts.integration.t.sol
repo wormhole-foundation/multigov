@@ -51,7 +51,7 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     assertEq(governor.whitelistedProposer(), address(0));
 
     assertEq(address(hubVotePool.wormhole()), 0x31377888146f3253211EFEf5c676D41ECe7D58Fe);
-    assertEq(hubVotePool.owner(), address(deployer));
+    assertEq(address(hubVotePool.owner()), address(timelock));
     assertEq(address(hubVotePool.hubGovernor()), address(governor));
 
     assertEq(address(proposalMetadata.GOVERNOR()), address(governor));

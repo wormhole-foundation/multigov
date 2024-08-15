@@ -68,7 +68,8 @@ contract HubGovernor is
     uint32 initialVotingPeriod;
     uint256 initialProposalThreshold;
     uint208 initialQuorum;
-    address hubVotePool;
+    address hubVotePoolOwner;
+    address wormholeCore;
     address governorProposalExtender;
     uint48 initialVoteWeightWindow;
   }
@@ -81,7 +82,8 @@ contract HubGovernor is
     GovernorSettableFixedQuorum(_params.initialQuorum)
     GovernorMinimumWeightedVoteWindow(_params.initialVoteWeightWindow)
   {
-    _setHubVotePool(_params.hubVotePool);
+    HubVotePool _hubVotePool = new HubVotePool(_params.wormholeCore, address(this), _params.hubVotePoolOwner);
+    _setHubVotePool(address(_hubVotePool));
     if (_params.governorProposalExtender.code.length == 0) revert InvalidProposalExtender();
     HUB_PROPOSAL_EXTENDER = IVoteExtender(_params.governorProposalExtender);
   }
