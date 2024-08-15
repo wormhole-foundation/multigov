@@ -38,7 +38,7 @@ pub mod tests {
         assert!(
             std::mem::size_of::<SpokeMessageExecutor>()
                 + SpokeMessageExecutor::discriminator().len()
-                = SpokeMessageExecutor::LEN
+                == SpokeMessageExecutor::LEN
         );
     }
 }

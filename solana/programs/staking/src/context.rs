@@ -307,20 +307,20 @@ pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(
         init,
         payer = signer,
-        space = size_of::<SpokeMessageExecutor>() + 8,
+        space = size_of::<spoke_message_executor::SpokeMessageExecutor>() + 8,
         seeds = [b"spoke_message_executor".as_ref()],
         bump
     )]
-    executor: Account<'info, SpokeMessageExecutor>,
+    pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
 
     #[account(mut)]
-    signer: Signer<'info>,
+    pub signer: Signer<'info>,
 
-    hub_dispatcher: AccountInfo<'info>,
-    wormhole_core: AccountInfo<'info>,
-    airlock: AccountInfo<'info>,
+    pub hub_dispatcher: AccountInfo<'info>,
+    pub wormhole_core: AccountInfo<'info>,
+    pub airlock: AccountInfo<'info>,
 
-    system_program: Program<'info, System>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -329,14 +329,14 @@ pub struct SetMessageReceived<'info> {
     #[account(
         init_if_needed,
         payer = signer,
-        space = size_of::<MessageReceived>() + 8,
+        space = size_of::<spoke_message_executor::MessageReceived>() + 8,
         seeds = [b"message_received".as_ref(), &message_hash],
         bump
     )]
-    message_received: Account<'info, MessageReceived>,
+    pub message_received: Account<'info, spoke_message_executor::MessageReceived>,
 
     #[account(mut)]
-    signer: Signer<'info>,
+    pub signer: Signer<'info>,
 
-    system_program: Program<'info, System>,
+    pub system_program: Program<'info, System>,
 }
