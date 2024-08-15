@@ -42,7 +42,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DECISION_WINDOW
     );
 
-    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
+    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",
@@ -52,7 +52,8 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialVotingPeriod: 3 days,
       initialProposalThreshold: 500_000e18,
       initialQuorum: 100e18,
-      hubVotePool: address(hubVotePool),
+      hubVotePoolOwner: address(timelock),
+      wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
     });
@@ -65,11 +66,8 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("EXECUTOR_ROLE"), address(governor));
 
-    vm.prank(initialOwner);
+    vm.prank(address(timelock));
     hubVotePool.setGovernor(address(governor));
-
-    vm.prank(initialOwner);
-    hubVotePool.transferOwnership(address(governor));
 
     vm.prank(initialOwner);
     extender.transferOwnership(address(timelock));
@@ -138,10 +136,10 @@ contract Constructor is HubGovernorTest {
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _hubVotePool,
     address _voteExtender
   ) public {
     vm.assume(_initialVotingPeriod != 0);
+    vm.assume(_timelock != address(0));
     // Prevent the etching over of precompiles
     _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
 
@@ -154,7 +152,8 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePool: _hubVotePool,
+      hubVotePoolOwner: _timelock,
+      wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
     });
@@ -167,8 +166,8 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.votingDelay(), _initialVotingDelay);
     assertEq(_governor.votingPeriod(), _initialVotingPeriod);
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
-    assertEq(address(_governor.hubVotePool()), _hubVotePool);
     assertEq(address(_governor.HUB_PROPOSAL_EXTENDER()), _voteExtender);
+    assertNotEq(address(_governor.hubVotePool()), address(0));
   }
 
   function testFuzz_RevertIf_HubProposalExtenderIsEOA(
@@ -184,6 +183,7 @@ contract Constructor is HubGovernorTest {
   ) public {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_voteExtender.code.length == 0);
+    vm.assume(_timelock != address(0));
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
@@ -193,7 +193,8 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePool: _hubVotePool,
+      hubVotePoolOwner: _timelock,
+      wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
     });
@@ -220,7 +221,8 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: 0,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePool: _hubVotePool,
+      hubVotePoolOwner: _timelock,
+      wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
     });
@@ -269,7 +271,7 @@ contract SetHubVotePool is HubGovernorTest {
 
     _jumpPastProposalEta(proposalId);
     vm.expectEmit();
-    emit HubGovernor.HubVotePoolUpdated(address(hubVotePool), _hubVotePool);
+    emit HubGovernor.HubVotePoolUpdated(address(governor.hubVotePool()), _hubVotePool);
     governor.execute(targets, values, calldatas, keccak256(bytes(_proposalDescription)));
   }
 
@@ -659,9 +661,9 @@ contract _CountVote is HubGovernorTest {
     _jumpToActiveProposal(_proposalId);
 
     bytes memory voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    governor.exposed_countVote(_proposalId, address(hubVotePool), _support, 0, voteData);
+    governor.exposed_countVote(_proposalId, address(governor.hubVotePool()), _support, 0, voteData);
 
-    uint256 votingWeight = token.getVotes(address(hubVotePool));
+    uint256 votingWeight = token.getVotes(address(governor.hubVotePool()));
 
     (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
     assertEq(votingWeight, 0);
@@ -680,7 +682,7 @@ contract _CountVote is HubGovernorTest {
   ) public {
     _support = uint8(bound(_support, 0, 2));
 
-    _mintAndDelegate(address(hubVotePool), _totalWeight);
+    _mintAndDelegate(address(governor.hubVotePool()), _totalWeight);
     (, delegates) = _setGovernorAndDelegates();
     (ProposalBuilder builder) = _createArbitraryProposal();
 
@@ -692,9 +694,9 @@ contract _CountVote is HubGovernorTest {
     _jumpToActiveProposal(_proposalId);
 
     bytes memory voteData = abi.encodePacked(uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes));
-    governor.exposed_countVote(_proposalId, address(hubVotePool), _support, _totalWeight, voteData);
+    governor.exposed_countVote(_proposalId, address(governor.hubVotePool()), _support, _totalWeight, voteData);
 
-    uint256 votingWeight = token.getVotes(address(hubVotePool));
+    uint256 votingWeight = token.getVotes(address(governor.hubVotePool()));
 
     (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(_proposalId);
     assertEq(votingWeight, _totalWeight);
@@ -747,7 +749,7 @@ contract _CountVote is HubGovernorTest {
     uint256 ZERO_TOTAL_WEIGHT = 0;
 
     vm.assume(_nonWhitelistedAddress != address(0));
-    vm.assume(_nonWhitelistedAddress != address(hubVotePool));
+    vm.assume(_nonWhitelistedAddress != address(governor.hubVotePool()));
 
     (, delegates) = _setGovernorAndDelegates();
     ProposalBuilder builder = _createArbitraryProposal();
@@ -775,7 +777,7 @@ contract _CountVote is HubGovernorTest {
     string memory _proposalDescription
   ) public {
     vm.assume(_nonWhitelistedAddress != address(0));
-    vm.assume(_nonWhitelistedAddress != address(hubVotePool));
+    vm.assume(_nonWhitelistedAddress != address(governor.hubVotePool()));
     _support = uint8(bound(_support, 0, 2));
 
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;

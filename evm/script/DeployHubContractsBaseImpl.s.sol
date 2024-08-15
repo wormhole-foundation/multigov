@@ -64,8 +64,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
     TimelockController timelock =
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
-    HubVotePool pool = new HubVotePool(config.wormholeCore, wallet.addr, new HubVotePool.SpokeVoteAggregator[](0));
-
     HubProposalExtender extender = new HubProposalExtender(
       config.voteExtenderAdmin,
       config.voteTimeExtension,
@@ -83,7 +81,8 @@ abstract contract DeployHubContractsBaseImpl is Script {
       initialVotingPeriod: config.initialVotingPeriod,
       initialProposalThreshold: config.initialProposalThreshold,
       initialQuorum: config.initialQuorum,
-      hubVotePool: address(pool),
+      hubVotePoolOwner: wallet.addr,
+      wormholeCore: config.wormholeCore,
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: config.voteWeightWindow
     });
@@ -98,8 +97,10 @@ abstract contract DeployHubContractsBaseImpl is Script {
     HubMessageDispatcher hubMessageDispatcher =
       new HubMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
 
-    // Ownership will be transferred during configuration
-    pool.setGovernor(address(gov));
+    HubVotePool hubVotePool = gov.hubVotePool();
+
+    // The timelock should be the owner of the hub vote pool
+    hubVotePool.transferOwnership(address(timelock));
 
     // Set governor on extender
     extender.initialize(payable(gov));
@@ -113,6 +114,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
 
     vm.stopBroadcast();
 
-    return (timelock, pool, gov, hubProposalMetadata, hubMessageDispatcher, extender);
+    return (timelock, hubVotePool, gov, hubProposalMetadata, hubMessageDispatcher, extender);
   }
 }

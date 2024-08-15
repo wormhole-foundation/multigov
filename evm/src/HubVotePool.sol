@@ -4,6 +4,8 @@ pragma solidity ^0.8.23;
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {toWormholeFormat} from "wormhole-solidity-sdk/Utils.sol";
+import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryResponse, ParsedQueryResponse} from "wormhole/query/QueryResponse.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
@@ -62,18 +64,10 @@ contract HubVotePool is QueryResponse, Ownable {
 
   mapping(uint8 queryType => ISpokeVoteDecoder voteImpl) public voteTypeDecoder;
 
-  constructor(address _core, address _hubGovernor, SpokeVoteAggregator[] memory _initialSpokeRegistry)
-    QueryResponse(_core)
-    Ownable(_hubGovernor)
-  {
+  constructor(address _core, address _hubGovernor, address _owner) QueryResponse(_core) Ownable(_owner) {
     hubGovernor = IGovernor(_hubGovernor);
-    for (uint256 i = 0; i < _initialSpokeRegistry.length; i++) {
-      SpokeVoteAggregator memory _aggregator = _initialSpokeRegistry[i];
-      spokeRegistry[_aggregator.wormholeChainId] = bytes32(uint256(uint160(_aggregator.addr)));
-      emit SpokeRegistered(
-        _aggregator.wormholeChainId, bytes32(uint256(uint160(address(0)))), bytes32(uint256(uint160(_aggregator.addr)))
-      );
-    }
+    HubEvmSpokeVoteDecoder evmDecoder = new HubEvmSpokeVoteDecoder(_core, address(this));
+    _registerQueryType(address(evmDecoder), QueryResponse.QT_ETH_CALL_WITH_FINALITY);
   }
 
   /// @notice Registers or unregisters a query type implementation.
@@ -82,14 +76,7 @@ contract HubVotePool is QueryResponse, Ownable {
   /// @param _implementation The address of the implementation contract for the query type.
   function registerQueryType(uint8 _queryType, address _implementation) external {
     _checkOwner();
-    if (_implementation == address(0)) {
-      delete voteTypeDecoder[_queryType];
-      return;
-    }
-    bool _isValid = _implementation.supportsInterface(type(ISpokeVoteDecoder).interfaceId);
-    if (!_isValid) revert InvalidQueryVoteImpl();
-    emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
-    voteTypeDecoder[_queryType] = ISpokeVoteDecoder(_implementation);
+    _registerQueryType(_implementation, _queryType);
   }
 
   /// @notice Registers a new spoke chain and its vote aggregator address.
@@ -98,8 +85,17 @@ contract HubVotePool is QueryResponse, Ownable {
   /// @param _spokeVoteAddress The address of the vote aggregator on the spoke chain.
   function registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) external {
     _checkOwner();
-    emit SpokeRegistered(_targetChain, spokeRegistry[_targetChain], _spokeVoteAddress);
-    spokeRegistry[_targetChain] = _spokeVoteAddress;
+    _registerSpoke(_targetChain, _spokeVoteAddress);
+  }
+
+  /// @notice Registers multiple spoke chains with their corresponding vote aggregator in a single call.
+  /// @param _spokes An an array of spoke vote aggregators to be registered.
+  function registerSpokes(SpokeVoteAggregator[] memory _spokes) external {
+    _checkOwner();
+    for (uint256 i = 0; i < _spokes.length; i++) {
+      SpokeVoteAggregator memory _aggregator = _spokes[i];
+      _registerSpoke(_aggregator.wormholeChainId, toWormholeFormat(_aggregator.addr));
+    }
   }
 
   /// @notice Updates the address of the hub governor.
@@ -152,5 +148,21 @@ contract HubVotePool is QueryResponse, Ownable {
     );
 
     emit SpokeVoteCast(_emitterChainId, _proposalId, _vote.againstVotes, _vote.forVotes, _vote.abstainVotes);
+  }
+
+  function _registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) internal {
+    emit SpokeRegistered(_targetChain, spokeRegistry[_targetChain], _spokeVoteAddress);
+    spokeRegistry[_targetChain] = _spokeVoteAddress;
+  }
+
+  function _registerQueryType(address _implementation, uint8 _queryType) internal {
+    if (_implementation == address(0)) {
+      delete voteTypeDecoder[_queryType];
+      return;
+    }
+    bool _isValid = _implementation.supportsInterface(type(ISpokeVoteDecoder).interfaceId);
+    if (!_isValid) revert InvalidQueryVoteImpl();
+    emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
+    voteTypeDecoder[_queryType] = ISpokeVoteDecoder(_implementation);
   }
 }
