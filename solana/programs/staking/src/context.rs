@@ -301,3 +301,42 @@ pub struct RecoverAccount<'info> {
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,
 }
+
+#[derive(Accounts)]
+pub struct InitializeSpokeMessageExecutor<'info> {
+    #[account(
+        init,
+        payer = signer,
+        space = size_of::<SpokeMessageExecutor>() + 8,
+        seeds = [b"spoke_message_executor".as_ref()],
+        bump
+    )]
+    executor: Account<'info, SpokeMessageExecutor>,
+
+    #[account(mut)]
+    signer: Signer<'info>,
+
+    hub_dispatcher: AccountInfo<'info>,
+    wormhole_core: AccountInfo<'info>,
+    airlock: AccountInfo<'info>,
+
+    system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(message_hash: [u8; 32])]
+pub struct SetMessageReceived<'info> {
+    #[account(
+        init_if_needed,
+        payer = signer,
+        space = size_of::<MessageReceived>() + 8,
+        seeds = [b"message_received".as_ref(), &message_hash],
+        bump
+    )]
+    message_received: Account<'info, MessageReceived>,
+
+    #[account(mut)]
+    signer: Signer<'info>,
+
+    system_program: Program<'info, System>,
+}

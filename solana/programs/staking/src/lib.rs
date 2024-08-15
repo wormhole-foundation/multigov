@@ -377,4 +377,22 @@ pub mod staking {
     pub fn withdraw_surplus(ctx: Context<WithdrawSurplus>) -> Result<()> {
         ctx.accounts.withdraw_surplus()
     }
+
+    //------------------------------------ SPOKE MESSAGE EXECUTOR ------------------------------------------------
+    // Initialize and setting a spoke message executor
+    pub fn initialize_spoke_message_executor(ctx: Context<InitializeSpokeMessageExecutor>, hub_chain_id: u16, spoke_chain_id: u16) -> Result<()> {
+        let executor = &mut ctx.accounts.executor;
+        executor.hub_dispatcher = ctx.accounts.hub_dispatcher.key();
+        executor.hub_chain_id = hub_chain_id;
+        executor.spoke_chain_id = spoke_chain_id;
+        executor.wormhole_core = ctx.accounts.wormhole_core.key();
+        executor.airlock = ctx.accounts.airlock.key();
+        Ok(())
+    }
+
+    pub fn set_message_received(ctx: Context<SetMessageReceived>, message_hash: [u8; 32]) -> Result<()> {
+        let message_received = &mut ctx.accounts.message_received;
+        message_received.executed = true;
+        Ok(())
+    }
 }
