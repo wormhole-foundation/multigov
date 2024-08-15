@@ -172,32 +172,25 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     return proposalId;
   }
 
-  function _buildQueryResponseRaw(
-    uint256 _proposalId,
-    uint128 _againstVotes,
-    uint128 _forVotes,
-    uint128 _abstainVotes,
-    uint16 _chainId
-  ) internal view returns (bytes memory) {
-    bytes memory ethCall = _buildEthCall(_proposalId);
-    bytes memory queryRequestBytes = _buildQueryRequest(_chainId, ethCall);
-    bytes memory ethCallResp = _buildEthCallResponse(_proposalId, _againstVotes, _forVotes, _abstainVotes);
-
-    return _buildFinalQueryResponse(_chainId, queryRequestBytes, ethCallResp);
+  function _buildVoteQueryResponse(uint256 proposalId, uint16 chainId) internal view returns (bytes memory) {
+    bytes memory ethCall = _buildVoteEthCall(proposalId);
+    bytes memory queryRequestBytes = _buildVoteQueryRequest(chainId, ethCall);
+    bytes memory ethCallResponse = _buildActualVoteEthCallResponse(proposalId);
+    return _buildFinalVoteQueryResponse(chainId, queryRequestBytes, ethCallResponse);
   }
 
-  function _buildEthCall(uint256 _proposalId) internal view returns (bytes memory) {
+  function _buildVoteEthCall(uint256 proposalId) internal view returns (bytes memory) {
     return QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // blockId
       "finalized", // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
-        address(spokeVoteAggregator), abi.encodeWithSignature("proposalVotes(uint256)", _proposalId)
+        address(spokeVoteAggregator), abi.encodeWithSignature("proposalVotes(uint256)", proposalId)
       )
     );
   }
 
-  function _buildQueryRequest(uint16 _chainId, bytes memory ethCall) internal view returns (bytes memory) {
+  function _buildVoteQueryRequest(uint16 _chainId, bytes memory ethCall) internal view returns (bytes memory) {
     return QueryTest.buildOffChainQueryRequestBytes(
       VERSION, // version
       0, // nonce
@@ -206,30 +199,29 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     );
   }
 
-  function _buildEthCallResponse(uint256 _proposalId, uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes)
-    internal
-    view
-    returns (bytes memory)
-  {
+  function _buildActualVoteEthCallResponse(uint256 proposalId) internal view returns (bytes memory) {
+    (uint256 returnedProposalId, uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) =
+      spokeVoteAggregator.proposalVotes(proposalId);
+
     return QueryTest.buildEthCallWithFinalityResponseBytes(
-      uint64(vm.getBlockNumber()),
-      blockhash(vm.getBlockNumber()),
-      uint64(vm.getBlockTimestamp()),
+      uint64(block.number),
+      blockhash(block.number),
+      uint64(block.timestamp),
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
-          _proposalId,
+          returnedProposalId,
           SpokeCountingFractional.ProposalVote({
-            againstVotes: _againstVotes,
-            forVotes: _forVotes,
-            abstainVotes: _abstainVotes
+            againstVotes: uint128(againstVotes),
+            forVotes: uint128(forVotes),
+            abstainVotes: uint128(abstainVotes)
           })
         )
       )
     );
   }
 
-  function _buildFinalQueryResponse(uint16 _chainId, bytes memory queryRequestBytes, bytes memory ethCallResp)
+  function _buildFinalVoteQueryResponse(uint16 _chainId, bytes memory queryRequestBytes, bytes memory ethCallResp)
     internal
     view
     returns (bytes memory)
@@ -270,24 +262,24 @@ contract Constructor is HubEvmSpokeVoteDecoderTest {
 }
 
 contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
-  function testFuzz_CorrectlyParseChainResponse(uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) public {
-    uint256 proposalId = _setupProposalAndVotes();
-    bytes memory voteQueryResponseRaw = _getVoteQueryResponse(proposalId, _againstVotes, _forVotes, _abstainVotes);
+  function testFuzz_CorrectlyParseChainResponse(address proposer) public {
+    vm.assume(proposer != address(0));
+    uint256 proposalId = _setupProposalAndVotes(proposer);
+    bytes memory voteQueryResponseRaw = _buildVoteQueryResponse(proposalId, SPOKE_CHAIN_ID);
     ISpokeVoteDecoder.QueryVote memory queryVote = _decodeVoteQueryResponse(voteQueryResponseRaw);
-    _assertVoteResults(queryVote, proposalId, _againstVotes, _forVotes, _abstainVotes);
+    _assertVoteResults(queryVote);
   }
 
-  function _setupProposalAndVotes() internal returns (uint256) {
+  function _setupProposalAndVotes(address proposer) internal returns (uint256) {
     _setGovernor(hubGovernor);
 
     address[3] memory voters = [address(0x1), address(0x2), address(0x3)];
     for (uint8 i = 0; i < 3; i++) {
-      _mintAndDelegate(voters[i], 100e18);
+      _mintAndDelegate(voters[i], 1000e18);
     }
 
-    uint256 proposalId = _createAndPropagateProposal(
-      makeAddr("Proposer"), new address[](1), new uint256[](1), new bytes[](1), "Test Proposal"
-    );
+    uint256 proposalId =
+      _createAndPropagateProposal(proposer, new address[](1), new uint256[](1), new bytes[](1), "Test Proposal");
 
     _jumpToActiveProposal(proposalId);
 
@@ -303,16 +295,6 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
     return proposalId;
   }
 
-  function _getVoteQueryResponse(uint256 proposalId, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes)
-    internal
-    view
-    returns (bytes memory)
-  {
-    return _buildQueryResponseRaw(
-      proposalId, uint128(_againstVotes), uint128(_forVotes), uint128(_abstainVotes), SPOKE_CHAIN_ID
-    );
-  }
-
   function _decodeVoteQueryResponse(bytes memory voteQueryResponseRaw)
     internal
     view
@@ -323,35 +305,28 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
     return hubCrossChainEvmVote.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
   }
 
-  function _assertVoteResults(
-    ISpokeVoteDecoder.QueryVote memory queryVote,
-    uint256 proposalId,
-    uint64 _againstVotes,
-    uint64 _forVotes,
-    uint64 _abstainVotes
-  ) internal view {
-    assertEq(queryVote.proposalId, proposalId, "Proposal ID mismatch");
-    assertEq(queryVote.spokeProposalId, keccak256(abi.encode(SPOKE_CHAIN_ID, proposalId)), "Spoke proposal ID mismatch");
-    assertEq(queryVote.proposalVote.abstainVotes, _abstainVotes, "Abstain votes mismatch");
-    assertEq(queryVote.proposalVote.againstVotes, _againstVotes, "Against votes mismatch");
-    assertEq(queryVote.proposalVote.forVotes, _forVotes, "For votes mismatch");
+  function _assertVoteResults(ISpokeVoteDecoder.QueryVote memory queryVote) internal view {
+    (uint256 returnedProposalId, uint256 expectedAgainstVotes, uint256 expectedForVotes, uint256 expectedAbstainVotes) =
+      spokeVoteAggregator.proposalVotes(queryVote.proposalId);
+
+    assertEq(queryVote.proposalId, returnedProposalId, "Proposal ID mismatch");
+    assertEq(
+      queryVote.spokeProposalId, keccak256(abi.encode(SPOKE_CHAIN_ID, returnedProposalId)), "Spoke proposal ID mismatch"
+    );
+    assertEq(queryVote.proposalVote.abstainVotes, expectedAbstainVotes, "Abstain votes mismatch");
+    assertEq(queryVote.proposalVote.againstVotes, expectedAgainstVotes, "Against votes mismatch");
+    assertEq(queryVote.proposalVote.forVotes, expectedForVotes, "For votes mismatch");
     assertEq(queryVote.chainId, SPOKE_CHAIN_ID, "Chain ID mismatch");
   }
 
-  function testFuzz_RevertIf_SpokeIsNotRegistered(
-    uint256 _proposalId,
-    uint64 _votes,
-    address _spokeContract,
-    uint16 _queryChainId
-  ) public {
+  function testFuzz_RevertIf_SpokeIsNotRegistered(address proposer, uint16 _queryChainId) public {
+    vm.assume(proposer != address(0));
     vm.assume(_queryChainId != HUB_CHAIN_ID && _queryChainId != SPOKE_CHAIN_ID);
-    vm.assume(_spokeContract != address(0) && _spokeContract != address(spokeVoteAggregator));
 
-    uint256 proposalId = _createAndPropagateProposal(
-      makeAddr("Proposer"), new address[](1), new uint256[](1), new bytes[](1), "Test Proposal"
-    );
+    uint256 proposalId =
+      _createAndPropagateProposal(proposer, new address[](1), new uint256[](1), new bytes[](1), "Test Proposal");
 
-    bytes memory voteQueryResponseRaw = _buildQueryResponseRaw(proposalId, _votes, _votes, _votes, _queryChainId);
+    bytes memory voteQueryResponseRaw = _buildVoteQueryResponse(proposalId, _queryChainId);
 
     ParsedQueryResponse memory parsedResp =
       hubCrossChainEvmVote.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
