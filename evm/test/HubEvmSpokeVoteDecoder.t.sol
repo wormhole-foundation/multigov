@@ -61,7 +61,7 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
 
-    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](0));
+    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
 
     extender = new HubProposalExtender(
       initialOwner,
@@ -80,7 +80,8 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePool: address(hubVotePool),
+      hubVotePoolOwner: address(timelock),
+      wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
     });
@@ -93,8 +94,8 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     spokeVoteAggregator =
       new SpokeVoteAggregator(address(spokeMetadataCollector), address(token), initialOwner, VOTE_WEIGHT_WINDOW);
 
-    vm.prank(initialOwner);
-    hubVotePool.transferOwnership(address(hubGovernor));
+    vm.prank(address(timelock));
+    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, addressToBytes32(address(spokeVoteAggregator)));
   }
 
   function _buildAddProposalQuery(uint256 _proposalId, uint16 _responseChainId, address _hubProposalMetadata)
@@ -288,9 +289,6 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
       vm.prank(voters[i]);
       spokeVoteAggregator.castVote(proposalId, voteTypes[i]);
     }
-
-    vm.prank(address(hubGovernor));
-    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, addressToBytes32(address(spokeVoteAggregator)));
 
     return proposalId;
   }
