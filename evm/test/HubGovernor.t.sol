@@ -749,7 +749,7 @@ contract _CountVote is HubGovernorTest {
     uint256 ZERO_TOTAL_WEIGHT = 0;
 
     vm.assume(_nonWhitelistedAddress != address(0));
-    vm.assume(_nonWhitelistedAddress != address(hubVotePool));
+    vm.assume(_nonWhitelistedAddress != address(governor.hubVotePool()));
 
     (, delegates) = _setGovernorAndDelegates();
     ProposalBuilder builder = _createArbitraryProposal();
@@ -777,7 +777,7 @@ contract _CountVote is HubGovernorTest {
     string memory _proposalDescription
   ) public {
     vm.assume(_nonWhitelistedAddress != address(0));
-    vm.assume(_nonWhitelistedAddress != address(hubVotePool));
+    vm.assume(_nonWhitelistedAddress != address(governor.hubVotePool()));
     _support = uint8(bound(_support, 0, 2));
 
     uint256 _totalWeight = uint256(_forVotes) + _againstVotes + _abstainVotes;
