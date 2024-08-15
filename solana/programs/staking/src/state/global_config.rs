@@ -17,7 +17,7 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub const LEN: usize = 146; // 8 + 1 + 32 + 32 + 1 + 32 + 32 + 8
+    pub const LEN: usize = 8 + 8 + 32 + 32 + 8 + 32 + 32 + 8; // == 160
 }
 
 #[cfg(test)]
@@ -31,7 +31,7 @@ pub mod tests {
             std::mem::size_of::<GlobalConfig>()
                 + GlobalConfig::discriminator().len()
                 + 8 // mock_clock_time 
-                <= GlobalConfig::LEN
+                == GlobalConfig::LEN
         );
     }
 }
