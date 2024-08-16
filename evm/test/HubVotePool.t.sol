@@ -145,11 +145,7 @@ contract Constructor is Test, AddressUtils {
     assertNotEq(address(hubVotePool.voteTypeDecoder(hubVotePool.QT_ETH_CALL_WITH_FINALITY())), address(0));
   }
 
-  function testFuzz_RevertIf_CoreIsZeroAddress(
-    address _hubGovernor,
-    address _timelock,
-    HubVotePool.SpokeVoteAggregator[] memory _initialSpokeRegistry
-  ) public {
+  function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, address _timelock) public {
     vm.expectRevert(EmptyWormholeAddress.selector);
     new HubVotePool(address(0), _hubGovernor, _timelock);
   }

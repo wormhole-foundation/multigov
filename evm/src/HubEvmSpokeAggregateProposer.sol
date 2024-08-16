@@ -56,6 +56,9 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   /// addresses that can be queried in order to aggregate voting weight.
   mapping(uint16 wormholeChainId => address spokeVoteAggregator) public registeredSpokes;
 
+  /// @notice A mapping of proposal id to the address that created the proposal.
+  mapping(uint256 proposalId => address creator) public proposalCreators;
+
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubGovernor The governor where proposals are created.
   /// @param _initialMaxQueryTimestampOffset The initial offset for queries.
@@ -65,6 +68,18 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   {
     HUB_GOVERNOR = IGovernor(_hubGovernor);
     maxQueryTimestampOffset = _initialMaxQueryTimestampOffset;
+  }
+
+  function cancel(
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
+    bytes32 _descriptionHash
+  ) external {
+    uint256 _proposalId = HUB_GOVERNOR.hashProposal(_targets, _values, _calldatas, _descriptionHash);
+    address creator = proposalCreators[_proposalId];
+    if (msg.sender != creator) revert InvalidCaller(msg.sender, creator);
+    HUB_GOVERNOR.cancel(_targets, _values, _calldatas, _descriptionHash);
   }
 
   /// @notice The function takes in wormhole queries and aggregates the voting weight across the spokes and hub for the
@@ -89,6 +104,7 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
     if (!_isEligible) revert InsufficientVoteWeight();
 
     uint256 _proposalId = HUB_GOVERNOR.propose(_targets, _values, _calldatas, _description);
+    proposalCreators[_proposalId] = msg.sender;
 
     return _proposalId;
   }
