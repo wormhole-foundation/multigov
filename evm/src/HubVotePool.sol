@@ -8,12 +8,14 @@ import {toWormholeFormat} from "wormhole-sdk/Utils.sol";
 import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryResponse, ParsedQueryResponse} from "wormhole-sdk/QueryResponse.sol";
+import {Checkpoints} from "src/lib/Checkpoints.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 
 /// @title HubVotePool
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice A contract that parses a specific wormhole query type from the `SpokeVoteAggregator`.
 contract HubVotePool is QueryResponse, Ownable {
+  using Checkpoints for Checkpoints.Trace256;
   using ERC165Checker for address;
 
   /// @notice The governor where cross chain votes are submitted.
@@ -58,7 +60,8 @@ contract HubVotePool is QueryResponse, Ownable {
   }
 
   /// @notice A mapping of a chain and emitter address that determines valid spokes and addresses for receiving votes.
-  mapping(uint16 emitterChain => bytes32 emitterAddress) public spokeRegistry;
+  // Add 256 checkpoints for registry
+  mapping(uint16 emitterChain => Checkpoints.Trace256 emitterAddress) internal emitterRegistry;
 
   mapping(bytes32 spokeProposalId => ProposalVote proposalVotes) public spokeProposalVotes;
 
@@ -68,6 +71,10 @@ contract HubVotePool is QueryResponse, Ownable {
     hubGovernor = IGovernor(_hubGovernor);
     HubEvmSpokeVoteDecoder evmDecoder = new HubEvmSpokeVoteDecoder(_core, address(this));
     _registerQueryType(address(evmDecoder), QueryResponse.QT_ETH_CALL_WITH_FINALITY);
+  }
+
+  function getSpoke(uint16 _emitterChainId, uint256 _timepoint) external view returns (bytes32) {
+    return bytes32(emitterRegistry[_emitterChainId].upperLookup(_timepoint));
   }
 
   /// @notice Registers or unregisters a query type implementation.
@@ -116,7 +123,7 @@ contract HubVotePool is QueryResponse, Ownable {
       ISpokeVoteDecoder _voteQueryImpl = voteTypeDecoder[_queryResponse.responses[i].queryType];
       if (address(_voteQueryImpl) == address(0)) revert UnsupportedQueryType();
 
-      ISpokeVoteDecoder.QueryVote memory _voteQuery = _voteQueryImpl.decode(_queryResponse.responses[i]);
+      ISpokeVoteDecoder.QueryVote memory _voteQuery = _voteQueryImpl.decode(_queryResponse.responses[i], hubGovernor);
       ISpokeVoteDecoder.ProposalVote memory _proposalVote = _voteQuery.proposalVote;
       ProposalVote memory _existingSpokeVote = spokeProposalVotes[_voteQuery.spokeProposalId];
 
@@ -151,8 +158,11 @@ contract HubVotePool is QueryResponse, Ownable {
   }
 
   function _registerSpoke(uint16 _targetChain, bytes32 _spokeVoteAddress) internal {
-    emit SpokeRegistered(_targetChain, spokeRegistry[_targetChain], _spokeVoteAddress);
-    spokeRegistry[_targetChain] = _spokeVoteAddress;
+    Checkpoints.Trace256 storage registeredAddressCheckpoint = emitterRegistry[_targetChain];
+    emit SpokeRegistered(
+      _targetChain, bytes32(registeredAddressCheckpoint.upperLookup(block.timestamp)), _spokeVoteAddress
+    );
+    registeredAddressCheckpoint.push(block.timestamp, uint256(_spokeVoteAddress));
   }
 
   function _registerQueryType(address _implementation, uint8 _queryType) internal {

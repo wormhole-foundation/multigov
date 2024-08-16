@@ -10,6 +10,7 @@ import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/Go
 import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {GovernorCountingFractional} from "src/lib/GovernorCountingFractional.sol";
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
@@ -27,18 +28,20 @@ contract HubGovernor is
   GovernorSettableFixedQuorum,
   GovernorMinimumWeightedVoteWindow
 {
+  using Checkpoints for Checkpoints.Trace160;
+
   /// @notice An address that can create a proposal without having any voting weight to support an address creating a
   /// proposal when their voting weight is distributed on multiple chains. Typically, this will be set to a deployed
   /// `HubEvmSpokeAggregateProposer`.
   address public whitelistedProposer;
 
-  /// @notice This is a contract that will receive votes from the spokes and cast votes to the `HubGovernor` without
-  /// having any voting weight.
-  HubVotePool public hubVotePool;
-
   /// @notice A contract that will be able to extend the proposal deadline. The `HubProposalExtender` is an
   /// implementation that is meant to be set as the proposal extender.
   IVoteExtender public immutable HUB_PROPOSAL_EXTENDER;
+
+  /// @notice This is a contract that will receive votes from the spokes and cast votes to the `HubGovernor` without
+  /// having any voting weight.
+  Checkpoints.Trace160 internal hubVotePools;
 
   /// @notice Emitted when the `hubVotePool` is changed.
   event HubVotePoolUpdated(address oldHubVotePool, address newHubVotePool);
@@ -86,6 +89,10 @@ contract HubGovernor is
     _setHubVotePool(address(_hubVotePool));
     if (_params.governorProposalExtender.code.length == 0) revert InvalidProposalExtender();
     HUB_PROPOSAL_EXTENDER = IVoteExtender(_params.governorProposalExtender);
+  }
+
+  function hubVotePool(uint96 _timepoint) public view virtual returns (HubVotePool) {
+    return HubVotePool(address(hubVotePools.upperLookup(_timepoint)));
   }
 
   /// @notice The timepoint at which a proposal vote ends. This time can be extended by the
@@ -217,8 +224,9 @@ contract HubGovernor is
     uint256 _totalWeight,
     bytes memory _voteData
   ) internal virtual override(Governor, GovernorCountingFractional) {
+    uint256 _voteStart = proposalSnapshot(_proposalId);
     // if the account is the hub vote pool then we allow the vote to be counted without checking the weight
-    if (_account == address(hubVotePool)) _totalWeight = type(uint128).max;
+    if (_account == address(hubVotePool(SafeCast.toUint96(_voteStart)))) _totalWeight = type(uint128).max;
     GovernorCountingFractional._countVote(_proposalId, _account, _support, _totalWeight, _voteData);
   }
 
@@ -267,8 +275,8 @@ contract HubGovernor is
   /// @notice An internal function to update the hub vote pool to a new address.
   /// @param _hubVotePool The address of the new hub vote pool.
   function _setHubVotePool(address _hubVotePool) internal {
-    emit HubVotePoolUpdated(address(hubVotePool), _hubVotePool);
-    hubVotePool = HubVotePool(_hubVotePool);
+    emit HubVotePoolUpdated(address(hubVotePools.upperLookup(SafeCast.toUint96(block.timestamp))), _hubVotePool);
+    hubVotePools.push(SafeCast.toUint96(block.timestamp), uint160(_hubVotePool));
   }
 
   function _setWhitelistedProposer(address _proposer) internal {
