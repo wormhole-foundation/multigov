@@ -163,22 +163,6 @@ contract ExtendProposal is HubProposalExtenderTest {
     vm.expectRevert(HubProposalExtender.ProposalCannotBeExtended.selector);
     hubExtender.extendProposal(_proposalId);
   }
-
-  function testFuzz_RevertIf_ProposalVotingIsSafe(address _proposer) public {
-    (, address[] memory delegates) = _setGovernorAndDelegates();
-    vm.startPrank(delegates[0]);
-    ProposalBuilder builder = _createProposal(abi.encodeWithSignature("setHubVotePool(address)", _proposer));
-
-    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
-    vm.stopPrank();
-
-    vm.warp(governor.proposalSnapshot(_proposalId) + hubExtender.safeWindow());
-    assertTrue(hubExtender.isVotingSafe(_proposalId));
-
-    vm.prank(whitelistedExtender);
-    vm.expectRevert(HubProposalExtender.ProposalCannotBeExtended.selector);
-    hubExtender.extendProposal(_proposalId);
-  }
 }
 
 contract setExtensionDuration is HubProposalExtenderTest {
@@ -275,84 +259,5 @@ contract SetVoteExtenderAdmin is HubProposalExtenderTest {
     vm.prank(_caller);
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
     hubExtender.setVoteExtenderAdmin(_voteExtender);
-  }
-}
-
-contract IsVotingSafe is HubProposalExtenderTest {
-  function testFuzz_GetIsProposalSafeForSafeProposal(uint16 _safeWindow, uint48 _voteStart) public {
-    vm.assume(_safeWindow != 0);
-    (, address[] memory delegates) = _setGovernorAndDelegates();
-
-    hubExtender.exposed_setSafeWindow(_safeWindow);
-    // Create fake proposal
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(makeAddr("Hi"), 0, abi.encode(1));
-
-    _voteStart = uint48(
-      bound(_voteStart, VOTE_WEIGHT_WINDOW + block.timestamp, type(uint48).max - _safeWindow - governor.votingDelay())
-    );
-
-    vm.warp(_voteStart);
-    vm.startPrank(delegates[0]);
-    uint256 proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "");
-    vm.stopPrank();
-    bool isSafe = hubExtender.isVotingSafe(proposalId);
-    assertEq(isSafe, true);
-  }
-
-  function testFuzz_GetIsProposalSafeForUnsafeProposal(uint48 _safeWindow, uint256 _proposalId, uint48 _voteStart)
-    public
-  {
-    vm.assume(_safeWindow != 0);
-    vm.assume(_proposalId != 0);
-    (, address[] memory delegates) = _setGovernorAndDelegates();
-    (_voteStart, _safeWindow) = _boundProposalSafeWindow(_voteStart, _safeWindow);
-    hubExtender.exposed_setSafeWindow(_safeWindow);
-
-    // Create fake proposal
-    ProposalBuilder builder = new ProposalBuilder();
-    builder.push(makeAddr("Hi"), 0, abi.encode(1));
-
-    vm.warp(_voteStart);
-    vm.startPrank(delegates[0]);
-    governor.propose(builder.targets(), builder.values(), builder.calldatas(), "");
-    vm.stopPrank();
-
-    vm.warp(_voteStart + _safeWindow + 1);
-    bool isSafe = hubExtender.isVotingSafe(_proposalId);
-    assertEq(isSafe, false);
-  }
-}
-
-contract SetSafeWindow is HubProposalExtenderTest {
-  function testFuzz_CorrectlySetSafeWindow(uint48 _safeWindow) public {
-    _safeWindow = uint48(bound(_safeWindow, minimumTime, governor.votingPeriod() - 1 hours));
-    vm.prank(address(timelock));
-    hubExtender.setSafeWindow(_safeWindow);
-    assertEq(hubExtender.safeWindow(), _safeWindow);
-  }
-
-  function testFuzz_EmitsASetSafeWindowUpdatedEvent(uint48 _safeWindow) public {
-    _safeWindow = uint48(bound(_safeWindow, 0, governor.votingPeriod() - minimumTime));
-    vm.expectEmit();
-    emit HubProposalExtender.SafeWindowUpdated(hubExtender.safeWindow(), _safeWindow);
-    vm.prank(address(timelock));
-    hubExtender.setSafeWindow(_safeWindow);
-  }
-
-  function testFuzz_RevertIf_NotCalledByOwner(uint48 _safeWindow, address _caller) public {
-    vm.assume(address(timelock) != _caller);
-
-    vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
-    hubExtender.setSafeWindow(_safeWindow);
-  }
-
-  // Invalid extension time
-  function testFuzz_RevertIf_SafeWindowIsGreaterThanMinimumDecisionWindow(uint48 _safeWindow) public {
-    _safeWindow = uint48(bound(_safeWindow, governor.votingPeriod() - minimumTime + 1, type(uint48).max));
-    vm.expectRevert(HubProposalExtender.InvalidUnsafeWindow.selector);
-    vm.prank(address(timelock));
-    hubExtender.setSafeWindow(_safeWindow);
   }
 }

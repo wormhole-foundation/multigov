@@ -30,17 +30,13 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
   uint48 constant VOTE_WEIGHT_WINDOW = 1 days;
   uint48 constant MINIMUM_VOTE_EXTENSION = 1 hours;
   uint48 constant VOTE_TIME_EXTENSION = 1 days;
-  uint48 constant MINIMUM_DECISION_WINDOW = 1 hours;
-  uint32 constant SAFE_WINDOW = 1 days;
 
   function setUp() public virtual {
     _setupWormhole();
     initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    extender = new HubProposalExtender(
-      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DECISION_WINDOW
-    );
+    extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION);
 
     hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
 
