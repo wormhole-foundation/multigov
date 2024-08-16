@@ -307,7 +307,7 @@ pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(
         init,
         payer = signer,
-        space = size_of::<spoke_message_executor::SpokeMessageExecutor>() + 8,
+        space = std::mem::size_of::<spoke_message_executor::SpokeMessageExecutor>() + 8,
         seeds = [b"spoke_message_executor".as_ref()],
         bump
     )]
@@ -316,8 +316,9 @@ pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
+    /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
-    pub wormhole_core: AccountInfo<'info>,
+    /// CHECK: `airlock` is safe to use
     pub airlock: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
@@ -329,7 +330,7 @@ pub struct SetMessageReceived<'info> {
     #[account(
         init_if_needed,
         payer = signer,
-        space = size_of::<spoke_message_executor::MessageReceived>() + 8,
+        space = std::mem::size_of::<spoke_message_executor::MessageReceived>() + 8,
         seeds = [b"message_received".as_ref(), &message_hash],
         bump
     )]

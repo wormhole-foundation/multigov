@@ -1263,6 +1263,77 @@
       ]
     },
     {
+      "name": "initialize_spoke_message_executor",
+      "discriminator": [
+        0,
+        62,
+        206,
+        121,
+        203,
+        198,
+        201,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "executor",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  101,
+                  120,
+                  101,
+                  99,
+                  117,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "hub_dispatcher"
+        },
+        {
+          "name": "airlock"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "hub_chain_id",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "initialize_vesting_config",
       "discriminator": [
         16,
@@ -1557,6 +1628,74 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "set_message_received",
+      "discriminator": [
+        170,
+        14,
+        143,
+        39,
+        174,
+        228,
+        118,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "message_received",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  118,
+                  101,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "message_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "message_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "update_agreement_hash",
@@ -2040,6 +2179,19 @@
       ]
     },
     {
+      "name": "MessageReceived",
+      "discriminator": [
+        159,
+        83,
+        82,
+        195,
+        196,
+        71,
+        241,
+        221
+      ]
+    },
+    {
       "name": "ProposalData",
       "discriminator": [
         194,
@@ -2063,6 +2215,19 @@
         32,
         96,
         196
+      ]
+    },
+    {
+      "name": "SpokeMessageExecutor",
+      "discriminator": [
+        95,
+        181,
+        136,
+        40,
+        47,
+        138,
+        250,
+        58
       ]
     },
     {
@@ -2162,83 +2327,33 @@
   "errors": [
     {
       "code": 6000,
-      "name": "TooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "NotFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "GenericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "NotInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "CheckpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "VestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "CheckpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "VestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "NotLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
+      "name": "Overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "RecoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
-    },
-    {
-      "code": 6006,
-      "name": "CheckpointNotFound",
-      "msg": "Checkpoint not found"
-    },
-    {
-      "code": 6007,
-      "name": "InvalidTimestamp",
-      "msg": "Invalid timestamp"
-    },
-    {
-      "code": 6008,
-      "name": "InvalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "NoWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "AllWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "VoteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "WithdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "InsufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "ProposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "Other",
-      "msg": "Other"
+      "name": "Underflow",
+      "msg": "Integer underflow"
     }
   ],
   "types": [
@@ -2410,6 +2525,18 @@
       }
     },
     {
+      "name": "MessageReceived",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "executed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "ProposalCreated",
       "type": {
         "kind": "struct",
@@ -2473,6 +2600,34 @@
           {
             "name": "value",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpokeMessageExecutor",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hub_dispatcher",
+            "type": "pubkey"
+          },
+          {
+            "name": "hub_chain_id",
+            "type": "u16"
+          },
+          {
+            "name": "spoke_chain_id",
+            "type": "u16"
+          },
+          {
+            "name": "wormhole_core",
+            "type": "pubkey"
+          },
+          {
+            "name": "airlock",
+            "type": "pubkey"
           }
         ]
       }

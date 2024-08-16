@@ -14,6 +14,8 @@ use contexts::*;
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
+use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
+
 mod context;
 mod contexts;
 mod error;
@@ -380,12 +382,12 @@ pub mod staking {
 
     //------------------------------------ SPOKE MESSAGE EXECUTOR ------------------------------------------------
     // Initialize and setting a spoke message executor
-    pub fn initialize_spoke_message_executor(ctx: Context<InitializeSpokeMessageExecutor>, hub_chain_id: u16, spoke_chain_id: u16) -> Result<()> {
+    pub fn initialize_spoke_message_executor(ctx: Context<InitializeSpokeMessageExecutor>, hub_chain_id: u16) -> Result<()> {
         let executor = &mut ctx.accounts.executor;
         executor.hub_dispatcher = ctx.accounts.hub_dispatcher.key();
         executor.hub_chain_id = hub_chain_id;
-        executor.spoke_chain_id = spoke_chain_id;
-        executor.wormhole_core = ctx.accounts.wormhole_core.key();
+        executor.spoke_chain_id = SOLANA_CHAIN;
+        executor.wormhole_core = CORE_BRIDGE_PROGRAM_ID;
         executor.airlock = ctx.accounts.airlock.key();
         Ok(())
     }
