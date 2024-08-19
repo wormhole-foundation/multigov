@@ -1636,6 +1636,37 @@ export type Staking = {
       "args": []
     },
     {
+      "name": "setAirlock",
+      "discriminator": [
+        78,
+        190,
+        90,
+        185,
+        79,
+        223,
+        32,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "executor",
+          "writable": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "airlock",
+          "relations": [
+            "executor"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "setMessageReceived",
       "discriminator": [
         170,

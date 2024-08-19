@@ -312,15 +312,12 @@ pub struct InitializeSpokeMessageExecutor<'info> {
         bump
     )]
     pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
-
     #[account(mut)]
     pub signer: Signer<'info>,
-
     /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
     /// CHECK: `airlock` is safe to use
     pub airlock: AccountInfo<'info>,
-
     pub system_program: Program<'info, System>,
 }
 
@@ -335,9 +332,17 @@ pub struct SetMessageReceived<'info> {
         bump
     )]
     pub message_received: Account<'info, spoke_message_executor::MessageReceived>,
-
     #[account(mut)]
     pub signer: Signer<'info>,
-
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetAirlock<'info> {
+    #[account(mut, has_one = airlock)]
+    pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    /// CHECK: `airlock` is safe to use
+    pub airlock: AccountInfo<'info>,
 }

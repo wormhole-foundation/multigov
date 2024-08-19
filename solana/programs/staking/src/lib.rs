@@ -400,4 +400,11 @@ pub mod staking {
         message_received.executed = true;
         Ok(())
     }
+
+    pub fn set_airlock(ctx: Context<SetAirlock>) -> Result<()> {
+        let executor = &mut ctx.accounts.executor;
+
+        executor.airlock = ctx.accounts.airlock.key();
+        Ok(())
+    }
 }
