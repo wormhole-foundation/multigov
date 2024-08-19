@@ -2,7 +2,7 @@
   "address": "5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ",
   "metadata": {
     "name": "staking",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
@@ -2327,33 +2327,83 @@
   "errors": [
     {
       "code": 6000,
-      "name": "NotFullyVested",
-      "msg": "Not fully vested yet"
+      "name": "TooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
     },
     {
       "code": 6001,
-      "name": "NotInSurplus",
-      "msg": "Vault is not in surplus"
+      "name": "GenericOverflow",
+      "msg": "An arithmetic operation unexpectedly overflowed"
     },
     {
       "code": 6002,
-      "name": "VestingFinalized",
-      "msg": "Vesting finalized"
+      "name": "CheckpointSerDe",
+      "msg": "Error deserializing checkpoint"
     },
     {
       "code": 6003,
-      "name": "VestingUnfinalized",
-      "msg": "Vesting unfinalized"
+      "name": "CheckpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
     },
     {
       "code": 6004,
-      "name": "Overflow",
-      "msg": "Integer overflow"
+      "name": "NotLlcMember",
+      "msg": "You need to be an LLC member to perform this action"
     },
     {
       "code": 6005,
-      "name": "Underflow",
-      "msg": "Integer underflow"
+      "name": "RecoverWithStake",
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+    },
+    {
+      "code": 6006,
+      "name": "CheckpointNotFound",
+      "msg": "Checkpoint not found"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidTimestamp",
+      "msg": "Invalid timestamp"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidLlcAgreement",
+      "msg": "Invalid LLC agreement"
+    },
+    {
+      "code": 6009,
+      "name": "NoWeight",
+      "msg": "No Weight"
+    },
+    {
+      "code": 6010,
+      "name": "AllWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6011,
+      "name": "VoteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6012,
+      "name": "WithdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
+    },
+    {
+      "code": 6013,
+      "name": "InsufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
+    },
+    {
+      "code": 6014,
+      "name": "ProposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6015,
+      "name": "Other",
+      "msg": "Other"
     }
   ],
   "types": [

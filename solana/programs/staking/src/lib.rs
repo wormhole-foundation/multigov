@@ -16,6 +16,9 @@ use std::convert::TryInto;
 
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
 
+// automatically generate module using program idl found in ./idls
+declare_program!(wormhole_bridge_core);
+
 mod context;
 mod contexts;
 mod error;
