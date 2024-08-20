@@ -172,41 +172,29 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     return proposalId;
   }
 
-  function _buildVoteQueryResponse(uint256 proposalId, uint16 chainId) internal view returns (bytes memory) {
-    bytes memory ethCall = _buildVoteEthCall(proposalId);
-    bytes memory queryRequestBytes = _buildVoteQueryRequest(chainId, ethCall);
-    bytes memory ethCallResponse = _buildActualVoteEthCallResponse(proposalId);
-    return _buildFinalVoteQueryResponse(chainId, queryRequestBytes, ethCallResponse);
-  }
-
-  function _buildVoteEthCall(uint256 proposalId) internal view returns (bytes memory) {
-    return QueryTest.buildEthCallWithFinalityRequestBytes(
+  function _buildVoteQueryResponse(uint256 _proposalId, uint16 _chainId) internal view returns (bytes memory) {
+    bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // blockId
       "finalized", // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
-        address(spokeVoteAggregator), abi.encodeWithSignature("proposalVotes(uint256)", proposalId)
+        address(spokeVoteAggregator), abi.encodeWithSignature("proposalVotes(uint256)", _proposalId)
       )
     );
-  }
-
-  function _buildVoteQueryRequest(uint16 _chainId, bytes memory ethCall) internal view returns (bytes memory) {
-    return QueryTest.buildOffChainQueryRequestBytes(
+    bytes memory queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
       VERSION, // version
       0, // nonce
       1, // num per chain requests
       QueryTest.buildPerChainRequestBytes(_chainId, hubCrossChainEvmVote.QT_ETH_CALL_WITH_FINALITY(), ethCall)
     );
-  }
 
-  function _buildActualVoteEthCallResponse(uint256 proposalId) internal view returns (bytes memory) {
     (uint256 returnedProposalId, uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) =
-      spokeVoteAggregator.proposalVotes(proposalId);
+      spokeVoteAggregator.proposalVotes(_proposalId);
 
-    return QueryTest.buildEthCallWithFinalityResponseBytes(
-      uint64(block.number),
-      blockhash(block.number),
-      uint64(block.timestamp),
+    bytes memory ethCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
+      uint64(vm.getBlockNumber()),
+      blockhash(vm.getBlockNumber()),
+      uint64(vm.getBlockTimestamp()),
       1, // numResults
       QueryTest.buildEthCallResultBytes(
         abi.encode(
@@ -219,13 +207,6 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
         )
       )
     );
-  }
-
-  function _buildFinalVoteQueryResponse(uint16 _chainId, bytes memory queryRequestBytes, bytes memory ethCallResp)
-    internal
-    view
-    returns (bytes memory)
-  {
     return QueryTest.buildQueryResponseBytes(
       VERSION,
       OFF_CHAIN_SENDER,
