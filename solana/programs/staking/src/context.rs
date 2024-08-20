@@ -8,6 +8,9 @@ pub const CUSTODY_SEED: &str = "custody";
 pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
 pub const CONFIG_SEED: &str = "config";
 pub const PROPOSAL_SEED: &str = "proposal";
+pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
+pub const MESSAGE_RECEIVED: &str = "message_received";
+pub const AIRLOCK_SEED: &str = "airlock";
 
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -16,10 +19,10 @@ pub struct InitConfig<'info> {
     pub payer: Signer<'info>,
     #[account(
         init_if_needed,
-        seeds = [CONFIG_SEED.as_bytes()],
-        bump,
         payer = payer,
-        space = global_config::GlobalConfig::LEN
+        space = global_config::GlobalConfig::LEN,
+        seeds = [CONFIG_SEED.as_bytes()],
+        bump
     )]
     // Stake program accounts:
     pub config_account: Account<'info, global_config::GlobalConfig>,
@@ -269,7 +272,8 @@ pub struct JoinDaoLlc<'info> {
     pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
     #[account(
         seeds = [CONFIG_SEED.as_bytes()],
-        bump = config.bump, constraint = config.agreement_hash == agreement_hash @ ErrorCode::InvalidLlcAgreement
+        bump = config.bump,
+        constraint = config.agreement_hash == agreement_hash @ ErrorCode::InvalidLlcAgreement
     )]
     pub config: Account<'info, global_config::GlobalConfig>,
 }
@@ -306,18 +310,18 @@ pub struct RecoverAccount<'info> {
 pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(
         init,
-        payer = signer,
-        space = std::mem::size_of::<spoke_message_executor::SpokeMessageExecutor>() + 8,
-        seeds = [b"spoke_message_executor".as_ref()],
+        payer = payer,
+        space = spoke_message_executor::SpokeMessageExecutor::LEN,
+        seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
         bump
     )]
     pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
     #[account(mut)]
-    pub signer: Signer<'info>,
+    pub payer: Signer<'info>,
     /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
-    /// CHECK: `airlock` is safe to use
-    pub airlock: AccountInfo<'info>,
+    #[account(seeds = [AIRLOCK_SEED.as_bytes()], airlock.bump)]
+    pub airlock: Account<'info, spoke_airlock::SpokeAirlock>,
     pub system_program: Program<'info, System>,
 }
 
@@ -326,23 +330,61 @@ pub struct InitializeSpokeMessageExecutor<'info> {
 pub struct SetMessageReceived<'info> {
     #[account(
         init_if_needed,
-        payer = signer,
-        space = std::mem::size_of::<spoke_message_executor::MessageReceived>() + 8,
-        seeds = [b"message_received".as_ref(), &message_hash],
+        payer = payer,
+        space = spoke_message_executor::MessageReceived::LEN,
+        seeds = [MESSAGE_RECEIVED.as_bytes(), &message_hash],
         bump
     )]
     pub message_received: Account<'info, spoke_message_executor::MessageReceived>,
     #[account(mut)]
-    pub signer: Signer<'info>,
+    pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct SetAirlock<'info> {
-    #[account(mut, has_one = airlock)]
+    #[account(
+        mut,
+        seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
+        executor.bump
+    )]
     pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
+    #[account(address = airlock)]
+    pub payer: Signer<'info>,
+    #[account(seeds = [AIRLOCK_SEED.as_bytes()], airlock.bump)]
+    pub airlock: Account<'info, spoke_airlock::SpokeAirlock>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeSpokeAirlock<'info> {
+    #[account(
+        init,
+        payer = payer,
+        space = spoke_airlock::SpokeAirlock::LEN,
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        bump
+    )]
+    pub airlock: Account<'info, spoke_airlock::SpokeAirlock>,
     #[account(mut)]
-    pub signer: Signer<'info>,
-    /// CHECK: `airlock` is safe to use
-    pub airlock: AccountInfo<'info>,
+    pub payer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ExecuteOperation<'info> {
+    #[account(
+        mut,
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        airlock.bump
+    )]
+    pub airlock: Account<'info, spoke_airlock::SpokeAirlock>,
+    #[account(address = executor)]
+    pub payer: Signer<'info>,
+    /// CHECK: `target` is safe to use
+    pub target: AccountInfo<'info>,
+    #[account(
+        seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
+        executor.bump
+    )]
+    pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
 }

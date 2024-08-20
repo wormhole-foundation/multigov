@@ -16,6 +16,12 @@ use std::convert::TryInto;
 
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
 
+use solana_program::{
+    instruction::AccountMeta,
+    program::invoke_signed,
+    system_instruction
+};
+
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
 
@@ -387,6 +393,7 @@ pub mod staking {
     // Initialize and setting a spoke message executor
     pub fn initialize_spoke_message_executor(ctx: Context<InitializeSpokeMessageExecutor>, hub_chain_id: u16) -> Result<()> {
         let executor = &mut ctx.accounts.executor;
+        executor.bump = ctx.bumps.executor;
         executor.hub_dispatcher = ctx.accounts.hub_dispatcher.key();
         executor.hub_chain_id = hub_chain_id;
         executor.spoke_chain_id = SOLANA_CHAIN;
@@ -405,6 +412,44 @@ pub mod staking {
         let executor = &mut ctx.accounts.executor;
 
         executor.airlock = ctx.accounts.airlock.key();
+        Ok(())
+    }
+
+    //------------------------------------ SPOKE AIRLOCK ------------------------------------------------
+    pub fn initialize_spoke_airlock(ctx: Context<InitializeSpokeAirlock>, message_executor: Pubkey) -> Result<()> {
+        let airlock = &mut ctx.accounts.airlock;
+        airlock.bump = ctx.bumps.airlock;
+        airlock.message_executor = message_executor;
+        Ok(())
+    }
+
+    pub fn execute_operation(
+        ctx: Context<ExecuteOperation>,
+        cpi_target_program_id: Pubkey,
+        accounts: &[AccountInfo],
+        instruction_data: Vec<u8>,
+        _value: u64,
+    ) -> Result<()> {
+        let airlock = &ctx.accounts.airlock;
+        require!(
+            ctx.accounts.payer.key() == airlock.message_executor,
+            ErrorCode::InvalidMessageExecutor
+        );
+
+        let account_metas = accounts.iter()
+            .map(|account| AccountMeta::new(*account.key, false))
+            .collect()
+
+        let instruction = Instruction {
+            program_id: cpi_target_program_id,
+            accounts: account_metas,
+            data: instruction_data,
+        };
+
+        let signer_seeds: &[&[&[u8]]] = &[&[b"airlock", &[ctx.bumps.airlock]]];
+
+        invoke_signed(&instruction, &accounts, signer_seeds)?;
+
         Ok(())
     }
 }

@@ -34,6 +34,8 @@ pub enum ErrorCode {
     InsufficientWithdrawableBalance,
     #[msg("Proposal already exists")] //6014
     ProposalAlreadyExists,
+    #[msg("Invalid message executor")] //6015
+    InvalidMessageExecutor,
     #[msg("Other")] //6015
     Other,
 }
