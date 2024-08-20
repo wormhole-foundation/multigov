@@ -245,13 +245,6 @@ contract Constructor is HubEvmSpokeVoteDecoderTest {
 contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
   function testFuzz_CorrectlyParseChainResponse(address proposer) public {
     vm.assume(proposer != address(0));
-    uint256 proposalId = _setupProposalAndVotes(proposer);
-    bytes memory voteQueryResponseRaw = _buildVoteQueryResponse(proposalId, SPOKE_CHAIN_ID);
-    ISpokeVoteDecoder.QueryVote memory queryVote = _decodeVoteQueryResponse(voteQueryResponseRaw);
-    _assertVoteResults(queryVote);
-  }
-
-  function _setupProposalAndVotes(address proposer) internal returns (uint256) {
     _setGovernor(hubGovernor);
 
     address[3] memory voters = [address(0x1), address(0x2), address(0x3)];
@@ -270,20 +263,11 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
       spokeVoteAggregator.castVote(proposalId, voteTypes[i]);
     }
 
-    return proposalId;
-  }
-
-  function _decodeVoteQueryResponse(bytes memory voteQueryResponseRaw)
-    internal
-    view
-    returns (ISpokeVoteDecoder.QueryVote memory)
-  {
+    bytes memory voteQueryResponseRaw = _buildVoteQueryResponse(proposalId, SPOKE_CHAIN_ID);
     ParsedQueryResponse memory parsedResp =
       hubCrossChainEvmVote.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
-    return hubCrossChainEvmVote.decode(parsedResp.responses[0]);
-  }
+    ISpokeVoteDecoder.QueryVote memory queryVote = hubCrossChainEvmVote.decode(parsedResp.responses[0]);
 
-  function _assertVoteResults(ISpokeVoteDecoder.QueryVote memory queryVote) internal view {
     (uint256 returnedProposalId, uint256 expectedAgainstVotes, uint256 expectedForVotes, uint256 expectedAbstainVotes) =
       spokeVoteAggregator.proposalVotes(queryVote.proposalId);
 
