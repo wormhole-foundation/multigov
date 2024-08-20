@@ -16,10 +16,10 @@ use std::convert::TryInto;
 
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
 
-use solana_program::{
+use anchor_lang::solana_program::{
     instruction::AccountMeta,
-    program::invoke_signed,
-    system_instruction
+    instruction::Instruction,
+    program::invoke_signed
 };
 
 // automatically generate module using program idl found in ./idls
@@ -402,7 +402,7 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn set_message_received(ctx: Context<SetMessageReceived>, message_hash: [u8; 32]) -> Result<()> {
+    pub fn set_message_received(ctx: Context<SetMessageReceived>, _message_hash: [u8; 32]) -> Result<()> {
         let message_received = &mut ctx.accounts.message_received;
         message_received.executed = true;
         Ok(())
@@ -423,10 +423,9 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn execute_operation(
-        ctx: Context<ExecuteOperation>,
+    pub fn execute_operation<'info> (
+        ctx: Context<'_, '_, '_, 'info, ExecuteOperation<'info>>,
         cpi_target_program_id: Pubkey,
-        accounts: &[AccountInfo],
         instruction_data: Vec<u8>,
         _value: u64,
     ) -> Result<()> {
@@ -436,9 +435,13 @@ pub mod staking {
             ErrorCode::InvalidMessageExecutor
         );
 
-        let account_metas = accounts.iter()
+        let mut all_account_infos = ctx.accounts.to_account_infos();
+        all_account_infos.extend_from_slice(ctx.remaining_accounts);
+
+        let account_metas = all_account_infos.clone()
+            .into_iter()
             .map(|account| AccountMeta::new(*account.key, false))
-            .collect()
+            .collect();
 
         let instruction = Instruction {
             program_id: cpi_target_program_id,
@@ -446,9 +449,9 @@ pub mod staking {
             data: instruction_data,
         };
 
-        let signer_seeds: &[&[&[u8]]] = &[&[b"airlock", &[ctx.bumps.airlock]]];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"airlock", &[airlock.bump]]];
 
-        invoke_signed(&instruction, &accounts, signer_seeds)?;
+        invoke_signed(&instruction, &all_account_infos, signer_seeds)?;
 
         Ok(())
     }

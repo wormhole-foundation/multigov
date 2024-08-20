@@ -320,8 +320,8 @@ pub struct InitializeSpokeMessageExecutor<'info> {
     pub payer: Signer<'info>,
     /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
-    #[account(seeds = [AIRLOCK_SEED.as_bytes()], airlock.bump)]
-    pub airlock: Account<'info, spoke_airlock::SpokeAirlock>,
+    #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
+    pub airlock: Account<'info, SpokeAirlock>,
     pub system_program: Program<'info, System>,
 }
 
@@ -346,13 +346,13 @@ pub struct SetAirlock<'info> {
     #[account(
         mut,
         seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
-        executor.bump
+        bump = executor.bump
     )]
     pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
-    #[account(address = airlock)]
+    #[account(address = airlock.key())]
     pub payer: Signer<'info>,
-    #[account(seeds = [AIRLOCK_SEED.as_bytes()], airlock.bump)]
-    pub airlock: Account<'info, spoke_airlock::SpokeAirlock>,
+    #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
+    pub airlock: Account<'info, SpokeAirlock>,
 }
 
 #[derive(Accounts)]
@@ -360,11 +360,11 @@ pub struct InitializeSpokeAirlock<'info> {
     #[account(
         init,
         payer = payer,
-        space = spoke_airlock::SpokeAirlock::LEN,
+        space = SpokeAirlock::LEN,
         seeds = [AIRLOCK_SEED.as_bytes()],
         bump
     )]
-    pub airlock: Account<'info, spoke_airlock::SpokeAirlock>,
+    pub airlock: Account<'info, SpokeAirlock>,
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -375,16 +375,14 @@ pub struct ExecuteOperation<'info> {
     #[account(
         mut,
         seeds = [AIRLOCK_SEED.as_bytes()],
-        airlock.bump
+        bump = airlock.bump
     )]
-    pub airlock: Account<'info, spoke_airlock::SpokeAirlock>,
-    #[account(address = executor)]
+    pub airlock: Account<'info, SpokeAirlock>,
+    #[account(address = executor.key())]
     pub payer: Signer<'info>,
-    /// CHECK: `target` is safe to use
-    pub target: AccountInfo<'info>,
     #[account(
         seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
-        executor.bump
+        bump = executor.bump
     )]
     pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
 }

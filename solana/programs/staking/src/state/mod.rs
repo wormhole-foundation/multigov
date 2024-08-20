@@ -16,3 +16,6 @@ pub use vesting_balance::*;
 
 pub mod spoke_message_executor;
 pub use spoke_message_executor::*;
+
+pub mod spoke_airlock;
+pub use spoke_airlock::*;

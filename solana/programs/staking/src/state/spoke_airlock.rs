@@ -1,6 +1,8 @@
+use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
 
 #[account]
+#[derive(Default, Debug, BorshSchema)]
 pub struct SpokeAirlock {
     pub bump: u8,
     pub message_executor: Pubkey,
