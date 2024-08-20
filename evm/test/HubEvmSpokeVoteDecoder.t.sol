@@ -151,13 +151,12 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     require(returnedProposalId == _proposalId, "Proposal ID mismatch");
   }
 
-  function _createAndPropagateProposal(
-    address proposer,
-    address[] memory targets,
-    uint256[] memory values,
-    bytes[] memory calldatas,
-    string memory description
-  ) internal returns (uint256 proposalId) {
+  function _createEmptyProposal(address proposer) internal returns (uint256 proposalId) {
+    address[] memory targets = new address[](1);
+    uint256[] memory values = new uint256[](1);
+    bytes[] memory calldatas = new bytes[](1);
+    string memory description = "Test Proposal";
+
     hubGovernor.exposed_setWhitelistedProposer(proposer);
     vm.prank(proposer);
     proposalId = hubGovernor.propose(targets, values, calldatas, description);
@@ -252,8 +251,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
       _mintAndDelegate(voters[i], 1000e18);
     }
 
-    uint256 proposalId =
-      _createAndPropagateProposal(proposer, new address[](1), new uint256[](1), new bytes[](1), "Test Proposal");
+    uint256 proposalId = _createEmptyProposal(proposer);
 
     _jumpToActiveProposal(proposalId);
 
@@ -285,8 +283,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
     vm.assume(proposer != address(0));
     vm.assume(_queryChainId != HUB_CHAIN_ID && _queryChainId != SPOKE_CHAIN_ID);
 
-    uint256 proposalId =
-      _createAndPropagateProposal(proposer, new address[](1), new uint256[](1), new bytes[](1), "Test Proposal");
+    uint256 proposalId = _createEmptyProposal(proposer);
 
     bytes memory voteQueryResponseRaw = _buildVoteQueryResponse(proposalId, _queryChainId);
 
