@@ -516,37 +516,57 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     assertTrue(hubGovernor.hasVoted(proposalId, address(hubVotePool)));
   }
 
-  function testFuzz_CorrectlyAddNewVote(VoteParams memory _voteParams, address _spokeContract, uint16 _queryChainId)
-    public
-  {
+  function testFuzz_CorrectlyAddNewVote(
+    address _proposer,
+    uint64 _againstVotes,
+    uint64 _forVotes,
+    uint64 _abstainVotes,
+    address _spokeContract,
+    uint16 _queryChainId
+  ) public {
     vm.assume(_spokeContract != address(0));
-
+    vm.assume(_forVotes != 0);
+    vm.assume(_againstVotes != 0);
+    vm.assume(_abstainVotes != 0);
+    _queryChainId = uint16(bound(_queryChainId, 2, type(uint16).max));
     vm.prank(address(timelock));
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
+    _setGovernor(hubGovernor);
 
-    _sendCrossChainVote(_voteParams, _queryChainId, _spokeContract);
+    address[3] memory voters = [address(0x1), address(0x2), address(0x3)];
+    _mintAndDelegate(voters[0], _forVotes);
+    _mintAndDelegate(voters[1], _againstVotes);
+    _mintAndDelegate(voters[2], _abstainVotes);
 
-    // assertEq(hubGovernor.proposalId(), _voteParams.proposalId);
-    // assertEq(hubGovernor.support(), 1);
-    // assertEq(hubGovernor.reason(), "rolled-up vote from governance spoke token holders");
-    // assertEq(
-    //   hubGovernor.params(), abi.encodePacked(_voteParams.againstVotes, _voteParams.forVotes,
-    // _voteParams.abstainVotes)
-    // );
+    uint256 proposalId = _createEmptyProposal(_proposer);
+    _jumpToActiveProposal(proposalId);
 
-    (uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
-      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
-    _assertVotesEq(
-      _voteParams,
-      SpokeCountingFractional.ProposalVote({
-        againstVotes: _againstVotes,
-        forVotes: _forVotes,
-        abstainVotes: _abstainVotes
-      })
-    );
+    vm.prank(voters[0]);
+    spokeVoteAggregator.castVote(proposalId, 1); // For
+    vm.prank(voters[1]);
+    spokeVoteAggregator.castVote(proposalId, 0); // Against
+    vm.prank(voters[2]);
+    spokeVoteAggregator.castVote(proposalId, 2); // Abstain
+
+    VoteParams memory voteParams = VoteParams({
+      proposalId: proposalId,
+      againstVotes: _againstVotes,
+      forVotes: _forVotes,
+      abstainVotes: _abstainVotes
+    });
+
+    _sendCrossChainVote(voteParams, _queryChainId, _spokeContract);
+
+    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, proposalId)));
+
+    assertEq(forVotes, _forVotes);
+    assertEq(againstVotes, _againstVotes);
+    assertEq(abstainVotes, _abstainVotes);
   }
 
   function testFuzz_CorrectlyAddNewVoteWithMultipleQueriesFromTheSameSpoke(
+    address _proposer,
     VoteParams memory _voteParams1,
     VoteParams memory _voteParams2,
     address _spokeContract,
