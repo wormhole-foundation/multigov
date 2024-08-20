@@ -43,6 +43,10 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
   uint48 public constant VOTE_WEIGHT_WINDOW = 1 days;
   uint16 public constant HUB_CHAIN_ID = 1;
   uint16 public constant SPOKE_CHAIN_ID = 2;
+  uint48 public constant VOTE_TIME_EXTENSION = 1 days;
+  uint48 public constant MINIMUM_VOTE_EXTENSION = 1 hours;
+  uint32 public constant SAFE_WINDOW = 1 days;
+  uint48 public constant MINIMUM_DECISION_WINDOW = 1 hours;
 
   struct VoteParams {
     uint256 proposalId;
@@ -61,12 +65,7 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
 
     extender = new HubProposalExtender(
-      initialOwner,
-      1 days, // VOTE_TIME_EXTENSION
-      initialOwner,
-      1 hours, // MINIMUM_VOTE_EXTENSION
-      1 days, // SAFE_WINDOW
-      1 hours // MINIMUM_DESCISION_WINDOW
+      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DECISION_WINDOW
     );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
