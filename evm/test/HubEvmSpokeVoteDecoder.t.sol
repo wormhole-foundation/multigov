@@ -143,7 +143,7 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     returns (uint256 returnedProposalId, uint256 voteStart)
   {
     (returnedProposalId, voteStart) = HubProposalMetadata(_hubProposalMetadata).getProposalMetadata(_proposalId);
-    require(returnedProposalId == _proposalId, "Proposal ID mismatch");
+    assertEq(returnedProposalId, _proposalId, "Proposal ID mismatch");
   }
 
   function _createEmptyProposal(address proposer) internal returns (uint256 proposalId) {
