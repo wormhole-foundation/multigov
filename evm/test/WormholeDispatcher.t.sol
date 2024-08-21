@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
+import {WormholeMock} from "wormhole-sdk/testing/helpers/WormholeMock.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
 

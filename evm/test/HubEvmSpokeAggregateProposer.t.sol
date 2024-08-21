@@ -4,9 +4,10 @@ pragma solidity ^0.8.23;
 import {Test} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
-import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
+import {EmptyWormholeAddress, InvalidContractAddress, InvalidChainId} from "wormhole-sdk/QueryResponse.sol";
 import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
@@ -94,7 +95,25 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTime);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTime, targetTime);
+      queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
+      perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
+    }
+    return _buildQueryResponse(_voteWeights, queryRequestBytes, perChainResponses);
+  }
+
+  function _mockQueryResponse(VoteWeight[] memory _voteWeights, address _proposer, uint64 _calldataTimepoint)
+    internal
+    view
+    returns (bytes memory)
+  {
+    bytes memory queryRequestBytes = "";
+    bytes memory perChainResponses = "";
+    uint64 targetTime = uint64(vm.getBlockTimestamp());
+
+    for (uint256 i = 0; i < _voteWeights.length; i++) {
+      (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTime, _calldataTimepoint);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
@@ -104,7 +123,8 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
   function _buildQueryRequestAndPerChainResponse(
     VoteWeight memory _voteWeight,
     address _proposer,
-    uint64 _targetBlockTime
+    uint64 _targetBlockTime,
+    uint64 _timepoint
   ) internal view returns (bytes memory queryRequestBytes, bytes memory perChainResponses) {
     uint256 voteWeight = _voteWeight.voteWeight;
     uint16 chainId = _voteWeight.chainId;
@@ -116,7 +136,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
       bytes(""), /* followingBlockHint */
       1,
       QueryTest.buildEthCallDataBytes(
-        spokeAddress, abi.encodeWithSignature("getVotes(address,uint256)", _proposer, _targetBlockTime)
+        spokeAddress, abi.encodeWithSignature("getVotes(address,uint256)", _proposer, _timepoint)
       )
     );
 
@@ -175,8 +195,8 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
 
     bytes memory ethCall = QueryTest.buildEthCallByTimestampRequestBytes(
       targetBlockTime,
-      bytes("latest"),
-      bytes("latest"),
+      bytes(""),
+      bytes(""),
       2, // numCallData
       abi.encodePacked(
         QueryTest.buildEthCallDataBytes(
@@ -240,7 +260,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       uint64 targetBlockTime = _timestamps[i];
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _caller, targetBlockTime);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _caller, targetBlockTime, targetBlockTime);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
@@ -599,6 +619,38 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     );
   }
 
+  function testFuzz_RevertIf_QueryContainsMultipleResponsesFromTheSameChain(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    string memory _description,
+    address _caller
+  ) public {
+    vm.assume(_spokeAddress != address(0));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](2);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
+    voteWeights[1] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    _warpToValidTimestamp();
+    _assumeThresholdMet(voteWeights);
+
+    _registerSpokes(voteWeights);
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    vm.expectRevert(InvalidChainId.selector);
+    vm.prank(_caller);
+    crossChainAggregateProposer.checkAndProposeIfEligible(
+      targets, values, calldatas, _description, queryResponse, signatures
+    );
+  }
+
   function testFuzz_RevertIf_InvalidCaller(
     uint128 _voteWeight,
     uint16 _chainId,
@@ -635,6 +687,42 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     );
   }
 
+  function testFuzz_RevertIf_InvalidTimepoint(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    address _caller,
+    uint64 _calldataTimepoint,
+    string memory _description
+  ) public {
+    vm.assume(_spokeAddress != address(0));
+    vm.assume(_calldataTimepoint != uint64(vm.getBlockTimestamp()));
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    _assumeThresholdMet(voteWeights);
+    _warpToValidTimestamp();
+    _registerSpokes(voteWeights);
+
+    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller, _calldataTimepoint);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.expectRevert(
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, vm.getBlockTimestamp())
+    );
+    vm.prank(_caller);
+    crossChainAggregateProposer.checkAndProposeIfEligible(
+      targets, values, calldatas, _description, queryResponse, signatures
+    );
+  }
+
   function testFuzz_RevertIf_SpokeIsNotRegistered(
     uint128 _voteWeight,
     uint16 _chainId,
@@ -658,9 +746,7 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(
-      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.UnregisteredSpoke.selector, _chainId, _spokeAddress)
-    );
+    vm.expectRevert(InvalidContractAddress.selector);
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, _description, queryResponse, signatures
@@ -695,9 +781,7 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(
-      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.UnregisteredSpoke.selector, _chainId, _queriedSpokeAddress)
-    );
+    vm.expectRevert(InvalidContractAddress.selector);
 
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
@@ -776,6 +860,7 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] =
       VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 1, spokeAddress: makeAddr("SpokeAddress")});
+    _registerSpokes(voteWeights);
 
     bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, address(hubGovernor), timestamps);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
@@ -801,6 +886,7 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] =
       VoteWeight({voteWeight: hubGovernor.proposalThreshold(), chainId: 1, spokeAddress: makeAddr("SpokeAddress")});
+    _registerSpokes(voteWeights);
 
     bytes memory queryResponse = _mockQueryResponseWithCustomTimestamps(voteWeights, _caller, timestamps);
     IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
@@ -920,18 +1006,20 @@ contract SetMaxQueryTimestampOffset is HubEvmSpokeAggregateProposerTest {
 }
 
 contract _ExtractAccountFromCalldata is HubEvmSpokeAggregateProposerTest {
-  function testFuzz_CorrectlyExtractsAccountFromCalldata(address _account) public view {
+  function testFuzz_CorrectlyExtractsAccountFromCalldata(address _account, uint256 _timepoint) public view {
     // Simulate the calldata for a getVotes(address) function call
-    bytes4 selector = bytes4(keccak256("getVotes(address)"));
-    bytes memory callData = abi.encodeWithSelector(selector, _account);
+    bytes4 selector = bytes4(keccak256("getVotes(address,uint256)"));
+    bytes memory callData = abi.encodeWithSelector(selector, _account, _timepoint);
 
-    address extractedAccount = crossChainAggregateProposer.exposed_extractAccountFromCalldata(callData);
+    (address extractedAccount, uint256 extractedTimepoint) =
+      crossChainAggregateProposer.exposed_extractAccountFromCalldata(callData);
     assertEq(extractedAccount, _account, "Extracted account should match the input account");
+    assertEq(extractedTimepoint, _timepoint, "Extracted timepoint should match the input timepoint");
   }
 
   function testFuzz_RevertIf_InvalidCallDataLength(bytes memory _callData) public {
-    vm.assume(_callData.length < 24);
-    vm.expectRevert(HubEvmSpokeAggregateProposer.InvalidCallDataLength.selector);
+    vm.assume(_callData.length != 68);
+    vm.expectRevert(abi.encodeWithSelector(BytesParsing.LengthMismatch.selector, _callData.length, 68));
     crossChainAggregateProposer.exposed_extractAccountFromCalldata(_callData);
   }
 }

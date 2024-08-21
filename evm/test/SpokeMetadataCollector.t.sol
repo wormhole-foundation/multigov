@@ -3,8 +3,8 @@ pragma solidity ^0.8.23;
 
 import {console2, Test} from "forge-std/Test.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
-import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {EmptyWormholeAddress, InvalidChainId, InvalidContractAddress} from "wormhole-sdk/QueryResponse.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
@@ -25,9 +25,7 @@ contract SpokeMetadataCollectorTest is WormholeEthQueryTest {
       bytes("0x1296c33"), // random blockId: a hash of the block number
       "finalized", // finality
       1, // numCallData
-      QueryTest.buildEthCallDataBytes(
-        _governance, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", _proposalId, _voteStart)
-      )
+      QueryTest.buildEthCallDataBytes(_governance, abi.encodeWithSignature("getProposalMetadata(uint256)", _proposalId))
     );
 
     bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
@@ -147,7 +145,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, _responseChainId, GOVERNANCE_CONTRACT);
     IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
 
-    vm.expectRevert(SpokeMetadataCollector.SenderChainMismatch.selector);
+    vm.expectRevert(InvalidChainId.selector);
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
@@ -161,12 +159,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, uint16(MAINNET_CHAIN_ID), _callingAddress);
     IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
 
-    vm.expectRevert(
-      abi.encodeWithSelector(
-        SpokeMetadataCollector.InvalidWormholeMessage.selector,
-        bytes("Query data must be from hub proposal metadata contract")
-      )
-    );
+    vm.expectRevert(InvalidContractAddress.selector);
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 
@@ -195,9 +188,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
       bytes("0x1296c33"), // blockId
       "finalized", // finality
       1, // numCallData
-      QueryTest.buildEthCallDataBytes(
-        GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
-      )
+      QueryTest.buildEthCallDataBytes(GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256)", 1))
     );
 
     bytes memory _queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
@@ -223,7 +214,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
       1, // numResults
-      QueryTest.buildEthCallResultBytes(abi.encode(_proposalId1, _voteStart1, _voteEnd1)) // results
+      QueryTest.buildEthCallResultBytes(abi.encode(_proposalId1, _voteStart1)) // results
     );
 
     bytes memory secondEthCallResp = QueryTest.buildEthCallWithFinalityResponseBytes(
@@ -231,7 +222,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
       blockhash(block.number), // block hash
       uint64(block.timestamp), // block time US
       1, // numResults
-      QueryTest.buildEthCallResultBytes(abi.encode(_proposalId2, _voteStart2, _voteEnd2)) // results
+      QueryTest.buildEthCallResultBytes(abi.encode(_proposalId2, _voteStart2)) // results
     );
 
     // version and nonce are arbitrary
@@ -270,12 +261,8 @@ contract AddProposal is SpokeMetadataCollectorTest {
       "finalized", // finality
       2, // numCallData
       abi.encodePacked(
-        QueryTest.buildEthCallDataBytes(
-          GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
-        ),
-        QueryTest.buildEthCallDataBytes(
-          GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
-        )
+        QueryTest.buildEthCallDataBytes(GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256)", 1)),
+        QueryTest.buildEthCallDataBytes(GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256)", 1))
       )
     );
 
@@ -331,8 +318,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
       finality, // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
-        GOVERNANCE_CONTRACT,
-        abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", _proposalId, _voteStart)
+        GOVERNANCE_CONTRACT, abi.encodeWithSignature("getProposalMetadata(uint256)", _proposalId)
       )
     );
 
