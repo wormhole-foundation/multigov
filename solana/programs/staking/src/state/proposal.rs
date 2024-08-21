@@ -5,7 +5,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Debug, BorshSchema)]
 pub struct ProposalData {
-    pub id: u64,
+    pub id: [u8; 32],
     pub against_votes: u64,
     pub for_votes: u64,
     pub abstain_votes: u64,
@@ -16,7 +16,7 @@ pub struct ProposalData {
 impl ProposalData {
     pub const LEN: usize = 10240; // 8 + 6 * 8;
 
-    fn initialize(&mut self, proposal_id: u64, vote_start: u64, safe_window: u64) {
+    fn initialize(&mut self, proposal_id: [u8; 32], vote_start: u64, safe_window: u64) {
         self.id = proposal_id;
         self.against_votes = 0;
         self.for_votes = 0;
@@ -27,7 +27,7 @@ impl ProposalData {
 
     pub fn add_proposal(
         &mut self,
-        proposal_id: u64,
+        proposal_id: [u8; 32],
         vote_start: u64,
         safe_window: u64,
     ) -> anchor_lang::Result<()> {

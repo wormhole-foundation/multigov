@@ -94,14 +94,14 @@ pub struct Delegate<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(proposal_id: u64)]
+#[instruction(proposal_id: [u8; 32])]
 pub struct CastVote<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
     #[account(
         mut,
-        seeds = [PROPOSAL_SEED.as_bytes(), &proposal_id.to_be_bytes()],
+        seeds = [PROPOSAL_SEED.as_bytes(), &proposal_id],
         bump
     )]
     pub proposal: Account<'info, proposal::ProposalData>,
@@ -123,7 +123,7 @@ pub struct CastVote<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(proposal_id : u64)]
+#[instruction(proposal_id : [u8; 32])]
 pub struct AddProposal<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -132,7 +132,7 @@ pub struct AddProposal<'info> {
         init,
         payer = payer,
         space = proposal::ProposalData::LEN,
-        seeds = [PROPOSAL_SEED.as_bytes(), &proposal_id.to_be_bytes()],
+        seeds = [PROPOSAL_SEED.as_bytes(), &proposal_id],
         bump
     )]
     pub proposal: Account<'info, proposal::ProposalData>,

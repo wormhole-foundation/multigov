@@ -43,7 +43,7 @@ pub struct DelegateChanged {
 #[event]
 pub struct VoteCast {
     pub voter: Pubkey,
-    pub proposal_id: u64,
+    pub proposal_id: [u8; 32],
     pub weight: u64,
     pub against_votes: u64,
     pub for_votes: u64,
@@ -52,7 +52,7 @@ pub struct VoteCast {
 
 #[event]
 pub struct ProposalCreated {
-    pub proposal_id: u64,
+    pub proposal_id: [u8; 32],
     pub vote_start: u64,
 }
 
@@ -252,7 +252,7 @@ pub mod staking {
 
     pub fn add_proposal(
         ctx: Context<AddProposal>,
-        proposal_id: u64,
+        proposal_id: [u8; 32],
         vote_start: u64,
         safe_window: u64,
     ) -> Result<()> {
@@ -269,7 +269,7 @@ pub mod staking {
 
     pub fn cast_vote(
         ctx: Context<CastVote>,
-        proposal_id: u64,
+        proposal_id: [u8; 32],
         against_votes: u64,
         for_votes: u64,
         abstain_votes: u64,
