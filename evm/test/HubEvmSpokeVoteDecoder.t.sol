@@ -16,7 +16,6 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
-import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {AddressUtils} from "test/helpers/AddressUtils.sol";
 import {HubVotePoolHarness} from "test/harnesses/HubVotePoolHarness.sol";
