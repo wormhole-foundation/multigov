@@ -14,6 +14,7 @@ import path from "path";
 import { expectFailApi } from "./utils/utils";
 import { assertBalanceMatches } from "./utils/api_utils";
 import { WHTokenBalance } from "../app";
+import crypto from 'crypto';
 
 const portNumber = getPortNumber(path.basename(__filename));
 
@@ -67,14 +68,14 @@ describe("api", async () => {
   });
 
   it("addProposal", async () => {
-    const proposalId = new BN(1);
+    const proposalId = crypto.createHash('sha256').update('proposalId1').digest();
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
     await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
     const { proposalAccountData } =
       await stakeConnection.fetchProposalAccountData(proposalId);
-    assert.equal(proposalAccountData.id.toString(), proposalId.toString());
+    assert.equal(Buffer.from(proposalAccountData.id).toString('hex'), proposalId.toString('hex'));
     assert.equal(
       proposalAccountData.voteStart.toString(),
       voteStart.toString(),
@@ -89,7 +90,7 @@ describe("api", async () => {
   });
 
   it("proposalVotes", async () => {
-    const proposalId = new BN(2);
+    const proposalId = crypto.createHash('sha256').update('proposalId2').digest();
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
@@ -103,7 +104,7 @@ describe("api", async () => {
   });
 
   it("isVotingSafe", async () => {
-    const proposalId = new BN(3);
+    const proposalId = crypto.createHash('sha256').update('proposalId3').digest();
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
@@ -267,7 +268,7 @@ describe("api", async () => {
       WHTokenBalance.fromString("150"),
     );
 
-    const proposalId = new BN(4);
+    const proposalId = crypto.createHash('sha256').update('proposalId4').digest();
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 

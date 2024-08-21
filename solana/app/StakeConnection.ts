@@ -212,11 +212,11 @@ export class StakeConnection {
     }
   }
 
-  async fetchProposalAccount(proposalId: BN) {
+  async fetchProposalAccount(proposalId: Buffer) {
     const proposalAccount = PublicKey.findProgramAddressSync(
       [
         utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()),
-        proposalId.toArrayLike(Buffer, "be", 8),
+        proposalId,
       ],
       this.program.programId,
     )[0];
@@ -224,7 +224,7 @@ export class StakeConnection {
     return { proposalAccount };
   }
 
-  async fetchProposalAccountWasm(proposalId: BN) {
+  async fetchProposalAccountWasm(proposalId: Buffer) {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
     const inbuf =
@@ -235,7 +235,7 @@ export class StakeConnection {
     return { proposalAccountWasm };
   }
 
-  async fetchProposalAccountData(proposalId: BN) {
+  async fetchProposalAccountData(proposalId: Buffer) {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
     const proposalAccountData =
@@ -478,7 +478,7 @@ export class StakeConnection {
   }
 
   public async castVote(
-    proposalId: BN,
+    proposalId: Buffer,
     stakeAccount: PublicKey,
     againstVotes: BN,
     forVotes: BN,
@@ -500,7 +500,7 @@ export class StakeConnection {
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
-  public async proposalVotes(proposalId: BN): Promise<{
+  public async proposalVotes(proposalId: Buffer): Promise<{
     againstVotes: BN;
     forVotes: BN;
     abstainVotes: BN;
@@ -517,7 +517,7 @@ export class StakeConnection {
     };
   }
 
-  public async isVotingSafe(proposalId: BN): Promise<boolean> {
+  public async isVotingSafe(proposalId: Buffer): Promise<boolean> {
     const { proposalAccountWasm } =
       await this.fetchProposalAccountWasm(proposalId);
 
@@ -526,7 +526,7 @@ export class StakeConnection {
   }
 
   public async addProposal(
-    proposalId: BN,
+    proposalId: Buffer,
     vote_start: BN,
     safe_window: BN,
   ): Promise<void> {
@@ -536,7 +536,7 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .addProposal(proposalId, vote_start, safe_window)
+        .addProposal(Array.from(proposalId), vote_start, safe_window)
         .accountsPartial({
           proposal: proposalAccount,
         })

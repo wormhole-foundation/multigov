@@ -5,6 +5,7 @@ import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
 import { USER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import BN from "bn.js";
+import crypto from 'crypto';
 
 async function main() {
   try {
@@ -27,7 +28,7 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalId = new BN(4);
+    const proposalId = crypto.createHash('sha256').update('proposalId4').digest();
 
     const { againstVotes, forVotes, abstainVotes } =
       await stakeConnection.proposalVotes(proposalId);

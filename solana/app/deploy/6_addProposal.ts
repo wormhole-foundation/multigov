@@ -6,6 +6,7 @@ import { STAKING_ADDRESS } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import BN from "bn.js";
 import assert from "assert";
+import crypto from 'crypto';
 
 async function main() {
   try {
@@ -23,7 +24,7 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalId = new BN(4);
+    const proposalId = crypto.createHash('sha256').update('proposalId4').digest();
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
