@@ -174,7 +174,6 @@ contract Constructor is HubGovernorTest {
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _hubVotePool,
     address _voteExtender
   ) public {
     vm.assume(_initialVotingPeriod != 0);
@@ -206,7 +205,6 @@ contract Constructor is HubGovernorTest {
     uint48 _initialVotingDelay,
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _hubVotePool,
     address _voteExtender
   ) public {
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
