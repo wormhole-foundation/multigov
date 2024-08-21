@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {Structs} from "wormhole/Structs.sol";
 import {WormholeCoreMock} from "test/mocks/WormholeCoreMock.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";

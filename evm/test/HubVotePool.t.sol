@@ -2,10 +2,10 @@
 pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
-import {QueryResponse} from "wormhole/query/QueryResponse.sol";
-import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
+import {QueryResponse} from "wormhole-sdk/QueryResponse.sol";
+import {EmptyWormholeAddress, InvalidContractAddress} from "wormhole-sdk/QueryResponse.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
@@ -689,7 +689,7 @@ contract CrossChainVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    vm.expectRevert(ISpokeVoteDecoder.UnknownMessageEmitter.selector);
+    vm.expectRevert(InvalidContractAddress.selector);
     hubVotePool.crossChainVote(_resp, signatures);
   }
 
@@ -704,9 +704,7 @@ contract CrossChainVote is HubVotePoolTest {
       "finalized", // finality
       2, // numCallData
       abi.encodePacked(
-        QueryTest.buildEthCallDataBytes(
-          _spokeContract, abi.encodeWithSignature("getProposalMetadata(uint256,uint256,uint256)", 1, 2, 3)
-        ),
+        QueryTest.buildEthCallDataBytes(_spokeContract, abi.encodeWithSignature("proposalVotes(uint256)", 1, 2, 3)),
         QueryTest.buildEthCallDataBytes(_spokeContract, abi.encodeWithSignature("proposalVotes(uint256)", 1))
       )
     );
@@ -749,7 +747,7 @@ contract CrossChainVote is HubVotePoolTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
 
-    vm.expectRevert(ISpokeVoteDecoder.UnknownMessageEmitter.selector);
+    vm.expectRevert(InvalidContractAddress.selector);
     hubVotePool.crossChainVote(_resp, signatures);
   }
 }

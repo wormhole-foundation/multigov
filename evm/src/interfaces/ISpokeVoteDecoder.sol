@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {ParsedPerChainQueryResponse} from "wormhole/query/QueryResponse.sol";
+import {ParsedPerChainQueryResponse} from "wormhole-sdk/QueryResponse.sol";
 
 interface ISpokeVoteDecoder is IERC165 {
   struct ProposalVote {
@@ -19,7 +19,6 @@ interface ISpokeVoteDecoder is IERC165 {
   }
 
   error TooManyEthCallResults(uint256);
-  error UnknownMessageEmitter();
   error InvalidProposalVote();
   error InvalidQueryBlock(bytes);
 

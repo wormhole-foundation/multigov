@@ -3,7 +3,7 @@ pragma solidity ^0.8.23;
 
 import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";

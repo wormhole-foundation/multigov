@@ -5,7 +5,7 @@ import {Test, console2} from "forge-std/Test.sol";
 import {Implementation} from "wormhole/Implementation.sol";
 import {Setup} from "wormhole/Setup.sol";
 import {Wormhole} from "wormhole/Wormhole.sol";
-import {QueryResponse} from "wormhole/query/QueryResponse.sol";
+import {QueryResponse} from "wormhole-sdk/QueryResponse.sol";
 import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 
 contract WormholeEthQueryTest is Test {
