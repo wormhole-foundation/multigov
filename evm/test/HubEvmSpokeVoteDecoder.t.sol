@@ -48,13 +48,6 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
   uint48 public constant VOTE_TIME_EXTENSION = 1 days;
   uint48 public constant MINIMUM_VOTE_EXTENSION = 1 hours;
 
-  struct VoteParams {
-    uint256 proposalId;
-    uint128 againstVotes;
-    uint128 forVotes;
-    uint128 abstainVotes;
-  }
-
   function setUp() public {
     _setupWormhole();
 
@@ -237,8 +230,8 @@ contract Constructor is HubEvmSpokeVoteDecoderTest {
 }
 
 contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
-  function testFuzz_CorrectlyParseChainResponse(address proposer) public {
-    vm.assume(proposer != address(0));
+  function testFuzz_CorrectlyParseChainResponse(address _proposer) public {
+    vm.assume(_proposer != address(0));
     _setGovernor(hubGovernor);
 
     address[3] memory voters = [address(0x1), address(0x2), address(0x3)];
@@ -246,7 +239,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
       _mintAndDelegate(voters[i], 1000e18);
     }
 
-    uint256 proposalId = _createEmptyProposal(proposer);
+    uint256 proposalId = _createEmptyProposal(_proposer);
 
     _jumpToActiveProposal(proposalId);
 
