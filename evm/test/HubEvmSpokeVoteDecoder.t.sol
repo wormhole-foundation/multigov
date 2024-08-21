@@ -174,8 +174,6 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       1, // num per chain requests
       QueryTest.buildPerChainRequestBytes(_chainId, hubCrossChainEvmVote.QT_ETH_CALL_WITH_FINALITY(), ethCall)
     );
-    return _resp;
-  }
 
     (uint256 returnedProposalId, uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) =
       spokeVoteAggregator.proposalVotes(_proposalId);
@@ -276,13 +274,6 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
     uint256 proposalId = _createEmptyProposal(proposer);
 
     bytes memory voteQueryResponseRaw = _buildVoteQueryResponse(proposalId, _queryChainId);
-
-    ParsedQueryResponse memory parsedResp =
-      hubCrossChainEvmVote.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
-
-    assertEq(hubVotePool.spokeRegistry(_queryChainId), bytes32(0), "Spoke should not be registered");
-
-    bytes memory voteQueryResponseRaw = _buildQueryResponseRaw(proposalId, _votes, _votes, _votes, _queryChainId);
 
     ParsedQueryResponse memory parsedResp =
       hubCrossChainEvmVote.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
