@@ -14,7 +14,6 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
-import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {ERC165Fake} from "test/fakes/ERC165Fake.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
