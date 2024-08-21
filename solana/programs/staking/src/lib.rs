@@ -411,6 +411,11 @@ pub mod staking {
     pub fn set_airlock(ctx: Context<SetAirlock>) -> Result<()> {
         let executor = &mut ctx.accounts.executor;
 
+        require!(
+            ctx.accounts.payer.key() == executor.airlock,
+            ErrorCode::InvalidSpokeAirlock
+        );
+
         executor.airlock = ctx.accounts.airlock.key();
         Ok(())
     }

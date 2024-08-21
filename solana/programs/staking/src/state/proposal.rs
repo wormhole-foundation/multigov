@@ -64,8 +64,9 @@ pub mod tests {
 
     #[test]
     fn proposal_votes_test() {
+        let proposal_id: [u8; 32] = [1; 32];
         let proposal = &mut ProposalData {
-            id: 1,
+            id: proposal_id,
             against_votes: 50,
             for_votes: 40,
             abstain_votes: 30,

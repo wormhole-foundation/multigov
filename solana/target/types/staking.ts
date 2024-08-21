@@ -64,7 +64,12 @@ export type Staking = {
       "args": [
         {
           "name": "proposalId",
-          "type": "u64"
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
           "name": "voteStart",
@@ -317,7 +322,12 @@ export type Staking = {
       "args": [
         {
           "name": "proposalId",
-          "type": "u64"
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
           "name": "againstVotes",
@@ -1096,6 +1106,60 @@ export type Staking = {
       ]
     },
     {
+      "name": "executeOperation",
+      "discriminator": [
+        105,
+        240,
+        250,
+        159,
+        65,
+        132,
+        111,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "airlock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "cpiTargetProgramId",
+          "type": "pubkey"
+        },
+        {
+          "name": "instructionData",
+          "type": "bytes"
+        },
+        {
+          "name": "value",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "finalizeVestingConfig",
       "discriminator": [
         172,
@@ -1269,6 +1333,56 @@ export type Staking = {
       ]
     },
     {
+      "name": "initializeSpokeAirlock",
+      "discriminator": [
+        43,
+        108,
+        186,
+        101,
+        188,
+        130,
+        241,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "airlock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "messageExecutor",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "initializeSpokeMessageExecutor",
       "discriminator": [
         0,
@@ -1281,6 +1395,11 @@ export type Staking = {
         177
       ],
       "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
         {
           "name": "executor",
           "writable": true,
@@ -1317,15 +1436,26 @@ export type Staking = {
           }
         },
         {
-          "name": "signer",
-          "writable": true,
-          "signer": true
-        },
-        {
           "name": "hubDispatcher"
         },
         {
-          "name": "airlock"
+          "name": "airlock",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -1649,19 +1779,63 @@ export type Staking = {
       ],
       "accounts": [
         {
-          "name": "executor",
-          "writable": true
-        },
-        {
-          "name": "signer",
+          "name": "payer",
           "writable": true,
           "signer": true
         },
         {
+          "name": "executor",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  101,
+                  120,
+                  101,
+                  99,
+                  117,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "airlock",
-          "relations": [
-            "executor"
-          ]
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
         }
       ],
       "args": []
@@ -1679,6 +1853,11 @@ export type Staking = {
         177
       ],
       "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
         {
           "name": "messageReceived",
           "writable": true,
@@ -1711,11 +1890,6 @@ export type Staking = {
               }
             ]
           }
-        },
-        {
-          "name": "signer",
-          "writable": true,
-          "signer": true
         },
         {
           "name": "systemProgram",
@@ -2255,6 +2429,19 @@ export type Staking = {
       ]
     },
     {
+      "name": "spokeAirlock",
+      "discriminator": [
+        116,
+        204,
+        166,
+        85,
+        235,
+        207,
+        0,
+        58
+      ]
+    },
+    {
       "name": "spokeMessageExecutor",
       "discriminator": [
         95,
@@ -2364,83 +2551,33 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "tooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "notFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "genericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "notInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "checkpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "vestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "checkpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "vestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "notLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
+      "name": "overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "recoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
-    },
-    {
-      "code": 6006,
-      "name": "checkpointNotFound",
-      "msg": "Checkpoint not found"
-    },
-    {
-      "code": 6007,
-      "name": "invalidTimestamp",
-      "msg": "Invalid timestamp"
-    },
-    {
-      "code": 6008,
-      "name": "invalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "noWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "allWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "voteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "withdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "insufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "proposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "other",
-      "msg": "other"
+      "name": "underflow",
+      "msg": "Integer underflow"
     }
   ],
   "types": [
@@ -2630,7 +2767,12 @@ export type Staking = {
         "fields": [
           {
             "name": "proposalId",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "voteStart",
@@ -2646,7 +2788,12 @@ export type Staking = {
         "fields": [
           {
             "name": "id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "againstVotes",
@@ -2678,7 +2825,12 @@ export type Staking = {
         "fields": [
           {
             "name": "proposalId",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "voter",
@@ -2692,10 +2844,30 @@ export type Staking = {
       }
     },
     {
+      "name": "spokeAirlock",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "messageExecutor",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
       "name": "spokeMessageExecutor",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
           {
             "name": "hubDispatcher",
             "type": "pubkey"
@@ -2831,7 +3003,12 @@ export type Staking = {
           },
           {
             "name": "proposalId",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "weight",

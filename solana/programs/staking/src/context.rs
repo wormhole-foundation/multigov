@@ -17,6 +17,7 @@ pub struct InitConfig<'info> {
     // Native payer
     #[account(mut)]
     pub payer: Signer<'info>,
+
     #[account(
         init_if_needed,
         payer = payer,
@@ -169,6 +170,7 @@ pub struct CreateStakeAccount<'info> {
     // Native payer:
     #[account(mut)]
     pub payer: Signer<'info>,
+
     // Stake program accounts:
     #[account(zero)]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
@@ -260,6 +262,7 @@ pub struct JoinDaoLlc<'info> {
     // Native payer:
     #[account(mut, address = stake_account_metadata.owner)]
     pub payer: Signer<'info>,
+
     // Stake program accounts:
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(mut,
@@ -308,6 +311,9 @@ pub struct RecoverAccount<'info> {
 
 #[derive(Accounts)]
 pub struct InitializeSpokeMessageExecutor<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
     #[account(
         init,
         payer = payer,
@@ -316,8 +322,6 @@ pub struct InitializeSpokeMessageExecutor<'info> {
         bump
     )]
     pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
-    #[account(mut)]
-    pub payer: Signer<'info>,
     /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
     #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
@@ -328,6 +332,9 @@ pub struct InitializeSpokeMessageExecutor<'info> {
 #[derive(Accounts)]
 #[instruction(message_hash: [u8; 32])]
 pub struct SetMessageReceived<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
     #[account(
         init_if_needed,
         payer = payer,
@@ -336,27 +343,31 @@ pub struct SetMessageReceived<'info> {
         bump
     )]
     pub message_received: Account<'info, spoke_message_executor::MessageReceived>,
-    #[account(mut)]
-    pub payer: Signer<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct SetAirlock<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
     #[account(
         mut,
         seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
         bump = executor.bump
     )]
     pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
-    #[account(address = airlock.key())]
-    pub payer: Signer<'info>,
+
     #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
     pub airlock: Account<'info, SpokeAirlock>,
 }
 
 #[derive(Accounts)]
 pub struct InitializeSpokeAirlock<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
     #[account(
         init,
         payer = payer,
@@ -365,24 +376,18 @@ pub struct InitializeSpokeAirlock<'info> {
         bump
     )]
     pub airlock: Account<'info, SpokeAirlock>,
-    #[account(mut)]
-    pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct ExecuteOperation<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
     #[account(
         mut,
         seeds = [AIRLOCK_SEED.as_bytes()],
         bump = airlock.bump
     )]
     pub airlock: Account<'info, SpokeAirlock>,
-    #[account(address = executor.key())]
-    pub payer: Signer<'info>,
-    #[account(
-        seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
-        bump = executor.bump
-    )]
-    pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
 }

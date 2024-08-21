@@ -58,7 +58,12 @@
       "args": [
         {
           "name": "proposal_id",
-          "type": "u64"
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
           "name": "vote_start",
@@ -311,7 +316,12 @@
       "args": [
         {
           "name": "proposal_id",
-          "type": "u64"
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
           "name": "against_votes",
@@ -1090,6 +1100,60 @@
       ]
     },
     {
+      "name": "execute_operation",
+      "discriminator": [
+        105,
+        240,
+        250,
+        159,
+        65,
+        132,
+        111,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "airlock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "cpi_target_program_id",
+          "type": "pubkey"
+        },
+        {
+          "name": "instruction_data",
+          "type": "bytes"
+        },
+        {
+          "name": "_value",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "finalize_vesting_config",
       "discriminator": [
         172,
@@ -1263,6 +1327,56 @@
       ]
     },
     {
+      "name": "initialize_spoke_airlock",
+      "discriminator": [
+        43,
+        108,
+        186,
+        101,
+        188,
+        130,
+        241,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "airlock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "message_executor",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "initialize_spoke_message_executor",
       "discriminator": [
         0,
@@ -1275,6 +1389,11 @@
         177
       ],
       "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
         {
           "name": "executor",
           "writable": true,
@@ -1311,15 +1430,26 @@
           }
         },
         {
-          "name": "signer",
-          "writable": true,
-          "signer": true
-        },
-        {
           "name": "hub_dispatcher"
         },
         {
-          "name": "airlock"
+          "name": "airlock",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -1643,19 +1773,63 @@
       ],
       "accounts": [
         {
-          "name": "executor",
-          "writable": true
-        },
-        {
-          "name": "signer",
+          "name": "payer",
           "writable": true,
           "signer": true
         },
         {
+          "name": "executor",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  101,
+                  120,
+                  101,
+                  99,
+                  117,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "airlock",
-          "relations": [
-            "executor"
-          ]
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
         }
       ],
       "args": []
@@ -1673,6 +1847,11 @@
         177
       ],
       "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
         {
           "name": "message_received",
           "writable": true,
@@ -1707,18 +1886,13 @@
           }
         },
         {
-          "name": "signer",
-          "writable": true,
-          "signer": true
-        },
-        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "message_hash",
+          "name": "_message_hash",
           "type": {
             "array": [
               "u8",
@@ -2249,6 +2423,19 @@
       ]
     },
     {
+      "name": "SpokeAirlock",
+      "discriminator": [
+        116,
+        204,
+        166,
+        85,
+        235,
+        207,
+        0,
+        58
+      ]
+    },
+    {
       "name": "SpokeMessageExecutor",
       "discriminator": [
         95,
@@ -2358,83 +2545,33 @@
   "errors": [
     {
       "code": 6000,
-      "name": "TooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "NotFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "GenericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "NotInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "CheckpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "VestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "CheckpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "VestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "NotLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
+      "name": "Overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "RecoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
-    },
-    {
-      "code": 6006,
-      "name": "CheckpointNotFound",
-      "msg": "Checkpoint not found"
-    },
-    {
-      "code": 6007,
-      "name": "InvalidTimestamp",
-      "msg": "Invalid timestamp"
-    },
-    {
-      "code": 6008,
-      "name": "InvalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "NoWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "AllWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "VoteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "WithdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "InsufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "ProposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "Other",
-      "msg": "Other"
+      "name": "Underflow",
+      "msg": "Integer underflow"
     }
   ],
   "types": [
@@ -2624,7 +2761,12 @@
         "fields": [
           {
             "name": "proposal_id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "vote_start",
@@ -2640,7 +2782,12 @@
         "fields": [
           {
             "name": "id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "against_votes",
@@ -2672,7 +2819,12 @@
         "fields": [
           {
             "name": "proposal_id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "voter",
@@ -2686,10 +2838,30 @@
       }
     },
     {
+      "name": "SpokeAirlock",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "message_executor",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
       "name": "SpokeMessageExecutor",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
           {
             "name": "hub_dispatcher",
             "type": "pubkey"
@@ -2825,7 +2997,12 @@
           },
           {
             "name": "proposal_id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "weight",

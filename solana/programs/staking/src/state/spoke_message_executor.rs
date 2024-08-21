@@ -1,4 +1,3 @@
-use anchor_lang::account;
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
 

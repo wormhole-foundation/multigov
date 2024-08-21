@@ -36,6 +36,8 @@ pub enum ErrorCode {
     ProposalAlreadyExists,
     #[msg("Invalid message executor")] //6015
     InvalidMessageExecutor,
+    #[msg("Invalid spoke airlock")] //6016
+    InvalidSpokeAirlock,
     #[msg("Other")] //6015
     Other,
 }
