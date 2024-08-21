@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IWormhole} from "wormhole/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {EmptyWormholeAddress} from "wormhole/query/QueryResponse.sol";
@@ -263,35 +264,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
   function _createArbitraryProposal() internal returns (ProposalBuilder) {
     return _createProposal(abi.encodeWithSignature("setQuorum(uint208)", 100));
   }
-}
 
-contract Constructor is Test {
-  function testFuzz_CorrectlySetConstructorArgs(
-    address _core,
-    address _hubGovernor,
-    uint48 _initialMaxQueryTimestampOffset
-  ) public {
-    vm.assume(_core != address(0));
-    vm.assume(_hubGovernor != address(0));
-
-    HubEvmSpokeAggregateProposer crossChainAggregateProposer =
-      new HubEvmSpokeAggregateProposer(_core, _hubGovernor, _initialMaxQueryTimestampOffset);
-    assertEq(address(crossChainAggregateProposer.HUB_GOVERNOR()), _hubGovernor);
-  }
-
-  function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, uint48 _initialMaxQueryTimestampOffset) public {
-    vm.expectRevert(EmptyWormholeAddress.selector);
-    new HubEvmSpokeAggregateProposer(address(0), _hubGovernor, _initialMaxQueryTimestampOffset);
-  }
-
-  function testFuzz_RevertIf_HubGovernorIsZeroAddress(address _core, uint48 _initialMaxQueryTimestampOffset) public {
-    vm.assume(_core != address(0));
-    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-    new HubEvmSpokeAggregateProposer(_core, address(0), _initialMaxQueryTimestampOffset);
-  }
-}
-
-contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
   function _checkThresholdMet(VoteWeight[] memory _voteWeights, uint256 _hubVoteWeight, uint256 _threshold)
     internal
     pure
@@ -344,7 +317,95 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
       _targets, _values, _calldatas, _description, queryResponse, signatures
     );
   }
+}
 
+contract Constructor is Test {
+  function testFuzz_CorrectlySetConstructorArgs(
+    address _core,
+    address _hubGovernor,
+    uint48 _initialMaxQueryTimestampOffset
+  ) public {
+    vm.assume(_core != address(0));
+    vm.assume(_hubGovernor != address(0));
+
+    HubEvmSpokeAggregateProposer crossChainAggregateProposer =
+      new HubEvmSpokeAggregateProposer(_core, _hubGovernor, _initialMaxQueryTimestampOffset);
+    assertEq(address(crossChainAggregateProposer.HUB_GOVERNOR()), _hubGovernor);
+  }
+
+  function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, uint48 _initialMaxQueryTimestampOffset) public {
+    vm.expectRevert(EmptyWormholeAddress.selector);
+    new HubEvmSpokeAggregateProposer(address(0), _hubGovernor, _initialMaxQueryTimestampOffset);
+  }
+
+  function testFuzz_RevertIf_HubGovernorIsZeroAddress(address _core, uint48 _initialMaxQueryTimestampOffset) public {
+    vm.assume(_core != address(0));
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
+    new HubEvmSpokeAggregateProposer(_core, address(0), _initialMaxQueryTimestampOffset);
+  }
+}
+
+contract Cancel is HubEvmSpokeAggregateProposerTest {
+  function testFuzz_CreatorSuccesfullyCancelsAProposal(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    string memory _description,
+    address _caller
+  ) public {
+    vm.assume(_spokeAddress != address(0));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    _warpToValidTimestamp();
+    _assumeThresholdMet(voteWeights);
+    _registerSpokes(voteWeights);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    uint256 canceled = _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+    vm.prank(_caller);
+    crossChainAggregateProposer.cancel(targets, values, calldatas, keccak256(bytes(_description)));
+
+    assertEq(
+      uint8(hubGovernor.state(canceled)), uint8(IGovernor.ProposalState.Canceled), "Proposal has not been canceled"
+    );
+  }
+
+  function testFuzz_RevertIf_CallerIsNotProposalCreator(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    string memory _description,
+    address _caller,
+    address _canceler
+  ) public {
+    vm.assume(_spokeAddress != address(0));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    _warpToValidTimestamp();
+    _assumeThresholdMet(voteWeights);
+    _registerSpokes(voteWeights);
+
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidCaller.selector, _canceler, _caller));
+    vm.prank(_canceler);
+    crossChainAggregateProposer.cancel(targets, values, calldatas, keccak256(bytes(_description)));
+  }
+}
+
+contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
   function _checkAndProposeIfEligibleCustomTimepoints(
     VoteWeight[] memory _voteWeights,
     address[] memory _targets,
