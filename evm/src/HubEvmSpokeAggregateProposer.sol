@@ -70,6 +70,11 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
     maxQueryTimestampOffset = _initialMaxQueryTimestampOffset;
   }
 
+  /// @notice A function for an aggregate proposer to cancel the proposal they have created.
+  /// @param _targets A list of contracts to call when a proposal is executed.
+  /// @param _values A list of values to send when calling each target.
+  /// @param _calldatas A list of calldatas to use when calling the targets.
+  /// @param _descriptionHash A hash of the proposal's description.
   function cancel(
     address[] memory _targets,
     uint256[] memory _values,
