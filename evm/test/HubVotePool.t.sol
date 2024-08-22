@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {Test, console2} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
-import {QueryResponse} from "wormhole-sdk/QueryResponse.sol";
 import {EmptyWormholeAddress, InvalidContractAddress} from "wormhole-sdk/QueryResponse.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
@@ -118,7 +117,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
 
   function _getSignatures(bytes memory _resp, address _hubVotePool)
     internal
-    view
+    pure
     returns (IWormhole.Signature[] memory)
   {
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = getSignature(_resp, address(_hubVotePool));
@@ -505,7 +504,7 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     });
   }
 
-  function _setupVoters(ERC20VotesFake _token) private returns (VoterInfo memory voterInfo) {
+  function _setupVoters(ERC20VotesFake _token) internal returns (VoterInfo memory voterInfo) {
     voterInfo = VoterInfo({
       voters: [address(0x1), address(0x2), address(0x3)],
       voteWeights: [uint256(100e18), uint256(200e18), uint256(300e18)],
@@ -517,14 +516,14 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     }
   }
 
-  function _createAndSetupProposal(TestContracts memory _testContracts, address _proposer) private returns (uint256) {
+  function _createAndSetupProposal(TestContracts memory _testContracts, address _proposer) internal returns (uint256) {
     uint256 proposalId = _createEmptyProposal(_testContracts, _proposer);
 
     _jumpToActiveProposal(proposalId);
     return proposalId;
   }
 
-  function _castVotes(TestContracts memory _testContracts, VoterInfo memory _voterInfo, uint256 _proposalId) private {
+  function _castVotes(TestContracts memory _testContracts, VoterInfo memory _voterInfo, uint256 _proposalId) internal {
     for (uint8 i = 0; i < 3; i++) {
       vm.prank(_voterInfo.voters[i]);
       _testContracts.spokeVoteAggregator.castVote(_proposalId, _voterInfo.voteTypes[i]);
@@ -536,7 +535,10 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     _testContracts.hubVotePool.crossChainVote(voteQueryResponse, voteSignatures);
   }
 
-  function _verifyVotes(TestContracts memory _testContracts, VoterInfo memory _voterInfo, uint256 proposalId) private {
+  function _verifyVotes(TestContracts memory _testContracts, VoterInfo memory _voterInfo, uint256 proposalId)
+    internal
+    view
+  {
     (uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
       _testContracts.hubVotePool.spokeProposalVotes(keccak256(abi.encode(SPOKE_CHAIN_ID, proposalId)));
 
