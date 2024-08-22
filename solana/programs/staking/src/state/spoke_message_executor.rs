@@ -24,7 +24,7 @@ pub struct MessageReceived {
 }
 
 impl SpokeMessageExecutor {
-    pub const LEN: usize = 8 + 8 + 32 + 2 + 2 + 32 + 32; // 116
+    pub const LEN: usize = 8 + 2 + 32 + 2 + 2 + 32 + 32; // 116
 }
 
 impl MessageReceived {

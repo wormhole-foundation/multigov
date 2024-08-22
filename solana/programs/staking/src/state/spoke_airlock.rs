@@ -9,7 +9,7 @@ pub struct SpokeAirlock {
 }
 
 impl SpokeAirlock {
-    pub const LEN: usize = 8 + 8 + 32; // 48
+    pub const LEN: usize = 8 + 1 + 32; // 48
 }
 
 #[cfg(test)]
