@@ -9,10 +9,12 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 /// spoke account for the DAO, and to create a simple upgrade path for the `SpokeMessageExecutor`.
 contract SpokeAirlock {
   /// @notice The address of the only contract that can execute cross chain proposals using the `SpokeAirlock`.
-  address public messageExecutor;
+  address public immutable messageExecutor;
 
   /// @notice Thrown when the caller of a method is not the message executor.
   error InvalidMessageExecutor();
+
+  error InvalidCaller();
 
   /// @notice Emitted when the message executor is changed to a new address.
   event MessageExecutorUpdated(address indexed newMessageExecutor);
@@ -31,14 +33,6 @@ contract SpokeAirlock {
     if (msg.sender != messageExecutor) revert InvalidMessageExecutor();
   }
 
-  /// @notice Updates the message executor to a new address.
-  /// @param _messageExecutor The address of the new message executor.
-  function setMessageExecutor(address _messageExecutor) external {
-    _onlyMessageExecutor();
-    messageExecutor = _messageExecutor;
-    emit MessageExecutorUpdated(_messageExecutor);
-  }
-
   /// @notice A method to execute cross chain proposals. This method can only be called by the message executor.
   /// @param _targets A list of contracts to call when a proposal is executed.
   /// @param _values A list of values to send when calling each target.
@@ -55,6 +49,7 @@ contract SpokeAirlock {
   }
 
   function performDelegateCall(address _target, bytes memory _calldata) external payable returns (bytes memory) {
+    if (msg.sender != address(this)) revert InvalidCaller();
     (bool success, bytes memory returndata) = _target.delegatecall(_calldata);
     return Address.verifyCallResultFromTarget(_target, success, returndata);
   }

@@ -36,6 +36,20 @@ contract SpokeAirlockTest is Test {
     builder.push(address(token), 0, abi.encodeWithSignature("mint(address,uint208)", _account, _amount));
     return builder;
   }
+
+  function _createPerformDelegateCallProposal(address _account, uint208 _amount) public returns (ProposalBuilder) {
+    ProposalBuilder builder = new ProposalBuilder();
+    builder.push(
+      address(airlock),
+      0,
+      abi.encodeWithSignature(
+        "performDelegateCall(address,bytes)",
+        address(token),
+        abi.encodeWithSignature("mint(address,uint208)", _account, _amount)
+      )
+    );
+    return builder;
+  }
 }
 
 contract Constructor is SpokeAirlockTest {
@@ -55,27 +69,27 @@ contract Receive is SpokeAirlockTest {
   }
 }
 
-contract SetMessageExecutor is SpokeAirlockTest {
-  function testFuzz_SetNewMessageExecutor(address _newExecutor) public {
-    vm.prank(address(executor));
-    airlock.setMessageExecutor(_newExecutor);
-    assertEq(airlock.messageExecutor(), _newExecutor);
-  }
-
-  function testFuzz_EmitsMessageExecutorUpdatedEvent(address _newExecutor) public {
-    vm.prank(address(executor));
-    vm.expectEmit();
-    emit SpokeAirlock.MessageExecutorUpdated(_newExecutor);
-    airlock.setMessageExecutor(_newExecutor);
-  }
-
-  function testFuzz_RevertIf_NotCalledByMessageExecutor(address _newExecutor, address _caller) public {
-    vm.assume(_caller != address(executor));
-    vm.prank(_caller);
-    vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
-    airlock.setMessageExecutor(_newExecutor);
-  }
-}
+// contract SetMessageExecutor is SpokeAirlockTest {
+//   function testFuzz_SetNewMessageExecutor(address _newExecutor) public {
+//     vm.prank(address(executor));
+//     airlock.setMessageExecutor(_newExecutor);
+//     assertEq(airlock.messageExecutor(), _newExecutor);
+//   }
+//
+//   function testFuzz_EmitsMessageExecutorUpdatedEvent(address _newExecutor) public {
+//     vm.prank(address(executor));
+//     vm.expectEmit();
+//     emit SpokeAirlock.MessageExecutorUpdated(_newExecutor);
+//     airlock.setMessageExecutor(_newExecutor);
+//   }
+//
+//   function testFuzz_RevertIf_NotCalledByMessageExecutor(address _newExecutor, address _caller) public {
+//     vm.assume(_caller != address(executor));
+//     vm.prank(_caller);
+//     vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
+//     airlock.setMessageExecutor(_newExecutor);
+//   }
+// }
 
 contract ExecuteOperations is SpokeAirlockTest {
   function testFuzz_ExecuteASingleProposal(address _account, uint208 _amount) public {
@@ -101,4 +115,35 @@ contract ExecuteOperations is SpokeAirlockTest {
     vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
     airlock.executeOperations(targets, values, calldatas);
   }
+}
+
+// Delegate call
+contract PerformDelegateCall is SpokeAirlockTest {
+  function testFuzz_ExecuteASingleProposal(address _account, uint208 _amount) public {
+    vm.assume(_account != address(0));
+    ProposalBuilder builder = _createPerformDelegateCallProposal(_account, _amount);
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    vm.prank(address(executor));
+    airlock.executeOperations(targets, values, calldatas);
+    assertEq(token.balanceOf(_account), 0);
+    // Check the storage slot where we expect totalSupply to be.
+    assertEq(uint256(vm.load(address(airlock), bytes32(uint256(2)))), _amount);
+  }
+
+  // Revert if delegate call by non spoke airlock
+
+  //function testFuzz_RevertIf_NotCalledByMessageExecutor(address _account, uint208 _amount, address _caller) public {
+  //  vm.assume(_account != address(0));
+  //  vm.assume(_caller != address(executor));
+  //  ProposalBuilder builder = _createMintProposal(_account, _amount);
+  //  address[] memory targets = builder.targets();
+  //  uint256[] memory values = builder.values();
+  //  bytes[] memory calldatas = builder.calldatas();
+
+  //  vm.prank(_caller);
+  //  vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
+  //  airlock.executeOperations(targets, values, calldatas);
+  //}
 }
