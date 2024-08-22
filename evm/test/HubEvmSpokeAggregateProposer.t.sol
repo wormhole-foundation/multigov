@@ -96,7 +96,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTimeUs, targetTimeUs);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTimeUs, targetTime);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
@@ -264,7 +264,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
       uint64 targetBlockTime = _timestamps[i];
       uint64 targetBlockTimeUs = targetBlockTime * 1_000_000;
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _caller, targetBlockTimeUs, targetBlockTimeUs);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _caller, targetBlockTimeUs, targetBlockTime);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
@@ -719,7 +719,7 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.expectRevert(
-      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, vm.getBlockTimestamp())
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, vm.getBlockTimestamp() * 1_000_000)
     );
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
@@ -848,7 +848,9 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[1]));
+    vm.expectRevert(
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[1] * 1_000_000)
+    );
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
@@ -875,7 +877,9 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
+    vm.expectRevert(
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0] * 1_000_000)
+    );
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
@@ -901,7 +905,9 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
+    vm.expectRevert(
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0] * 1_000_000)
+    );
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
@@ -939,7 +945,9 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[3]));
+    vm.expectRevert(
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[3] * 1_000_000)
+    );
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );

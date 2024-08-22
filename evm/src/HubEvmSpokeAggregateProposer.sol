@@ -149,8 +149,8 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     uint256 _totalVoteWeight = 0;
-    uint256 _currentTimestamp = block.timestamp;
-    uint256 _oldestAllowedTimestamp = _currentTimestamp - maxQueryTimestampOffset;
+    uint256 _currentTimestamp = block.timestamp * 1_000_000;
+    uint256 _oldestAllowedTimestamp = (_currentTimestamp - maxQueryTimestampOffset * 1_000_000);
     uint256 _sharedQueryBlockTime = 0;
     uint16[] memory seenValues = new uint16[](_queryResponse.responses.length);
 
@@ -162,9 +162,7 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
       if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
       _validateEthCallData(_perChainResp.chainId, _ethCalls.result[0]);
 
-      uint64 _requestTargetTimestampUs = _ethCalls.requestTargetTimestamp;
-      // Convert microseconds to seconds
-      uint64 _requestTargetTimestamp = _requestTargetTimestampUs / 1_000_000;
+      uint64 _requestTargetTimestamp = _ethCalls.requestTargetTimestamp;
 
       if (_requestTargetTimestamp < _oldestAllowedTimestamp || _requestTargetTimestamp > _currentTimestamp) {
         revert InvalidTimestamp(_requestTargetTimestamp);
@@ -180,7 +178,8 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
 
       // Check that the address being queried is the caller
       if (_queriedAccount != msg.sender) revert InvalidCaller(msg.sender, _queriedAccount);
-      if (_queriedTimepoint / 1_000_000 != _requestTargetTimestamp) revert InvalidTimestamp(_requestTargetTimestamp);
+
+      if (_queriedTimepoint * 1_000_000 != _requestTargetTimestamp) revert InvalidTimestamp(_requestTargetTimestamp);
 
       uint256 _voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
       _totalVoteWeight += _voteWeight;
