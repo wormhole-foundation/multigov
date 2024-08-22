@@ -39,11 +39,9 @@ contract DeploySpokeContractsTest is DeploySpokeContractsBase {
     assertEq(aggregator.owner(), deployer);
     assertEq(aggregator.getVoteWeightWindowLength(uint48(block.timestamp)), 10 minutes);
 
-    assertEq(messageExecutor.HUB_CHAIN_ID(), 10_002);
-    assertEq(address(messageExecutor.WORMHOLE_CORE()), 0x31377888146f3253211EFEf5c676D41ECe7D58Fe);
-    assertEq(messageExecutor.SPOKE_CHAIN_ID(), 10_005);
-    assertEq(messageExecutor.initialized(), true);
-
-    assertEq(airlock.messageExecutor(), address(messageExecutor));
+    assertEq(messageExecutor.hubChainId(), 10_002);
+    assertEq(address(messageExecutor.wormholeCore()), 0x31377888146f3253211EFEf5c676D41ECe7D58Fe);
+    assertEq(messageExecutor.spokeChainId(), 10_005);
+    assertEq(airlock.MESSAGE_EXECUTOR(), address(messageExecutor));
   }
 }
