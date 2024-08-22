@@ -149,6 +149,7 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     uint256 _totalVoteWeight = 0;
+	// Convert time to microseconds as queries use microseconds
     uint256 _currentTimestamp = block.timestamp * 1_000_000;
     uint256 _oldestAllowedTimestamp = (_currentTimestamp - maxQueryTimestampOffset * 1_000_000);
     uint256 _sharedQueryBlockTime = 0;
