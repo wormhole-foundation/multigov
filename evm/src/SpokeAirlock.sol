@@ -53,4 +53,9 @@ contract SpokeAirlock {
       Address.verifyCallResult(_success, _returndata);
     }
   }
+
+  function performDelegateCall(address _target, bytes memory _calldata) external payable returns (bytes memory) {
+    (bool success, bytes memory returndata) = _target.delegatecall(_calldata);
+    return Address.verifyCallResultFromTarget(_target, success, returndata);
+  }
 }
