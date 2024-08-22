@@ -90,14 +90,16 @@ describe("api", async () => {
   });
 
   it("proposalVotes", async () => {
-    const proposalId = crypto.createHash('sha256').update('proposalId2').digest();
+    const _proposalId = crypto.createHash('sha256').update('proposalId2').digest();
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
-    await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
+    await stakeConnection.addProposal(_proposalId, voteStart, safeWindow);
 
-    const { againstVotes, forVotes, abstainVotes } =
-      await stakeConnection.proposalVotes(proposalId);
+    const { proposalId, againstVotes, forVotes, abstainVotes } =
+      await stakeConnection.proposalVotes(_proposalId);
+
+    assert.equal(proposalId.toString('hex'), _proposalId.toString('hex'));
     assert.equal(againstVotes.toString(), "0");
     assert.equal(forVotes.toString(), "0");
     assert.equal(abstainVotes.toString(), "0");
@@ -268,11 +270,11 @@ describe("api", async () => {
       WHTokenBalance.fromString("150"),
     );
 
-    const proposalId = crypto.createHash('sha256').update('proposalId4').digest();
+    const _proposalId = crypto.createHash('sha256').update('proposalId4').digest();
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour
 
-    await user2StakeConnection.addProposal(proposalId, voteStart, safeWindow);
+    await user2StakeConnection.addProposal(_proposalId, voteStart, safeWindow);
 
     await user2StakeConnection.delegate(
       stakeAccountAddress,
@@ -281,29 +283,31 @@ describe("api", async () => {
     );
 
     await user2StakeConnection.castVote(
-      proposalId,
+      _proposalId,
       stakeAccountAddress,
       new BN(10),
       new BN(20),
       new BN(12),
     );
     await user2StakeConnection.castVote(
-      proposalId,
+      _proposalId,
       stakeAccountAddress,
       new BN(10),
       new BN(10),
       new BN(0),
     );
     await user2StakeConnection.castVote(
-      proposalId,
+      _proposalId,
       stakeAccountAddress,
       new BN(0),
       new BN(7),
       new BN(10),
     );
 
-    const { againstVotes, forVotes, abstainVotes } =
-      await user2StakeConnection.proposalVotes(proposalId);
+    const { proposalId, againstVotes, forVotes, abstainVotes } =
+      await user2StakeConnection.proposalVotes(_proposalId);
+
+    assert.equal(proposalId.toString('hex'), _proposalId.toString('hex'));
     assert.equal(againstVotes.toString(), "20");
     assert.equal(forVotes.toString(), "37");
     assert.equal(abstainVotes.toString(), "22");

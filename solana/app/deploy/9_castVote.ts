@@ -28,7 +28,8 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalId = crypto.createHash('sha256').update('proposalId4').digest();;
+    const proposalId = crypto.createHash('sha256').update('proposalId4').digest();
+    console.log("proposalId:", proposalId);
 
     await stakeConnection.castVote(
       proposalId,

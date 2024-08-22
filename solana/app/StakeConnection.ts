@@ -501,7 +501,7 @@ export class StakeConnection {
   }
 
   public async proposalVotes(proposalId: Buffer): Promise<{
-    againstVotes: BN;
+    proposalId: Buffer;
     forVotes: BN;
     abstainVotes: BN;
   }> {
@@ -511,6 +511,7 @@ export class StakeConnection {
     const proposalData = proposalAccountWasm.proposalVotes();
 
     return {
+      proposalId: Buffer.from(proposalData.proposal_id.toBytes()),
       againstVotes: new BN(proposalData.against_votes.toString()),
       forVotes: new BN(proposalData.for_votes.toString()),
       abstainVotes: new BN(proposalData.abstain_votes.toString()),

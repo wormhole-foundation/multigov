@@ -28,11 +28,13 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalId = crypto.createHash('sha256').update('proposalId4').digest();
+    const _proposalId = crypto.createHash('sha256').update('proposalId4').digest();
+    console.log("_proposalId:", _proposalId);
 
-    const { againstVotes, forVotes, abstainVotes } =
-      await stakeConnection.proposalVotes(proposalId);
+    const { proposalId, againstVotes, forVotes, abstainVotes } =
+      await stakeConnection.proposalVotes(_proposalId);
 
+    console.log("proposalId", proposalId.toString('hex'));
     console.log("againstVotes", againstVotes.toString());
     console.log("forVotes", forVotes.toString());
     console.log("abstainVotes", abstainVotes.toString());

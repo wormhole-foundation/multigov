@@ -43,7 +43,59 @@ impl WasmCheckpointData {
 }
 
 #[wasm_bindgen]
+#[derive(Clone, Copy)]
+pub struct ProposalId {
+    pub part1: u64,
+    pub part2: u64,
+    pub part3: u64,
+    pub part4: u64,
+}
+
+impl ProposalId {
+    pub fn from_bytes(bytes: [u8; 32]) -> Self {
+        let part1 = u64::from_be_bytes(bytes[0..8].try_into().unwrap());
+        let part2 = u64::from_be_bytes(bytes[8..16].try_into().unwrap());
+        let part3 = u64::from_be_bytes(bytes[16..24].try_into().unwrap());
+        let part4 = u64::from_be_bytes(bytes[24..32].try_into().unwrap());
+        ProposalId {
+            part1,
+            part2,
+            part3,
+            part4,
+        }
+    }
+
+    pub fn to_bytes(&self) -> [u8; 32] {
+        let mut bytes = [0u8; 32];
+        bytes[0..8].copy_from_slice(&self.part1.to_be_bytes());
+        bytes[8..16].copy_from_slice(&self.part2.to_be_bytes());
+        bytes[16..24].copy_from_slice(&self.part3.to_be_bytes());
+        bytes[24..32].copy_from_slice(&self.part4.to_be_bytes());
+        bytes
+    }
+}
+
+#[wasm_bindgen]
+impl ProposalId {
+    #[wasm_bindgen(constructor)]
+    pub fn new(bytes: &[u8]) -> Result<ProposalId, JsValue> {
+        if bytes.len() != 32 {
+            return Err(JsValue::from_str("Expected 32 bytes"));
+        }
+        let mut array = [0u8; 32];
+        array.copy_from_slice(&bytes[..32]);
+        Ok(ProposalId::from_bytes(array))
+    }
+
+    #[wasm_bindgen(js_name = toBytes)]
+    pub fn to_js_bytes(&self) -> Vec<u8> {
+        self.to_bytes().to_vec()
+    }
+}
+
+#[wasm_bindgen]
 pub struct VotesSummary {
+    pub proposal_id: ProposalId,
     pub against_votes: u64,
     pub for_votes: u64,
     pub abstain_votes: u64,
@@ -73,11 +125,12 @@ impl WasmProposalData {
 
     #[wasm_bindgen(js_name=proposalVotes)]
     pub fn proposal_votes(&self) -> Result<VotesSummary, JsValue> {
-        let Ok(Some((against_votes, for_votes, abstain_votes))) = self.wrapped.proposal_votes()
+        let Ok(Some((proposal_id, against_votes, for_votes, abstain_votes))) = self.wrapped.proposal_votes()
         else {
             return Err("Failed to get proposal votes".into());
         };
         convert_error::<_, std::convert::Infallible>(Ok(VotesSummary {
+            proposal_id: ProposalId::from_bytes(proposal_id),
             against_votes,
             for_votes,
             abstain_votes,

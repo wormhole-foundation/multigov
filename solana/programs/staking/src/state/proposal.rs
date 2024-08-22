@@ -36,8 +36,9 @@ impl ProposalData {
         Ok(())
     }
 
-    pub fn proposal_votes(&self) -> Result<Option<(u64, u64, u64)>> {
+    pub fn proposal_votes(&self) -> Result<Option<([u8; 32], u64, u64, u64)>> {
         Ok(Some((
+            self.id,
             self.against_votes,
             self.for_votes,
             self.abstain_votes,
@@ -74,6 +75,6 @@ pub mod tests {
             safe_window: 50,
         };
 
-        assert_eq!(proposal.proposal_votes().unwrap(), Some((50, 40, 30)));
+        assert_eq!(proposal.proposal_votes().unwrap(), Some((proposal_id, 50, 40, 30)));
     }
 }
