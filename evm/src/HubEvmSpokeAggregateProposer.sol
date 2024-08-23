@@ -149,8 +149,9 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   {
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
     uint256 _totalVoteWeight = 0;
-    uint256 _currentTimestamp = block.timestamp;
-    uint256 _oldestAllowedTimestamp = _currentTimestamp - maxQueryTimestampOffset;
+    // Convert time to microseconds as queries use microseconds
+    uint256 _currentTimestamp = block.timestamp * 1_000_000;
+    uint256 _oldestAllowedTimestamp = (_currentTimestamp - maxQueryTimestampOffset * 1_000_000);
     uint256 _sharedQueryBlockTime = 0;
     uint16[] memory seenValues = new uint16[](_queryResponse.responses.length);
 
@@ -178,14 +179,15 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
 
       // Check that the address being queried is the caller
       if (_queriedAccount != msg.sender) revert InvalidCaller(msg.sender, _queriedAccount);
-      if (_queriedTimepoint != _requestTargetTimestamp) revert InvalidTimestamp(_requestTargetTimestamp);
+
+      if (_queriedTimepoint * 1_000_000 != _requestTargetTimestamp) revert InvalidTimestamp(_requestTargetTimestamp);
 
       uint256 _voteWeight = abi.decode(_ethCalls.result[0].result, (uint256));
       _totalVoteWeight += _voteWeight;
     }
 
     // Use current timestamp (what all of the spoke query responses are checked against) to get the hub vote weight
-    uint256 _hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, _sharedQueryBlockTime);
+    uint256 _hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, _sharedQueryBlockTime / 1_000_000);
     _totalVoteWeight += _hubVoteWeight;
 
     return _totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();
