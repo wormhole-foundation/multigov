@@ -4,7 +4,6 @@ pragma solidity ^0.8.23;
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {
   QueryResponse,
   ParsedPerChainQueryResponse,

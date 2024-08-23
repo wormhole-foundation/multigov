@@ -70,15 +70,23 @@ contract Initialize is SpokeMessageExecutorTest {
 contract SetAirlock is SpokeMessageExecutorTest {
   function testFuzz_CanBeCalledByAirlock(address payable _newAirlock) public {
     vm.prank(address(airlock));
+    vm.assume(_newAirlock != address(0));
     executor.setAirlock(_newAirlock);
     assertEq(payable(executor.airlock()), _newAirlock);
   }
 
   function testFuzz_RevertIf_NotCalledByAirlock(address payable _newAirlock, address _caller) public {
     vm.assume(_caller != address(airlock));
+    vm.assume(_newAirlock != address(0));
     vm.prank(address(airlock));
     executor.setAirlock(_newAirlock);
     assertEq(payable(executor.airlock()), _newAirlock);
+  }
+
+  function test_RevertIf_NewAirlockIsAddressZero() public {
+    vm.prank(address(airlock));
+    vm.expectRevert(SpokeMessageExecutor.InvalidSpokeAirlock.selector);
+    executor.setAirlock(payable(0));
   }
 }
 
@@ -377,36 +385,6 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
         SpokeMessageExecutor.InvalidWormholeMessage.selector, "Message is not meant for this chain."
       )
     );
-    executor.receiveMessage(vaa);
-  }
-
-  function testFuzz_RevertIf_UnsetSpokeAirlock(
-    uint32 _timestamp,
-    uint32 _nonce,
-    uint64 _sequence,
-    uint8 _consistencyLevel,
-    uint256 _messageId,
-    uint208 _amount
-  ) public {
-    // build simple proposal
-    address account = makeAddr("Token holder");
-    ProposalBuilder builder = _createMintProposal(account, _amount);
-    bytes memory _payload =
-      abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
-    (bytes memory vaa,) = _buildVm(
-      _timestamp,
-      _nonce,
-      WORMHOLE_HUB_CHAIN,
-      bytes32(uint256(uint160(hubDispatcher))),
-      _sequence,
-      _consistencyLevel,
-      _payload
-    );
-    executor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, IWormhole(address(wormholeCoreMock))
-    );
-
-    vm.expectRevert(SpokeMessageExecutor.UnsetSpokeAirlock.selector);
     executor.receiveMessage(vaa);
   }
 }

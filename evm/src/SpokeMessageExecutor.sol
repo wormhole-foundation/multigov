@@ -28,14 +28,14 @@ contract SpokeMessageExecutor {
   error AlreadyProcessedMessage();
   /// @notice Thrown if a function caller does not have permission to be a caller.
   error InvalidCaller();
+  /// @notice Thrown if the spoke airlock is currently the zero address.
+  error InvalidSpokeAirlock();
   /// @notice Thrown if a cross chain message has an invalid encoding.
   error InvalidSpokeExecutorOperationLength(uint256 targetsLength, uint256 valuesLength, uint256 calldatasLength);
   /// @notice Thrown if a parsed message is an invalid message.
   error InvalidWormholeMessage(string reason);
   /// @notice Thrown if the message publisher is an unknown emitter.
   error UnknownMessageEmitter();
-  /// @notice Thrown if the spoke airlock is currently the zero address.
-  error UnsetSpokeAirlock();
 
   /// @notice Emitted when a spoke proposal is executed.
   event ProposalExecuted(uint16 emitterChainId, bytes32 emitterAddress, uint256 proposalId);
@@ -71,7 +71,6 @@ contract SpokeMessageExecutor {
     (IWormhole.VM memory _wormholeMessage, bool _valid, string memory _reason) =
       WORMHOLE_CORE.parseAndVerifyVM(_encodedMessage);
 
-    if (address(airlock) == address(0)) revert UnsetSpokeAirlock();
     if (!_valid) revert InvalidWormholeMessage(_reason);
     if (messageReceived[_wormholeMessage.hash]) revert AlreadyProcessedMessage();
 
@@ -102,6 +101,7 @@ contract SpokeMessageExecutor {
   /// @param _newAirlock The address of the new airlock.
   function setAirlock(address payable _newAirlock) external {
     _onlyAirlock();
+    if (address(_newAirlock) == address(0)) revert InvalidSpokeAirlock();
     airlock = SpokeAirlock(_newAirlock);
   }
 
