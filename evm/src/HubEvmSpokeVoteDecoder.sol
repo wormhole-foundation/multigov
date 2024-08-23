@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {
@@ -33,14 +34,19 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
   /// @notice Decodes a parsed per chain query respone for an eth call with finality query containing a spoke vote.
   /// @param _perChainResp The parsed per chain response.
+  /// @param _governor The governor used to fetch a registered spoke.
   /// @return The parsed query vote.
-  function decode(ParsedPerChainQueryResponse memory _perChainResp) external view returns (QueryVote memory) {
+  function decode(ParsedPerChainQueryResponse memory _perChainResp, IGovernor _governor)
+    external
+    view
+    returns (QueryVote memory)
+  {
     EthCallWithFinalityQueryResponse memory _ethCalls = parseEthCallWithFinalityQueryResponse(_perChainResp);
 
     // verify contract and chain is correct
     if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
-    _validateEthCallData(_perChainResp.chainId, _ethCalls.result[0]);
+    _validateEthCallData(_ethCalls.result[0]);
     if (keccak256(_ethCalls.requestFinality) != keccak256(bytes("finalized"))) {
       revert InvalidQueryBlock(_ethCalls.requestBlockId);
     }
@@ -48,6 +54,12 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     _ethCalls.result[0].result.checkLength(128);
     (uint256 _proposalId, uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
       abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));
+
+    uint256 _voteStart = _governor.proposalSnapshot(_proposalId);
+    bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);
+    if (
+      _registeredAddress == bytes32("") || _ethCalls.result[0].contractAddress != fromWormholeFormat(_registeredAddress)
+    ) revert InvalidContractAddress();
 
     bytes32 _spokeProposalId = keccak256(abi.encode(_perChainResp.chainId, _proposalId));
     return (
@@ -69,13 +81,8 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
   /// @notice Validate the query eth calldata was from the expected spoke contract and contains the expected function
   /// signature.
-  /// @param _chainId The wormhole chain id of the query.
   /// @param _r The Eth calldata of the query.
-  function _validateEthCallData(uint16 _chainId, EthCallData memory _r) internal view {
-    bytes32 _registeredAddress = HUB_VOTE_POOL.spokeRegistry(_chainId);
-    if (_registeredAddress == bytes32("") || _r.contractAddress != fromWormholeFormat(_registeredAddress)) {
-      revert InvalidContractAddress();
-    }
+  function _validateEthCallData(EthCallData memory _r) internal view {
     (bytes4 funcSig,) = _r.callData.asBytes4Unchecked(0);
     // The function signature should be bytes4(keccak256(bytes("proposalVotes(uint256)")))
     if (funcSig != bytes4(hex"544ffc9c")) revert InvalidFunctionSignature();

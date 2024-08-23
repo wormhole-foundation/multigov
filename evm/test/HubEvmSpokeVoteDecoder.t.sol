@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
@@ -138,7 +139,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
     vm.prank(timelock);
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
 
-    ISpokeVoteDecoder.QueryVote memory queryVote = hubCrossChainEvmVote.decode(_resp);
+    ISpokeVoteDecoder.QueryVote memory queryVote = hubCrossChainEvmVote.decode(_resp, IGovernor(address(governor)));
     assertEq(queryVote.proposalId, _proposalId);
     assertEq(queryVote.spokeProposalId, keccak256(abi.encode(_queryChainId, _proposalId)));
     assertEq(queryVote.proposalVote.abstainVotes, _abstainVotes);
@@ -167,7 +168,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
     );
 
     vm.expectRevert(InvalidContractAddress.selector);
-    hubCrossChainEvmVote.decode(_resp);
+    hubCrossChainEvmVote.decode(_resp, IGovernor(address(governor)));
   }
 
   function testFuzz_RevertIf_QueryBlockIsNotFinalized(
@@ -231,7 +232,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
     ParsedQueryResponse memory parsedResp = hubCrossChainEvmVote.parseAndVerifyQueryResponse(_resp, signatures);
     vm.expectRevert(abi.encodeWithSelector(ISpokeVoteDecoder.InvalidQueryBlock.selector, bytes(blockId)));
-    hubCrossChainEvmVote.decode(parsedResp.responses[0]);
+    hubCrossChainEvmVote.decode(parsedResp.responses[0], IGovernor(address(governor)));
   }
 }
 
