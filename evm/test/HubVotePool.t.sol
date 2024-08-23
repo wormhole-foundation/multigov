@@ -212,15 +212,34 @@ contract RegisterSpoke is HubVotePoolTest {
     bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.prank(timelock);
     hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
-    bytes32 wormholeAddress = hubVotePool.spokeRegistry(_wormholeChainId);
+    bytes32 wormholeAddress = hubVotePool.getSpoke(_wormholeChainId, block.timestamp);
     assertEq(wormholeAddress, spokeWormholeAddress);
+  }
+
+  function testFuzz_RegisterTheSameSpokeMultipleTimes(
+    uint16 _wormholeChainId,
+    address _spokeContract1,
+    address _spokeContract2,
+    uint48 _warp
+  ) public {
+    bytes32 spokeContract2WormholeAddress = addressToBytes32(_spokeContract2);
+    vm.warp(vm.getBlockTimestamp());
+    vm.prank(timelock);
+    hubVotePool.registerSpoke(_wormholeChainId, addressToBytes32(_spokeContract1));
+
+    vm.warp(vm.getBlockTimestamp() + _warp);
+    vm.prank(timelock);
+    hubVotePool.registerSpoke(_wormholeChainId, spokeContract2WormholeAddress);
+
+    bytes32 wormholeAddress = hubVotePool.getSpoke(_wormholeChainId, vm.getBlockTimestamp());
+    assertEq(wormholeAddress, spokeContract2WormholeAddress);
   }
 
   function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(uint16 _wormholeChainId, address _spokeContract) public {
     bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.expectEmit();
     emit HubVotePool.SpokeRegistered(
-      _wormholeChainId, hubVotePool.spokeRegistry(_wormholeChainId), spokeWormholeAddress
+      _wormholeChainId, hubVotePool.getSpoke(_wormholeChainId, block.timestamp), spokeWormholeAddress
     );
     vm.prank(timelock);
     hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
@@ -248,13 +267,13 @@ contract RegisterSpokes is HubVotePoolTest {
   }
 
   function _assertSpokesRegistered(
-    function(uint16) external view returns (bytes32) spokeRegistryFunc,
+    function(uint16, uint256) external view returns (bytes32) spokeRegistryFunc,
     HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry
   ) internal view {
     for (uint256 i = 0; i < _spokeRegistry.length; i++) {
       uint16 chainId = _spokeRegistry[i].wormholeChainId;
       bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
-      bytes32 storedAddress = spokeRegistryFunc(chainId);
+      bytes32 storedAddress = spokeRegistryFunc(chainId, block.timestamp);
       assertEq(storedAddress, expectedAddress);
     }
   }
@@ -263,7 +282,7 @@ contract RegisterSpokes is HubVotePoolTest {
     vm.assume(_isUnique(_spokes));
     vm.prank(timelock);
     hubVotePool.registerSpokes(_spokes);
-    _assertSpokesRegistered(hubVotePool.spokeRegistry, _spokes);
+    _assertSpokesRegistered(hubVotePool.getSpoke, _spokes);
   }
 
   function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(HubVotePool.SpokeVoteAggregator[] memory _spokes) public {

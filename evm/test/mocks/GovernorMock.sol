@@ -26,13 +26,17 @@ contract GovernorMock {
     return _proposalId;
   }
 
-  function propose(address[] memory, uint256[] memory, bytes[] memory, string memory) public virtual returns (uint256) {
-    voteStart = block.timestamp;
-    return voteStart;
+  function propose(
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
+    string memory _description
+  ) public virtual returns (uint256) {
+    return uint256(keccak256(abi.encode(_targets, _values, _calldatas, _description)));
   }
 
   function proposalSnapshot(uint256) public view virtual returns (uint256) {
-    return voteStart;
+    return block.timestamp;
   }
 
   function votingPeriod() public pure returns (uint256) {
