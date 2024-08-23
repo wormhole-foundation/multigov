@@ -24,7 +24,7 @@ async function main() {
     );
 
     const proposalId = crypto.createHash('sha256').update('proposalId4').digest();
-    console.log("proposalId:", proposalId);
+    console.log("proposalId:", proposalId.toString('hex'));
 
     const { proposalAccountData } =
       await stakeConnection.fetchProposalAccountData(proposalId);

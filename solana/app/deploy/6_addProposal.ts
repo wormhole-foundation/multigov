@@ -25,7 +25,7 @@ async function main() {
     );
 
     const proposalId = crypto.createHash('sha256').update('proposalId4').digest();
-    console.log("proposalId:", proposalId);
+    console.log("proposalId:", proposalId.toString('hex'));
 
     const voteStart = new BN(Math.floor(Date.now() / 1000));
     const safeWindow = new BN(24 * 60 * 60); // 24 hour

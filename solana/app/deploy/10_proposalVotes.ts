@@ -29,7 +29,7 @@ async function main() {
     );
 
     const _proposalId = crypto.createHash('sha256').update('proposalId4').digest();
-    console.log("_proposalId:", _proposalId);
+    console.log("_proposalId:", _proposalId.toString('hex'));
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
       await stakeConnection.proposalVotes(_proposalId);
