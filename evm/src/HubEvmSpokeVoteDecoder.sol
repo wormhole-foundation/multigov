@@ -34,6 +34,7 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
   /// @notice Decodes a parsed per chain query respone for an eth call with finality query containing a spoke vote.
   /// @param _perChainResp The parsed per chain response.
+  /// @param _governor The governor used to fetch a registered spoke.
   /// @return The parsed query vote.
   function decode(ParsedPerChainQueryResponse memory _perChainResp, IGovernor _governor)
     external
