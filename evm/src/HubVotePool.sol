@@ -10,6 +10,7 @@ import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryResponse, ParsedQueryResponse} from "wormhole-sdk/QueryResponse.sol";
 import {Checkpoints} from "src/lib/Checkpoints.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /// @title HubVotePool
 /// @author [ScopeLift](https://scopelift.co)
@@ -48,9 +49,9 @@ contract HubVotePool is QueryResponse, Ownable {
 
   /// @dev Contains the distribution of a proposal vote.
   struct ProposalVote {
-    uint128 againstVotes;
-    uint128 forVotes;
-    uint128 abstainVotes;
+    uint256 againstVotes;
+    uint256 forVotes;
+    uint256 abstainVotes;
   }
 
   /// @dev Contains the information to register a spoke.
@@ -148,7 +149,9 @@ contract HubVotePool is QueryResponse, Ownable {
   }
 
   function _castVote(uint256 _proposalId, ProposalVote memory _vote, uint16 _emitterChainId) internal {
-    bytes memory _votes = abi.encodePacked(_vote.againstVotes, _vote.forVotes, _vote.abstainVotes);
+    bytes memory _votes = abi.encodePacked(
+      SafeCast.toUint128(_vote.againstVotes), SafeCast.toUint128(_vote.forVotes), SafeCast.toUint128(_vote.abstainVotes)
+    );
 
     hubGovernor.castVoteWithReasonAndParams(
       _proposalId, UNUSED_SUPPORT_PARAM, "rolled-up vote from governance spoke token holders", _votes

@@ -31,15 +31,15 @@ contract SpokeVoteAggregatorTest is Test {
   }
 
   function _getVoteData(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (bytes memory) {
-    uint128 remainingVotes = type(uint128).max;
+    uint256 remainingVotes = type(uint128).max;
 
-    _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, remainingVotes));
+    _votes.againstVotes = uint256(bound(_votes.againstVotes, 0, remainingVotes));
     remainingVotes -= _votes.againstVotes;
 
-    _votes.forVotes = uint128(bound(_votes.forVotes, 0, remainingVotes));
+    _votes.forVotes = uint256(bound(_votes.forVotes, 0, remainingVotes));
     remainingVotes -= _votes.forVotes;
 
-    _votes.abstainVotes = uint128(bound(_votes.abstainVotes, 0, remainingVotes));
+    _votes.abstainVotes = uint256(bound(_votes.abstainVotes, 0, remainingVotes));
 
     bytes memory _voteData =
       abi.encodePacked(uint128(_votes.againstVotes), uint128(_votes.forVotes), uint128(_votes.abstainVotes));
@@ -392,10 +392,10 @@ contract CastVoteWithReason is SpokeVoteAggregatorTest {
 contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
   function _assertVotesEq(
     uint256 _proposalId,
-    uint128 _totalVotes,
-    uint128 _againstVotes,
-    uint128 _forVotes,
-    uint128 _abstainVotes
+    uint256 _totalVotes,
+    uint256 _againstVotes,
+    uint256 _forVotes,
+    uint256 _abstainVotes
   ) internal view {
     (, uint256 against, uint256 forVotes, uint256 abstain) = spokeVoteAggregator.proposalVotes(_proposalId);
     assertEq(against, _againstVotes, "Votes against are not correct");
@@ -526,15 +526,15 @@ contract CastVoteWithReasonAndParams is SpokeVoteAggregatorTest {
     _vote1.forVotes = uint128(bound(_vote1.forVotes, 0, _totalVotes - _vote1.againstVotes));
     _vote1.abstainVotes = uint128(bound(_vote1.abstainVotes, 0, _totalVotes - _vote1.againstVotes - _vote1.forVotes));
 
-    uint128 vote1Total = _vote1.againstVotes + _vote1.forVotes + _vote1.abstainVotes;
-    uint128 remainingVotes = _totalVotes - vote1Total;
+    uint256 vote1Total = _vote1.againstVotes + _vote1.forVotes + _vote1.abstainVotes;
+    uint256 remainingVotes = _totalVotes - vote1Total;
 
     // Ensure vote2 votes don't exceed remaining votes
     _vote2.againstVotes = uint128(bound(_vote2.againstVotes, 0, remainingVotes));
     _vote2.forVotes = uint128(bound(_vote2.forVotes, 0, remainingVotes - _vote2.againstVotes));
     _vote2.abstainVotes = remainingVotes - _vote2.againstVotes - _vote2.forVotes;
 
-    uint128 vote2Total = _vote2.againstVotes + _vote2.forVotes + _vote2.abstainVotes;
+    uint256 vote2Total = _vote2.againstVotes + _vote2.forVotes + _vote2.abstainVotes;
     vm.assume(vote2Total != 0); // Ensure vote2 votes are not all 0 to prevent an "all weight cast" revert
 
     _mintAndDelegate(_caller, _totalVotes);
