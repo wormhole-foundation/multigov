@@ -34,6 +34,8 @@ contract SpokeMessageExecutor {
   error InvalidWormholeMessage(string reason);
   /// @notice Thrown if the message publisher is an unknown emitter.
   error UnknownMessageEmitter();
+  /// @notice Thrown if the spoke airlock is currently the zero address.
+  error UnsetSpokeAirlock();
 
   /// @notice Emitted when a spoke proposal is executed.
   event ProposalExecuted(uint16 emitterChainId, bytes32 emitterAddress, uint256 proposalId);
@@ -69,6 +71,7 @@ contract SpokeMessageExecutor {
     (IWormhole.VM memory _wormholeMessage, bool _valid, string memory _reason) =
       WORMHOLE_CORE.parseAndVerifyVM(_encodedMessage);
 
+    if (address(airlock) == address(0)) revert UnsetSpokeAirlock();
     if (!_valid) revert InvalidWormholeMessage(_reason);
     if (messageReceived[_wormholeMessage.hash]) revert AlreadyProcessedMessage();
 
