@@ -13,7 +13,7 @@ contract HubMessageDispatcherTest is Test, TestConstants {
   WormholeCoreMock wormholeCoreMock;
 
   function setUp() public virtual {
-    wormholeCoreMock = new WormholeCoreMock();
+    wormholeCoreMock = new WormholeCoreMock(2);
     TimelockControllerFake timelock = TimelockControllerFake(payable(address(this)));
     dispatcher = new HubMessageDispatcher(address(timelock), address(wormholeCoreMock), 0);
   }

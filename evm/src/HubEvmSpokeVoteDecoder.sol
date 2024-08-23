@@ -52,8 +52,8 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     }
 
     _ethCalls.result[0].result.checkLength(128);
-    (uint256 _proposalId, uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
-      abi.decode(_ethCalls.result[0].result, (uint256, uint128, uint128, uint128));
+    (uint256 _proposalId, uint256 _againstVotes, uint256 _forVotes, uint256 _abstainVotes) =
+      abi.decode(_ethCalls.result[0].result, (uint256, uint256, uint256, uint256));
 
     uint256 _voteStart = _governor.proposalSnapshot(_proposalId);
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);

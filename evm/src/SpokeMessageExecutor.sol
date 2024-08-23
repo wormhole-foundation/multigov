@@ -28,6 +28,8 @@ contract SpokeMessageExecutor {
   error AlreadyProcessedMessage();
   /// @notice Thrown if a function caller does not have permission to be a caller.
   error InvalidCaller();
+  /// @notice Thrown if the spoke airlock is currently the zero address.
+  error InvalidSpokeAirlock();
   /// @notice Thrown if a cross chain message has an invalid encoding.
   error InvalidSpokeExecutorOperationLength(uint256 targetsLength, uint256 valuesLength, uint256 calldatasLength);
   /// @notice Thrown if a parsed message is an invalid message.
@@ -45,12 +47,11 @@ contract SpokeMessageExecutor {
   /// @param _hubDispatcher The contract where the message is published.
   /// @param _hubChainId The wormhole chain where the message is published.
   /// @param _wormholeCore The wormhole core contract that handles message parsing.
-  /// @param _spokeChainId The wormhole chain id of the spoke where the messages are executed.
-  constructor(bytes32 _hubDispatcher, uint16 _hubChainId, IWormhole _wormholeCore, uint16 _spokeChainId) {
+  constructor(bytes32 _hubDispatcher, uint16 _hubChainId, IWormhole _wormholeCore) {
     HUB_DISPATCHER = _hubDispatcher;
     HUB_CHAIN_ID = _hubChainId;
     WORMHOLE_CORE = _wormholeCore;
-    SPOKE_CHAIN_ID = _spokeChainId;
+    SPOKE_CHAIN_ID = IWormhole(_wormholeCore).chainId();
   }
 
   /// @notice Sets the initial airlock on the spoke message executor.
@@ -100,6 +101,7 @@ contract SpokeMessageExecutor {
   /// @param _newAirlock The address of the new airlock.
   function setAirlock(address payable _newAirlock) external {
     _onlyAirlock();
+    if (address(_newAirlock) == address(0)) revert InvalidSpokeAirlock();
     airlock = SpokeAirlock(_newAirlock);
   }
 

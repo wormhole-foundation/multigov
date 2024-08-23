@@ -17,15 +17,12 @@ contract SpokeMessageExecutorTest is Test {
   uint16 WORMHOLE_HUB_CHAIN = 2; // Mainnet
   uint16 WORMHOLE_SPOKE_CHAIN = 24; // Optimism
   address hubDispatcher = makeAddr("Hub dispatcher");
-  WormholeCoreMock wormholeCoreMock = new WormholeCoreMock();
+  WormholeCoreMock wormholeCoreMock = new WormholeCoreMock(WORMHOLE_SPOKE_CHAIN);
 
   function setUp() public {
     token = new ERC20VotesFake();
     executor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(hubDispatcher))),
-      WORMHOLE_HUB_CHAIN,
-      IWormhole(address(wormholeCoreMock)),
-      WORMHOLE_SPOKE_CHAIN
+      bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, IWormhole(address(wormholeCoreMock))
     );
     airlock = new SpokeAirlock(address(executor));
     executor.initialize(payable(airlock));
@@ -40,28 +37,20 @@ contract SpokeMessageExecutorTest is Test {
 }
 
 contract Constructor is SpokeMessageExecutorTest {
-  function testFuzz_CorrectlySetConstructorArgs(
-    bytes32 _hubDispatcher,
-    uint16 _hubChainId,
-    address _wormholeCore,
-    uint16 _spokeChainId
-  ) public {
+  function testFuzz_CorrectlySetConstructorArgs(bytes32 _hubDispatcher, uint16 _hubChainId) public {
     SpokeMessageExecutor executor =
-      new SpokeMessageExecutor(_hubDispatcher, _hubChainId, IWormhole(_wormholeCore), _spokeChainId);
+      new SpokeMessageExecutor(_hubDispatcher, _hubChainId, IWormhole(address(wormholeCoreMock)));
     assertEq(executor.HUB_DISPATCHER(), _hubDispatcher);
     assertEq(executor.HUB_CHAIN_ID(), _hubChainId);
-    assertEq(address(executor.WORMHOLE_CORE()), _wormholeCore);
-    assertEq(executor.SPOKE_CHAIN_ID(), _spokeChainId);
+    assertEq(address(executor.WORMHOLE_CORE()), address(wormholeCoreMock));
+    assertEq(executor.SPOKE_CHAIN_ID(), WORMHOLE_SPOKE_CHAIN);
   }
 }
 
 contract Initialize is SpokeMessageExecutorTest {
   function testFuzz_CorrectlyInitialize(address payable _airlock) public {
     SpokeMessageExecutor spokeExecutor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(hubDispatcher))),
-      WORMHOLE_HUB_CHAIN,
-      IWormhole(address(wormholeCoreMock)),
-      WORMHOLE_SPOKE_CHAIN
+      bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, IWormhole(address(wormholeCoreMock))
     );
     spokeExecutor.initialize(_airlock);
     assertEq(_airlock, payable(spokeExecutor.airlock()));
@@ -69,10 +58,7 @@ contract Initialize is SpokeMessageExecutorTest {
 
   function testFuzz_RevertIf_CalledTwice(address payable _updatedAirlock) public {
     SpokeMessageExecutor spokeExecutor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(hubDispatcher))),
-      WORMHOLE_HUB_CHAIN,
-      IWormhole(address(wormholeCoreMock)),
-      WORMHOLE_SPOKE_CHAIN
+      bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, IWormhole(address(wormholeCoreMock))
     );
     spokeExecutor.initialize(payable(airlock));
 
@@ -84,15 +70,23 @@ contract Initialize is SpokeMessageExecutorTest {
 contract SetAirlock is SpokeMessageExecutorTest {
   function testFuzz_CanBeCalledByAirlock(address payable _newAirlock) public {
     vm.prank(address(airlock));
+    vm.assume(_newAirlock != address(0));
     executor.setAirlock(_newAirlock);
     assertEq(payable(executor.airlock()), _newAirlock);
   }
 
   function testFuzz_RevertIf_NotCalledByAirlock(address payable _newAirlock, address _caller) public {
     vm.assume(_caller != address(airlock));
+    vm.assume(_newAirlock != address(0));
     vm.prank(address(airlock));
     executor.setAirlock(_newAirlock);
     assertEq(payable(executor.airlock()), _newAirlock);
+  }
+
+  function test_RevertIf_NewAirlockIsAddressZero() public {
+    vm.prank(address(airlock));
+    vm.expectRevert(SpokeMessageExecutor.InvalidSpokeAirlock.selector);
+    executor.setAirlock(payable(0));
   }
 }
 
@@ -173,10 +167,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     address account = makeAddr("Token holder");
     ProposalBuilder builder = _createMintProposal(account, 1);
     SpokeMessageExecutor executor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(_emitterChainAddress))),
-      _emitterChainId,
-      IWormhole(address(wormholeCoreMock)),
-      WORMHOLE_SPOKE_CHAIN
+      bytes32(uint256(uint160(_emitterChainAddress))), _emitterChainId, IWormhole(address(wormholeCoreMock))
     );
     SpokeAirlock airlock = new SpokeAirlock(address(executor));
     executor.initialize(payable(airlock));
