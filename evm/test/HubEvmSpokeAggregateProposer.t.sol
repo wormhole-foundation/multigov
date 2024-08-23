@@ -404,7 +404,7 @@ contract Cancel is HubEvmSpokeAggregateProposerTest {
     address _caller,
     address _canceler
   ) public {
-    vm.assume(_spokeAddress != address(0));
+    vm.assume(_spokeAddress != address(0) && _caller != _canceler);
     vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
