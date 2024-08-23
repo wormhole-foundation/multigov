@@ -47,9 +47,8 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     SpokeVoteAggregator aggregator =
       new SpokeVoteAggregator(address(spokeMetadataCollector), config.votingToken, wallet.addr, config.voteWeightWindow);
 
-    SpokeMessageExecutor executor = new SpokeMessageExecutor(
-      config.hubDispatcher, config.hubChainId, IWormhole(config.wormholeCore), config.spokeChainId
-    );
+    SpokeMessageExecutor executor =
+      new SpokeMessageExecutor(config.hubDispatcher, config.hubChainId, IWormhole(config.wormholeCore));
 
     SpokeAirlock airlock = new SpokeAirlock(address(executor));
     executor.initialize(payable(airlock));

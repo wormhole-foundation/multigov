@@ -13,15 +13,15 @@ contract SpokeCountingFractionalTest is Test {
   }
 
   function _getVoteData(SpokeCountingFractional.ProposalVote memory _votes) internal pure returns (bytes memory) {
-    uint128 remainingVotes = type(uint128).max;
+    uint256 remainingVotes = type(uint128).max;
 
-    _votes.againstVotes = uint128(bound(_votes.againstVotes, 0, remainingVotes));
+    _votes.againstVotes = uint256(bound(_votes.againstVotes, 0, remainingVotes));
     remainingVotes -= _votes.againstVotes;
 
-    _votes.forVotes = uint128(bound(_votes.forVotes, 0, remainingVotes));
+    _votes.forVotes = uint256(bound(_votes.forVotes, 0, remainingVotes));
     remainingVotes -= _votes.forVotes;
 
-    _votes.abstainVotes = uint128(bound(_votes.abstainVotes, 0, remainingVotes));
+    _votes.abstainVotes = uint256(bound(_votes.abstainVotes, 0, remainingVotes));
 
     bytes memory _voteData =
       abi.encodePacked(uint128(_votes.againstVotes), uint128(_votes.forVotes), uint128(_votes.abstainVotes));
@@ -276,7 +276,9 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
     SpokeCountingFractional.ProposalVote memory _initialVotes,
     SpokeCountingFractional.ProposalVote memory _additionalVotes
   ) public {
+    //
     bytes memory _initialVoteData = _getVoteData(_initialVotes);
+    bytes memory _additionalVoteData = _getVoteData(_additionalVotes);
     uint128 _initialTotalWeight = uint128(_getTotalWeight(_initialVotes));
     uint128 _additionalTotalVoteWeight = uint128(_getTotalWeight(_additionalVotes));
 
@@ -287,7 +289,6 @@ contract _CountVoteFractional is SpokeCountingFractionalTest {
       _proposalId, _account, uint128(_initialTotalWeight), _initialVoteData
     );
 
-    bytes memory _additionalVoteData = _getVoteData(_additionalVotes);
     uint256 _additionalTotalWeight = _getTotalWeight(_additionalVotes);
     vm.assume(_additionalTotalWeight != 0);
 

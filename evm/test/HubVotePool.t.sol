@@ -337,10 +337,13 @@ contract CrossChainVote is HubVotePoolTest {
     assertEq(governor.support(), 1);
     assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
     assertEq(
-      governor.params(), abi.encodePacked(_voteParams.againstVotes, _voteParams.forVotes, _voteParams.abstainVotes)
+      governor.params(),
+      abi.encodePacked(
+        uint128(_voteParams.againstVotes), uint128(_voteParams.forVotes), uint128(_voteParams.abstainVotes)
+      )
     );
 
-    (uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
+    (uint256 _againstVotes, uint256 _forVotes, uint256 _abstainVotes) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
     _assertVotesEq(
       _voteParams,
@@ -444,7 +447,7 @@ contract CrossChainVote is HubVotePoolTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
     hubVotePool.crossChainVote(_resp, signatures);
 
-    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
+    (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams1.proposalId)));
 
     assertEq(forVotes, _voteParams2.forVotes);
@@ -523,14 +526,14 @@ contract CrossChainVote is HubVotePoolTest {
 
     hubVotePool.crossChainVote(_resp, _getSignatures(_resp));
 
-    (uint128 againstVotes1, uint128 forVotes1, uint128 abstainVotes1) =
+    (uint256 againstVotes1, uint256 forVotes1, uint256 abstainVotes1) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
 
     assertEq(forVotes1, _voteParams.forVotes);
     assertEq(againstVotes1, _voteParams.againstVotes);
     assertEq(abstainVotes1, _voteParams.abstainVotes);
 
-    (uint128 againstVotes2, uint128 forVotes2, uint128 abstainVotes2) =
+    (uint256 againstVotes2, uint256 forVotes2, uint256 abstainVotes2) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId - 1, _voteParams.proposalId)));
 
     assertEq(forVotes2, _voteParams.forVotes);
@@ -555,7 +558,7 @@ contract CrossChainVote is HubVotePoolTest {
     vm.stopPrank();
 
     _sendCrossChainVote(_voteParams1, _queryChainId1, _spokeContract1);
-    (uint128 _againstVotes1, uint128 _forVotes1, uint128 _abstainVotes1) =
+    (uint256 _againstVotes1, uint256 _forVotes1, uint256 _abstainVotes1) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId1, _voteParams1.proposalId)));
     _assertVotesEq(
       _voteParams1,
@@ -567,7 +570,7 @@ contract CrossChainVote is HubVotePoolTest {
     );
 
     _sendCrossChainVote(_voteParams2, _queryChainId2, _spokeContract2);
-    (uint128 _againstVotes2, uint128 _forVotes2, uint128 _abstainVotes2) =
+    (uint256 _againstVotes2, uint256 _forVotes2, uint256 _abstainVotes2) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId2, _voteParams2.proposalId)));
     _assertVotesEq(
       _voteParams2,
@@ -618,9 +621,9 @@ contract CrossChainVote is HubVotePoolTest {
         abi.encode(
           _proposalId,
           SpokeCountingFractional.ProposalVote({
-            againstVotes: uint128(_votes),
-            forVotes: uint128(_votes),
-            abstainVotes: uint128(_votes)
+            againstVotes: uint256(_votes),
+            forVotes: uint256(_votes),
+            abstainVotes: uint256(_votes)
           })
         )
       ) // results

@@ -7,9 +7,9 @@ import {ParsedPerChainQueryResponse} from "wormhole-sdk/QueryResponse.sol";
 
 interface ISpokeVoteDecoder is IERC165 {
   struct ProposalVote {
-    uint128 againstVotes;
-    uint128 forVotes;
-    uint128 abstainVotes;
+    uint256 againstVotes;
+    uint256 forVotes;
+    uint256 abstainVotes;
   }
 
   struct QueryVote {

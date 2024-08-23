@@ -46,9 +46,9 @@ abstract contract GovernorCountingFractional is Governor {
    * @param abstainVotes The number of votes that Abstain from voting for a proposal.
    */
   struct ProposalVote {
-    uint128 againstVotes;
-    uint128 forVotes;
-    uint128 abstainVotes;
+    uint256 againstVotes;
+    uint256 forVotes;
+    uint256 abstainVotes;
   }
 
   /**

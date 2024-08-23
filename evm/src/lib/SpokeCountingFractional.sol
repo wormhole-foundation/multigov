@@ -6,9 +6,9 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 abstract contract SpokeCountingFractional {
   struct ProposalVote {
-    uint128 againstVotes;
-    uint128 forVotes;
-    uint128 abstainVotes;
+    uint256 againstVotes;
+    uint256 forVotes;
+    uint256 abstainVotes;
   }
 
   /**
@@ -63,7 +63,7 @@ abstract contract SpokeCountingFractional {
     public
     view
     virtual
-    returns (uint256 proposalId, uint128 againstVotes, uint128 forVotes, uint128 abstainVotes)
+    returns (uint256 proposalId, uint256 againstVotes, uint256 forVotes, uint256 abstainVotes)
   {
     ProposalVote storage _proposalVote = _proposalVotes[_proposalId];
     return (_proposalId, _proposalVote.againstVotes, _proposalVote.forVotes, _proposalVote.abstainVotes);

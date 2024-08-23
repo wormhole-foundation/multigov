@@ -17,15 +17,12 @@ contract SpokeAirlockTest is Test {
   uint16 WORMHOLE_HUB_CHAIN = 2; // Mainnet
   uint16 WORMHOLE_SPOKE_CHAIN = 24; // Optimism
   address hubDispatcher = makeAddr("Hub dispatcher");
-  WormholeCoreMock wormholeCoreMock = new WormholeCoreMock();
+  WormholeCoreMock wormholeCoreMock = new WormholeCoreMock(WORMHOLE_SPOKE_CHAIN);
 
   function setUp() public {
     token = new ERC20VotesFake();
     executor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(hubDispatcher))),
-      WORMHOLE_HUB_CHAIN,
-      IWormhole(address(wormholeCoreMock)),
-      WORMHOLE_SPOKE_CHAIN
+      bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, IWormhole(address(wormholeCoreMock))
     );
     airlock = new SpokeAirlock(address(executor));
     executor.initialize(payable(airlock));

@@ -53,7 +53,7 @@ contract WormholeDispatcher is Ownable {
     wormholeCore = IWormhole(_core);
   }
 
-  function _publishMessage(bytes memory _payload) internal returns (uint256 sequence) {
-    sequence = wormholeCore.publishMessage(0, _payload, consistencyLevel);
+  function _publishMessage(bytes memory _payload, uint256 _value) internal returns (uint256 sequence) {
+    sequence = wormholeCore.publishMessage{value: _value}(0, _payload, consistencyLevel);
   }
 }
