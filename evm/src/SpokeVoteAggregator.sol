@@ -47,7 +47,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   /// @notice Thrown when setting the owner to the zero address.
   error OwnerIsZeroAddress();
 
-  /// @notice SpokeMetadataCollector
+  /// @notice Emitted when a new spoke metadata collector is set.
   event SpokeMetadataCollectorUpdated(address oldSpokeMetadata, address newSpokeMetadata);
 
   /// @notice Emitted when a vote is cast.
