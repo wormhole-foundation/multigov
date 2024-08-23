@@ -38,6 +38,7 @@ pub struct DelegateChanged {
     pub delegator: Pubkey,
     pub from_delegate: Pubkey,
     pub to_delegate: Pubkey,
+    pub total_delegated_votes: u64,
 }
 
 #[event]
@@ -136,17 +137,18 @@ pub mod staking {
         let current_delegate = stake_account_metadata.delegate;
         stake_account_metadata.delegate = delegatee;
 
-        emit!(DelegateChanged {
-            delegator: ctx.accounts.stake_account_checkpoints.key(),
-            from_delegate: current_delegate,
-            to_delegate: delegatee
-        });
-
         let recorded_balance = stake_account_metadata.recorded_balance;
         let recorded_vesting_balance = stake_account_metadata.recorded_vesting_balance;
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
 
         let total_balance = recorded_balance + recorded_vesting_balance;
+
+        emit!(DelegateChanged {
+            delegator: ctx.accounts.stake_account_checkpoints.key(),
+            from_delegate: current_delegate,
+            to_delegate: delegatee,
+            total_delegated_votes: total_balance
+        });
 
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
