@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
@@ -47,11 +48,14 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     SpokeVoteAggregator aggregator =
       new SpokeVoteAggregator(address(spokeMetadataCollector), config.votingToken, wallet.addr, config.voteWeightWindow);
 
-    SpokeMessageExecutor executor =
-      new SpokeMessageExecutor(config.hubDispatcher, config.hubChainId, IWormhole(config.wormholeCore));
+    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+    ERC1967Proxy proxy = new ERC1967Proxy(
+      address(impl),
+      abi.encodeCall(SpokeMessageExecutor.initialize, (config.hubDispatcher, config.hubChainId, config.wormholeCore))
+    );
 
-    SpokeAirlock airlock = new SpokeAirlock(address(executor));
-    executor.initialize(payable(airlock));
+    SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
+    SpokeAirlock airlock = executor.airlock();
 
     vm.stopBroadcast();
     return (aggregator, spokeMetadataCollector, executor, airlock);
