@@ -28,7 +28,7 @@ contract HubMessageDispatcher is WormholeDispatcher {
   /// @notice Publishes a message to be sent to the appropriate spoke for cross chain execution.
   /// @param _payload An encoding of the target wormhole chain id and the cross chain calls that follow the same
   /// structure as Governor proposal: targets, values, and calldata.
-  function dispatch(bytes calldata _payload) external {
+  function dispatch(bytes calldata _payload) external payable {
     _checkOwner();
 
     (uint16 _wormholeChainId, address[] memory _targets, uint256[] memory _values, bytes[] memory _calldatas) =
@@ -39,7 +39,7 @@ contract HubMessageDispatcher is WormholeDispatcher {
     }
 
     bytes memory payload = abi.encode(nextMessageId, _wormholeChainId, _targets, _values, _calldatas);
-    _publishMessage(payload);
+    _publishMessage(payload, msg.value);
     emit MessageDispatched(nextMessageId, payload);
     nextMessageId++;
   }
