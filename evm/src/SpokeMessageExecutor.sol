@@ -45,12 +45,11 @@ contract SpokeMessageExecutor {
   /// @param _hubDispatcher The contract where the message is published.
   /// @param _hubChainId The wormhole chain where the message is published.
   /// @param _wormholeCore The wormhole core contract that handles message parsing.
-  /// @param _spokeChainId The wormhole chain id of the spoke where the messages are executed.
-  constructor(bytes32 _hubDispatcher, uint16 _hubChainId, IWormhole _wormholeCore, uint16 _spokeChainId) {
+  constructor(bytes32 _hubDispatcher, uint16 _hubChainId, IWormhole _wormholeCore) {
     HUB_DISPATCHER = _hubDispatcher;
     HUB_CHAIN_ID = _hubChainId;
     WORMHOLE_CORE = _wormholeCore;
-    SPOKE_CHAIN_ID = _spokeChainId;
+    SPOKE_CHAIN_ID = IWormhole(_wormholeCore).chainId();
   }
 
   /// @notice Sets the initial airlock on the spoke message executor.

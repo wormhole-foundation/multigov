@@ -8,6 +8,11 @@ contract WormholeCoreMock is WormholeMock {
   uint32 public ghostPublishMessageNonce;
   bytes public ghostPublishMessagePayload;
   uint8 public ghostPublishMessageConsistencyLevel;
+  uint16 public override chainId;
+
+  constructor(uint16 _chainId) {
+    chainId = _chainId;
+  }
 
   function publishMessage(uint32 _nonce, bytes memory _payload, uint8 _consistencyLevel)
     public
