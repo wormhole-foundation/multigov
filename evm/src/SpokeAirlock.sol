@@ -14,6 +14,9 @@ contract SpokeAirlock {
   /// @notice Thrown when the caller of a method is not the message executor.
   error InvalidMessageExecutor();
 
+  /// @notice Thrown when the caller of a method is invalid.
+  error InvalidCaller();
+
   /// @notice Emitted when the message executor is changed to a new address.
   event MessageExecutorUpdated(address indexed newMessageExecutor);
 
@@ -52,5 +55,13 @@ contract SpokeAirlock {
       (bool _success, bytes memory _returndata) = _targets[i].call{value: _values[i]}(_calldatas[i]);
       Address.verifyCallResult(_success, _returndata);
     }
+  }
+
+  function performDelegateCall(address _target, bytes memory _calldata) external payable returns (bytes memory) {
+    if (msg.sender != address(this)) revert InvalidCaller();
+    address _currentExecutor = messageExecutor;
+    (bool _success, bytes memory _returndata) = _target.delegatecall(_calldata);
+    if (_currentExecutor != messageExecutor) revert InvalidMessageExecutor();
+    return Address.verifyCallResultFromTarget(_target, _success, _returndata);
   }
 }
