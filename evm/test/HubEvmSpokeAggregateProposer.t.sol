@@ -92,10 +92,11 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
     uint64 targetTime = uint64(vm.getBlockTimestamp());
+    uint64 targetTimeMicroseconds = targetTime * 1_000_000;
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTime, targetTime);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTimeMicroseconds, targetTime);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
@@ -110,10 +111,11 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     bytes memory queryRequestBytes = "";
     bytes memory perChainResponses = "";
     uint64 targetTime = uint64(vm.getBlockTimestamp());
+    uint64 targetTimeMicroseconds = targetTime * 1_000_000;
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTime, _calldataTimepoint);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _proposer, targetTimeMicroseconds, _calldataTimepoint);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
@@ -156,7 +158,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
   {
     uint64 targetBlockNumber = uint64(vm.getBlockNumber());
     uint64 followingBlockNumber = targetBlockNumber + 1;
-    uint64 followingBlockTime = targetBlockTime + 1;
+    uint64 followingBlockTime = targetBlockTime + 1_000_000; // Add 1 second in microseconds
 
     return QueryTest.buildEthCallByTimestampResponseBytes(
       targetBlockNumber,
@@ -192,18 +194,19 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     uint128 _voteWeight
   ) internal view returns (bytes memory) {
     uint64 targetBlockTime = uint64(vm.getBlockTimestamp());
+    uint64 targetTimeMicroseconds = targetBlockTime * 1_000_000;
 
     bytes memory ethCall = QueryTest.buildEthCallByTimestampRequestBytes(
-      targetBlockTime,
+      targetTimeMicroseconds,
       bytes(""),
       bytes(""),
       2, // numCallData
       abi.encodePacked(
         QueryTest.buildEthCallDataBytes(
-          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetBlockTime)
+          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetTimeMicroseconds)
         ),
         QueryTest.buildEthCallDataBytes(
-          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetBlockTime)
+          _tokenAddress, abi.encodeWithSignature("getVotes(address,uint256)", _caller, targetTimeMicroseconds)
         )
       )
     );
@@ -211,7 +214,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     bytes memory queryRequestBytes =
       QueryTest.buildPerChainRequestBytes(_chainId, crossChainAggregateProposer.QT_ETH_CALL_BY_TIMESTAMP(), ethCall);
 
-    bytes memory ethCallResp = _buildInvalidEthCallRespMultiResults(_voteWeight, targetBlockTime);
+    bytes memory ethCallResp = _buildInvalidEthCallRespMultiResults(_voteWeight, targetTimeMicroseconds);
 
     bytes memory perChainResponses = QueryTest.buildPerChainResponseBytes(
       _chainId, crossChainAggregateProposer.QT_ETH_CALL_BY_TIMESTAMP(), ethCallResp
@@ -258,9 +261,10 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     bytes memory perChainResponses = "";
 
     for (uint256 i = 0; i < _voteWeights.length; i++) {
-      uint64 targetBlockTime = _timestamps[i];
+      uint64 targetTime = _timestamps[i];
+      uint64 targetTimeMicroseconds = targetTime * 1_000_000;
       (bytes memory newQueryRequestBytes, bytes memory newPerChainResponses) =
-        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _caller, targetBlockTime, targetBlockTime);
+        _buildQueryRequestAndPerChainResponse(_voteWeights[i], _caller, targetTimeMicroseconds, targetTime);
       queryRequestBytes = abi.encodePacked(queryRequestBytes, newQueryRequestBytes);
       perChainResponses = abi.encodePacked(perChainResponses, newPerChainResponses);
     }
@@ -406,6 +410,7 @@ contract Cancel is HubEvmSpokeAggregateProposerTest {
   ) public {
     vm.assume(_spokeAddress != address(0) && _caller != _canceler);
     vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
+    vm.assume(_caller != _canceler);
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
@@ -521,6 +526,47 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     );
   }
 
+  function testFuzz_CorrectlyCheckAndProposeIfEligibleWithAtLeastTwoTokenCheckpoints(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    string memory _description,
+    address _caller,
+    uint48 _amount2
+  ) public {
+    vm.assume(_spokeAddress != address(0) && _spokeAddress != address(0));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
+    uint256 _amount1 = hubGovernor.proposalThreshold();
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: 0, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    vm.startPrank(_caller);
+    token.delegate(_caller);
+    token.mint(_caller, _amount1);
+    vm.stopPrank();
+
+    _warpToValidTimestamp();
+
+    vm.startPrank(_caller);
+    token.mint(_caller, uint256(_amount2));
+    vm.stopPrank();
+
+    _registerSpokes(voteWeights);
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    uint256 proposalId = _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+
+    assertEq(
+      hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
+      proposalId,
+      "Proposal ID should match the hash of the proposal"
+    );
+    assertEq(hubGovernor.getVotes(address(_caller), vm.getBlockTimestamp()), _amount1);
+  }
+
   function testFuzz_CorrectlyCheckAndProposeIfEligibleThreeVoteWeights(
     uint128 _voteWeight1,
     uint128 _voteWeight2,
@@ -590,6 +636,47 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
       _checkAndProposeIfEligibleCustomTimepoints(voteWeights, _targets, _values, _calldatas, _caller, timestamps);
 
     assertEq(hubGovernor.hashProposal(_targets, _values, _calldatas, keccak256(bytes("Test Proposal"))), proposalId);
+  }
+
+  function testFuzz_RevertIf_QueryDoesNotHaveEnoughWeightAndCheckpointMinimumIsTooLow(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    string memory _description,
+    address _caller,
+    uint48 _amount1
+  ) public {
+    vm.assume(_spokeAddress != address(0) && _spokeAddress != address(0));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
+    uint256 _amount2 = hubGovernor.proposalThreshold();
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: 0, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    vm.startPrank(_caller);
+    token.delegate(_caller);
+    token.mint(_caller, uint256(_amount1));
+    vm.stopPrank();
+
+    _warpToValidTimestamp();
+
+    vm.startPrank(_caller);
+    token.mint(_caller, _amount2);
+    vm.stopPrank();
+
+    _registerSpokes(voteWeights);
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    vm.prank(_caller);
+    vm.expectRevert(HubEvmSpokeAggregateProposer.InsufficientVoteWeight.selector);
+    crossChainAggregateProposer.checkAndProposeIfEligible(
+      targets, values, calldatas, _description, queryResponse, signatures
+    );
   }
 
   function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
@@ -715,7 +802,7 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.expectRevert(
-      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, vm.getBlockTimestamp())
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, vm.getBlockTimestamp() * 1_000_000)
     );
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
@@ -844,7 +931,9 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
 
-    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[1]));
+    vm.expectRevert(
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[1] * 1_000_000)
+    );
     vm.prank(_caller);
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
@@ -871,7 +960,9 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
+    vm.expectRevert(
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0] * 1_000_000)
+    );
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
@@ -897,7 +988,9 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0]));
+    vm.expectRevert(
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[0] * 1_000_000)
+    );
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
@@ -935,7 +1028,9 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     bytes[] memory calldatas = builder.calldatas();
 
     vm.prank(_caller);
-    vm.expectRevert(abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[3]));
+    vm.expectRevert(
+      abi.encodeWithSelector(HubEvmSpokeAggregateProposer.InvalidTimestamp.selector, timestamps[3] * 1_000_000)
+    );
     crossChainAggregateProposer.checkAndProposeIfEligible(
       targets, values, calldatas, "Test Proposal", queryResponse, signatures
     );
