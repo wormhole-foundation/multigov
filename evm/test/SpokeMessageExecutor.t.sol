@@ -86,6 +86,29 @@ contract Initialize is SpokeMessageExecutorTest {
   }
 }
 
+contract SetHubDispatcher is SpokeMessageExecutorTest {
+  function testFuzz_DispatcherCanBeUpdated(bytes32 _newDispatcher) public {
+    vm.prank(address(airlock));
+    executor.setHubDispatcher(_newDispatcher);
+    assertEq(executor.hubDispatcher(), _newDispatcher);
+  }
+
+  function testFuzz_EmitsHubDispatcherUpdatedEvent(bytes32 _newDispatcher) public {
+    bytes32 existingDispatcher = executor.hubDispatcher();
+    vm.prank(address(airlock));
+    vm.expectEmit();
+    emit SpokeMessageExecutor.HubDispatcherUpdated(existingDispatcher, _newDispatcher);
+    executor.setHubDispatcher(_newDispatcher);
+  }
+
+  function testFuzz_RevertIf_NotCalledByAirlock(bytes32 _newHubDispatcher, address _caller) public {
+    vm.assume(_caller != address(airlock));
+    vm.prank(address(_caller));
+    vm.expectRevert(SpokeMessageExecutor.InvalidCaller.selector);
+    executor.setHubDispatcher(_newHubDispatcher);
+  }
+}
+
 contract SetAirlock is SpokeMessageExecutorTest {
   function testFuzz_CanBeCalledByAirlock(address payable _newAirlock) public {
     vm.prank(address(airlock));
@@ -96,10 +119,9 @@ contract SetAirlock is SpokeMessageExecutorTest {
 
   function testFuzz_RevertIf_NotCalledByAirlock(address payable _newAirlock, address _caller) public {
     vm.assume(_caller != address(airlock));
-    vm.assume(_newAirlock != address(0));
-    vm.prank(address(airlock));
+    vm.prank(address(_caller));
+    vm.expectRevert(SpokeMessageExecutor.InvalidCaller.selector);
     executor.setAirlock(_newAirlock);
-    assertEq(payable(executor.airlock()), _newAirlock);
   }
 
   function test_RevertIf_NewAirlockIsAddressZero() public {

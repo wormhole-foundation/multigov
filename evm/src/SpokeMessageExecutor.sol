@@ -47,6 +47,9 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
     mapping(bytes32 messageHash => bool executed) _messageReceived;
   }
 
+  /// @notice Emitted when the hub dispatcher is updated.
+  event HubDispatcherUpdated(bytes32 oldHubDispatcher, bytes32 newHubDispatcher);
+
   /// @notice Emitted when a spoke proposal is executed.
   event ProposalExecuted(uint16 emitterChainId, bytes32 emitterAddress, uint256 proposalId);
 
@@ -98,6 +101,13 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
   function wormholeCore() external returns (IWormhole) {
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     return $._wormholeCore;
+  }
+
+  function setHubDispatcher(bytes32 _newHubDispatcher) external {
+    _onlyAirlock();
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    emit HubDispatcherUpdated($._hubDispatcher, _newHubDispatcher);
+    $._hubDispatcher = _newHubDispatcher;
   }
 
   /// @notice A function that takes in an encoded proposal message that is meant to be executed on the spoke. There are
