@@ -9,6 +9,9 @@ import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 import {SpokeAirlock} from "src/SpokeAirlock.sol";
 import {SpokeMessageExecutor} from "src/SpokeMessageExecutor.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {SpokeMessageExecutorV2Fake} from "test/fakes/SpokeMessageExecutorV2Fake.sol";
 
 contract SpokeMessageExecutorTest is Test {
   ERC20VotesFake public token;
@@ -21,11 +24,17 @@ contract SpokeMessageExecutorTest is Test {
 
   function setUp() public {
     token = new ERC20VotesFake();
-    executor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, IWormhole(address(wormholeCoreMock))
+    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+    ERC1967Proxy proxy = new ERC1967Proxy(
+      address(impl),
+      abi.encodeCall(
+        SpokeMessageExecutor.initialize,
+        (bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, address(wormholeCoreMock))
+      )
     );
-    airlock = new SpokeAirlock(address(executor));
-    executor.initialize(payable(airlock));
+
+    executor = SpokeMessageExecutor(address(proxy));
+    airlock = executor.airlock();
   }
 
   // Create a proposal that can be voted on
@@ -36,34 +45,67 @@ contract SpokeMessageExecutorTest is Test {
   }
 }
 
-contract Constructor is SpokeMessageExecutorTest {
-  function testFuzz_CorrectlySetConstructorArgs(bytes32 _hubDispatcher, uint16 _hubChainId) public {
-    SpokeMessageExecutor executor =
-      new SpokeMessageExecutor(_hubDispatcher, _hubChainId, IWormhole(address(wormholeCoreMock)));
-    assertEq(executor.HUB_DISPATCHER(), _hubDispatcher);
-    assertEq(executor.HUB_CHAIN_ID(), _hubChainId);
-    assertEq(address(executor.WORMHOLE_CORE()), address(wormholeCoreMock));
-    assertEq(executor.SPOKE_CHAIN_ID(), WORMHOLE_SPOKE_CHAIN);
+contract Initialize is SpokeMessageExecutorTest {
+  function testFuzz_CorrectlyInitialize(bytes32 _hubDispatcher, uint16 _hubChainId) public {
+    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+    ERC1967Proxy proxy = new ERC1967Proxy(
+      address(impl),
+      abi.encodeCall(SpokeMessageExecutor.initialize, (_hubDispatcher, _hubChainId, address(wormholeCoreMock)))
+    );
+
+    SpokeMessageExecutor spokeExecutor = SpokeMessageExecutor(address(proxy));
+
+    assertEq(spokeExecutor.hubDispatcher(), _hubDispatcher);
+    assertEq(spokeExecutor.hubChainId(), _hubChainId);
+    assertEq(spokeExecutor.spokeChainId(), WORMHOLE_SPOKE_CHAIN);
+    assertEq(address(spokeExecutor.wormholeCore()), address(wormholeCoreMock));
+  }
+
+  function testFuzz_CorrectlyUpgradeToNewImplementation(uint256 _initialValue) public {
+    SpokeMessageExecutorV2Fake impl = new SpokeMessageExecutorV2Fake();
+    vm.prank(address(airlock));
+    executor.upgradeToAndCall(
+      address(impl), abi.encodeCall(SpokeMessageExecutorV2Fake.initializeFakeV2, (_initialValue))
+    );
+    assertEq(SpokeMessageExecutorV2Fake(address(executor)).fakeStateVar(), _initialValue);
+  }
+
+  function testFuzz_RevertIf_AirlockDoesNotInitiateUpgrade(uint256 _initialValue, address _caller) public {
+    vm.assume(_caller != address(airlock));
+    SpokeMessageExecutorV2Fake impl = new SpokeMessageExecutorV2Fake();
+    vm.prank(_caller);
+    vm.expectRevert(SpokeMessageExecutor.InvalidCaller.selector);
+    executor.upgradeToAndCall(
+      address(impl), abi.encodeCall(SpokeMessageExecutorV2Fake.initializeFakeV2, (_initialValue))
+    );
+  }
+
+  function testFuzz_RevertIf_CalledTwice(bytes32 _hubDispatcher, uint16 _hubChainId, address _wormholeCore) public {
+    vm.expectRevert(Initializable.InvalidInitialization.selector);
+    executor.initialize(_hubDispatcher, _hubChainId, _wormholeCore);
   }
 }
 
-contract Initialize is SpokeMessageExecutorTest {
-  function testFuzz_CorrectlyInitialize(address payable _airlock) public {
-    SpokeMessageExecutor spokeExecutor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, IWormhole(address(wormholeCoreMock))
-    );
-    spokeExecutor.initialize(_airlock);
-    assertEq(_airlock, payable(spokeExecutor.airlock()));
+contract SetHubDispatcher is SpokeMessageExecutorTest {
+  function testFuzz_DispatcherCanBeUpdated(bytes32 _newDispatcher) public {
+    vm.prank(address(airlock));
+    executor.setHubDispatcher(_newDispatcher);
+    assertEq(executor.hubDispatcher(), _newDispatcher);
   }
 
-  function testFuzz_RevertIf_CalledTwice(address payable _updatedAirlock) public {
-    SpokeMessageExecutor spokeExecutor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, IWormhole(address(wormholeCoreMock))
-    );
-    spokeExecutor.initialize(payable(airlock));
+  function testFuzz_EmitsHubDispatcherUpdatedEvent(bytes32 _newDispatcher) public {
+    bytes32 existingDispatcher = executor.hubDispatcher();
+    vm.prank(address(airlock));
+    vm.expectEmit();
+    emit SpokeMessageExecutor.HubDispatcherUpdated(existingDispatcher, _newDispatcher);
+    executor.setHubDispatcher(_newDispatcher);
+  }
 
-    vm.expectRevert(SpokeMessageExecutor.AlreadyInitialized.selector);
-    spokeExecutor.initialize(_updatedAirlock);
+  function testFuzz_RevertIf_NotCalledByAirlock(bytes32 _newHubDispatcher, address _caller) public {
+    vm.assume(_caller != address(airlock));
+    vm.prank(address(_caller));
+    vm.expectRevert(SpokeMessageExecutor.InvalidCaller.selector);
+    executor.setHubDispatcher(_newHubDispatcher);
   }
 }
 
@@ -77,10 +119,9 @@ contract SetAirlock is SpokeMessageExecutorTest {
 
   function testFuzz_RevertIf_NotCalledByAirlock(address payable _newAirlock, address _caller) public {
     vm.assume(_caller != address(airlock));
-    vm.assume(_newAirlock != address(0));
-    vm.prank(address(airlock));
+    vm.prank(address(_caller));
+    vm.expectRevert(SpokeMessageExecutor.InvalidCaller.selector);
     executor.setAirlock(_newAirlock);
-    assertEq(payable(executor.airlock()), _newAirlock);
   }
 
   function test_RevertIf_NewAirlockIsAddressZero() public {
@@ -156,9 +197,6 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
 
   function testFuzz_ReceiveMessageEmitsProposalExecutedEvent(
     uint32 _timestamp,
-    uint32 _nonce,
-    uint64 _sequence,
-    uint8 _consistencyLevel,
     uint256 _messageId,
     uint16 _emitterChainId,
     address _emitterChainAddress
@@ -166,22 +204,21 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     // build simple proposal
     address account = makeAddr("Token holder");
     ProposalBuilder builder = _createMintProposal(account, 1);
-    SpokeMessageExecutor executor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(_emitterChainAddress))), _emitterChainId, IWormhole(address(wormholeCoreMock))
+    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+    ERC1967Proxy proxy = new ERC1967Proxy(
+      address(impl),
+      abi.encodeCall(
+        SpokeMessageExecutor.initialize,
+        (bytes32(uint256(uint160(_emitterChainAddress))), _emitterChainId, address(wormholeCoreMock))
+      )
     );
-    SpokeAirlock airlock = new SpokeAirlock(address(executor));
-    executor.initialize(payable(airlock));
+
+    SpokeMessageExecutor spokeExecutor = SpokeMessageExecutor(address(proxy));
 
     bytes memory _payload =
       abi.encode(_messageId, WORMHOLE_SPOKE_CHAIN, builder.targets(), builder.values(), builder.calldatas());
     (bytes memory vaa,) = _buildVm(
-      _timestamp,
-      _nonce,
-      _emitterChainId,
-      bytes32(uint256(uint160(_emitterChainAddress))),
-      _sequence,
-      _consistencyLevel,
-      _payload
+      uint32(block.timestamp), 0, _emitterChainId, bytes32(uint256(uint160(_emitterChainAddress))), 0, 0, _payload
     );
 
     vm.expectEmit();
@@ -189,7 +226,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
       _emitterChainId, bytes32(uint256(uint160(_emitterChainAddress))), _messageId
     );
 
-    executor.receiveMessage(vaa);
+    spokeExecutor.receiveMessage(vaa);
   }
 
   function testFuzz_RevertIf_AlreadyProcessedMessage(

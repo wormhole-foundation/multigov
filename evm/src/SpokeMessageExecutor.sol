@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {SpokeAirlock} from "src/SpokeAirlock.sol";
 
@@ -8,19 +9,10 @@ import {SpokeAirlock} from "src/SpokeAirlock.sol";
 /// @notice A contract that executes messages from a hub chain on a spoke chain.
 /// @dev This contract verifies and processes Wormhole messages, executing the encoded operations through a
 /// SpokeAirlock.
-contract SpokeMessageExecutor {
-  /// @notice The hub contract that publishes the message to be consumed by the spoke executor.
-  bytes32 public immutable HUB_DISPATCHER;
-  /// @notice The hub chain id where a message will be dispatched.
-  uint16 public immutable HUB_CHAIN_ID;
-  /// @notice The wormhole id of the current spoke.
-  uint16 public immutable SPOKE_CHAIN_ID;
-  /// @notice The wormhole contract that will handle parsing an encoded cross chain message.
-  IWormhole public immutable WORMHOLE_CORE;
-  /// @notice An account that will execute the cross chain proposal.
-  SpokeAirlock public airlock;
-  /// @notice An indicator of whether the initial spoke airlock has been set on the executor.
-  bool public initialized = false;
+contract SpokeMessageExecutor is UUPSUpgradeable {
+  // keccak256(abi.encode(uint256(keccak256("multigov.storage.SpokeMessageExecutor")) - 1)) & ~bytes32(uint256(0xff))
+  bytes32 private constant SPOKE_MESSAGE_EXECUTOR_STORAGE_LOCATION =
+    0x9cd702a23e48a2c7d64fcb36b1c29497b466db76f16bb425b36f7a6277814900;
 
   /// @notice Thrown if the executor has already been initialized.
   error AlreadyInitialized();
@@ -37,29 +29,85 @@ contract SpokeMessageExecutor {
   /// @notice Thrown if the message publisher is an unknown emitter.
   error UnknownMessageEmitter();
 
+  /// @custom:storage-location erc7201:multigov.storage.SpokeMessageExecutor
+  struct SpokeMessageExecutorStorage {
+    /// @notice The hub contract that publishes the message to be consumed by the spoke executor.
+    bytes32 _hubDispatcher;
+    /// @notice The hub chain id where a message will be dispatched.
+    uint16 _hubChainId;
+    /// @notice The wormhole id of the current spoke.
+    uint16 _spokeChainId;
+    /// @notice The wormhole contract that will handle parsing an encoded cross chain message.
+    IWormhole _wormholeCore;
+    /// @notice An account that will execute the cross chain proposal.
+    SpokeAirlock _airlock;
+    /// @notice A mapping of message hashes to execution status. The status should always be true because pending
+    /// messages
+    /// are not stored.
+    mapping(bytes32 messageHash => bool executed) _messageReceived;
+  }
+
+  /// @notice Emitted when the hub dispatcher is updated.
+  event HubDispatcherUpdated(bytes32 oldHubDispatcher, bytes32 newHubDispatcher);
+
   /// @notice Emitted when a spoke proposal is executed.
   event ProposalExecuted(uint16 emitterChainId, bytes32 emitterAddress, uint256 proposalId);
 
-  /// @notice A mapping of message hashes to execution status. The status should always be true because pending messages
-  /// are not stored.
-  mapping(bytes32 messageHash => bool executed) public messageReceived;
+  constructor() {
+    _disableInitializers();
+  }
 
-  /// @param _hubDispatcher The contract where the message is published.
-  /// @param _hubChainId The wormhole chain where the message is published.
-  /// @param _wormholeCore The wormhole core contract that handles message parsing.
-  constructor(bytes32 _hubDispatcher, uint16 _hubChainId, IWormhole _wormholeCore) {
-    HUB_DISPATCHER = _hubDispatcher;
-    HUB_CHAIN_ID = _hubChainId;
-    WORMHOLE_CORE = _wormholeCore;
-    SPOKE_CHAIN_ID = IWormhole(_wormholeCore).chainId();
+  function _getSpokeMessageExecutorStorage() private pure returns (SpokeMessageExecutorStorage storage $) {
+    assembly {
+      $.slot := SPOKE_MESSAGE_EXECUTOR_STORAGE_LOCATION
+    }
   }
 
   /// @notice Sets the initial airlock on the spoke message executor.
-  /// @param _airlock The address for the initial airlock.
-  function initialize(address payable _airlock) external {
-    if (initialized) revert AlreadyInitialized();
-    airlock = SpokeAirlock(_airlock);
-    initialized = true;
+  function initialize(bytes32 _hubDispatcher, uint16 _hubChainId, address _wormholeCore) public initializer {
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    $._hubDispatcher = _hubDispatcher;
+    $._hubChainId = _hubChainId;
+    $._spokeChainId = IWormhole(_wormholeCore).chainId();
+    $._wormholeCore = IWormhole(_wormholeCore);
+    $._airlock = new SpokeAirlock(address(this));
+  }
+
+  function airlock() external returns (SpokeAirlock) {
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    return $._airlock;
+  }
+
+  function hubChainId() external returns (uint16) {
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    return $._hubChainId;
+  }
+
+  function hubDispatcher() external returns (bytes32) {
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    return $._hubDispatcher;
+  }
+
+  function messageReceived(bytes32 _hash) external returns (bool) {
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    return $._messageReceived[_hash];
+  }
+
+  function spokeChainId() external returns (uint16) {
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    return $._spokeChainId;
+  }
+
+  function wormholeCore() external returns (IWormhole) {
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    return $._wormholeCore;
+  }
+
+  function setHubDispatcher(bytes32 _newHubDispatcher) external {
+    _onlyAirlock();
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    emit HubDispatcherUpdated($._hubDispatcher, _newHubDispatcher);
+    $._hubDispatcher = _newHubDispatcher;
   }
 
   /// @notice A function that takes in an encoded proposal message that is meant to be executed on the spoke. There are
@@ -67,14 +115,15 @@ contract SpokeMessageExecutor {
   /// some expiry.
   /// @param _encodedMessage The encoded message id, wormhole chain id, targets, values, and calldatas.
   function receiveMessage(bytes memory _encodedMessage) external payable {
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     // call the Wormhole core contract to parse and verify the encodedMessage
     (IWormhole.VM memory _wormholeMessage, bool _valid, string memory _reason) =
-      WORMHOLE_CORE.parseAndVerifyVM(_encodedMessage);
+      $._wormholeCore.parseAndVerifyVM(_encodedMessage);
 
     if (!_valid) revert InvalidWormholeMessage(_reason);
-    if (messageReceived[_wormholeMessage.hash]) revert AlreadyProcessedMessage();
+    if ($._messageReceived[_wormholeMessage.hash]) revert AlreadyProcessedMessage();
 
-    if (_wormholeMessage.emitterAddress != HUB_DISPATCHER || _wormholeMessage.emitterChainId != HUB_CHAIN_ID) {
+    if (_wormholeMessage.emitterAddress != $._hubDispatcher || _wormholeMessage.emitterChainId != $._hubChainId) {
       revert UnknownMessageEmitter();
     }
 
@@ -92,27 +141,34 @@ contract SpokeMessageExecutor {
 
     _validateChainId(_wormholeChainId);
 
-    messageReceived[_wormholeMessage.hash] = true;
-    airlock.executeOperations(_targets, _values, _calldatas);
+    $._messageReceived[_wormholeMessage.hash] = true;
+    $._airlock.executeOperations(_targets, _values, _calldatas);
     emit ProposalExecuted(_wormholeMessage.emitterChainId, _wormholeMessage.emitterAddress, _messageId);
   }
 
   /// @notice A function that updates the spoke airlock to a new address.
   /// @param _newAirlock The address of the new airlock.
   function setAirlock(address payable _newAirlock) external {
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     _onlyAirlock();
     if (address(_newAirlock) == address(0)) revert InvalidSpokeAirlock();
-    airlock = SpokeAirlock(_newAirlock);
+    $._airlock = SpokeAirlock(_newAirlock);
   }
 
   /// @notice A function that reverts if the caller is not the spoke.
   function _onlyAirlock() internal view {
-    if (msg.sender != address(airlock)) revert InvalidCaller();
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    if (msg.sender != address($._airlock)) revert InvalidCaller();
   }
 
   /// @notice A function to verify the message was meant for this spoke chain.
   /// @param _messageChainId The wormhole message chain id.
   function _validateChainId(uint16 _messageChainId) internal view {
-    if (SPOKE_CHAIN_ID != _messageChainId) revert InvalidWormholeMessage("Message is not meant for this chain.");
+    SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
+    if ($._spokeChainId != _messageChainId) revert InvalidWormholeMessage("Message is not meant for this chain.");
+  }
+
+  function _authorizeUpgrade(address /* newImplementation */ ) internal view override {
+    _onlyAirlock();
   }
 }

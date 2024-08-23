@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Test, console2} from "forge-std/Test.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {SpokeAirlock} from "src/SpokeAirlock.sol";
@@ -21,11 +22,17 @@ contract SpokeAirlockTest is Test {
 
   function setUp() public {
     token = new ERC20VotesFake();
-    executor = new SpokeMessageExecutor(
-      bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, IWormhole(address(wormholeCoreMock))
+    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+    ERC1967Proxy proxy = new ERC1967Proxy(
+      address(impl),
+      abi.encodeCall(
+        SpokeMessageExecutor.initialize,
+        (bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, address(wormholeCoreMock))
+      )
     );
-    airlock = new SpokeAirlock(address(executor));
-    executor.initialize(payable(airlock));
+
+    executor = SpokeMessageExecutor(address(proxy));
+    airlock = executor.airlock();
   }
 
   // Create a proposal that can be voted on
@@ -45,7 +52,7 @@ contract SpokeAirlockTest is Test {
 contract Constructor is SpokeAirlockTest {
   function testFuzz_CorrectlySetConstructorArgs(address _executor) public {
     SpokeAirlock airlock = new SpokeAirlock(_executor);
-    assertEq(airlock.messageExecutor(), _executor);
+    assertEq(airlock.MESSAGE_EXECUTOR(), _executor);
   }
 }
 
@@ -56,28 +63,6 @@ contract Receive is SpokeAirlockTest {
     vm.prank(sender);
     payable(airlock).transfer(_amount);
     assertEq(address(airlock).balance, _amount);
-  }
-}
-
-contract SetMessageExecutor is SpokeAirlockTest {
-  function testFuzz_SetNewMessageExecutor(address _newExecutor) public {
-    vm.prank(address(executor));
-    airlock.setMessageExecutor(_newExecutor);
-    assertEq(airlock.messageExecutor(), _newExecutor);
-  }
-
-  function testFuzz_EmitsMessageExecutorUpdatedEvent(address _newExecutor) public {
-    vm.prank(address(executor));
-    vm.expectEmit();
-    emit SpokeAirlock.MessageExecutorUpdated(_newExecutor);
-    airlock.setMessageExecutor(_newExecutor);
-  }
-
-  function testFuzz_RevertIf_NotCalledByMessageExecutor(address _newExecutor, address _caller) public {
-    vm.assume(_caller != address(executor));
-    vm.prank(_caller);
-    vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
-    airlock.setMessageExecutor(_newExecutor);
   }
 }
 
@@ -132,21 +117,5 @@ contract PerformDelegateCall is SpokeAirlockTest {
     vm.prank(_caller);
     vm.expectRevert(SpokeAirlock.InvalidCaller.selector);
     airlock.performDelegateCall(_target, _calldata);
-  }
-
-  function testFuzz_RevertIf_MessageExecutorSlotHasBeenOverriden(address _newAddress) public {
-    vm.assume(_newAddress != airlock.messageExecutor());
-    SlotUpdate _testContract = new SlotUpdate();
-    ProposalBuilder builder = _createPerformDelegateCallProposal(
-      address(_testContract), abi.encodeWithSignature("updateTest(address)", _newAddress)
-    );
-
-    address[] memory targets = builder.targets();
-    uint256[] memory values = builder.values();
-    bytes[] memory calldatas = builder.calldatas();
-
-    vm.prank(address(executor));
-    vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
-    airlock.executeOperations(targets, values, calldatas);
   }
 }
