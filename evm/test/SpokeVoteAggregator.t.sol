@@ -5,6 +5,7 @@ import {Test, console2} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {WormholeMock} from "wormhole-sdk/testing/helpers/WormholeMock.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
+import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {SpokeMetadataCollectorHarness} from "test/harnesses/SpokeMetadataCollectorHarness.sol";
 import {SpokeVoteAggregatorHarness} from "test/harnesses/SpokeVoteAggregatorHarness.sol";
@@ -784,6 +785,24 @@ contract CastVoteBySig is SpokeVoteAggregatorTest {
     vm.assume(keccak256(_invalidSignature) != keccak256(validSignature));
     vm.expectRevert(abi.encodeWithSelector(SpokeVoteAggregator.InvalidSignature.selector, _caller));
     spokeVoteAggregator.castVoteBySig(_proposalId, _support, _caller, _invalidSignature);
+  }
+}
+
+contract SetSpokeMetadataCollector is SpokeVoteAggregatorTest {
+  function testFuzz_CorrectlyUpdateSpokeMetadataCollector(address _spokeMetadataCollector) public {
+    vm.prank(owner);
+    spokeVoteAggregator.setSpokeMetadataCollector(_spokeMetadataCollector);
+
+    SpokeMetadataCollector metadataCollector = spokeVoteAggregator.spokeMetadataCollector();
+    assertEq(address(metadataCollector), _spokeMetadataCollector);
+  }
+
+  function testFuzz_RevertIf_NotCalledByOwner(address _caller, address _spokeMetadataCollector) public {
+    vm.assume(_caller != owner);
+
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    spokeVoteAggregator.setSpokeMetadataCollector(_spokeMetadataCollector);
   }
 }
 

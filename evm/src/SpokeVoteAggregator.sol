@@ -47,6 +47,9 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   /// @notice Thrown when setting the owner to the zero address.
   error OwnerIsZeroAddress();
 
+  /// @notice SpokeMetadataCollector
+  event SpokeMetadataCollectorUpdated(address oldSpokeMetadata, address newSpokeMetadata);
+
   /// @notice Emitted when a vote is cast.
   event VoteCast(address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason);
 
@@ -67,6 +70,14 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   {
     VOTING_TOKEN = ERC20Votes(_votingToken);
     spokeMetadataCollector = SpokeMetadataCollector(_spokeMetadataCollector);
+  }
+
+  /// @notice Sets a new spoke metadata collector.
+  /// @param _newSpokeMetadataCollector The address of the new spoke metadata collector.
+  function setSpokeMetadataCollector(address _newSpokeMetadataCollector) public {
+    _checkOwner();
+    emit SpokeMetadataCollectorUpdated(address(spokeMetadataCollector), _newSpokeMetadataCollector);
+    spokeMetadataCollector = SpokeMetadataCollector(_newSpokeMetadataCollector);
   }
 
   /// @notice Sets the vote weight window (the moving window over which the voter's minimum checkpoint is selected).

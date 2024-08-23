@@ -67,7 +67,9 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
       QueryVote({
         proposalId: _proposalId,
         spokeProposalId: _spokeProposalId,
-        proposalVote: ProposalVote(SafeCast.toUint128(_againstVotes), SafeCast.toUint128(_forVotes), SafeCast.toUint128(_abstainVotes)),
+        proposalVote: ProposalVote(
+          SafeCast.toUint128(_againstVotes), SafeCast.toUint128(_forVotes), SafeCast.toUint128(_abstainVotes)
+        ),
         chainId: _perChainResp.chainId
       })
     );
