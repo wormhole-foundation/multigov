@@ -7,6 +7,7 @@ import {SpokeAirlock} from "src/SpokeAirlock.sol";
 import {SpokeMessageExecutor} from "src/SpokeMessageExecutor.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
+import {SlotUpdate} from "test/helpers/SlotUpdate.sol";
 import {WormholeCoreMock} from "test/mocks/WormholeCoreMock.sol";
 
 contract SpokeAirlockTest is Test {
@@ -37,17 +38,9 @@ contract SpokeAirlockTest is Test {
     return builder;
   }
 
-  function _createPerformDelegateCallProposal(address _account, uint208 _amount) public returns (ProposalBuilder) {
+  function _createPerformDelegateCallProposal(address _target, bytes memory _calldata) public returns (ProposalBuilder) {
     ProposalBuilder builder = new ProposalBuilder();
-    builder.push(
-      address(airlock),
-      0,
-      abi.encodeWithSignature(
-        "performDelegateCall(address,bytes)",
-        address(token),
-        abi.encodeWithSignature("mint(address,uint208)", _account, _amount)
-      )
-    );
+    builder.push(address(airlock), 0, abi.encodeWithSignature("performDelegateCall(address,bytes)", _target, _calldata));
     return builder;
   }
 }
@@ -120,7 +113,9 @@ contract ExecuteOperations is SpokeAirlockTest {
 contract PerformDelegateCall is SpokeAirlockTest {
   function testFuzz_ExecuteASingleProposal(address _account, uint208 _amount) public {
     vm.assume(_account != address(0));
-    ProposalBuilder builder = _createPerformDelegateCallProposal(_account, _amount);
+    ProposalBuilder builder = _createPerformDelegateCallProposal(
+      address(token), abi.encodeWithSignature("mint(address,uint208)", _account, _amount)
+    );
     address[] memory targets = builder.targets();
     uint256[] memory values = builder.values();
     bytes[] memory calldatas = builder.calldatas();
@@ -131,12 +126,30 @@ contract PerformDelegateCall is SpokeAirlockTest {
     assertEq(uint256(vm.load(address(airlock), bytes32(uint256(2)))), _amount);
   }
 
-  function testFuzz_RevertIf_IfCallerIsNotTheSpokeAirlock(address _caller, address _target, bytes memory _calldata) public {
+  function testFuzz_RevertIf_IfCallerIsNotTheSpokeAirlock(address _caller, address _target, bytes memory _calldata)
+    public
+  {
     vm.assume(_target != address(0));
     vm.assume(_caller != address(airlock));
 
     vm.prank(_caller);
     vm.expectRevert(SpokeAirlock.InvalidCaller.selector);
     airlock.performDelegateCall(_target, _calldata);
+  }
+
+  function testFuzz_RevertIf_MessageExecutorSlotHasBeenOverriden(address _newAddress) public {
+    vm.assume(_newAddress != airlock.messageExecutor());
+    SlotUpdate _testContract = new SlotUpdate();
+    ProposalBuilder builder = _createPerformDelegateCallProposal(
+      address(_testContract), abi.encodeWithSignature("updateTest(address)", _newAddress)
+    );
+
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+
+    vm.prank(address(executor));
+    vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
+    airlock.executeOperations(targets, values, calldatas);
   }
 }
