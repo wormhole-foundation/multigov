@@ -69,27 +69,27 @@ contract Receive is SpokeAirlockTest {
   }
 }
 
-// contract SetMessageExecutor is SpokeAirlockTest {
-//   function testFuzz_SetNewMessageExecutor(address _newExecutor) public {
-//     vm.prank(address(executor));
-//     airlock.setMessageExecutor(_newExecutor);
-//     assertEq(airlock.messageExecutor(), _newExecutor);
-//   }
-//
-//   function testFuzz_EmitsMessageExecutorUpdatedEvent(address _newExecutor) public {
-//     vm.prank(address(executor));
-//     vm.expectEmit();
-//     emit SpokeAirlock.MessageExecutorUpdated(_newExecutor);
-//     airlock.setMessageExecutor(_newExecutor);
-//   }
-//
-//   function testFuzz_RevertIf_NotCalledByMessageExecutor(address _newExecutor, address _caller) public {
-//     vm.assume(_caller != address(executor));
-//     vm.prank(_caller);
-//     vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
-//     airlock.setMessageExecutor(_newExecutor);
-//   }
-// }
+contract SetMessageExecutor is SpokeAirlockTest {
+  function testFuzz_SetNewMessageExecutor(address _newExecutor) public {
+    vm.prank(address(executor));
+    airlock.setMessageExecutor(_newExecutor);
+    assertEq(airlock.messageExecutor(), _newExecutor);
+  }
+
+  function testFuzz_EmitsMessageExecutorUpdatedEvent(address _newExecutor) public {
+    vm.prank(address(executor));
+    vm.expectEmit();
+    emit SpokeAirlock.MessageExecutorUpdated(_newExecutor);
+    airlock.setMessageExecutor(_newExecutor);
+  }
+
+  function testFuzz_RevertIf_NotCalledByMessageExecutor(address _newExecutor, address _caller) public {
+    vm.assume(_caller != address(executor));
+    vm.prank(_caller);
+    vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
+    airlock.setMessageExecutor(_newExecutor);
+  }
+}
 
 contract ExecuteOperations is SpokeAirlockTest {
   function testFuzz_ExecuteASingleProposal(address _account, uint208 _amount) public {
@@ -117,7 +117,6 @@ contract ExecuteOperations is SpokeAirlockTest {
   }
 }
 
-// Delegate call
 contract PerformDelegateCall is SpokeAirlockTest {
   function testFuzz_ExecuteASingleProposal(address _account, uint208 _amount) public {
     vm.assume(_account != address(0));
@@ -132,18 +131,12 @@ contract PerformDelegateCall is SpokeAirlockTest {
     assertEq(uint256(vm.load(address(airlock), bytes32(uint256(2)))), _amount);
   }
 
-  // Revert if delegate call by non spoke airlock
+  function testFuzz_RevertIf_IfCallerIsNotTheSpokeAirlock(address _caller, address _target, bytes memory _calldata) public {
+    vm.assume(_target != address(0));
+    vm.assume(_caller != address(airlock));
 
-  //function testFuzz_RevertIf_NotCalledByMessageExecutor(address _account, uint208 _amount, address _caller) public {
-  //  vm.assume(_account != address(0));
-  //  vm.assume(_caller != address(executor));
-  //  ProposalBuilder builder = _createMintProposal(_account, _amount);
-  //  address[] memory targets = builder.targets();
-  //  uint256[] memory values = builder.values();
-  //  bytes[] memory calldatas = builder.calldatas();
-
-  //  vm.prank(_caller);
-  //  vm.expectRevert(SpokeAirlock.InvalidMessageExecutor.selector);
-  //  airlock.executeOperations(targets, values, calldatas);
-  //}
+    vm.prank(_caller);
+    vm.expectRevert(SpokeAirlock.InvalidCaller.selector);
+    airlock.performDelegateCall(_target, _calldata);
+  }
 }

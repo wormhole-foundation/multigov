@@ -9,7 +9,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 /// spoke account for the DAO, and to create a simple upgrade path for the `SpokeMessageExecutor`.
 contract SpokeAirlock {
   /// @notice The address of the only contract that can execute cross chain proposals using the `SpokeAirlock`.
-  address public immutable messageExecutor;
+  address public messageExecutor;
 
   /// @notice Thrown when the caller of a method is not the message executor.
   error InvalidMessageExecutor();
@@ -31,6 +31,14 @@ contract SpokeAirlock {
   /// @notice A method to check that `msg.sender` is the message executor.
   function _onlyMessageExecutor() internal view {
     if (msg.sender != messageExecutor) revert InvalidMessageExecutor();
+  }
+
+  /// @notice Updates the message executor to a new address.
+  /// @param _messageExecutor The address of the new message executor.
+  function setMessageExecutor(address _messageExecutor) external {
+    _onlyMessageExecutor();
+    messageExecutor = _messageExecutor;
+    emit MessageExecutorUpdated(_messageExecutor);
   }
 
   /// @notice A method to execute cross chain proposals. This method can only be called by the message executor.
