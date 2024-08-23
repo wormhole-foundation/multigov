@@ -187,7 +187,7 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
     }
 
     // Use current timestamp (what all of the spoke query responses are checked against) to get the hub vote weight
-    uint256 _hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, _sharedQueryBlockTime);
+    uint256 _hubVoteWeight = HUB_GOVERNOR.getVotes(msg.sender, _sharedQueryBlockTime / 1_000_000);
     _totalVoteWeight += _hubVoteWeight;
 
     return _totalVoteWeight >= HUB_GOVERNOR.proposalThreshold();

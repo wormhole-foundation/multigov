@@ -526,6 +526,47 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     );
   }
 
+  function testFuzz_CorrectlyCheckAndProposeIfEligibleWithAtLeastTwoTokenCheckpoints(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    string memory _description,
+    address _caller,
+    uint48 _amount2
+  ) public {
+    vm.assume(_spokeAddress != address(0) && _spokeAddress != address(0));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
+    uint256 _amount1 = hubGovernor.proposalThreshold();
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: 0, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    vm.startPrank(_caller);
+    token.delegate(_caller);
+    token.mint(_caller, _amount1);
+    vm.stopPrank();
+
+    _warpToValidTimestamp();
+
+    vm.startPrank(_caller);
+    token.mint(_caller, uint256(_amount2));
+    vm.stopPrank();
+
+    _registerSpokes(voteWeights);
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    uint256 proposalId = _checkAndProposeIfEligible(voteWeights, targets, values, calldatas, _description, _caller);
+
+    assertEq(
+      hubGovernor.hashProposal(targets, values, calldatas, keccak256(bytes(_description))),
+      proposalId,
+      "Proposal ID should match the hash of the proposal"
+    );
+    assertEq(hubGovernor.getVotes(address(_caller), vm.getBlockTimestamp()), _amount1);
+  }
+
   function testFuzz_CorrectlyCheckAndProposeIfEligibleThreeVoteWeights(
     uint128 _voteWeight1,
     uint128 _voteWeight2,
@@ -595,6 +636,47 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
       _checkAndProposeIfEligibleCustomTimepoints(voteWeights, _targets, _values, _calldatas, _caller, timestamps);
 
     assertEq(hubGovernor.hashProposal(_targets, _values, _calldatas, keccak256(bytes("Test Proposal"))), proposalId);
+  }
+
+  function testFuzz_RevertIf_QueryDoesNotHaveEnoughWeightAndCheckpointMinimumIsTooLow(
+    uint128 _voteWeight,
+    uint16 _chainId,
+    address _spokeAddress,
+    string memory _description,
+    address _caller,
+    uint48 _amount1
+  ) public {
+    vm.assume(_spokeAddress != address(0) && _spokeAddress != address(0));
+    vm.assume(_caller != address(0) && _caller != address(crossChainAggregateProposer.owner()));
+    uint256 _amount2 = hubGovernor.proposalThreshold();
+
+    VoteWeight[] memory voteWeights = new VoteWeight[](1);
+    voteWeights[0] = VoteWeight({voteWeight: 0, chainId: _chainId, spokeAddress: _spokeAddress});
+
+    vm.startPrank(_caller);
+    token.delegate(_caller);
+    token.mint(_caller, uint256(_amount1));
+    vm.stopPrank();
+
+    _warpToValidTimestamp();
+
+    vm.startPrank(_caller);
+    token.mint(_caller, _amount2);
+    vm.stopPrank();
+
+    _registerSpokes(voteWeights);
+    ProposalBuilder builder = _createArbitraryProposal();
+    address[] memory targets = builder.targets();
+    uint256[] memory values = builder.values();
+    bytes[] memory calldatas = builder.calldatas();
+    bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller);
+    IWormhole.Signature[] memory signatures = _getSignatures(queryResponse);
+
+    vm.prank(_caller);
+    vm.expectRevert(HubEvmSpokeAggregateProposer.InsufficientVoteWeight.selector);
+    crossChainAggregateProposer.checkAndProposeIfEligible(
+      targets, values, calldatas, _description, queryResponse, signatures
+    );
   }
 
   function testFuzz_RevertIf_InsufficientVoteWeight(string memory _description, address _caller) public {
