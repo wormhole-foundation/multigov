@@ -29,7 +29,7 @@ contract SpokeMessageExecutorTest is Test {
       address(impl),
       abi.encodeCall(
         SpokeMessageExecutor.initialize,
-        (bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, WORMHOLE_SPOKE_CHAIN, address(wormholeCoreMock))
+        (bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, address(wormholeCoreMock))
       )
     );
 
@@ -45,15 +45,12 @@ contract SpokeMessageExecutorTest is Test {
   }
 }
 
- contract Initialize is SpokeMessageExecutorTest {
-  function testFuzz_CorrectlyInitialize(
-    bytes32 _hubDispatcher,
-    uint16 _hubChainId
-  ) public {
+contract Initialize is SpokeMessageExecutorTest {
+  function testFuzz_CorrectlyInitialize(bytes32 _hubDispatcher, uint16 _hubChainId) public {
     SpokeMessageExecutor impl = new SpokeMessageExecutor();
     ERC1967Proxy proxy = new ERC1967Proxy(
       address(impl),
-      abi.encodeCall(SpokeMessageExecutor.initialize, (_hubDispatcher, _hubChainId, WORMHOLE_SPOKE_CHAIN, address(wormholeCoreMock)))
+      abi.encodeCall(SpokeMessageExecutor.initialize, (_hubDispatcher, _hubChainId, address(wormholeCoreMock)))
     );
 
     SpokeMessageExecutor spokeExecutor = SpokeMessageExecutor(address(proxy));
@@ -83,14 +80,9 @@ contract SpokeMessageExecutorTest is Test {
     );
   }
 
-  function testFuzz_RevertIf_CalledTwice(
-    bytes32 _hubDispatcher,
-    uint16 _hubChainId,
-    address _wormholeCore,
-    uint16 _spokeChainId
-  ) public {
+  function testFuzz_RevertIf_CalledTwice(bytes32 _hubDispatcher, uint16 _hubChainId, address _wormholeCore) public {
     vm.expectRevert(Initializable.InvalidInitialization.selector);
-    executor.initialize(_hubDispatcher, _hubChainId, _spokeChainId, _wormholeCore);
+    executor.initialize(_hubDispatcher, _hubChainId, _wormholeCore);
   }
 }
 
@@ -195,12 +187,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
       address(impl),
       abi.encodeCall(
         SpokeMessageExecutor.initialize,
-        (
-          bytes32(uint256(uint160(_emitterChainAddress))),
-          _emitterChainId,
-          WORMHOLE_SPOKE_CHAIN,
-          address(wormholeCoreMock)
-        )
+        (bytes32(uint256(uint160(_emitterChainAddress))), _emitterChainId, address(wormholeCoreMock))
       )
     );
 

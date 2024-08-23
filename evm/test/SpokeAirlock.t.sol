@@ -27,7 +27,7 @@ contract SpokeAirlockTest is Test {
       address(impl),
       abi.encodeCall(
         SpokeMessageExecutor.initialize,
-        (bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, WORMHOLE_SPOKE_CHAIN, address(wormholeCoreMock))
+        (bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, address(wormholeCoreMock))
       )
     );
 

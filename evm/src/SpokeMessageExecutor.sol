@@ -61,10 +61,7 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
   }
 
   /// @notice Sets the initial airlock on the spoke message executor.
-  function initialize(bytes32 _hubDispatcher, uint16 _hubChainId, uint16 _spokeChainId, address _wormholeCore)
-    public
-    initializer
-  {
+  function initialize(bytes32 _hubDispatcher, uint16 _hubChainId, address _wormholeCore) public initializer {
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     $._hubDispatcher = _hubDispatcher;
     $._hubChainId = _hubChainId;

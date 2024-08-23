@@ -51,10 +51,7 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     SpokeMessageExecutor impl = new SpokeMessageExecutor();
     ERC1967Proxy proxy = new ERC1967Proxy(
       address(impl),
-      abi.encodeCall(
-        SpokeMessageExecutor.initialize,
-        (config.hubDispatcher, config.hubChainId, 1, config.wormholeCore)
-      )
+      abi.encodeCall(SpokeMessageExecutor.initialize, (config.hubDispatcher, config.hubChainId, config.wormholeCore))
     );
 
     SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
