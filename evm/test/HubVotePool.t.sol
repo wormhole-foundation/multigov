@@ -272,7 +272,7 @@ contract RegisterSpokes is HubVotePoolTest {
   ) internal view {
     for (uint256 i = 0; i < _spokeRegistry.length; i++) {
       uint16 chainId = _spokeRegistry[i].wormholeChainId;
-      bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
+      bytes32 expectedAddress = _spokeRegistry[i].wormholeAddress;
       bytes32 storedAddress = spokeRegistryFunc(chainId, block.timestamp);
       assertEq(storedAddress, expectedAddress);
     }
@@ -291,7 +291,7 @@ contract RegisterSpokes is HubVotePoolTest {
     for (uint256 i = 0; i < _spokes.length; i++) {
       vm.expectEmit();
       emit HubVotePool.SpokeRegistered(
-        _spokes[i].wormholeChainId, addressToBytes32(address(0)), addressToBytes32(_spokes[i].addr)
+        _spokes[i].wormholeChainId, addressToBytes32(address(0)), _spokes[i].wormholeAddress
       );
     }
 
