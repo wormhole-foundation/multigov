@@ -4,7 +4,6 @@ pragma solidity ^0.8.23;
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {toWormholeFormat} from "wormhole-sdk/Utils.sol";
 import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryResponse, ParsedQueryResponse} from "wormhole-sdk/QueryResponse.sol";
@@ -57,7 +56,7 @@ contract HubVotePool is QueryResponse, Ownable {
   /// @dev Contains the information to register a spoke.
   struct SpokeVoteAggregator {
     uint16 wormholeChainId;
-    address addr;
+    bytes32 wormholeAddress;
   }
 
   /// @notice A mapping of a chain and emitter address that determines valid spokes and addresses for receiving votes.
@@ -102,7 +101,7 @@ contract HubVotePool is QueryResponse, Ownable {
     _checkOwner();
     for (uint256 i = 0; i < _spokes.length; i++) {
       SpokeVoteAggregator memory _aggregator = _spokes[i];
-      _registerSpoke(_aggregator.wormholeChainId, toWormholeFormat(_aggregator.addr));
+      _registerSpoke(_aggregator.wormholeChainId, _aggregator.wormholeAddress);
     }
   }
 
