@@ -22,6 +22,12 @@ use anchor_lang::solana_program::{
     program::invoke_signed
 };
 
+use crate::error::QueriesSolanaVerifyError;
+
+use wormhole_query_sdk::{
+    structs::{ChainSpecificResponse, QueryResponse},
+};
+
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
 
@@ -252,19 +258,36 @@ pub mod staking {
         Ok(())
     }
 
+    #[access_control(AddProposal::constraints(&ctx, &bytes))]
     pub fn add_proposal(
         ctx: Context<AddProposal>,
-        proposal_id: [u8; 32],
-        vote_start: u64,
-        safe_window: u64,
+        bytes: Vec<u8>,
+//         proposal_id: [u8; 32],
+//         vote_start: u64,
+//         safe_window: u64,
     ) -> Result<()> {
-        let proposal = &mut ctx.accounts.proposal;
-        let _ = proposal.add_proposal(proposal_id, vote_start, safe_window);
+        let response = QueryResponse::deserialize(&bytes)
+            .map_err(|_| QueriesSolanaVerifyError::FailedToParseResponse)?;
 
-        emit!(ProposalCreated {
-            proposal_id: proposal_id,
-            vote_start: vote_start
-        });
+        require!(
+            response.responses.len() == 1,
+            QueriesSolanaVerifyError::TooManyQueryResponses
+        );
+
+        let response = &response.responses[0];
+//         match &response.response {
+//             ChainSpecificResponse::SolanaAccountQueryResponse(_) => {
+//                 msg!("SolanaAccountQueryResponse")
+//             }
+//         }
+
+        let proposal = &mut ctx.accounts.proposal;
+//         let _ = proposal.add_proposal(proposal_id, vote_start, safe_window);
+// 
+//         emit!(ProposalCreated {
+//             proposal_id: proposal_id,
+//             vote_start: vote_start
+//         });
 
         Ok(())
     }

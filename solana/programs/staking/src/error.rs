@@ -57,3 +57,25 @@ pub enum VestingError {
     #[msg("Integer underflow")]
     Underflow,
 }
+
+#[error_code]
+pub enum QueriesSolanaVerifyError {
+    #[msg("Guardian set expired")]
+    GuardianSetExpired,
+    #[msg("Invalid message hash")]
+    InvalidMessageHash,
+    #[msg("No quorum")]
+    NoQuorum,
+    #[msg("Invalid guardian index non increasing")]
+    InvalidGuardianIndexNonIncreasing,
+    #[msg("Invalid guardian index out of range")]
+    InvalidGuardianIndexOutOfRange,
+    #[msg("Invalid signature")]
+    InvalidSignature,
+    #[msg("Invalid guardian key recovery")]
+    InvalidGuardianKeyRecovery,
+    #[msg("Failed to parse response")]
+    FailedToParseResponse,
+    #[msg("Too many query responses")]
+    TooManyQueryResponses,
+}
