@@ -11,10 +11,8 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher {
   /// @dev This value is incremented after each successful message dispatch.
   uint256 public nextMessageId = 1;
 
+  /// @notice The Wormhole chain id for Solana.
   uint8 immutable SOLANA_WORMHOLE_CHAIN_ID = 1;
-
-  /// @notice Thrown if the encoded payload is invalid.
-  error InvalidSolanaOperationLength(uint256 instructionsLength, uint256 accountsLength);
 
   /// @notice Emitted when a message is dispatched.
   event MessageDispatched(uint256 indexed messageId, bytes payload);
@@ -45,7 +43,7 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher {
     bytes data;
   }
 
-  function dispatch(bytes calldata _payload) external {
+  function dispatch(bytes calldata _payload) external payable {
     _checkOwner();
 
     (uint16 _wormholeChainId, SolanaInstruction[] memory instructions) =
@@ -55,7 +53,7 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher {
     if (instructions.length == 0) revert EmptyInstructionSet();
 
     bytes memory message = abi.encode(nextMessageId, _wormholeChainId, instructions);
-    _publishMessage(message);
+    _publishMessage(message, msg.value);
 
     emit MessageDispatched(nextMessageId, message);
     nextMessageId++;
