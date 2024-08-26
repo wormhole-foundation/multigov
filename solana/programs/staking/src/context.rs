@@ -141,6 +141,32 @@ pub struct CastVote<'info> {
     pub system_program: Program<'info, System>,
 }
 
+
+#[derive(Accounts)]
+#[instruction(_guardian_signatures: Vec<[u8; 66]>, total_signatures: u8)]
+pub struct PostSignatures<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = payer,
+        space = 8 + GuardianSignatures::compute_size(usize::from(total_signatures))
+    )]
+    pub guardian_signatures: Account<'info, GuardianSignatures>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CloseSignatures<'info> {
+    #[account(mut, has_one = refund_recipient, close = refund_recipient)]
+    pub guardian_signatures: Account<'info, GuardianSignatures>,
+
+    #[account(address = guardian_signatures.refund_recipient)]
+    pub refund_recipient: Signer<'info>,
+}
+
 #[derive(Accounts)]
 #[instruction(_bytes: Vec<u8>, guardian_set_index: u32, proposal_id : [u8; 32])]
 pub struct AddProposal<'info> {
@@ -153,15 +179,15 @@ pub struct AddProposal<'info> {
         bump,
         seeds::program = CORE_BRIDGE_PROGRAM_ID
     )]
-    guardian_set: Account<'info, WormholeGuardianSet>,
+    pub guardian_set: Account<'info, WormholeGuardianSet>,
 
     /// Stores unverified guardian signatures as they are too large to fit in the instruction data.
     #[account(mut, has_one = refund_recipient, close = refund_recipient)]
-    guardian_signatures: Account<'info, GuardianSignatures>,
+    pub guardian_signatures: Account<'info, GuardianSignatures>,
 
     /// CHECK: This account is the refund recipient for the above signature_set
     #[account(address = guardian_signatures.refund_recipient)]
-    refund_recipient: AccountInfo<'info>,
+    pub refund_recipient: AccountInfo<'info>,
 
     #[account(mut)]
     pub payer: Signer<'info>,

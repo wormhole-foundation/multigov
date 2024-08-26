@@ -60,6 +60,8 @@ pub enum VestingError {
 
 #[error_code]
 pub enum QueriesSolanaVerifyError {
+    #[msg("Write authority mismatch")]
+    WriteAuthorityMismatch,
     #[msg("Guardian set expired")]
     GuardianSetExpired,
     #[msg("Invalid message hash")]
