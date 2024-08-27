@@ -29,6 +29,7 @@ pub const PROPOSAL_SEED: &str = "proposal";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
+pub const SPOKE_METADATA_COLLECTOR: &str = "spoke_metadata_collector";
 
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -141,6 +142,22 @@ pub struct CastVote<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct InitializeSpokeMetadataCollector<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = SpokeMetadataCollector::LEN,
+        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        bump
+    )]
+    pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
+
+    pub system_program: Program<'info, System>,
+}
 
 #[derive(Accounts)]
 #[instruction(_guardian_signatures: Vec<[u8; 66]>, total_signatures: u8)]
@@ -200,6 +217,13 @@ pub struct AddProposal<'info> {
         bump
     )]
     pub proposal: Account<'info, proposal::ProposalData>,
+
+    #[account(
+        mut,
+        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        bump = spoke_metadata_collector.bump
+    )]
+    pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
 
     pub system_program: Program<'info, System>,
 }
@@ -488,11 +512,11 @@ pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(
         init,
         payer = payer,
-        space = spoke_message_executor::SpokeMessageExecutor::LEN,
+        space = SpokeMessageExecutor::LEN,
         seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
         bump
     )]
-    pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
+    pub executor: Account<'info, SpokeMessageExecutor>,
     /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
     #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
@@ -509,11 +533,11 @@ pub struct SetMessageReceived<'info> {
     #[account(
         init_if_needed,
         payer = payer,
-        space = spoke_message_executor::MessageReceived::LEN,
+        space = MessageReceived::LEN,
         seeds = [MESSAGE_RECEIVED.as_bytes(), &message_hash],
         bump
     )]
-    pub message_received: Account<'info, spoke_message_executor::MessageReceived>,
+    pub message_received: Account<'info, MessageReceived>,
 
     pub system_program: Program<'info, System>,
 }
@@ -528,7 +552,7 @@ pub struct SetAirlock<'info> {
         seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
         bump = executor.bump
     )]
-    pub executor: Account<'info, spoke_message_executor::SpokeMessageExecutor>,
+    pub executor: Account<'info, SpokeMessageExecutor>,
 
     #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
     pub airlock: Account<'info, SpokeAirlock>,

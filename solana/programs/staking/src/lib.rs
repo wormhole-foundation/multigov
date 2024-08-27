@@ -66,27 +66,6 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-/// Wormhole Hub Chain ID
-#[constant]
-pub const HUB_CHAIN_ID: u16 = 1;
-
-/// Wormhole Hub Proposal Metadata Contract (Ethereum address)
-#[constant]
-pub const HUB_PROPOSAL_METADATA: [u8; 20] = [
-    0x69, 0xCB, 0xB9, 0xA5, 0x90, 0x72, 0x66, 0x36, 0x25, 0xA6,
-    0xE3, 0xEB, 0x3A, 0xEE, 0x31, 0xE4, 0x35, 0x21, 0x3F, 0x7B
-];
-
-/// Save window
-#[constant]
-pub const SAVE_WINDOW: u64 = 24*60*60;
-
-pub struct ProposalDataFromEthResponse {
-    pub contract_address: [u8; 20],
-    pub proposal_id: [u8; 32],
-    pub vote_start: u64,
-}
-
 declare_id!("5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ");
 
 #[program]
@@ -278,72 +257,6 @@ pub mod staking {
         }
 
         ctx.accounts.stake_account_metadata.recorded_balance = *current_stake_balance;
-
-        Ok(())
-    }
-
-    pub fn post_signatures(
-        ctx: Context<PostSignatures>,
-        guardian_signatures: Vec<[u8; 66]>,
-        total_signatures: u8,
-    ) -> Result<()> {
-        _post_signatures(ctx, guardian_signatures, total_signatures)
-    }
-
-    /// Allows the initial payer to close the signature account in case the query was invalid.
-    pub fn close_signatures(_ctx: Context<CloseSignatures>) -> Result<()> {
-        Ok(())
-    }
-
-    #[access_control(AddProposal::constraints(&ctx, &bytes))]
-    pub fn add_proposal(
-        ctx: Context<AddProposal>,
-        bytes: Vec<u8>,
-//         proposal_id: [u8; 32],
-//         vote_start: u64,
-//         safe_window: u64,
-    ) -> Result<()> {
-        let response = QueryResponse::deserialize(&bytes)
-            .map_err(|_| QueriesSolanaVerifyError::FailedToParseResponse)?;
-
-        require!(
-            response.responses.len() == 1,
-            ProposalWormholeMessageError::TooManyQueryResponses
-        );
-
-        let response = &response.responses[0];
-
-        require!(
-            response.chain_id == HUB_CHAIN_ID,
-            ProposalWormholeMessageError::SenderChainMismatch
-        );
-
-        if let ChainSpecificResponse::EthCallQueryResponse(eth_response) = &response.response {
-            require!(
-                eth_response.results.len() == 1,
-                ProposalWormholeMessageError::TooManyEthCallResults
-            );
-
-            let proposal_data = parse_eth_response_proposal_data(&eth_response.results[0])?;
-
-            require!(
-                proposal_data.contract_address == HUB_PROPOSAL_METADATA,
-                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
-            );
-
-            let proposal = &mut ctx.accounts.proposal;
-
-            let _ = proposal.add_proposal(
-                proposal_data.proposal_id,
-                proposal_data.vote_start,
-                SAVE_WINDOW
-            );
-
-            emit!(ProposalCreated {
-                proposal_id: proposal_data.proposal_id,
-                vote_start: proposal_data.vote_start
-            });
-        }
 
         Ok(())
     }
@@ -541,6 +454,85 @@ pub mod staking {
 
         Ok(())
     }
+
+    //------------------------------------ SPOKE METADATA COLLECTOR ------------------------------------------------
+    // Initialize and setting a spoke metadata collector
+    pub fn initialize_spoke_metadata_collector(ctx: Context<InitializeSpokeMetadataCollector>, hub_chain_id: u16, hub_proposal_metadata: [u8; 20]) -> Result<()> {
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+        let _ = spoke_metadata_collector.initialize(
+            ctx.bumps.spoke_metadata_collector,
+            hub_chain_id,
+            hub_proposal_metadata,
+            CORE_BRIDGE_PROGRAM_ID
+        );
+
+        Ok(())
+    }
+
+    pub fn post_signatures(
+        ctx: Context<PostSignatures>,
+        guardian_signatures: Vec<[u8; 66]>,
+        total_signatures: u8,
+    ) -> Result<()> {
+        _post_signatures(ctx, guardian_signatures, total_signatures)
+    }
+
+    /// Allows the initial payer to close the signature account in case the query was invalid.
+    pub fn close_signatures(_ctx: Context<CloseSignatures>) -> Result<()> {
+        Ok(())
+    }
+
+    #[access_control(AddProposal::constraints(&ctx, &bytes))]
+    pub fn add_proposal(
+        ctx: Context<AddProposal>,
+        bytes: Vec<u8>,
+    ) -> Result<()> {
+        let response = QueryResponse::deserialize(&bytes)
+            .map_err(|_| QueriesSolanaVerifyError::FailedToParseResponse)?;
+
+        require!(
+            response.responses.len() == 1,
+            ProposalWormholeMessageError::TooManyQueryResponses
+        );
+
+        let response = &response.responses[0];
+
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+
+        require!(
+            response.chain_id == spoke_metadata_collector.hub_chain_id,
+            ProposalWormholeMessageError::SenderChainMismatch
+        );
+
+        if let ChainSpecificResponse::EthCallQueryResponse(eth_response) = &response.response {
+            require!(
+                eth_response.results.len() == 1,
+                ProposalWormholeMessageError::TooManyEthCallResults
+            );
+
+            let proposal_data = spoke_metadata_collector.parse_eth_response_proposal_data(&eth_response.results[0])?;
+
+            require!(
+                proposal_data.contract_address == spoke_metadata_collector.hub_proposal_metadata,
+                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
+            );
+
+            let proposal = &mut ctx.accounts.proposal;
+
+            let _ = proposal.add_proposal(
+                proposal_data.proposal_id,
+                proposal_data.vote_start,
+                spoke_metadata_collector.safe_window
+            );
+
+            emit!(ProposalCreated {
+                proposal_id: proposal_data.proposal_id,
+                vote_start: proposal_data.vote_start
+            });
+        }
+
+        Ok(())
+    }
 }
 
 /// Creates or appends to a GuardianSignatures account for subsequent use by verify_query.
@@ -578,29 +570,4 @@ fn _post_signatures(
     }
 
     Ok(())
-}
-
-fn parse_eth_response_proposal_data(data: &[u8]) -> Result<ProposalDataFromEthResponse> {
-    require!(
-        data.len() == 60, // 20 + 32 + 8
-        ProposalWormholeMessageError::InvalidDataLength
-    );
-
-    // Parse contract_address (20 bytes)
-    let contract_address: [u8; 20] = data[0..20].try_into()
-        .map_err(|_| ProposalWormholeMessageError::ErrorOfContractAddressParsing)?;
-
-    // Parse proposal_id (32 bytes)
-    let proposal_id: [u8; 32] = data[20..52].try_into()
-        .map_err(|_| ProposalWormholeMessageError::ErrorOfProposalIdParsing)?;
-
-    // Parse vote_start (8 bytes)
-    let vote_start = u64::from_le_bytes(data[52..60].try_into()
-        .map_err(|_| ProposalWormholeMessageError::ErrorOfVoteStartParsing)?);
-
-    Ok(ProposalDataFromEthResponse {
-        contract_address,
-        proposal_id,
-        vote_start,
-    })
 }

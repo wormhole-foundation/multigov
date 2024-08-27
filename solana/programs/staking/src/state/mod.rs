@@ -15,7 +15,7 @@ pub mod vesting_balance;
 pub use vesting_balance::*;
 
 pub mod spoke_message_executor;
-// pub use spoke_message_executor::*;
+pub use spoke_message_executor::*;
 
 pub mod spoke_airlock;
 pub use spoke_airlock::*;
@@ -25,3 +25,6 @@ pub use ext::*;
 
 mod guardian_signatures;
 pub use guardian_signatures::*;
+
+pub mod spoke_metadata_collector;
+pub use spoke_metadata_collector::*;
