@@ -60,6 +60,8 @@ pub enum VestingError {
 
 #[error_code]
 pub enum QueriesSolanaVerifyError {
+    #[msg("Failed to parse response")]
+    FailedToParseResponse,
     #[msg("Write authority mismatch")]
     WriteAuthorityMismatch,
     #[msg("Guardian set expired")]
@@ -76,8 +78,24 @@ pub enum QueriesSolanaVerifyError {
     InvalidSignature,
     #[msg("Invalid guardian key recovery")]
     InvalidGuardianKeyRecovery,
-    #[msg("Failed to parse response")]
-    FailedToParseResponse,
+}
+
+#[error_code]
+pub enum ProposalWormholeMessageError {
     #[msg("Too many query responses")]
     TooManyQueryResponses,
+    #[msg("Sender chain mismatch")]
+    SenderChainMismatch,
+    #[msg("Too many eth call results")]
+    TooManyEthCallResults,
+    #[msg("Invalid data length")]
+    InvalidDataLength,
+    #[msg("Error of contract_address parsing")]
+    ErrorOfContractAddressParsing,
+    #[msg("Error of proposal_id parsing")]
+    ErrorOfProposalIdParsing,
+    #[msg("Error of vote_start parsing")]
+    ErrorOfVoteStartParsing,
+    #[msg("Invalid hub proposal metadata contract")]
+    InvalidHubProposalMetadataContract,
 }

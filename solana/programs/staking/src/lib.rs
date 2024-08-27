@@ -27,7 +27,7 @@ use wormhole_query_sdk::{
 };
 
 use crate::{
-    error::QueriesSolanaVerifyError,
+    error::{QueriesSolanaVerifyError, ProposalWormholeMessageError},
     state::{GuardianSignatures},
 };
 
@@ -62,6 +62,27 @@ pub struct VoteCast {
 
 #[event]
 pub struct ProposalCreated {
+    pub proposal_id: [u8; 32],
+    pub vote_start: u64,
+}
+
+/// Wormhole Hub Chain ID
+#[constant]
+pub const HUB_CHAIN_ID: u16 = 1;
+
+/// Wormhole Hub Proposal Metadata Contract (Ethereum address)
+#[constant]
+pub const HUB_PROPOSAL_METADATA: [u8; 20] = [
+    0x69, 0xCB, 0xB9, 0xA5, 0x90, 0x72, 0x66, 0x36, 0x25, 0xA6,
+    0xE3, 0xEB, 0x3A, 0xEE, 0x31, 0xE4, 0x35, 0x21, 0x3F, 0x7B
+];
+
+/// Save window
+#[constant]
+pub const SAVE_WINDOW: u64 = 24*60*60;
+
+pub struct ProposalDataFromEthResponse {
+    pub contract_address: [u8; 20],
     pub proposal_id: [u8; 32],
     pub vote_start: u64,
 }
@@ -266,7 +287,7 @@ pub mod staking {
         guardian_signatures: Vec<[u8; 66]>,
         total_signatures: u8,
     ) -> Result<()> {
-        post_signatures(ctx, guardian_signatures, total_signatures)
+        _post_signatures(ctx, guardian_signatures, total_signatures)
     }
 
     /// Allows the initial payer to close the signature account in case the query was invalid.
@@ -287,23 +308,42 @@ pub mod staking {
 
         require!(
             response.responses.len() == 1,
-            QueriesSolanaVerifyError::TooManyQueryResponses
+            ProposalWormholeMessageError::TooManyQueryResponses
         );
 
         let response = &response.responses[0];
-//         match &response.response {
-//             ChainSpecificResponse::SolanaAccountQueryResponse(_) => {
-//                 msg!("SolanaAccountQueryResponse")
-//             }
-//         }
 
-        let proposal = &mut ctx.accounts.proposal;
-//         let _ = proposal.add_proposal(proposal_id, vote_start, safe_window);
-// 
-//         emit!(ProposalCreated {
-//             proposal_id: proposal_id,
-//             vote_start: vote_start
-//         });
+        require!(
+            response.chain_id == HUB_CHAIN_ID,
+            ProposalWormholeMessageError::SenderChainMismatch
+        );
+
+        if let ChainSpecificResponse::EthCallQueryResponse(eth_response) = &response.response {
+            require!(
+                eth_response.results.len() == 1,
+                ProposalWormholeMessageError::TooManyEthCallResults
+            );
+
+            let proposal_data = parse_eth_response_proposal_data(&eth_response.results[0])?;
+
+            require!(
+                proposal_data.contract_address == HUB_PROPOSAL_METADATA,
+                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
+            );
+
+            let proposal = &mut ctx.accounts.proposal;
+
+            let _ = proposal.add_proposal(
+                proposal_data.proposal_id,
+                proposal_data.vote_start,
+                SAVE_WINDOW
+            );
+
+            emit!(ProposalCreated {
+                proposal_id: proposal_data.proposal_id,
+                vote_start: proposal_data.vote_start
+            });
+        }
 
         Ok(())
     }
@@ -513,7 +553,7 @@ pub mod staking {
 ///
 /// The GuardianSignatures account can be closed by anyone with a successful update_root_with_query instruction
 /// or by the initial payer via close_signatures, either of which will refund the initial payer.
-pub fn post_signatures(
+fn _post_signatures(
     ctx: Context<PostSignatures>,
     mut guardian_signatures: Vec<[u8; 66]>,
     _total_signatures: u8,
@@ -540,3 +580,27 @@ pub fn post_signatures(
     Ok(())
 }
 
+fn parse_eth_response_proposal_data(data: &[u8]) -> Result<ProposalDataFromEthResponse> {
+    require!(
+        data.len() == 60, // 20 + 32 + 8
+        ProposalWormholeMessageError::InvalidDataLength
+    );
+
+    // Parse contract_address (20 bytes)
+    let contract_address: [u8; 20] = data[0..20].try_into()
+        .map_err(|_| ProposalWormholeMessageError::ErrorOfContractAddressParsing)?;
+
+    // Parse proposal_id (32 bytes)
+    let proposal_id: [u8; 32] = data[20..52].try_into()
+        .map_err(|_| ProposalWormholeMessageError::ErrorOfProposalIdParsing)?;
+
+    // Parse vote_start (8 bytes)
+    let vote_start = u64::from_le_bytes(data[52..60].try_into()
+        .map_err(|_| ProposalWormholeMessageError::ErrorOfVoteStartParsing)?);
+
+    Ok(ProposalDataFromEthResponse {
+        contract_address,
+        proposal_id,
+        vote_start,
+    })
+}
