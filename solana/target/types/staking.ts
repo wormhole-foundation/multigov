@@ -27,6 +27,86 @@ export type Staking = {
       ],
       "accounts": [
         {
+          "name": "guardianSet",
+          "docs": [
+            "Guardian set used for signature verification."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  71,
+                  117,
+                  97,
+                  114,
+                  100,
+                  105,
+                  97,
+                  110,
+                  83,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "guardianSetIndex"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                43,
+                18,
+                70,
+                201,
+                238,
+                250,
+                60,
+                70,
+                103,
+                146,
+                37,
+                49,
+                17,
+                243,
+                95,
+                236,
+                30,
+                232,
+                238,
+                94,
+                157,
+                235,
+                196,
+                18,
+                210,
+                233,
+                173,
+                173,
+                254,
+                205,
+                204,
+                114
+              ]
+            }
+          }
+        },
+        {
+          "name": "guardianSignatures",
+          "docs": [
+            "Stores unverified guardian signatures as they are too large to fit in the instruction data."
+          ],
+          "writable": true
+        },
+        {
+          "name": "refundRecipient",
+          "relations": [
+            "guardianSignatures"
+          ]
+        },
+        {
           "name": "payer",
           "writable": true,
           "signer": true
@@ -57,27 +137,51 @@ export type Staking = {
           }
         },
         {
+          "name": "spokeMetadataCollector",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "proposalId",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "voteStart",
-          "type": "u64"
-        },
-        {
-          "name": "safeWindow",
-          "type": "u64"
+          "name": "bytes",
+          "type": "bytes"
         }
       ]
     },
@@ -537,6 +641,36 @@ export type Staking = {
         {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closeSignatures",
+      "docs": [
+        "Allows the initial payer to close the signature account in case the query was invalid."
+      ],
+      "discriminator": [
+        192,
+        65,
+        63,
+        117,
+        213,
+        138,
+        179,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "guardianSignatures",
+          "writable": true
+        },
+        {
+          "name": "refundRecipient",
+          "signer": true,
+          "relations": [
+            "guardianSignatures"
+          ]
         }
       ],
       "args": []
@@ -1470,6 +1604,82 @@ export type Staking = {
       ]
     },
     {
+      "name": "initializeSpokeMetadataCollector",
+      "discriminator": [
+        87,
+        206,
+        214,
+        2,
+        27,
+        75,
+        52,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "spokeMetadataCollector",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "hubChainId",
+          "type": "u16"
+        },
+        {
+          "name": "hubProposalMetadata",
+          "type": {
+            "array": [
+              "u8",
+              20
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "initializeVestingConfig",
       "discriminator": [
         16,
@@ -1683,6 +1893,52 @@ export type Staking = {
               32
             ]
           }
+        }
+      ]
+    },
+    {
+      "name": "postSignatures",
+      "discriminator": [
+        138,
+        2,
+        53,
+        166,
+        45,
+        77,
+        137,
+        51
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "guardianSignatures",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "guardianSignatures",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                66
+              ]
+            }
+          }
+        },
+        {
+          "name": "totalSignatures",
+          "type": "u8"
         }
       ]
     },
@@ -2390,6 +2646,19 @@ export type Staking = {
       ]
     },
     {
+      "name": "guardianSignatures",
+      "discriminator": [
+        203,
+        184,
+        130,
+        157,
+        113,
+        14,
+        184,
+        83
+      ]
+    },
+    {
       "name": "messageReceived",
       "discriminator": [
         159,
@@ -2455,6 +2724,19 @@ export type Staking = {
       ]
     },
     {
+      "name": "spokeMetadataCollector",
+      "discriminator": [
+        233,
+        64,
+        21,
+        231,
+        81,
+        240,
+        52,
+        222
+      ]
+    },
+    {
       "name": "stakeAccountMetadata",
       "discriminator": [
         68,
@@ -2491,6 +2773,19 @@ export type Staking = {
         199,
         9,
         182
+      ]
+    },
+    {
+      "name": "wormholeGuardianSet",
+      "discriminator": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
       ]
     }
   ],
@@ -2753,6 +3048,37 @@ export type Staking = {
       }
     },
     {
+      "name": "guardianSignatures",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "refundRecipient",
+            "docs": [
+              "Payer of this guardian signatures account.",
+              "Only they may amend signatures.",
+              "Used for reimbursements upon cleanup."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "guardianSignatures",
+            "docs": [
+              "Unverified guardian signatures."
+            ],
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  66
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "messageReceived",
       "type": {
         "kind": "struct",
@@ -2896,6 +3222,39 @@ export type Staking = {
       }
     },
     {
+      "name": "spokeMetadataCollector",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "hubChainId",
+            "type": "u16"
+          },
+          {
+            "name": "hubProposalMetadata",
+            "type": {
+              "array": [
+                "u8",
+                20
+              ]
+            }
+          },
+          {
+            "name": "wormholeCore",
+            "type": "pubkey"
+          },
+          {
+            "name": "safeWindow",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "stakeAccountMetadata",
       "docs": [
         "This is the metadata account for each staker",
@@ -3032,6 +3391,59 @@ export type Staking = {
           }
         ]
       }
+    },
+    {
+      "name": "wormholeGuardianSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "docs": [
+              "Index representing an incrementing version number for this guardian set."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "keys",
+            "docs": [
+              "Ethereum-style public keys."
+            ],
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  20
+                ]
+              }
+            }
+          },
+          {
+            "name": "creationTime",
+            "docs": [
+              "Timestamp representing the time this guardian became active."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "expirationTime",
+            "docs": [
+              "Expiration time when VAAs issued by this set are no longer valid."
+            ],
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "defaultSaveWindow",
+      "docs": [
+        "Save window by default"
+      ],
+      "type": "u64",
+      "value": "86400"
     }
   ]
 };
