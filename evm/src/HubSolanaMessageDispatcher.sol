@@ -31,18 +31,33 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher {
     WormholeDispatcher(_timelock, _core, _dispatchConsistencyLevel)
   {}
 
+  /// @notice A struct that represents a Solana account meta.
+  /// @dev This structure mirrors Solana's AccountMeta structure.
   struct SolanaAccountMeta {
+    /// @notice The public key of the account (32-byte address).
     bytes32 pubkey;
+    /// @notice Whether the account is a signer on the instruction.
     bool isSigner;
+    /// @notice Whether the account's data may be mutated.
     bool isWritable;
   }
 
+  /// @notice A struct that represents a Solana instruction.
+  /// @dev This structure mirrors Solana's Instruction structure.
   struct SolanaInstruction {
+    /// @notice The program ID that will process this instruction (32-byte address).
     bytes32 programId;
+    /// @notice The accounts involved in this instruction.
     SolanaAccountMeta[] accounts;
+    /// @notice The instruction data (opaque byte array).
     bytes data;
   }
 
+  /// @notice Publishes a message to be sent to the appropriate `SpokeMessageExecutor` on Solana for cross chain
+  /// execution.
+  /// @dev This function encodes the message, publishes it via Wormhole, and emits an event.
+  /// Note that Solana has transaction size limits which are not enforced here.
+  /// @param _payload An encoding of the target wormhole chain id and the Solana instructions to be executed.
   function dispatch(bytes calldata _payload) external payable {
     _checkOwner();
 
