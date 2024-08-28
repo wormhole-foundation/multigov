@@ -57,8 +57,9 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher {
   /// execution.
   /// @dev This function encodes the message, publishes it via Wormhole, and emits an event.
   /// Note that Solana has transaction size limits which are not enforced here.
+  /// No ETH is required or accepted for this operation.
   /// @param _payload An encoding of the target wormhole chain id and the Solana instructions to be executed.
-  function dispatch(bytes calldata _payload) external payable {
+  function dispatch(bytes calldata _payload) external {
     _checkOwner();
 
     (uint16 _wormholeChainId, SolanaInstruction[] memory instructions) =
