@@ -37,6 +37,10 @@ import {
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import * as console from "node:console";
 
+import {
+  signaturesToSolanaArray,
+} from "@wormhole-foundation/wormhole-query-sdk";
+
 let wasm = importedWasm;
 export { wasm };
 
@@ -242,6 +246,13 @@ export class StakeConnection {
       await this.program.account.proposalData.fetch(proposalAccount);
 
     return { proposalAccountData };
+  }
+
+  async fetchGuardianSignaturesData(address: PublicKey) {
+    const guardianSignaturesData =
+      await this.program.account.guardianSignatures.fetch(address);
+
+    return { guardianSignaturesData };
   }
 
   async fetchCheckpointAccount(address: PublicKey) {
@@ -525,6 +536,19 @@ export class StakeConnection {
 
     const currentTimestamp = Math.floor(Date.now() / 1000);
     return proposalAccountWasm.isVotingSafe(BigInt(currentTimestamp));
+  }
+
+  /** Post signatures */
+  public async postSignatures(
+    querySignatures: string[],
+    signaturesKeypair: anchor.web3.Keypair
+  ) {
+    const signatureData = signaturesToSolanaArray(querySignatures);
+    await this.program.methods
+      .postSignatures(signatureData, signatureData.length)
+      .accounts({ guardianSignatures: signaturesKeypair.publicKey })
+      .signers([signaturesKeypair])
+      .rpc();
   }
 
   public async addProposal(

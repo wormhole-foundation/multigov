@@ -16,6 +16,7 @@
     "@solana/spl-token": "^0.4.8",
     "@solana/web3.js": "^1.94.0",
     "@wormhole/staking-wasm": "file:./wasm",
+    "@wormhole-foundation/wormhole-query-sdk": "^0.0.13",
     "binary-install": "^1.1.0",
     "encoding": "^0.1.13",
     "ethers": "^6.10.0",
