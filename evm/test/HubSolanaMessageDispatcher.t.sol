@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
+import {CHAIN_ID_SOLANA} from "wormhole-sdk/Chains.sol";
 import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {WormholeCoreMock} from "test/mocks/WormholeCoreMock.sol";
@@ -11,11 +12,10 @@ contract HubSolanaMessageDispatcherTest is Test, TestConstants {
   HubSolanaMessageDispatcher dispatcher;
   WormholeCoreMock wormholeCoreMock;
 
-  uint8 SOLANA_WORMHOLE_CHAIN_ID = 1;
   uint8 DISPATCH_CONSISTENCY_LEVEL = 0;
 
   function setUp() public virtual {
-    wormholeCoreMock = new WormholeCoreMock(SOLANA_WORMHOLE_CHAIN_ID);
+    wormholeCoreMock = new WormholeCoreMock(CHAIN_ID_SOLANA);
     TimelockControllerFake timelock = TimelockControllerFake(payable(address(this)));
     dispatcher =
       new HubSolanaMessageDispatcher(address(timelock), address(wormholeCoreMock), DISPATCH_CONSISTENCY_LEVEL);
@@ -76,8 +76,8 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
     instructions[0] = _createSolanaInstruction(_programId, _accountPubkeys, _isSigners, _isWritables, _instructionData);
 
     uint256 nextMessageId = dispatcher.nextMessageId();
-    bytes memory payload = abi.encode(SOLANA_WORMHOLE_CHAIN_ID, instructions);
-    bytes memory emittedPayload = abi.encode(nextMessageId, SOLANA_WORMHOLE_CHAIN_ID, instructions);
+    bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
+    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
 
     dispatcher.dispatch(payload);
 
@@ -101,8 +101,8 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
     }
 
     uint256 nextMessageId = dispatcher.nextMessageId();
-    bytes memory payload = abi.encode(SOLANA_WORMHOLE_CHAIN_ID, instructions);
-    bytes memory emittedPayload = abi.encode(nextMessageId, SOLANA_WORMHOLE_CHAIN_ID, instructions);
+    bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
+    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
 
     dispatcher.dispatch(payload);
 
@@ -123,8 +123,8 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
     instructions[0] = _createSolanaInstruction(_programId, _accountPubkeys, _isSigners, _isWritables, _instructionData);
 
     uint256 nextMessageId = dispatcher.nextMessageId();
-    bytes memory payload = abi.encode(SOLANA_WORMHOLE_CHAIN_ID, instructions);
-    bytes memory emittedPayload = abi.encode(nextMessageId, SOLANA_WORMHOLE_CHAIN_ID, instructions);
+    bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
+    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
 
     vm.expectEmit();
     emit HubSolanaMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);
@@ -132,7 +132,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
   }
 
   function testFuzz_RevertIf_InvalidChainId(uint16 _invalidChainId) public {
-    vm.assume(_invalidChainId != SOLANA_WORMHOLE_CHAIN_ID);
+    vm.assume(_invalidChainId != CHAIN_ID_SOLANA);
 
     HubSolanaMessageDispatcher.SolanaInstruction[] memory instructions =
       new HubSolanaMessageDispatcher.SolanaInstruction[](1);
@@ -145,7 +145,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
   function test_RevertIf_EmptyInstructionSet() public {
     HubSolanaMessageDispatcher.SolanaInstruction[] memory instructions =
       new HubSolanaMessageDispatcher.SolanaInstruction[](0);
-    bytes memory payload = abi.encode(SOLANA_WORMHOLE_CHAIN_ID, instructions);
+    bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
 
     vm.expectRevert(HubSolanaMessageDispatcher.EmptyInstructionSet.selector);
     dispatcher.dispatch(payload);

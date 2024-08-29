@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {CHAIN_ID_SOLANA} from "wormhole-sdk/Chains.sol";
 import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
 
 /// @title HubSolanaMessageDispatcher
@@ -10,9 +11,6 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher {
   /// @notice The id for the next message published.
   /// @dev This value is incremented after each successful message dispatch.
   uint256 public nextMessageId = 1;
-
-  /// @notice The Wormhole chain id for Solana.
-  uint8 immutable SOLANA_WORMHOLE_CHAIN_ID = 1;
 
   /// @notice Emitted when a message is dispatched.
   event MessageDispatched(uint256 indexed messageId, bytes payload);
@@ -65,7 +63,7 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher {
     (uint16 _wormholeChainId, SolanaInstruction[] memory instructions) =
       abi.decode(_payload, (uint16, SolanaInstruction[]));
 
-    if (_wormholeChainId != SOLANA_WORMHOLE_CHAIN_ID) revert InvalidChainId();
+    if (_wormholeChainId != CHAIN_ID_SOLANA) revert InvalidChainId();
     if (instructions.length == 0) revert EmptyInstructionSet();
 
     bytes memory payload = abi.encode(nextMessageId, _wormholeChainId, instructions);
