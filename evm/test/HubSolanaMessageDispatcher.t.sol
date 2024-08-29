@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import {Test, console2} from "forge-std/Test.sol";
 import {CHAIN_ID_SOLANA} from "wormhole-sdk/Chains.sol";
 import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
+import {IMessageDispatcher} from "src/interfaces/IMessageDispatcher.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {WormholeCoreMock} from "test/mocks/WormholeCoreMock.sol";
 import {TestConstants} from "test/TestConstants.sol";
@@ -127,7 +128,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
     bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
 
     vm.expectEmit();
-    emit HubSolanaMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);
+    emit IMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);
     dispatcher.dispatch(payload);
   }
 

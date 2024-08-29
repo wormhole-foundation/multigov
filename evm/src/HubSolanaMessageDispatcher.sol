@@ -3,23 +3,24 @@ pragma solidity ^0.8.23;
 
 import {CHAIN_ID_SOLANA} from "wormhole-sdk/Chains.sol";
 import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
+import {IMessageDispatcher} from "src/interfaces/IMessageDispatcher.sol";
 
 /// @title HubSolanaMessageDispatcher
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice A contract that will publish a message that can be relayed to the appropriate `SpokeExecutor` on Solana.
-contract HubSolanaMessageDispatcher is WormholeDispatcher {
+contract HubSolanaMessageDispatcher is WormholeDispatcher, IMessageDispatcher {
   /// @notice The id for the next message published.
   /// @dev This value is incremented after each successful message dispatch.
   uint256 public nextMessageId = 1;
-
-  /// @notice Emitted when a message is dispatched.
-  event MessageDispatched(uint256 indexed messageId, bytes payload);
 
   /// @notice Thrown if the chain id is not Solana.
   error InvalidChainId();
 
   /// @notice Thrown if the instruction set is empty.
   error EmptyInstructionSet();
+
+  /// @notice Thrown if the value is not zero.
+  error InvalidValue();
 
   /// @param _timelock The timelock that will call the hub dispatcher to initiate a cross chain execution.
   /// @param _core The Wormhole contract that will handle publishing the cross chain message.
@@ -57,8 +58,10 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher {
   /// Note that Solana has transaction size limits which are not enforced here.
   /// No ETH is required or accepted for this operation.
   /// @param _payload An encoding of the target wormhole chain id and the Solana instructions to be executed.
-  function dispatch(bytes calldata _payload) external {
+  function dispatch(bytes calldata _payload) external payable {
     _checkOwner();
+
+    if (msg.value > 0) revert InvalidValue();
 
     (uint16 _wormholeChainId, SolanaInstruction[] memory instructions) =
       abi.decode(_payload, (uint16, SolanaInstruction[]));
