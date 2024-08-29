@@ -27,7 +27,7 @@ import BN from "bn.js";
 import { Staking } from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
 import { WHTokenBalance } from "./whTokenBalance";
-import { STAKING_ADDRESS } from "./constants";
+import { STAKING_ADDRESS, CORE_BRIDGE_ADDRESS } from "./constants";
 import * as crypto from "crypto";
 import {
   PriorityFeeConfig,
@@ -40,6 +40,9 @@ import * as console from "node:console";
 import {
   signaturesToSolanaArray,
 } from "@wormhole-foundation/wormhole-query-sdk";
+
+import { deriveGuardianSetKey } from "./helpers/guardianSet";
+import { Keypair } from "@solana/web3.js";
 
 let wasm = importedWasm;
 export { wasm };
@@ -541,7 +544,7 @@ export class StakeConnection {
   /** Post signatures */
   public async postSignatures(
     querySignatures: string[],
-    signaturesKeypair: anchor.web3.Keypair
+    signaturesKeypair: Keypair
   ) {
     const signatureData = signaturesToSolanaArray(querySignatures);
     await this.program.methods
@@ -553,8 +556,9 @@ export class StakeConnection {
 
   public async addProposal(
     proposalId: Buffer,
-    vote_start: BN,
-    safe_window: BN,
+    ethProposalResponseBytes: Uint8Array,
+    guardianSignatures: PublicKey,
+    guardianSetIndex: number
   ): Promise<void> {
     const instructions: TransactionInstruction[] = [];
 
@@ -562,9 +566,14 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .addProposal(Array.from(proposalId), vote_start, safe_window)
+        .addProposal(Buffer.from(ethProposalResponseBytes), Array.from(proposalId), guardianSetIndex)
         .accountsPartial({
           proposal: proposalAccount,
+          guardianSignatures: guardianSignatures,
+          guardianSet: deriveGuardianSetKey(
+            CORE_BRIDGE_ADDRESS,
+            guardianSetIndex
+          )
         })
         .instruction(),
     );

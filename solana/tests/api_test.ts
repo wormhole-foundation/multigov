@@ -12,10 +12,11 @@ import {
 import BN from "bn.js";
 import path from "path";
 import { expectFailApi } from "./utils/utils";
-import { assertBalanceMatches } from "./utils/api_utils";
+import { assertBalanceMatches, createAddProposalTestBytes } from "./utils/api_utils";
 import { WHTokenBalance } from "../app";
 import crypto from 'crypto';
 import {
+  QueryProxyMock,
   signaturesToSolanaArray,
 } from "@wormhole-foundation/wormhole-query-sdk";
 
@@ -103,10 +104,23 @@ describe("api", async () => {
 
   it("addProposal", async () => {
     const proposalId = crypto.createHash('sha256').update('proposalId1').digest();
-    const voteStart = new BN(Math.floor(Date.now() / 1000));
-    const safeWindow = new BN(24 * 60 * 60); // 24 hour
+    const voteStart = Math.floor(Date.now() / 1000);
 
-    await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
+    const ethProposalResponseBytes = createAddProposalTestBytes(proposalId, voteStart);
+    const signaturesKeypair = Keypair.generate();
+    const mock = new QueryProxyMock({});
+    const mockSignatures = mock.sign(
+      ethProposalResponseBytes
+    );
+    await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+    const mockGuardianSetIndex = 5;
+
+    await stakeConnection.addProposal(
+      proposalId,
+      ethProposalResponseBytes,
+      signaturesKeypair.publicKey,
+      mockGuardianSetIndex
+    );
     const { proposalAccountData } =
       await stakeConnection.fetchProposalAccountData(proposalId);
     assert.equal(Buffer.from(proposalAccountData.id).toString('hex'), proposalId.toString('hex'));
@@ -114,6 +128,7 @@ describe("api", async () => {
       proposalAccountData.voteStart.toString(),
       voteStart.toString(),
     );
+    const safeWindow = new BN(24 * 60 * 60); // 24 hour
     assert.equal(
       proposalAccountData.safeWindow.toString(),
       safeWindow.toString(),
@@ -124,11 +139,24 @@ describe("api", async () => {
   });
 
   it("proposalVotes", async () => {
-    const _proposalId = crypto.createHash('sha256').update('proposalId2').digest();
-    const voteStart = new BN(Math.floor(Date.now() / 1000));
-    const safeWindow = new BN(24 * 60 * 60); // 24 hour
+    const proposalIdInput = crypto.createHash('sha256').update('proposalId2').digest();
+    const voteStart = Math.floor(Date.now() / 1000);
 
-    await stakeConnection.addProposal(_proposalId, voteStart, safeWindow);
+    const ethProposalResponseBytes = createAddProposalTestBytes(proposalIdInput, voteStart);
+    const signaturesKeypair = Keypair.generate();
+    const mock = new QueryProxyMock({});
+    const mockSignatures = mock.sign(
+      ethProposalResponseBytes
+    );
+    await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+    const mockGuardianSetIndex = 5;
+
+    await stakeConnection.addProposal(
+      proposalIdInput,
+      ethProposalResponseBytes,
+      signaturesKeypair.publicKey,
+      mockGuardianSetIndex
+    );
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
       await stakeConnection.proposalVotes(_proposalId);
@@ -140,11 +168,24 @@ describe("api", async () => {
   });
 
   it("isVotingSafe", async () => {
-    const proposalId = crypto.createHash('sha256').update('proposalId3').digest();
-    const voteStart = new BN(Math.floor(Date.now() / 1000));
-    const safeWindow = new BN(24 * 60 * 60); // 24 hour
+    const proposalIdInput = crypto.createHash('sha256').update('proposalId3').digest();
+    const voteStart = Math.floor(Date.now() / 1000);
 
-    await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
+    const ethProposalResponseBytes = createAddProposalTestBytes(proposalIdInput, voteStart);
+    const signaturesKeypair = Keypair.generate();
+    const mock = new QueryProxyMock({});
+    const mockSignatures = mock.sign(
+      ethProposalResponseBytes
+    );
+    await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+    const mockGuardianSetIndex = 5;
+
+    await stakeConnection.addProposal(
+      proposalIdInput,
+      ethProposalResponseBytes,
+      signaturesKeypair.publicKey,
+      mockGuardianSetIndex
+    );
 
     assert.equal(await stakeConnection.isVotingSafe(proposalId), true);
   });
@@ -304,12 +345,25 @@ describe("api", async () => {
       WHTokenBalance.fromString("150"),
     );
 
-    const _proposalId = crypto.createHash('sha256').update('proposalId4').digest();
-    const voteStart = new BN(Math.floor(Date.now() / 1000));
-    const safeWindow = new BN(24 * 60 * 60); // 24 hour
+    const proposalIdInput = crypto.createHash('sha256').update('proposalId4').digest();
+    const voteStart = Math.floor(Date.now() / 1000);
 
-    await user2StakeConnection.addProposal(_proposalId, voteStart, safeWindow);
+    const ethProposalResponseBytes = createAddProposalTestBytes(proposalIdInput, voteStart);
+    const signaturesKeypair = Keypair.generate();
+    const mock = new QueryProxyMock({});
+    const mockSignatures = mock.sign(
+      ethProposalResponseBytes
+    );
+    await user2StakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+    const mockGuardianSetIndex = 5;
 
+    await user2StakeConnection.addProposal(
+      proposalIdInput,
+      ethProposalResponseBytes,
+      signaturesKeypair.publicKey,
+      mockGuardianSetIndex
+    );
+    
     await user2StakeConnection.delegate(
       stakeAccountAddress,
       undefined,
@@ -317,21 +371,21 @@ describe("api", async () => {
     );
 
     await user2StakeConnection.castVote(
-      _proposalId,
+      proposalIdInput,
       stakeAccountAddress,
       new BN(10),
       new BN(20),
       new BN(12),
     );
     await user2StakeConnection.castVote(
-      _proposalId,
+      proposalIdInput,
       stakeAccountAddress,
       new BN(10),
       new BN(10),
       new BN(0),
     );
     await user2StakeConnection.castVote(
-      _proposalId,
+      proposalIdInput,
       stakeAccountAddress,
       new BN(0),
       new BN(7),
@@ -339,9 +393,9 @@ describe("api", async () => {
     );
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
-      await user2StakeConnection.proposalVotes(_proposalId);
+      await user2StakeConnection.proposalVotes(proposalIdInput);
 
-    assert.equal(proposalId.toString('hex'), _proposalId.toString('hex'));
+    assert.equal(proposalId.toString('hex'), proposalIdInput.toString('hex'));
     assert.equal(againstVotes.toString(), "20");
     assert.equal(forVotes.toString(), "37");
     assert.equal(abstainVotes.toString(), "22");

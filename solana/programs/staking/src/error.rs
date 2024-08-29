@@ -98,4 +98,6 @@ pub enum ProposalWormholeMessageError {
     ErrorOfVoteStartParsing,
     #[msg("Invalid hub proposal metadata contract")]
     InvalidHubProposalMetadataContract,
+    #[msg("Invalid proposal_id")]
+    InvalidProposalId,
 }

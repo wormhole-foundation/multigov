@@ -182,6 +182,19 @@ export type Staking = {
         {
           "name": "bytes",
           "type": "bytes"
+        },
+        {
+          "name": "proposalId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "guardianSetIndex",
+          "type": "u32"
         }
       ]
     },
@@ -2846,33 +2859,48 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "notFullyVested",
-      "msg": "Not fully vested yet"
+      "name": "failedToParseResponse",
+      "msg": "Failed to parse response"
     },
     {
       "code": 6001,
-      "name": "notInSurplus",
-      "msg": "Vault is not in surplus"
+      "name": "writeAuthorityMismatch",
+      "msg": "Write authority mismatch"
     },
     {
       "code": 6002,
-      "name": "vestingFinalized",
-      "msg": "Vesting finalized"
+      "name": "guardianSetExpired",
+      "msg": "Guardian set expired"
     },
     {
       "code": 6003,
-      "name": "vestingUnfinalized",
-      "msg": "Vesting unfinalized"
+      "name": "invalidMessageHash",
+      "msg": "Invalid message hash"
     },
     {
       "code": 6004,
-      "name": "overflow",
-      "msg": "Integer overflow"
+      "name": "noQuorum",
+      "msg": "No quorum"
     },
     {
       "code": 6005,
-      "name": "underflow",
-      "msg": "Integer underflow"
+      "name": "invalidGuardianIndexNonIncreasing",
+      "msg": "Invalid guardian index non increasing"
+    },
+    {
+      "code": 6006,
+      "name": "invalidGuardianIndexOutOfRange",
+      "msg": "Invalid guardian index out of range"
+    },
+    {
+      "code": 6007,
+      "name": "invalidSignature",
+      "msg": "Invalid signature"
+    },
+    {
+      "code": 6008,
+      "name": "invalidGuardianKeyRecovery",
+      "msg": "Invalid guardian key recovery"
     }
   ],
   "types": [

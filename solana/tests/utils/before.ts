@@ -298,7 +298,7 @@ export function makeDefaultConfig(
 export async function newUserStakeConnection(
   stakeConnection: StakeConnection,
   config: AnchorConfig,
-  whMintAccount: PublicKey,
+  whMintAccount: Keypair,
   whMintAuthority: Keypair,
   amount?: WHTokenBalance,
 ): Promise<StakeConnection> {
@@ -334,11 +334,11 @@ export async function transferSolFromValidatorWallet(
   to: PublicKey,
   amount: number,
 ) {
+  const balance_before = await provider.connection.getBalance(to);
   const payer = provider.wallet.payer;
-
   const transaction = new Transaction().add(
     SystemProgram.transfer({
-      fromPubkey: payer.publicKey,
+      fromPubkey: provider.wallet.publicKey,
       toPubkey: to,
       lamports: amount * LAMPORTS_PER_SOL,
     }),
@@ -347,8 +347,8 @@ export async function transferSolFromValidatorWallet(
     payer,
   ]);
   await provider.connection.confirmTransaction(signature, "confirmed");
-
-  //   console.log(`Successfully transferred ${amount} SOL from ${payer.publicKey.toBase58()} to ${to.toBase58()}`);
+  const balance_after = await provider.connection.getBalance(to);
+  // console.log(`Successfully transferred ${balance_after - balance_before} SOL from ${payer.publicKey.toBase58()} to ${to.toBase58()}`);
 }
 
 /**
@@ -413,6 +413,20 @@ export async function standardSetup(
   await program.methods
     .updateGovernanceAuthority(globalConfig.governanceAuthority)
     .accounts({ governanceSigner: user })
+    .rpc();
+
+  /// Wormhole Hub Chain ID
+  const hubChainId = 1;
+
+  /// Wormhole Hub Proposal Metadata Contract (Ethereum address)
+  const hubProposalMetadata = new Uint8Array([
+    0x69, 0xCB, 0xB9, 0xA5, 0x90, 0x72, 0x66, 0x36, 0x25, 0xA6,
+    0xE3, 0xEB, 0x3A, 0xEE, 0x31, 0xE4, 0x35, 0x21, 0x3F, 0x7B
+  ]);
+
+  await program.methods
+    .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
+    .accounts({ payer: user })
     .rpc();
 
   const connection = getConnection(portNumber);

@@ -185,7 +185,7 @@ pub struct CloseSignatures<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(_bytes: Vec<u8>, guardian_set_index: u32, proposal_id : [u8; 32])]
+#[instruction(_bytes: Vec<u8>, proposal_id : [u8; 32], guardian_set_index: u32)]
 pub struct AddProposal<'info> {
     /// Guardian set used for signature verification.
     #[account(

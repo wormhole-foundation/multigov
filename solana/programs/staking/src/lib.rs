@@ -486,6 +486,8 @@ pub mod staking {
     pub fn add_proposal(
         ctx: Context<AddProposal>,
         bytes: Vec<u8>,
+        proposal_id: [u8; 32],
+        _guardian_set_index: u32
     ) -> Result<()> {
         let response = QueryResponse::deserialize(&bytes)
             .map_err(|_| QueriesSolanaVerifyError::FailedToParseResponse)?;
@@ -515,6 +517,11 @@ pub mod staking {
             require!(
                 proposal_data.contract_address == spoke_metadata_collector.hub_proposal_metadata,
                 ProposalWormholeMessageError::InvalidHubProposalMetadataContract
+            );
+
+            require!(
+                proposal_data.proposal_id == proposal_id,
+                ProposalWormholeMessageError::InvalidProposalId
             );
 
             let proposal = &mut ctx.accounts.proposal;
