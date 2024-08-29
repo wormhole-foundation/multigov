@@ -29,11 +29,6 @@ contract HubSolanaMessageDispatcherTest is Test, TestConstants {
     bool[5] memory _isWritables,
     bytes memory _data
   ) internal pure returns (HubSolanaMessageDispatcher.SolanaInstruction memory) {
-    require(
-      _accountPubkeys.length == _isSigners.length && _accountPubkeys.length == _isWritables.length,
-      "Invalid account data"
-    );
-
     HubSolanaMessageDispatcher.SolanaAccountMeta[] memory accounts =
       new HubSolanaMessageDispatcher.SolanaAccountMeta[](_accountPubkeys.length);
 
