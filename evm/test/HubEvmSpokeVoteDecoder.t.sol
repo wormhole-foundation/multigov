@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
@@ -53,9 +54,8 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
 
     address initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
+    address hubVotePoolOwner = address(timelock);
     token = new ERC20VotesFake();
-
-    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
 
     extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION);
 
@@ -67,13 +67,14 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePoolOwner: address(timelock),
+      hubVotePoolOwner: hubVotePoolOwner,
       wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
     });
 
     hubGovernor = new HubGovernorHarness(params);
+    hubVotePool = new HubVotePoolHarness(address(wormhole), address(hubGovernor), hubVotePoolOwner);
     hubCrossChainEvmVote = new HubEvmSpokeVoteDecoder(address(wormhole), address(hubVotePool));
     hubProposalMetadata = new HubProposalMetadata(address(hubGovernor));
     spokeMetadataCollector =
@@ -252,7 +253,8 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
     bytes memory voteQueryResponseRaw = _buildVoteQueryResponse(proposalId, SPOKE_CHAIN_ID);
     ParsedQueryResponse memory parsedResp =
       hubCrossChainEvmVote.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
-    ISpokeVoteDecoder.QueryVote memory queryVote = hubCrossChainEvmVote.decode(parsedResp.responses[0]);
+    ISpokeVoteDecoder.QueryVote memory queryVote =
+      hubCrossChainEvmVote.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
 
     (uint256 returnedProposalId, uint256 expectedAgainstVotes, uint256 expectedForVotes, uint256 expectedAbstainVotes) =
       spokeVoteAggregator.proposalVotes(queryVote.proposalId);
@@ -278,10 +280,10 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
     ParsedQueryResponse memory parsedResp =
       hubCrossChainEvmVote.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
 
-    assertEq(hubVotePool.spokeRegistry(_queryChainId), bytes32(0), "Spoke should not be registered");
+    assertEq(hubVotePool.getSpoke(_queryChainId, vm.getBlockTimestamp()), bytes32(0), "Spoke should not be registered");
 
     vm.expectRevert(InvalidContractAddress.selector);
-    hubCrossChainEvmVote.decode(parsedResp.responses[0]);
+    hubCrossChainEvmVote.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
   }
 
   function testFuzz_RevertIf_QueryBlockIsNotFinalized(
@@ -345,7 +347,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest, ProposalTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
     ParsedQueryResponse memory parsedResp = hubCrossChainEvmVote.parseAndVerifyQueryResponse(_resp, signatures);
     vm.expectRevert(abi.encodeWithSelector(ISpokeVoteDecoder.InvalidQueryBlock.selector, bytes(blockId)));
-    hubCrossChainEvmVote.decode(parsedResp.responses[0]);
+    hubCrossChainEvmVote.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
   }
 }
 

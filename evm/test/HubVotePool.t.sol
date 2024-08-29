@@ -229,15 +229,34 @@ contract RegisterSpoke is HubVotePoolTest {
     bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.prank(address(timelock));
     hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
-    bytes32 wormholeAddress = hubVotePool.spokeRegistry(_wormholeChainId);
+    bytes32 wormholeAddress = hubVotePool.getSpoke(_wormholeChainId, block.timestamp);
     assertEq(wormholeAddress, spokeWormholeAddress);
+  }
+
+  function testFuzz_RegisterTheSameSpokeMultipleTimes(
+    uint16 _wormholeChainId,
+    address _spokeContract1,
+    address _spokeContract2,
+    uint48 _warp
+  ) public {
+    bytes32 spokeContract2WormholeAddress = addressToBytes32(_spokeContract2);
+    vm.warp(vm.getBlockTimestamp());
+    vm.prank(timelock);
+    hubVotePool.registerSpoke(_wormholeChainId, addressToBytes32(_spokeContract1));
+
+    vm.warp(vm.getBlockTimestamp() + _warp);
+    vm.prank(timelock);
+    hubVotePool.registerSpoke(_wormholeChainId, spokeContract2WormholeAddress);
+
+    bytes32 wormholeAddress = hubVotePool.getSpoke(_wormholeChainId, vm.getBlockTimestamp());
+    assertEq(wormholeAddress, spokeContract2WormholeAddress);
   }
 
   function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(uint16 _wormholeChainId, address _spokeContract) public {
     bytes32 spokeWormholeAddress = addressToBytes32(_spokeContract);
     vm.expectEmit();
     emit HubVotePool.SpokeRegistered(
-      _wormholeChainId, hubVotePool.spokeRegistry(_wormholeChainId), spokeWormholeAddress
+      _wormholeChainId, hubVotePool.getSpoke(_wormholeChainId, block.timestamp), spokeWormholeAddress
     );
     vm.prank(address(timelock));
     hubVotePool.registerSpoke(_wormholeChainId, spokeWormholeAddress);
@@ -265,13 +284,13 @@ contract RegisterSpokes is HubVotePoolTest {
   }
 
   function _assertSpokesRegistered(
-    function(uint16) external view returns (bytes32) spokeRegistryFunc,
+    function(uint16, uint256) external view returns (bytes32) spokeRegistryFunc,
     HubVotePool.SpokeVoteAggregator[] memory _spokeRegistry
   ) internal view {
     for (uint256 i = 0; i < _spokeRegistry.length; i++) {
       uint16 chainId = _spokeRegistry[i].wormholeChainId;
-      bytes32 expectedAddress = addressToBytes32(_spokeRegistry[i].addr);
-      bytes32 storedAddress = spokeRegistryFunc(chainId);
+      bytes32 expectedAddress = _spokeRegistry[i].wormholeAddress;
+      bytes32 storedAddress = spokeRegistryFunc(chainId, block.timestamp);
       assertEq(storedAddress, expectedAddress);
     }
   }
@@ -280,7 +299,7 @@ contract RegisterSpokes is HubVotePoolTest {
     vm.assume(_isUnique(_spokes));
     vm.prank(address(timelock));
     hubVotePool.registerSpokes(_spokes);
-    _assertSpokesRegistered(hubVotePool.spokeRegistry, _spokes);
+    _assertSpokesRegistered(hubVotePool.getSpoke, _spokes);
   }
 
   function testFuzz_CorrectlyEmitsSpokeRegisteredEvent(HubVotePool.SpokeVoteAggregator[] memory _spokes) public {
@@ -289,7 +308,7 @@ contract RegisterSpokes is HubVotePoolTest {
     for (uint256 i = 0; i < _spokes.length; i++) {
       vm.expectEmit();
       emit HubVotePool.SpokeRegistered(
-        _spokes[i].wormholeChainId, addressToBytes32(address(0)), addressToBytes32(_spokes[i].addr)
+        _spokes[i].wormholeChainId, addressToBytes32(address(0)), _spokes[i].wormholeAddress
       );
     }
 
@@ -582,10 +601,13 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     assertEq(governor.support(), 1);
     assertEq(governor.reason(), "rolled-up vote from governance spoke token holders");
     assertEq(
-      governor.params(), abi.encodePacked(_voteParams.againstVotes, _voteParams.forVotes, _voteParams.abstainVotes)
+      governor.params(),
+      abi.encodePacked(
+        uint128(_voteParams.againstVotes), uint128(_voteParams.forVotes), uint128(_voteParams.abstainVotes)
+      )
     );
 
-    (uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
+    (uint256 _againstVotes, uint256 _forVotes, uint256 _abstainVotes) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
     _assertVotesEq(
       _voteParams,
@@ -689,7 +711,7 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     IWormhole.Signature[] memory signatures = _getSignatures(_resp, address(hubVotePool));
     hubVotePool.crossChainVote(_resp, signatures);
 
-    (uint128 againstVotes, uint128 forVotes, uint128 abstainVotes) =
+    (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams1.proposalId)));
 
     assertEq(forVotes, _voteParams2.forVotes);
@@ -768,14 +790,14 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
 
     hubVotePool.crossChainVote(_resp, _getSignatures(_resp, address(hubVotePool)));
 
-    (uint128 againstVotes1, uint128 forVotes1, uint128 abstainVotes1) =
+    (uint256 againstVotes1, uint256 forVotes1, uint256 abstainVotes1) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId, _voteParams.proposalId)));
 
     assertEq(forVotes1, _voteParams.forVotes);
     assertEq(againstVotes1, _voteParams.againstVotes);
     assertEq(abstainVotes1, _voteParams.abstainVotes);
 
-    (uint128 againstVotes2, uint128 forVotes2, uint128 abstainVotes2) =
+    (uint256 againstVotes2, uint256 forVotes2, uint256 abstainVotes2) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId - 1, _voteParams.proposalId)));
 
     assertEq(forVotes2, _voteParams.forVotes);
@@ -800,7 +822,7 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     vm.stopPrank();
 
     _sendCrossChainVote(_voteParams1, _queryChainId1, _spokeContract1);
-    (uint128 _againstVotes1, uint128 _forVotes1, uint128 _abstainVotes1) =
+    (uint256 _againstVotes1, uint256 _forVotes1, uint256 _abstainVotes1) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId1, _voteParams1.proposalId)));
     _assertVotesEq(
       _voteParams1,
@@ -812,7 +834,7 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     );
 
     _sendCrossChainVote(_voteParams2, _queryChainId2, _spokeContract2);
-    (uint128 _againstVotes2, uint128 _forVotes2, uint128 _abstainVotes2) =
+    (uint256 _againstVotes2, uint256 _forVotes2, uint256 _abstainVotes2) =
       hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId2, _voteParams2.proposalId)));
     _assertVotesEq(
       _voteParams2,
@@ -863,9 +885,9 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
         abi.encode(
           _proposalId,
           SpokeCountingFractional.ProposalVote({
-            againstVotes: uint128(_votes),
-            forVotes: uint128(_votes),
-            abstainVotes: uint128(_votes)
+            againstVotes: uint256(_votes),
+            forVotes: uint256(_votes),
+            abstainVotes: uint256(_votes)
           })
         )
       ) // results

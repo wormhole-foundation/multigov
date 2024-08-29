@@ -37,8 +37,8 @@ contract SpokeMetadataCollector is QueryResponse {
   error InvalidQueryBlock(bytes blockId);
   /// @notice Thrown if the proposal already exists on the spoke.
   error ProposalAlreadyExists(uint256 proposalId);
-  /// @notice Thrown if there is more than a single eth call within a query.
-  error TooManyEthCallResults(uint256 queryIndex, uint256 numResults);
+  /// @notice Thrown if there is more than a single parsed query response.
+  error TooManyParsedQueryResponses(uint256 numResults);
 
   /// @notice Emitted when a new proposal is created on the spoke.
   event ProposalCreated(uint256 proposalId, uint256 start);
@@ -59,23 +59,21 @@ contract SpokeMetadataCollector is QueryResponse {
     // Validate the query response signatures
     ParsedQueryResponse memory _queryResponse = parseAndVerifyQueryResponse(_queryResponseRaw, _signatures);
 
+    if (_queryResponse.responses.length != 1) revert TooManyParsedQueryResponses(_queryResponse.responses.length);
     // Validate that the query response is from hub
     ParsedPerChainQueryResponse memory perChainResp = _queryResponse.responses[0];
     _validateChainId(perChainResp.chainId);
 
-    uint256 _numResponses = _queryResponse.responses.length;
+    EthCallWithFinalityQueryResponse memory _ethCall =
+      parseEthCallWithFinalityQueryResponse(_queryResponse.responses[0]);
+    if (keccak256(_ethCall.requestFinality) != keccak256(bytes("finalized"))) {
+      revert InvalidQueryBlock(_ethCall.requestBlockId);
+    }
 
-    for (uint256 i = 0; i < _numResponses; i++) {
-      EthCallWithFinalityQueryResponse memory _ethCalls =
-        parseEthCallWithFinalityQueryResponse(_queryResponse.responses[i]);
-      if (_ethCalls.result.length != 1) revert TooManyEthCallResults(i, _ethCalls.result.length);
-      _validateEthCallData(_ethCalls.result[0]);
-      if (keccak256(_ethCalls.requestFinality) != keccak256(bytes("finalized"))) {
-        revert InvalidQueryBlock(_ethCalls.requestBlockId);
-      }
-
-      _ethCalls.result[0].result.checkLength(64);
-      (uint256 proposalId, uint256 voteStart) = abi.decode(_ethCalls.result[0].result, (uint256, uint256));
+    for (uint256 i = 0; i < _ethCall.result.length; i++) {
+      _validateEthCallData(_ethCall.result[i]);
+      _ethCall.result[i].result.checkLength(64);
+      (uint256 proposalId, uint256 voteStart) = abi.decode(_ethCall.result[i].result, (uint256, uint256));
 
       // If the proposal exists we can revert (prevent overwriting existing proposals with old zeroes)
       if (proposals[proposalId].voteStart != 0) revert ProposalAlreadyExists(proposalId);

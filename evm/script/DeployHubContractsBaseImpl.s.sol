@@ -91,7 +91,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     HubMessageDispatcher hubMessageDispatcher =
       new HubMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
 
-    HubVotePool hubVotePool = gov.hubVotePool();
+    HubVotePool hubVotePool = gov.hubVotePool(uint96(block.timestamp));
 
     // The timelock should be the owner of the hub vote pool
     hubVotePool.transferOwnership(address(timelock));
