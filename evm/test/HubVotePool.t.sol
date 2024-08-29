@@ -495,7 +495,7 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     });
 
     HubGovernorHarness hubGovernor = new HubGovernorHarness(params);
-    HubVotePool hubVotePool = hubGovernor.hubVotePool();
+    HubVotePool hubVotePool = hubGovernor.hubVotePool(uint96(vm.getBlockTimestamp()));
 
     HubEvmSpokeVoteDecoder hubCrossChainEvmVote = new HubEvmSpokeVoteDecoder(address(wormhole), address(hubVotePool));
     HubProposalMetadata hubProposalMetadata = new HubProposalMetadata(address(hubGovernor));
@@ -558,7 +558,7 @@ contract CrossChainVote is HubVotePoolTest, ProposalTest {
     internal
     view
   {
-    (uint128 _againstVotes, uint128 _forVotes, uint128 _abstainVotes) =
+    (uint256 _againstVotes, uint256 _forVotes, uint256 _abstainVotes) =
       _testContracts.hubVotePool.spokeProposalVotes(keccak256(abi.encode(SPOKE_CHAIN_ID, proposalId)));
 
     assertEq(_againstVotes, _voterInfo.voteWeights[0]);
