@@ -53,8 +53,8 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     _setupWormhole();
 
     address initialOwner = makeAddr("Initial Owner");
-    address hubVotePoolOwner = initialOwner;
     timelock = new TimelockControllerFake(initialOwner);
+    address hubVotePoolOwner = address(timelock);
     token = new ERC20VotesFake();
 
     extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION);
@@ -67,7 +67,7 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePoolOwner: address(timelock),
+      hubVotePoolOwner: hubVotePoolOwner,
       wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
