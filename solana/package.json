@@ -1,0 +1,49 @@
+{
+  "name": "@wormhole/staking",
+  "version": "1.1.0",
+  "description": "Wormhole MultiGov Solana Staking SDK",
+  "main": "lib/app/index.js",
+  "types": "lib/app/index.d.ts",
+  "license": "MIT",
+  "files": [
+    "lib",
+    "target/idl",
+    "target/types"
+  ],
+  "repository": "https://github.com/wormhole-foundation/example-multigov/tree/main/solana",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/spl-token": "^0.4.8",
+    "@solana/web3.js": "^1.94.0",
+    "@wormhole/staking-wasm": "file:./wasm",
+    "binary-install": "^1.1.0",
+    "encoding": "^0.1.13",
+    "ethers": "^6.10.0",
+    "rpc-websockets": "^7.11.2",
+    "ts-node": "^10.9.2",
+    "bs58": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.5",
+    "@types/mocha": "^10.0.7",
+    "@types/node": "^22.0.2",
+    "@types/shelljs": "^0.8.15",
+    "axios": "^1.7.2",
+    "chai": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "mocha": "^10.7.0",
+    "prettier": "^3.3.3",
+    "shelljs": "^0.8.5",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.5.4",
+    "wasm-pack": "^0.13.0"
+  },
+  "scripts": {
+    "test": "npm run build_wasm && anchor build -- --features mock-clock && ts-mocha --parallel -p ./tsconfig.json -t 1000000 tests/*.ts",
+    "test:ci": "npm run build_wasm && ./scripts/build_verifiable_staking_program.sh -t && ts-mocha --parallel -p ./tsconfig.json -t 1000000 tests/*.ts",
+    "build": "npm run build_wasm && tsc -p tsconfig.api.json",
+    "build_wasm": "./scripts/build_wasm.sh",
+    "localnet": "anchor build && ts-node ./app/scripts/localnet.ts",
+    "format": "prettier --write 'app/**/*.ts' 'tests/**/*.ts'"
+  }
+}
