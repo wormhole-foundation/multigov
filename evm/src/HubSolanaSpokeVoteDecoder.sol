@@ -17,6 +17,9 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 
+/// @title HubSolanaSpokeVoteDecoder
+/// @author [ScopeLift](https://scopelift.co)
+/// @notice A contract that parses a specific wormhole query type from the Solana `SpokeVoteAggregator`.
 contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   using BytesParsing for bytes;
 
@@ -31,11 +34,18 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   error InvalidDataLength();
   error InvalidQueryCommitment();
 
+  /// @param _core The Wormhole core contract for the hub chain.
+  /// @param _hubVotePool The address for the hub vote pool.
+  /// @param _expectedProgramId The expected Solana program ID
   constructor(address _core, address _hubVotePool, bytes32 _expectedProgramId) QueryResponse(_core) {
     HUB_VOTE_POOL = HubVotePool(_hubVotePool);
     EXPECTED_PROGRAM_ID = _expectedProgramId;
   }
 
+  /// @notice Decodes a parsed per chain query response for a Solana account query containing a spoke vote.
+  /// @param _perChainResp The parsed per chain response.
+  /// @param _governor The governor used to fetch a registered spoke.
+  /// @return The parsed query vote.
   function decode(ParsedPerChainQueryResponse memory _perChainResp, IGovernor _governor)
     external
     view
@@ -52,7 +62,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
     // TODO need to get the solana side to align with the `SpokeVoteAggregator` `proposalVotes` function return type,
     // which includes proposalId
-    uint256 _proposalId = 0;
+    uint256 _proposalId = 0; // This should be updated to get the correct proposal ID
 
     // Solana side returns u64 so doing the same here
     (uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
@@ -70,7 +80,8 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
       QueryVote({
         proposalId: _proposalId,
         spokeProposalId: _spokeProposalId,
-        proposalVote: ProposalVote(uint256(_againstVotes), uint256(_forVotes), uint256(_abstainVotes)),
+        proposalVote: ProposalVote(uint256(_againstVotes), uint256(_forVotes), uint256(_abstainVotes)), // TODO figure
+          // out if any concerns casting u64 to uint256
         chainId: _perChainResp.chainId
       })
     );
@@ -83,14 +94,17 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     return _interfaceId == type(ISpokeVoteDecoder).interfaceId || ERC165.supportsInterface(_interfaceId);
   }
 
+  /// @notice Validates the Solana account data
+  /// @param result The Solana account result to validate
   function _validateSolanaAccountData(SolanaAccountResult memory result) internal view {
-    // Check if the account is owned by the expected program
     if (result.owner != EXPECTED_PROGRAM_ID) revert InvalidProgramId(EXPECTED_PROGRAM_ID);
 
     // Check data length (3 * 8 bytes for three u64 values)
     if (result.data.length != 24) revert InvalidDataLength();
   }
 
+  /// @notice Validates the Solana commitment (similar to finality in EVM)
+  /// @param _solanaAccountQueryRes The Solana account query response to validate
   function _validateSolanaCommitment(SolanaAccountQueryResponse memory _solanaAccountQueryRes) internal pure {
     if (
       keccak256(abi.encodePacked(_solanaAccountQueryRes.requestCommitment)) != keccak256(abi.encodePacked("finalized"))
