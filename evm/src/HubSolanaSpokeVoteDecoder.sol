@@ -99,7 +99,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     if (result.owner != EXPECTED_PROGRAM_ID) revert InvalidProgramId(EXPECTED_PROGRAM_ID);
 
     // Check data length (3 * 8 bytes for three u64 values)
-    if (result.data.length != 24) revert InvalidDataLength();
+    BytesParsing.checkLength(result.data, 24);
   }
 
   /// @notice Validates the Solana commitment (similar to finality in EVM)
