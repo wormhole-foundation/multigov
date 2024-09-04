@@ -9,6 +9,8 @@ import {SpokeMessageExecutor} from "src/SpokeMessageExecutor.sol";
 contract SpokeMessageExecutorV2Fake is SpokeMessageExecutor {
   uint256 public fakeStateVar;
 
+  constructor(address _deployer) SpokeMessageExecutor(_deployer) {}
+
   function initializeFakeV2(uint256 _initialValue) public reinitializer(2) {
     fakeStateVar = _initialValue;
   }

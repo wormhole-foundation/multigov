@@ -14,7 +14,7 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
   bytes32 private constant SPOKE_MESSAGE_EXECUTOR_STORAGE_LOCATION =
     0x9cd702a23e48a2c7d64fcb36b1c29497b466db76f16bb425b36f7a6277814900;
 
-  /// @notice The address of the contract deployer. 
+  /// @notice The address of the contract deployer.
   address public immutable DEPLOYER;
 
   /// @notice Thrown if the executor has already been initialized.
@@ -58,8 +58,8 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
   /// @notice Emitted when a spoke proposal is executed.
   event ProposalExecuted(uint16 emitterChainId, bytes32 emitterAddress, uint256 proposalId);
 
-  constructor() {
-    DEPLOYER = msg.sender;
+  constructor(address _deployer) {
+    DEPLOYER = _deployer;
     _disableInitializers();
   }
 
