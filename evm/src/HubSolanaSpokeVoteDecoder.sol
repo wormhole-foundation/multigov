@@ -35,7 +35,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubVotePool The address for the hub vote pool.
-  /// @param _expectedProgramId The expected Solana program ID
+  /// @param _expectedProgramId The expected Solana program ID.
   constructor(address _core, address _hubVotePool, bytes32 _expectedProgramId) QueryResponse(_core) {
     HUB_VOTE_POOL = HubVotePool(_hubVotePool);
     EXPECTED_PROGRAM_ID = _expectedProgramId;
