@@ -15,7 +15,7 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
     0x9cd702a23e48a2c7d64fcb36b1c29497b466db76f16bb425b36f7a6277814900;
 
   /// @notice The address of the contract deployer
-  address public immutable deployer;
+  address public immutable DEPLOYER;
 
   /// @notice Thrown if the executor has already been initialized.
   error AlreadyInitialized();
@@ -59,7 +59,7 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
   event ProposalExecuted(uint16 emitterChainId, bytes32 emitterAddress, uint256 proposalId);
 
   constructor() {
-    deployer = msg.sender;
+    DEPLOYER = msg.sender;
     _disableInitializers();
   }
 
@@ -71,7 +71,7 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
 
   /// @notice Sets the initial airlock on the spoke message executor.
   function initialize(bytes32 _hubDispatcher, uint16 _hubChainId, address _wormholeCore) public initializer {
-    if (msg.sender != deployer) revert OnlyDeployer();
+    if (msg.sender != DEPLOYER) revert OnlyDeployer();
 
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     $._hubDispatcher = _hubDispatcher;

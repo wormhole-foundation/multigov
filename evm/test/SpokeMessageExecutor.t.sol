@@ -59,7 +59,7 @@ contract Initialize is SpokeMessageExecutorTest {
     assertEq(spokeExecutor.hubChainId(), _hubChainId);
     assertEq(spokeExecutor.spokeChainId(), WORMHOLE_SPOKE_CHAIN);
     assertEq(address(spokeExecutor.wormholeCore()), address(wormholeCoreMock));
-    assertEq(spokeExecutor.deployer(), address(this));
+    assertEq(spokeExecutor.DEPLOYER(), address(this));
   }
 
   function testFuzz_CorrectlyUpgradeToNewImplementation(uint256 _initialValue) public {
