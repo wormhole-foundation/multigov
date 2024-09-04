@@ -59,6 +59,7 @@ contract Initialize is SpokeMessageExecutorTest {
     assertEq(spokeExecutor.hubChainId(), _hubChainId);
     assertEq(spokeExecutor.spokeChainId(), WORMHOLE_SPOKE_CHAIN);
     assertEq(address(spokeExecutor.wormholeCore()), address(wormholeCoreMock));
+    assertEq(spokeExecutor.deployer(), address(this));
   }
 
   function testFuzz_CorrectlyUpgradeToNewImplementation(uint256 _initialValue) public {
@@ -82,6 +83,25 @@ contract Initialize is SpokeMessageExecutorTest {
 
   function testFuzz_RevertIf_CalledTwice(bytes32 _hubDispatcher, uint16 _hubChainId, address _wormholeCore) public {
     vm.expectRevert(Initializable.InvalidInitialization.selector);
+    executor.initialize(_hubDispatcher, _hubChainId, _wormholeCore);
+  }
+
+  function testFuzz_RevertIf_NotDeployer(
+    address _caller,
+    bytes32 _hubDispatcher,
+    uint16 _hubChainId,
+    address _wormholeCore
+  ) public {
+    vm.assume(_caller != address(this));
+
+    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+
+    ERC1967Proxy proxy = new ERC1967Proxy(address(impl), "");
+
+    SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
+
+    vm.prank(_caller);
+    vm.expectRevert(SpokeMessageExecutor.OnlyDeployer.selector);
     executor.initialize(_hubDispatcher, _hubChainId, _wormholeCore);
   }
 }
