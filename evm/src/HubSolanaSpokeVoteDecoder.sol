@@ -12,7 +12,6 @@ import {
   InvalidContractAddress,
   SolanaAccountResult
 } from "wormhole-sdk/QueryResponse.sol";
-import {fromWormholeFormat} from "wormhole-sdk/Utils.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
