@@ -107,7 +107,7 @@ contract Initialize is SpokeMessageExecutorTest {
     SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
 
     vm.prank(_notDeployer);
-    vm.expectRevert(SpokeMessageExecutor.OnlyDeployer.selector);
+    vm.expectRevert(Initializable.InvalidInitialization.selector);
     executor.initialize(_hubDispatcher, _hubChainId, _wormholeCore);
   }
 }

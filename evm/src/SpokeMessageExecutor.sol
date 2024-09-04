@@ -31,8 +31,6 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
   error InvalidWormholeMessage(string reason);
   /// @notice Thrown if the message publisher is an unknown emitter.
   error UnknownMessageEmitter();
-  /// @notice Thrown if the caller is not the deployer.
-  error OnlyDeployer();
 
   /// @custom:storage-location erc7201:multigov.storage.SpokeMessageExecutor
   struct SpokeMessageExecutorStorage {
@@ -71,7 +69,7 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
 
   /// @notice Sets the initial airlock on the spoke message executor.
   function initialize(bytes32 _hubDispatcher, uint16 _hubChainId, address _wormholeCore) public initializer {
-    if (msg.sender != DEPLOYER) revert OnlyDeployer();
+    if (msg.sender != DEPLOYER) revert InvalidInitialization();
 
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     $._hubDispatcher = _hubDispatcher;
