@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import {Test, console} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {
@@ -42,18 +43,12 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
   uint208 public constant INITIAL_QUORUM = 100e18;
   uint256 public constant PROPOSAL_THRESHOLD = 1000e18;
   uint48 public constant VOTE_WEIGHT_WINDOW = 1 days;
-  uint16 public constant HUB_CHAIN_ID = 1;
-  uint16 public constant SPOKE_CHAIN_ID = 2;
+  uint16 public constant HUB_CHAIN_ID = 2; // Mainnet
+  uint16 public constant SPOKE_CHAIN_ID = 1; // Solana
   uint48 public constant VOTE_TIME_EXTENSION = 1 days;
   uint48 public constant MINIMUM_VOTE_EXTENSION = 1 hours;
   bytes32 public constant EXPECTED_PROGRAM_ID = bytes32(uint256(0x1));
-
-  struct VoteData {
-    uint256 proposalId;
-    uint64 againstVotes;
-    uint64 forVotes;
-    uint64 abstainVotes;
-  }
+  uint8 public constant SOLANA_TOKEN_DECIMALS = 6;
 
   function setUp() public {
     _setupWormhole();
@@ -82,28 +77,14 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     hubGovernor = new HubGovernorHarness(params);
     hubVotePool = new HubVotePoolHarness(address(wormhole), address(hubGovernor), hubVotePoolOwner);
     hubSolanaSpokeVoteDecoder =
-      new HubSolanaSpokeVoteDecoder(address(wormhole), address(hubVotePool), EXPECTED_PROGRAM_ID);
+      new HubSolanaSpokeVoteDecoder(address(wormhole), address(hubVotePool), EXPECTED_PROGRAM_ID, SOLANA_TOKEN_DECIMALS);
 
     vm.prank(address(timelock));
-    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, addressToBytes32(address(0x1234))); // Mock Solana program address
+    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, addressToBytes32(address(0x1234))); // Mock Solana program
+      // address
   }
 
-  function _setupSolanaAccountData(uint256 _proposalId, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes)
-    internal
-    view
-    returns (bytes memory accountData)
-  {
-    accountData = abi.encode(
-      _proposalId, // uint256
-      _againstVotes, // uint64
-      _forVotes, // uint64
-      _abstainVotes // uint64
-    );
-
-    console.log("Setup Account Data Length:", accountData.length);
-  }
-
-  function _buildSolanaVoteQueryResponse(bytes32 _programId, uint16 _chainId, VoteData memory _voteParams)
+  function _buildSolanaVoteQueryResponse(bytes32 _programId, uint16 _chainId, bytes memory _voteData)
     internal
     view
     returns (bytes memory)
@@ -114,71 +95,55 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       0, // data_slice_offset
       0, // data_slice_length
       1, // num_accounts
-      abi.encodePacked(_programId) // account
+      abi.encode(_programId) // account
     );
 
-    console.log("Solana Query Length:", solanaQuery.length);
+    bytes memory perChainRequest =
+      QueryTest.buildPerChainRequestBytes(_chainId, hubSolanaSpokeVoteDecoder.QT_SOL_ACCOUNT(), solanaQuery);
 
     bytes memory queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
-      VERSION,
+      VERSION, // version
       0, // nonce
       1, // num per chain requests
-      QueryTest.buildPerChainRequestBytes(_chainId, hubSolanaSpokeVoteDecoder.QT_SOL_ACCOUNT(), solanaQuery)
+      perChainRequest
     );
 
-    console.log("Query Request Bytes Length:", queryRequestBytes.length);
-
-    bytes memory accountData = _setupSolanaAccountData(
-      _voteParams.proposalId, _voteParams.againstVotes, _voteParams.forVotes, _voteParams.abstainVotes
+    bytes memory solanaAccountResult = QueryTest.buildEthCallResultBytes(
+      abi.encode(
+        uint64(1000), // lamports (8 bytes)
+        uint64(0), // rent_epoch (8 bytes)
+        bool(true), // executable (1 byte)
+        _programId, // owner (32 bytes)
+        uint32(_voteData.length), // data length (4 bytes)
+        _voteData // account data
+      )
     );
 
-    console.log("Account Data Length:", accountData.length);
-
-    bytes memory solanaResp = _buildSolanaAccountResponseBytes(_programId, accountData);
-
-    console.log("Solana Response Length:", solanaResp.length);
-
-    bytes memory fullResponse = QueryTest.buildQueryResponseBytes(
-      VERSION,
-      OFF_CHAIN_SENDER,
-      abi.encodePacked(OFF_CHAIN_SIGNATURE),
-      queryRequestBytes,
-      1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(_chainId, hubSolanaSpokeVoteDecoder.QT_SOL_ACCOUNT(), solanaResp)
-    );
-
-    console.log("Full Query Response Length:", fullResponse.length);
-
-    return fullResponse;
-  }
-
-  function _buildSolanaAccountResponseBytes(bytes32 _programId, bytes memory _accountData)
-    internal
-    view
-    returns (bytes memory)
-  {
-    bytes memory solanaAccountData = abi.encode(
-      uint64(1000), // lamports (8 bytes)
-      uint64(0), // rent_epoch (8 bytes)
-      uint8(1), // executable (1 byte {true})
-      _programId, // owner (32 bytes)
-      uint32(_accountData.length), // data length (4 bytes)
-      _accountData // account data (variable length)
-    );
-
-    console.log("Solana Account Data Length:", solanaAccountData.length);
-
-    bytes memory response = QueryTest.buildSolanaAccountResponseBytes(
+    bytes memory resp = QueryTest.buildSolanaAccountResponseBytes(
       uint64(vm.getBlockNumber()), // slot_number
       uint64(vm.getBlockTimestamp()) * 1000, // block_time microseconds
       blockhash(vm.getBlockNumber()), // block_hash
       1, // num_results
-      QueryTest.buildEthCallResultBytes(solanaAccountData)
+      solanaAccountResult
     );
 
-    console.log("Full Response Length:", response.length);
+    bytes memory fullResponse = QueryTest.buildQueryResponseBytes(
+      VERSION,
+      OFF_CHAIN_SENDER,
+      OFF_CHAIN_SIGNATURE,
+      queryRequestBytes,
+      1, // num per chain responses
+      QueryTest.buildPerChainResponseBytes(_chainId, hubSolanaSpokeVoteDecoder.QT_SOL_ACCOUNT(), resp)
+    );
 
-    return response;
+    console.log("Solana Query Length:", solanaQuery.length);
+    console.log("Per Chain Request Length:", perChainRequest.length);
+    console.log("Query Request Bytes Length:", queryRequestBytes.length);
+    console.log("Solana Account Result Length:", solanaAccountResult.length);
+    console.log("Response Length:", resp.length);
+    console.log("Full Response Length:", fullResponse.length);
+
+    return fullResponse;
   }
 
   function _getSignatures(bytes memory _resp) internal view returns (IWormhole.Signature[] memory) {
@@ -190,36 +155,36 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
 }
 
 contract Constructor is HubSolanaSpokeVoteDecoderTest {
-  function testFuzz_CorrectlySetConstructorArgs(address _core, address _hubVotePool, bytes32 _expectedProgramId) public {
+  function testFuzz_CorrectlySetConstructorArgs(address _core, bytes32 _expectedProgramId, uint8 _solanaTokenDecimals)
+    public
+  {
     vm.assume(_core != address(0));
-    HubSolanaSpokeVoteDecoder voteDecoder = new HubSolanaSpokeVoteDecoder(_core, _hubVotePool, _expectedProgramId);
+    HubSolanaSpokeVoteDecoder voteDecoder =
+      new HubSolanaSpokeVoteDecoder(_core, address(hubVotePool), _expectedProgramId, _solanaTokenDecimals);
     assertEq(address(voteDecoder.wormhole()), _core);
-    assertEq(address(voteDecoder.HUB_VOTE_POOL()), _hubVotePool);
+    assertEq(address(voteDecoder.HUB_VOTE_POOL()), address(hubVotePool));
     assertEq(voteDecoder.EXPECTED_PROGRAM_ID(), _expectedProgramId);
+    assertEq(voteDecoder.HUB_TOKEN_DECIMALS(), IERC20Metadata(address(hubGovernor.token())).decimals());
+    assertEq(voteDecoder.SOLANA_TOKEN_DECIMALS(), _solanaTokenDecimals);
   }
 }
 
 contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
-  function testFuzz_CorrectlyParseChainResponse(uint256 _proposalId) public {
-    console.log("ProposalId:", _proposalId);
+  function _scale(uint256 _amount) internal view returns (uint256) {
+    return _amount
+      * (10 ** (hubSolanaSpokeVoteDecoder.HUB_TOKEN_DECIMALS() - hubSolanaSpokeVoteDecoder.SOLANA_TOKEN_DECIMALS()));
+  }
 
+  function testFuzz_CorrectlyParseChainResponseNice(uint256 _proposalId) public {
     _setGovernor(hubGovernor);
 
-    VoteData memory voteData = VoteData({proposalId: _proposalId, againstVotes: 100, forVotes: 200, abstainVotes: 50});
+    bytes memory voteData = abi.encode(_proposalId, uint64(100), uint64(200), uint64(50));
 
-    console.log("Building Solana Vote Query Response");
     bytes memory voteQueryResponseRaw = _buildSolanaVoteQueryResponse(EXPECTED_PROGRAM_ID, SPOKE_CHAIN_ID, voteData);
 
-    console.log("Parsing and Verifying Query Response");
     ParsedQueryResponse memory parsedResp =
       hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
 
-    console.log("Number of responses:", parsedResp.responses.length);
-    console.log("ChainId of first response:", parsedResp.responses[0].chainId);
-    console.log("QueryType of first response:", parsedResp.responses[0].queryType);
-    console.log("Length of response data:", parsedResp.responses[0].response.length);
-
-    console.log("Decoding Query Response");
     ISpokeVoteDecoder.QueryVote memory queryVote =
       hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
 
@@ -227,9 +192,9 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     assertEq(
       queryVote.spokeProposalId, keccak256(abi.encode(SPOKE_CHAIN_ID, _proposalId)), "Spoke proposal ID mismatch"
     );
-    assertEq(queryVote.proposalVote.abstainVotes, 50, "Abstain votes mismatch");
-    assertEq(queryVote.proposalVote.againstVotes, 100, "Against votes mismatch");
-    assertEq(queryVote.proposalVote.forVotes, 200, "For votes mismatch");
+    assertEq(queryVote.proposalVote.abstainVotes, _scale(50), "Abstain votes mismatch");
+    assertEq(queryVote.proposalVote.againstVotes, _scale(100), "Against votes mismatch");
+    assertEq(queryVote.proposalVote.forVotes, _scale(200), "For votes mismatch");
     assertEq(queryVote.chainId, SPOKE_CHAIN_ID, "Chain ID mismatch");
   }
 
