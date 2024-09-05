@@ -5,6 +5,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {QueryResponse} from "wormhole-sdk/QueryResponse.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {
   QueryResponse,
   ParsedPerChainQueryResponse,
@@ -13,6 +14,7 @@ import {
   SolanaAccountResult
 } from "wormhole-sdk/QueryResponse.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
+import {HubGovernor} from "src/HubGovernor.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 
@@ -28,6 +30,12 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @notice The expected program id for the Solana program.
   bytes32 public EXPECTED_PROGRAM_ID;
 
+  /// @notice The decimals of the token on the hub
+  uint8 public HUB_TOKEN_DECIMALS;
+
+  /// @notice The decimals of the token on solana
+  uint8 public SOLANA_TOKEN_DECIMALS;
+
   error TooManySolanaAccountResults(uint256 resultsLength);
   error InvalidProgramId(bytes32 expectedProgramId);
   error InvalidDataLength();
@@ -36,9 +44,15 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubVotePool The address for the hub vote pool.
   /// @param _expectedProgramId The expected Solana program ID.
-  constructor(address _core, address _hubVotePool, bytes32 _expectedProgramId) QueryResponse(_core) {
+  constructor(address _core, address _hubVotePool, bytes32 _expectedProgramId, uint8 _solanaTokenDecimals)
+    QueryResponse(_core)
+  {
     HUB_VOTE_POOL = HubVotePool(_hubVotePool);
     EXPECTED_PROGRAM_ID = _expectedProgramId;
+    SOLANA_TOKEN_DECIMALS = _solanaTokenDecimals;
+
+    HubGovernor governor = HubGovernor(payable(address(HUB_VOTE_POOL.hubGovernor())));
+    HUB_TOKEN_DECIMALS = IERC20Metadata(address(governor.token())).decimals();
   }
 
   /// @notice Decodes a parsed per chain query response for a Solana account query containing a spoke vote.
@@ -63,9 +77,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     (uint256 _proposalId, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
       abi.decode(_solanaAccountQueryRes.results[0].data, (uint256, uint64, uint64, uint64));
 
-    // TODO scale up to destination token decimals from from destination token decimals
-    // ie: w has 18 decimals on mainnet, so we need to scale up to 18 decimals from solana decimals, which is 6
-
     uint256 _voteStart = _governor.proposalSnapshot(_proposalId);
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);
 
@@ -73,13 +84,16 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
       revert InvalidContractAddress();
     }
 
+    uint256 _againstVotesScaled = _scale(_againstVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
+    uint256 _forVotesScaled = _scale(_forVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
+    uint256 _abstainVotesScaled = _scale(_abstainVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
+
     bytes32 _spokeProposalId = keccak256(abi.encode(_perChainResp.chainId, _proposalId));
     return (
       QueryVote({
         proposalId: _proposalId,
         spokeProposalId: _spokeProposalId,
-        proposalVote: ProposalVote(uint256(_againstVotes), uint256(_forVotes), uint256(_abstainVotes)), // TODO figure
-          // out if any concerns casting u64 to uint256
+        proposalVote: ProposalVote(_againstVotesScaled, _forVotesScaled, _abstainVotesScaled),
         chainId: _perChainResp.chainId
       })
     );
@@ -109,5 +123,17 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     if (
       keccak256(abi.encodePacked(_solanaAccountQueryRes.requestCommitment)) != keccak256(abi.encodePacked("finalized"))
     ) revert InvalidQueryCommitment();
+  }
+
+  /// @notice Scales an amount from original decimals to target decimals
+  /// @param amount The amount to scale
+  /// @param fromDecimals The original decimals
+  /// @param toDecimals The target decimals
+  /// @return The scaled amount
+  function _scale(uint256 amount, uint8 fromDecimals, uint8 toDecimals) internal pure returns (uint256) {
+    if (fromDecimals == toDecimals) return amount;
+
+    if (fromDecimals > toDecimals) return amount / (10 ** (fromDecimals - toDecimals));
+    else return amount * (10 ** (toDecimals - fromDecimals));
   }
 }
