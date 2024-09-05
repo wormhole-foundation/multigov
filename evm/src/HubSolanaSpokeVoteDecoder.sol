@@ -59,13 +59,12 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     _validateSolanaAccountData(_solanaAccountQueryRes.results[0]);
     _validateSolanaCommitment(_solanaAccountQueryRes);
 
-    // TODO need to get the solana side to align with the `SpokeVoteAggregator` `proposalVotes` function return type,
-    // which includes proposalId
-    uint256 _proposalId = 0; // This should be updated to get the correct proposal ID
-
     // Solana side returns u64 so doing the same here
-    (uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
-      abi.decode(_solanaAccountQueryRes.results[0].data, (uint64, uint64, uint64));
+    (uint256 _proposalId, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
+      abi.decode(_solanaAccountQueryRes.results[0].data, (uint256, uint64, uint64, uint64));
+
+    // TODO scale up to destination token decimals from from destination token decimals
+    // ie: w has 18 decimals on mainnet, so we need to scale up to 18 decimals from solana decimals, which is 6
 
     uint256 _voteStart = _governor.proposalSnapshot(_proposalId);
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);
@@ -98,8 +97,10 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   function _validateSolanaAccountData(SolanaAccountResult memory result) internal view {
     if (result.owner != EXPECTED_PROGRAM_ID) revert InvalidProgramId(EXPECTED_PROGRAM_ID);
 
-    // Check data length (3 * 8 bytes for three u64 values)
-    BytesParsing.checkLength(result.data, 24);
+    // Check data length (32 bytes for uint256 + 3 * 8 bytes for three uint64 values)
+    // TODO this will need to be updated to handle the proposalId type changes from the solana side (currently a u64,
+    // but needs to be a uint256-like type)
+    BytesParsing.checkLength(result.data, 56);
   }
 
   /// @notice Validates the Solana commitment (similar to finality in EVM)
