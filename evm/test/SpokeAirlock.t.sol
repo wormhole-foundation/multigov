@@ -22,7 +22,9 @@ contract SpokeAirlockTest is Test {
 
   function setUp() public {
     token = new ERC20VotesFake();
-    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+    address deployer = makeAddr("Deployer");
+    SpokeMessageExecutor impl = new SpokeMessageExecutor(deployer);
+    vm.prank(deployer);
     ERC1967Proxy proxy = new ERC1967Proxy(
       address(impl),
       abi.encodeCall(

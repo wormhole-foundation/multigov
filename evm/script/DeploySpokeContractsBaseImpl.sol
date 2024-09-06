@@ -48,7 +48,7 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     SpokeVoteAggregator aggregator =
       new SpokeVoteAggregator(address(spokeMetadataCollector), config.votingToken, wallet.addr, config.voteWeightWindow);
 
-    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+    SpokeMessageExecutor impl = new SpokeMessageExecutor(wallet.addr);
     ERC1967Proxy proxy = new ERC1967Proxy(
       address(impl),
       abi.encodeCall(SpokeMessageExecutor.initialize, (config.hubDispatcher, config.hubChainId, config.wormholeCore))
