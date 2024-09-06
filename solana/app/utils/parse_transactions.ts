@@ -91,11 +91,13 @@ export async function printTransactionDetails(
     );
 
     console.log("\nLog Messages:");
+
     transaction.meta?.logMessages?.forEach((log, index) => {
       console.log(`${index + 1}. ${log}`);
     });
 
     console.log("\nToken Balances:");
+
     transaction.meta?.postTokenBalances?.forEach((balance, index) => {
       console.log(`Account ${index + 1}:`);
       console.log(`  Mint: ${balance.mint}`);
@@ -103,6 +105,7 @@ export async function printTransactionDetails(
       console.log(`  Balance: ${balance.uiTokenAmount.uiAmount}`);
     });
   } catch (error) {
+
     console.error("Error fetching transaction details:", error);
   }
 }

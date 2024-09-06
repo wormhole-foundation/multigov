@@ -3,12 +3,16 @@ pragma solidity ^0.8.23;
 
 import {WormholeMock} from "wormhole-sdk/testing/helpers/WormholeMock.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
-import {Structs} from "wormhole/Structs.sol";
 
 contract WormholeCoreMock is WormholeMock {
   uint32 public ghostPublishMessageNonce;
   bytes public ghostPublishMessagePayload;
   uint8 public ghostPublishMessageConsistencyLevel;
+  uint16 public override chainId;
+
+  constructor(uint16 _chainId) {
+    chainId = _chainId;
+  }
 
   function publishMessage(uint32 _nonce, bytes memory _payload, uint8 _consistencyLevel)
     public
@@ -24,7 +28,7 @@ contract WormholeCoreMock is WormholeMock {
 
   function parseAndVerifyVM(bytes calldata encodedVM)
     external
-    view
+    pure
     override
     returns (IWormhole.VM memory vm, bool valid, string memory reason)
   {

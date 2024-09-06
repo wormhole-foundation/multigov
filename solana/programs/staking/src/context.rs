@@ -82,6 +82,7 @@ pub struct Delegate<'info> {
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Box<Account<'info, global_config::GlobalConfig>>,
+
     #[account()]
     pub vesting_balance: Option<Account<'info, VestingBalance>>,
 

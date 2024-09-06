@@ -1,159 +1,150 @@
-# ScopeLift Foundry Template
+# Multi-Gov: Cross chain governance
 
-An opinionated template for [Foundry](https://github.com/foundry-rs/foundry) projects.
+<img src="https://images.mirror-media.xyz/publication-images/grskvQ60nNHI7hYKz4UuA.png?height=783&width=1566"/>
 
-_**Please read the full README before using this template.**_
+- [About](#about)
+- [Architecture](#architecture)
+- [Development](#development)
+- [License](#license)
 
-- [Usage](#usage)
-- [Overview](#overview)
-  - [`foundry.toml`](#foundrytoml)
-  - [CI](#ci)
-  - [Test Structure](#test-structure)
-- [Configuration](#configuration)
-  - [Coverage](#coverage)
-  - [Slither](#slither)
-  - [GitHub Code Scanning](#github-code-scanning)
+## About
 
-## Usage
+Multi-Gov is an extension of the OpenZeppelin Governor contracts that allows token holders to maintain their voting rights after bridging their tokens to another chain.
 
-To use this template, use one of the below approaches:
+## Architecture
 
-1. Run `forge init --template ScopeLift/foundry-template` in an empty directory.
-2. Click [here](https://github.com/ScopeLift/foundry-template/generate) to generate a new repository from this template.
-3. Click the "Use this template" button from this repo's [home page](https://github.com/ScopeLift/foundry-template).
+### Summary
 
-It's also recommend to install [scopelint](https://github.com/ScopeLift/scopelint), which is used in CI.
-You can run this locally with `scopelint fmt` and `scopelint check`.
-Note that these are supersets of `forge fmt` and `forge fmt --check`, so you do not need to run those forge commands when using scopelint.
+Broadly, the system is comprised of smart contracts that live on a single hub network (e.g. Ethereum mainnet) and many spoke networks (e.g. Optimism, Arbitrum, etc.). The hub network is the center of governance, where proposals are created, voted on, and executed. But token holders on spoke networks are also able to participate in governance, by voting with their bridged governance token. These votes accumulate on a `SpokeVoteAggregator` contract, and then get relayed back to the `HubGovernor` for inclusion in the proposal vote. The MultiGov infrastructure deployed on these spoke chains is governed by the hub, and the hub can get messages to the spokes via the `HubMessageDispatcher`. Other key crosschain components are a `SpokeMetadataCollector` which retrieves Hub proposal data via query, and a `HubEvmSpokeAggregateProposer` which enables voters to use their delegated vote weight (summing over one or multiple spokes) to meet proposal threshold and create a proposal.
 
-## Overview
+### Component summary: Hub
 
-This template is designed to be a simple but powerful configuration for Foundry projects, that aims to help you follow Solidity and Foundry [best practices](https://book.getfoundry.sh/tutorials/best-practices)
-Writing secure contracts is hard, so it ships with strict defaults that you can loosen as needed.
+#### HubGovernor
 
-### `foundry.toml`
+The DAO's central governance contract. It handles managing proposals and tallying votes for a given proposal.
 
-The `foundry.toml` config file comes with:
+#### HubGovernorProposalExtender
 
-- A `fmt` configuration.
-- `default`, `lite`, and `ci` profiles.
+A deployed extension contract to the `HubGovernor` that is owned by the `HubGovernor`. It allows an actor trusted by Wormhole governance to extend the vote end of a proposal. This contract cannot be updated in the system without updating the `HubGovernor`.
 
-Both of these can of course be modified.
-The `default` and `ci` profiles use the same solc build settings, which are intended to be the production settings, but the `ci` profile is configured to run deeper fuzz and invariant tests.
-The `lite` profile turns the optimizer off, which is useful for speeding up compilation times during development.
+#### HubProposalMetadata
 
-It's recommended to keep the solidity configuration of the `default` and `ci` profiles in sync, to avoid accidentally deploying contracts with suboptimal configuration settings when running `forge script`.
-This means you can change the solc settings in the `default` profile and the `lite` profile, but never for the `ci` profile.
+A helper contract that returns both the proposalId and the vote start for a given proposal on the `HubGovernor`. A `SpokeMetadataCollector` will use this helper contract to query proposal data from the Hub.
 
-Note that the `foundry.toml` file is formatted using [Taplo](https://taplo.tamasfe.dev/) via `scopelint fmt`.
+#### HubVotePool
 
-### CI
+This contract receives aggregated votes from each spoke via query, and casts this vote on the` HubGovernor`. Vote query responses are expected to be submitted via crank-turn at regular intervals during the voting period.
 
-Robust CI is also included, with a GitHub Actions workflow that does the following:
+#### HubEvmSpokeVoteDecoder
 
-- Runs tests with the `ci` profile.
-- Verifies contracts are within the [size limit](https://eips.ethereum.org/EIPS/eip-170) of 24576 bytes.
-- Runs `forge coverage` and verifies a minimum coverage threshold is met.
-- Runs `slither`, integrated with GitHub's [code scanning](https://docs.github.com/en/code-security/code-scanning). See the [Configuration](#configuration) section to learn more.
+A contract that parses and decodes the data for an EVM spoke vote. The spoke vote will be registered and submitted with the "eth call with finality" query type. This is registered with the id of a specific query type on the `HubVotePool`.
 
-The CI also runs [scopelint](https://github.com/ScopeLift/scopelint) to verify formatting and best practices:
+#### HubMessageDispatcher
 
-- Checks that Solidity and TOML files have been formatted.
-  - Solidity checks use the `foundry.toml` config.
-  - Currently the TOML formatting cannot be customized.
-- Validates test names follow a convention of `test(Fork)?(Fuzz)?_(Revert(If_|When_){1})?\w{1,}`. [^naming-convention]
-- Validates constants and immutables are in `ALL_CAPS`.
-- Validates internal functions in `src/` start with a leading underscore.
-- Validates function names and visibility in forge scripts to 1 public `run` method per script. [^script-abi]
+This is the contract used to relay proposal execution to a spoke or spokes. A proposal can encode a call to this contract, which in turn forwards calldata to a `SpokeMessageExecutor` on a specific spoke. The proposal will be sent to the spoke using specialized relaying and can be retried until the proposal is executed successfully.
 
-Note that the foundry-toolchain GitHub Action will cache RPC responses in CI by default, and it will also update the cache when you update your fork tests.
+#### HubEvmSpokeAggregateProposer
 
-### Test Structure
+A contract that allows an address with voting weight across multiple chains to aggregate their weight in order to create a proposal. If the aggregated weight is greater than the proposal threshold then the proposal will be created. This contract can be changed through a governance proposal and currently does not rely on outside state.
 
-The test structure is configured to follow recommended [best practices](https://book.getfoundry.sh/tutorials/best-practices).
-It's strongly recommended to read that document, as it covers a range of aspects.
-Consequently, the test structure is as follows:
+### Component summary: Spoke
 
-- The core protocol deploy script is `script/Deploy.sol`.
-  This deploys the contracts and saves their addresses to storage variables.
-- The tests inherit from this deploy script and execute `Deploy.run()` in their `setUp` method.
-  This has the effect of running all tests against your deploy script, giving confidence that your deploy script is correct.
-- Each test contract serves as `describe` block to unit test a function, e.g. `contract Increment` to test the `increment` function.
+#### SpokeMetadataCollector
 
-## Configuration
+This contract receives proposal data from the hub's `HubProposalMetadata` via an "eth call with finality" query. The `SpokeVoteAggregator` will rely on this proposal data as it receives votes on the spoke for a given proposal.
 
-After creating a new repository from this template, make sure to set any desired [branch protections](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/about-protected-branches) on your repo.
+#### SpokeVoteAggregator
 
-### Coverage
+A contract that allows token holders on the spoke to cast votes on proposals. These votes will be queried from the hub's `HubVotePool`. This contract should be owned by the spoke airlock.
 
-The [`ci.yml`](.github/workflows/ci.yml) has `coverage` configured by default, and contains comments explaining how to modify the configuration.
-It uses:
-The [lcov] CLI tool to filter out the `test/` and `script/` folders from the coverage report.
+#### SpokeMessageExecutor
 
-- The [romeovs/lcov-reporter-action](https://github.com/romeovs/lcov-reporter-action) action to post a detailed coverage report to the PR. Subsequent commits on the same branch will automatically delete stale coverage comments and post new ones.
-- The [zgosalvez/github-actions-report-lcov](https://github.com/zgosalvez/github-actions-report-lcov) action to fail coverage if a minimum coverage threshold is not met.
+This contract receives the calldata for any proposal that came from the hub down to this spoke via a specialized relayer message. This call will then get forwarded to the `SpokeAirlock` for execution.
 
-Be aware of foundry's current coverage limitations:
+#### SpokeAirlock
 
-- You cannot filter files/folders from `forge` directly, so `lcov` is used to do this.
-- `forge coverage` always runs with the optimizer off and without via-ir, so if you need either of these to compile you will not be able to run coverage.
+This contract can be thought of as governance's "admin" on the spoke, with important permissions and its own treasury. This is similar to how most DAOs have a "timelock" with all permissions and funds, except there's no execution queue here.
 
-Remember not to optimize for coverage, but to optimize for [well thought-out tests](https://book.getfoundry.sh/tutorials/best-practices?highlight=coverage#best-practices-1).
+### Governance upgrade paths for key contracts
 
-### Slither
+- `HubGovernor`:
+  1. A new `HubGovernor` contract will need to be deployed.
+  2. The admin of the timelock must be changed from the old governor to the new governor.
+  3. Multi gov will need to be redeployed for the new governor.
+- `HubVotePool`: A new contract must be deployed that reads the state from the old `HubVotePool` vote state at a given timestamp and then all of the spoke vote aggregators must be registered on the new hub vote pool.
+- `SpokeVoteAggregator`: A new spoke vote aggregator will need to be deployed which must be able to read the vote totals for any active proposals at the timestamp of the new deploy. The new spoke vote aggregator must be registered on the `HubVotePool`.
+- `SpokeMessageExecutor`: Deploy a new contract and then update the hub dispatcher to call the new spoke message executor.
 
-In [`ci.yml`](.github/workflows/ci.yml), you'll notice Slither is configured as follows:
+### Diagram
 
-```yml
-slither-args: --filter-paths "./lib|./test" --exclude naming-convention,solc-version
+This diagram represents the architecture of the current implementation.
+
+```mermaid
+flowchart TD
+    subgraph Hub Chain
+    A(HubGovernor)
+    E(HubVotePool)
+    F(HubProposalMetadata)
+    J(TimelockController)
+    H(HubMessageDispatcher)
+    X(HubGovernorProposalExtender)
+    Y(HubEvmSpokeVoteDecoder)
+Z(HubEvmSpokeAggregateProposer)
+    E ---> |Cast Vote| A
+    F ------> |Fetch Proposal|A
+    A ----> |Execute proposal| J
+    J ----> |Forwards cross-chain proposal| H
+    X --> |Extends proposal| A
+    Y ------> |Decodes query| E
+    Z --> |Proposes| A
+    end
+    subgraph Spoke Chain 1
+     B(SpokeMetadataCollector)
+     C(SpokeVoteAggregator)
+     G(SpokeMessageExecutor)
+     I(Airlock)
+     F --> |Queries proposal| B
+     C --> |Send spoke vote| E
+     C -----> |Fetch proposal metadata| B
+     H --> |Send proposal| G
+     G --> |Execute proposal| I
+     Z ----> |Queries voting weight| C
+    end
+    subgraph Spoke Chain 2
+     B2(SpokeMetadataCollector)
+     C2(SpokeVoteAggregator)
+     G2(SpokeMessageExecutor)
+     I2(Airlock)
+     F --> |Queries proposal| B2
+     C2 --> |Send spoke vote| E
+     C2 -----> |Fetch proposal metadata| B2
+     H --> |Send proposal| G2
+     G2 --> |Execute proposal| I2
+     Z --> |Queries voting weight| C2
+    end
 ```
 
-This means Slither is not run on the `lib` or `test` folders, and the [`naming-convention`](https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions) and [solc-version](https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity) checks are disabled.
+## Development
 
-This `slither-args` field is where you can change the Slither configuration for your project, and the defaults above can of course be changed.
+### EVM
 
-Notice that Slither will run against `script/` by default.
-Carefully written and tested scripts are key to ensuring complex deployment and scripting pipelines execute as planned, but you are free to disable Slither checks on the scripts folder if it feels like overkill for your use case.
+#### Getting Started
 
-For more information on configuration Slither, see [the documentation](https://github.com/crytic/slither/wiki/Usage). For more information on configuring the slither action, see the [slither-action](https://github.com/crytic/slither-action) repo.
+This repo is built using [Foundry](https://github.com/foundry-rs/foundry).
 
-### GitHub Code Scanning
+1. [Install Foundry](https://github.com/foundry-rs/foundry)
+2. Install dependencies with `make install-evm`
 
-As mentioned, the Slither CI step is integrated with GitHub's [code scanning](https://docs.github.com/en/code-security/code-scanning) feature.
-This means when your jobs execute, you'll see two related checks:
+#### Development
 
-1. `CI / slither-analyze`
-2. `Code scanning results / Slither`
+- Copy the evm/env.sample file to evm/.env and replace the RPC_URLs with your own endpoints.
+- Build contracts with `make build-evm`.
+- Run tests with `make test-evm`.
 
-The first check is the actual Slither analysis.
-You'll notice in the [`ci.yml`](.github/workflows/ci.yml) file that this check has a configuration of `fail-on: none`.
-This means this step will _never_ fail CI, no matter how many findings there are or what their severity is.
-Instead, this check outputs the findings to a SARIF file[^sarif] to be used in the next check.
+#### Deployment
 
-The second check is the GitHub code scanning check.
-The `slither-analyze` job uploads the SARIF report to GitHub, which is then analyzed by GitHub's code scanning feature in this step.
-This is the check that will fail CI if there are Slither findings.
+For information regarding scripts to accomplish contract deployment, see the evm/scripts folder and the [scripts section of the foundry book](https://book.getfoundry.sh/reference/forge/forge-script).
 
-By default when you create a repository, only alerts with the severity level of `Error` will cause a pull request check failure, and checks will succeed with alerts of lower severities.
-However, you can [configure](https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#defining-the-severities-causing-pull-request-check-failure) which level of slither results cause PR check failures.
+## License
 
-It's recommended to conservatively set the failure level to `Any` to start, and to reduce the failure level if you are unable to sufficiently tune Slither or find it to be too noisy.
-
-Findings are shown directly on the PR, as well as in your repo's "Security" tab, under the "Code scanning" section.
-Alerts that are dismissed are remembered by GitHub, and will not be shown again on future PRs.
-
-Note that code scanning integration [only works](https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/setting-up-code-scanning-for-a-repository) for public repos, or private repos with GitHub Enterprise Cloud and a license for GitHub Advanced Security.
-If you have a private repo and don't want to purchase a license, the best option is probably to:
-
-- Remove the `Upload SARIF file` step from CI.
-- Change the `Run Slither` step to `fail-on` whichever level you like, and remove the `sarif` output.
-- Use [triage mode](https://github.com/crytic/slither/wiki/Usage#triage-mode) locally and commit the resulting `slither.db.json` file, and make sure CI has access to that file.
-
-[^naming-convention]:
-    A rigorous test naming convention is important for ensuring that tests are easy to understand and maintain, while also making filtering much easier.
-    For example, one benefit is filtering out all reverting tests when generating gas reports.
-
-[^script-abi]: Limiting scripts to a single public method makes it easier to understand a script's purpose, and facilitates composability of simple, atomic scripts.
-[^sarif]:
-    [SARIF](https://sarifweb.azurewebsites.net/) (Static Analysis Results Interchange Format) is an industry standard for static analysis results.
-    You can read learn more about SARIF [here](https://github.com/microsoft/sarif-tutorials) and read about GitHub's SARIF support [here](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning).
+This repo is licensed under the [Apache 2 license](./LICENSE).

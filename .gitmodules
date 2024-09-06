@@ -10,9 +10,9 @@
 [submodule "evm/lib/openzeppelin-contracts-4"]
 	path = evm/lib/openzeppelin-contracts-4
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "evm/lib/flexible-voting"]
-	path = evm/lib/flexible-voting
-	url = https://github.com/ScopeLift/flexible-voting
 [submodule "evm/lib/wormhole-solidity-sdk"]
 	path = evm/lib/wormhole-solidity-sdk
-	url = https://github.com/alexkeating/wormhole-solidity-sdk
+	url = https://github.com/wormhole-foundation/wormhole-solidity-sdk
+[submodule "evm/lib/openzeppelin-contracts-upgradeable"]
+	path = evm/lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable

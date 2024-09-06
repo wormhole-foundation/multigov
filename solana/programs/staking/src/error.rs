@@ -53,3 +53,4 @@ pub enum VestingError {
     #[msg("Integer underflow")]
     Underflow,
 }
+

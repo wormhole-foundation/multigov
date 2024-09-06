@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity 0.8.23;
 
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 abstract contract SpokeCountingFractional {
   struct ProposalVote {
-    uint128 againstVotes;
-    uint128 forVotes;
-    uint128 abstainVotes;
+    uint256 againstVotes;
+    uint256 forVotes;
+    uint256 abstainVotes;
   }
 
   /**
@@ -31,7 +30,6 @@ abstract contract SpokeCountingFractional {
    * has cast on that proposal, e.g. _proposalVotersWeightCast[42][0xBEEF]
    * would tell you the number of votes that 0xBEEF has cast on proposal 42.
    */
-  // Made both of these internal
   mapping(uint256 => mapping(address => uint128)) internal _proposalVotersWeightCast;
 
   /**
@@ -61,14 +59,14 @@ abstract contract SpokeCountingFractional {
   /**
    * @dev Accessor to the internal vote counts.
    */
-  function proposalVotes(uint256 proposalId)
+  function proposalVotes(uint256 _proposalId)
     public
     view
     virtual
-    returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes)
+    returns (uint256 proposalId, uint256 againstVotes, uint256 forVotes, uint256 abstainVotes)
   {
-    ProposalVote storage proposalVote = _proposalVotes[proposalId];
-    return (proposalVote.againstVotes, proposalVote.forVotes, proposalVote.abstainVotes);
+    ProposalVote storage _proposalVote = _proposalVotes[_proposalId];
+    return (_proposalId, _proposalVote.againstVotes, _proposalVote.forVotes, _proposalVote.abstainVotes);
   }
 
   /**

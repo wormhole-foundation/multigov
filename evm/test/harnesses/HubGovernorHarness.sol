@@ -1,33 +1,10 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-
 import {HubGovernor} from "src/HubGovernor.sol";
 
 contract HubGovernorHarness is HubGovernor {
-  constructor(
-    string memory _name,
-    IVotes _token,
-    TimelockController _timelock,
-    uint48 _initialVotingDelay,
-    uint32 _initialVotingPeriod,
-    uint256 _initialProposalThreshold,
-    uint208 _initialQuorum,
-    address _hubVotePool
-  )
-    HubGovernor(
-      _name,
-      _token,
-      _timelock,
-      _initialVotingDelay,
-      _initialVotingPeriod,
-      _initialProposalThreshold,
-      _initialQuorum,
-      _hubVotePool
-    )
-  {}
+  constructor(HubGovernor.ConstructorParams memory params) HubGovernor(params) {}
 
   function exposed_setQuorum(uint208 _amount) public {
     _setQuorum(_amount);
@@ -43,11 +20,23 @@ contract HubGovernorHarness is HubGovernor {
     _countVote(_proposalId, _account, _support, _totalWeight, _voteData);
   }
 
-  function exposed_enableTrustedAddress(address _trustedAddress) public {
-    _enableTrustedVotingAddress(_trustedAddress);
+  function exposed_setHubVotePool(address _hubVotePool) public {
+    _setHubVotePool(_hubVotePool);
   }
 
-  function exposed_setTrustedProposer(address _proposer) public {
-    _setTrustedProposer(_proposer);
+  function exposed_setWhitelistedProposer(address _proposer) public {
+    _setWhitelistedProposer(_proposer);
+  }
+
+  function exposed_getVotes(address _account, uint256 _timepoint) public view returns (uint256) {
+    return _getVotes(_account, _timepoint, bytes(""));
+  }
+
+  function exposed_setVoteWeightWindow(uint48 _num) public {
+    _setVoteWeightWindow(_num);
+  }
+
+  function exposed_setVotingPeriod(uint32 _newVotingPeriod) public {
+    _setVotingPeriod(_newVotingPeriod);
   }
 }

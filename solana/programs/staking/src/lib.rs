@@ -11,11 +11,13 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
 use contexts::*;
+
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
 mod context;
 mod contexts;
+
 mod error;
 mod state;
 mod utils;

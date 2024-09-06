@@ -190,6 +190,7 @@ describe("api", async () => {
       await stakeConnection.getMainAccountAddress(owner);
     let stakeAccount =
       await stakeConnection.loadStakeAccount(stakeAccountAddress);
+
     assert.equal(
       stakeAccount.tokenBalance.toString(),
       "130000000", // 130 * 10**6

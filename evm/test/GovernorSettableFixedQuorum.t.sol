@@ -3,7 +3,6 @@ pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
 import {GovernorSettableFixedQuorumFakeHarness} from "test/harnesses/GovernorSettableFixedQuorumFakeHarness.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
@@ -89,9 +88,10 @@ contract SetQuorum is GovernorSettableFixedQuorumTest {
   function testFuzz_SetMultipleQuorumValues(
     uint208 _firstQuorum,
     uint208 _secondQuorum,
-    string memory _proposalDescriptionFirst,
-    string memory _proposalDescriptionSecond
+    uint256 _proposalDescriptionFirst,
+    uint256 _proposalDescriptionSecond
   ) public {
+    vm.assume(_proposalDescriptionFirst != _proposalDescriptionSecond);
     // Quorum values must be uint128 because of the way _countVotes is implemented to handle overflow
     _firstQuorum = uint128(bound(_firstQuorum, 0, type(uint128).max - 1));
     _secondQuorum = uint128(bound(_secondQuorum, 0, type(uint128).max - 1));
@@ -100,23 +100,24 @@ contract SetQuorum is GovernorSettableFixedQuorumTest {
 
     ProposalBuilder firstBuilder = _createSetQuorumProposal(_firstQuorum);
     _queueAndVoteAndExecuteProposal(
-      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), _proposalDescriptionFirst
+      firstBuilder.targets(), firstBuilder.values(), firstBuilder.calldatas(), vm.toString(_proposalDescriptionFirst)
     );
 
-    uint256 betweenProposalsTimestamp = block.timestamp + 1;
+    uint256 betweenProposalsTimestamp = uint256(block.timestamp + 1);
     assertEq(governor.quorum(betweenProposalsTimestamp), _firstQuorum);
 
     ProposalBuilder secondBuilder = _createSetQuorumProposal(_secondQuorum);
-
-    // Mint and delegate to the first delegate an amount to pass the first quorum
     _mintAndDelegate(delegates[0], _firstQuorum);
 
     _queueAndVoteAndExecuteProposal(
-      secondBuilder.targets(), secondBuilder.values(), secondBuilder.calldatas(), _proposalDescriptionSecond
+      secondBuilder.targets(),
+      secondBuilder.values(),
+      secondBuilder.calldatas(),
+      vm.toString(_proposalDescriptionSecond)
     );
 
     assertEq(governor.quorum(block.timestamp), _secondQuorum);
-    assertEq(governor.quorum(betweenProposalsTimestamp), _firstQuorum);
+    assertEq(governor.quorum(block.timestamp - 2), _firstQuorum);
   }
 
   function testFuzz_EmitsQuorumUpdatedEvent(uint208 _quorum, string memory _proposalDescription) public {
