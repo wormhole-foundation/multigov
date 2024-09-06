@@ -24,7 +24,10 @@ contract SpokeMessageExecutorTest is Test {
 
   function setUp() public {
     token = new ERC20VotesFake();
-    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+    address deployer = makeAddr("Deployer");
+
+    SpokeMessageExecutor impl = new SpokeMessageExecutor(deployer);
+    vm.prank(deployer);
     ERC1967Proxy proxy = new ERC1967Proxy(
       address(impl),
       abi.encodeCall(
@@ -32,7 +35,6 @@ contract SpokeMessageExecutorTest is Test {
         (bytes32(uint256(uint160(hubDispatcher))), WORMHOLE_HUB_CHAIN, address(wormholeCoreMock))
       )
     );
-
     executor = SpokeMessageExecutor(address(proxy));
     airlock = executor.airlock();
   }
@@ -46,8 +48,9 @@ contract SpokeMessageExecutorTest is Test {
 }
 
 contract Initialize is SpokeMessageExecutorTest {
-  function testFuzz_CorrectlyInitialize(bytes32 _hubDispatcher, uint16 _hubChainId) public {
-    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+  function testFuzz_CorrectlyInitialize(address _deployer, bytes32 _hubDispatcher, uint16 _hubChainId) public {
+    SpokeMessageExecutor impl = new SpokeMessageExecutor(_deployer);
+    vm.prank(_deployer);
     ERC1967Proxy proxy = new ERC1967Proxy(
       address(impl),
       abi.encodeCall(SpokeMessageExecutor.initialize, (_hubDispatcher, _hubChainId, address(wormholeCoreMock)))
@@ -59,10 +62,11 @@ contract Initialize is SpokeMessageExecutorTest {
     assertEq(spokeExecutor.hubChainId(), _hubChainId);
     assertEq(spokeExecutor.spokeChainId(), WORMHOLE_SPOKE_CHAIN);
     assertEq(address(spokeExecutor.wormholeCore()), address(wormholeCoreMock));
+    assertEq(spokeExecutor.DEPLOYER(), _deployer);
   }
 
-  function testFuzz_CorrectlyUpgradeToNewImplementation(uint256 _initialValue) public {
-    SpokeMessageExecutorV2Fake impl = new SpokeMessageExecutorV2Fake();
+  function testFuzz_CorrectlyUpgradeToNewImplementation(address _deployer, uint256 _initialValue) public {
+    SpokeMessageExecutorV2Fake impl = new SpokeMessageExecutorV2Fake(_deployer);
     vm.prank(address(airlock));
     executor.upgradeToAndCall(
       address(impl), abi.encodeCall(SpokeMessageExecutorV2Fake.initializeFakeV2, (_initialValue))
@@ -70,9 +74,11 @@ contract Initialize is SpokeMessageExecutorTest {
     assertEq(SpokeMessageExecutorV2Fake(address(executor)).fakeStateVar(), _initialValue);
   }
 
-  function testFuzz_RevertIf_AirlockDoesNotInitiateUpgrade(uint256 _initialValue, address _caller) public {
+  function testFuzz_RevertIf_AirlockDoesNotInitiateUpgrade(address _deployer, uint256 _initialValue, address _caller)
+    public
+  {
     vm.assume(_caller != address(airlock));
-    SpokeMessageExecutorV2Fake impl = new SpokeMessageExecutorV2Fake();
+    SpokeMessageExecutorV2Fake impl = new SpokeMessageExecutorV2Fake(_deployer);
     vm.prank(_caller);
     vm.expectRevert(SpokeMessageExecutor.InvalidCaller.selector);
     executor.upgradeToAndCall(
@@ -81,6 +87,26 @@ contract Initialize is SpokeMessageExecutorTest {
   }
 
   function testFuzz_RevertIf_CalledTwice(bytes32 _hubDispatcher, uint16 _hubChainId, address _wormholeCore) public {
+    vm.expectRevert(Initializable.InvalidInitialization.selector);
+    executor.initialize(_hubDispatcher, _hubChainId, _wormholeCore);
+  }
+
+  function testFuzz_RevertIf_NotDeployer(
+    address _deployer,
+    address _notDeployer,
+    bytes32 _hubDispatcher,
+    uint16 _hubChainId,
+    address _wormholeCore
+  ) public {
+    vm.assume(_notDeployer != _deployer);
+    SpokeMessageExecutor impl = new SpokeMessageExecutor(_deployer);
+
+    vm.prank(_deployer);
+    ERC1967Proxy proxy = new ERC1967Proxy(address(impl), "");
+
+    SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
+
+    vm.prank(_notDeployer);
     vm.expectRevert(Initializable.InvalidInitialization.selector);
     executor.initialize(_hubDispatcher, _hubChainId, _wormholeCore);
   }
@@ -196,7 +222,7 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
   }
 
   function testFuzz_ReceiveMessageEmitsProposalExecutedEvent(
-    uint32 _timestamp,
+    address _deployer,
     uint256 _messageId,
     uint16 _emitterChainId,
     address _emitterChainAddress
@@ -204,7 +230,8 @@ contract ReceiveMessage is SpokeMessageExecutorTest {
     // build simple proposal
     address account = makeAddr("Token holder");
     ProposalBuilder builder = _createMintProposal(account, 1);
-    SpokeMessageExecutor impl = new SpokeMessageExecutor();
+    SpokeMessageExecutor impl = new SpokeMessageExecutor(_deployer);
+    vm.prank(_deployer);
     ERC1967Proxy proxy = new ERC1967Proxy(
       address(impl),
       abi.encodeCall(
