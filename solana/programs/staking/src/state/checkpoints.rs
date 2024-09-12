@@ -3,15 +3,13 @@ use anchor_lang::prelude::*;
 use bytemuck::{Pod, Zeroable};
 use std::fmt::Debug;
 
-pub const MAX_CHECKPOINTS: usize = 32;
+pub const MAX_CHECKPOINTS: usize = 420000;
 pub const CHECKPOINT_BUFFER_SIZE: usize = 24;
 
 #[repr(C)]
 #[derive(Copy, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct Checkpoints([[u8; CHECKPOINT_BUFFER_SIZE]; MAX_CHECKPOINTS]);
 
-unsafe impl Zeroable for Checkpoints {}
-unsafe impl Pod for Checkpoints {}
 
 impl Checkpoints {
     pub fn get(&self, index: usize) -> Option<&[u8; CHECKPOINT_BUFFER_SIZE]> {
@@ -23,7 +21,7 @@ impl Checkpoints {
     }
 }
 
-#[account(zero_copy)]
+#[account(zero_copy(unsafe))]
 #[repr(C)]
 pub struct CheckpointData {
     pub owner: Pubkey,

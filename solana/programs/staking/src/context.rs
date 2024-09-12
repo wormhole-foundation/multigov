@@ -6,7 +6,9 @@ use anchor_lang::{
         self, keccak, program_memory::sol_memcpy, secp256k1_recover::secp256k1_recover,
     },
 };
+use anchor_lang::solana_program::slot_history::Check;
 use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
+use crate::state::checkpoints::CheckpointData;
 
 use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 
@@ -24,6 +26,7 @@ use wormhole_raw_vaas::{utils::quorum, GuardianSetSig};
 pub const AUTHORITY_SEED: &str = "authority";
 pub const CUSTODY_SEED: &str = "custody";
 pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
+pub const CHECKPOINT_DATA_SEED: &str = "owner";
 pub const CONFIG_SEED: &str = "config";
 pub const PROPOSAL_SEED: &str = "proposal";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
@@ -367,7 +370,7 @@ pub struct CreateStakeAccount<'info> {
     pub payer: Signer<'info>,
 
     // Stake program accounts:
-    #[account(zero)]
+    #[account(mut)]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(init, payer = payer, space = stake_account::StakeAccountMetadata::LEN, seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
@@ -502,6 +505,21 @@ pub struct RecoverAccount<'info> {
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeCheckpointData<'info> {
+    #[account(
+        init,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), signer.key().as_ref()],
+        bump,
+        payer = signer,
+        space = 10 * (1024 as usize)
+    )]
+    pub checkpoint_data: AccountLoader<'info, CheckpointData>,
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]

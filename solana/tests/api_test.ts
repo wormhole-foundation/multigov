@@ -363,7 +363,7 @@ describe("api", async () => {
       signaturesKeypair.publicKey,
       mockGuardianSetIndex
     );
-    
+
     await user2StakeConnection.delegate(
       stakeAccountAddress,
       undefined,

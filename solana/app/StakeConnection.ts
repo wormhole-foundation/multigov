@@ -351,41 +351,35 @@ export class StakeConnection {
     instructions: TransactionInstruction[],
     owner: PublicKey,
   ): Promise<PublicKey> {
-    const nonce = crypto.randomBytes(16).toString("hex");
-    const stakeAccountAddress = await PublicKey.createWithSeed(
-      this.userPublicKey(),
-      nonce,
-      this.program.programId,
-    );
-    //     console.log("nonce:", nonce)
-    //     console.log("stakeAccountAddress:", stakeAccountAddress)
 
-    instructions.push(
-      SystemProgram.createAccountWithSeed({
-        fromPubkey: this.userPublicKey(),
-        newAccountPubkey: stakeAccountAddress,
-        basePubkey: this.userPublicKey(),
-        seed: nonce,
-        lamports:
-          await this.program.provider.connection.getMinimumBalanceForRentExemption(
-            wasm.Constants.CHECKPOINT_DATA_SIZE(),
-          ),
-        space: wasm.Constants.CHECKPOINT_DATA_SIZE(),
-        programId: this.program.programId,
-      }),
-    );
+    const checkpointDataAddress = PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+          owner.toBuffer(),
+        ],
+        this.program.programId,
+    )[0];
+
+
+    await this.sendAndConfirmAsVersionedTransaction([await this.program.methods
+        .initializeCheckpointData()
+        .accounts({
+          checkpointData: checkpointDataAddress,
+        })
+        .instruction()]);
+
 
     instructions.push(
       await this.program.methods
         .createStakeAccount(owner)
         .accounts({
-          stakeAccountCheckpoints: stakeAccountAddress,
+          stakeAccountCheckpoints: checkpointDataAddress,
           mint: this.config.whTokenMint,
         })
         .instruction(),
     );
 
-    return stakeAccountAddress;
+    return checkpointDataAddress;
   }
 
   public async isLlcMember(stakeAccount: PublicKey) {
@@ -463,9 +457,9 @@ export class StakeConnection {
       delegateeStakeAccount = currentDelegateStakeAccount;
     }
 
-    if (!stakeAccount || !(await this.isLlcMember(stakeAccount))) {
-      await this.withJoinDaoLlc(instructions, currentStakeAccount);
-    }
+    // if (!stakeAccount || !(await this.isLlcMember(stakeAccount))) {
+    //   await this.withJoinDaoLlc(instructions, currentStakeAccount);
+    // }
 
     if (amount.toBN().gt(new BN(0))) {
       instructions.push(
