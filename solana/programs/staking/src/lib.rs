@@ -13,7 +13,7 @@ use context::*;
 use contexts::*;
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
-use state::checkpoints::{find_checkpoint_le, read_checkpoint_at_index, resize_account, write_checkpoint_at_index, Checkpoint, CheckpointData};
+use state::checkpoints::{find_checkpoint_le, read_checkpoint_at_index, resize_account, write_checkpoint_at_index,update_delegate_checkpoint, Checkpoint, CheckpointData, Operation};
 
 
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
@@ -138,13 +138,13 @@ pub mod staking {
 
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
-        
+
         if let Some(vesting_balance) = &ctx.accounts.vesting_balance {
             stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
         } else {
             stake_account_metadata.recorded_vesting_balance = 0;
         }
-        
+
         let current_delegate = stake_account_metadata.delegate;
         stake_account_metadata.delegate = delegatee;
 
@@ -166,103 +166,30 @@ emit!(DelegateChanged {
                 let current_delegate_checkpoints_account_info =
                     ctx.accounts.current_delegate_stake_account_checkpoints.to_account_info();
 
-                // Step 1: Immutable borrow to get latest_index and latest_checkpoint
-                let latest_index = {
-                    let checkpoint_data = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
-                    checkpoint_data.next_index - 1
-                };
-
-                let latest_checkpoint = read_checkpoint_at_index(
+                update_delegate_checkpoint(
+                    &mut ctx.accounts.current_delegate_stake_account_checkpoints,
                     &current_delegate_checkpoints_account_info,
-                    latest_index as usize,
-                )?;
-
-                let mut current_index = latest_index;
-
-                if latest_checkpoint.timestamp != current_timestamp {
-                    // Step 2: Mutable borrow to update next_index and resize if needed
-                    {
-                        let mut checkpoint_data =
-                            ctx.accounts.current_delegate_stake_account_checkpoints.load_mut()?;
-                        checkpoint_data.next_index += 1;
-                        current_index = checkpoint_data.next_index;
-
-                        let required_size = 8
-                            + CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
-                            + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
-
-                        if required_size > current_delegate_checkpoints_account_info.data_len() {
-                            resize_account(
-                                &current_delegate_checkpoints_account_info,
-                                &ctx.accounts.payer.to_account_info(),
-                                &ctx.accounts.system_program.to_account_info(),
-                                required_size,
-                            )?;
-                        }
-                    } // Mutable borrow ends here
-                }
-
-                let new_checkpoint = Checkpoint {
-                    timestamp: current_timestamp,
-                    value: latest_checkpoint.value - total_balance,
-                };
-
-                write_checkpoint_at_index(
-                    &current_delegate_checkpoints_account_info,
-                    current_index as usize,
-                    &new_checkpoint,
+                    total_balance,
+                    Operation::Subtract,
+                    current_timestamp,
+                    &ctx.accounts.payer.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
                 )?;
             }
 
             if delegatee != Pubkey::default() {
+                msg!("delegatee != Pubkey::default() ");
                 let delegatee_checkpoints_account_info =
                     ctx.accounts.delegatee_stake_account_checkpoints.to_account_info();
 
-                // Step 1: Immutable borrow to get latest_index and latest_checkpoint
-                let latest_index = {
-                    let checkpoint_data = ctx.accounts.delegatee_stake_account_checkpoints.load()?;
-                    checkpoint_data.next_index - 1
-                };
-
-                let latest_checkpoint = read_checkpoint_at_index(
+                update_delegate_checkpoint(
+                    &mut ctx.accounts.delegatee_stake_account_checkpoints,
                     &delegatee_checkpoints_account_info,
-                    latest_index as usize,
-                )?;
-
-                let mut current_index = latest_index;
-
-                if latest_checkpoint.timestamp != current_timestamp {
-                    // Step 2: Mutable borrow to update next_index and resize if needed
-                    {
-                        let mut checkpoint_data =
-                            ctx.accounts.delegatee_stake_account_checkpoints.load_mut()?;
-                        checkpoint_data.next_index += 1;
-                        current_index = checkpoint_data.next_index;
-
-                        let required_size = 8
-                            + CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
-                            + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
-
-                        if required_size > delegatee_checkpoints_account_info.data_len() {
-                            resize_account(
-                                &delegatee_checkpoints_account_info,
-                                &ctx.accounts.payer.to_account_info(),
-                                &ctx.accounts.system_program.to_account_info(),
-                                required_size,
-                            )?;
-                        }
-                    } // Mutable borrow ends here
-                }
-
-                let new_checkpoint = Checkpoint {
-                    timestamp: current_timestamp,
-                    value: latest_checkpoint.value + current_stake_balance,
-                };
-
-                write_checkpoint_at_index(
-                    &delegatee_checkpoints_account_info,
-                    current_index as usize,
-                    &new_checkpoint,
+                    current_stake_balance,
+                    Operation::Add,
+                    current_timestamp,
+                    &ctx.accounts.payer.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
                 )?;
             }
 
@@ -274,61 +201,28 @@ emit!(DelegateChanged {
                 let delegatee_checkpoints_account_info =
                     ctx.accounts.delegatee_stake_account_checkpoints.to_account_info();
 
-                // Step 1: Immutable borrow to get latest_index and latest_checkpoint
-                let latest_index = {
-                    let checkpoint_data = ctx.accounts.delegatee_stake_account_checkpoints.load()?;
-                    checkpoint_data.next_index - 1
+                let (amount_delta, operation) = if current_stake_balance > total_balance {
+                    (current_stake_balance - total_balance, Operation::Add)
+                } else {
+                    (total_balance - current_stake_balance, Operation::Subtract)
                 };
 
-                let latest_checkpoint = read_checkpoint_at_index(
+                update_delegate_checkpoint(
+                    &mut ctx.accounts.delegatee_stake_account_checkpoints,
                     &delegatee_checkpoints_account_info,
-                    latest_index as usize,
-                )?;
-
-                let mut current_index = latest_index;
-
-                if latest_checkpoint.timestamp != current_timestamp {
-                    // Step 2: Mutable borrow to update next_index and resize if needed
-                    {
-                        let mut checkpoint_data =
-                            ctx.accounts.delegatee_stake_account_checkpoints.load_mut()?;
-                        checkpoint_data.next_index += 1;
-                        current_index = checkpoint_data.next_index;
-
-                        let required_size = 8
-                            + CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
-                            + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
-
-                        if required_size > delegatee_checkpoints_account_info.data_len() {
-                            resize_account(
-                                &delegatee_checkpoints_account_info,
-                                &ctx.accounts.payer.to_account_info(),
-                                &ctx.accounts.system_program.to_account_info(),
-                                required_size,
-                            )?;
-                        }
-                    } // Mutable borrow ends here
-                }
-
-                let new_checkpoint = Checkpoint {
-                    timestamp: current_timestamp,
-                    value: latest_checkpoint.value + current_stake_balance - total_balance,
-                };
-
-                write_checkpoint_at_index(
-                    &delegatee_checkpoints_account_info,
-                    current_index as usize,
-                    &new_checkpoint,
+                    amount_delta,
+                    operation,
+                    current_timestamp,
+                    &ctx.accounts.payer.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
                 )?;
 
                 stake_account_metadata.recorded_balance = current_stake_balance;
             }
         }
-        
+
         Ok(())
     }
-
-
 
 
     pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, amount: u64) -> Result<()> {
@@ -450,10 +344,10 @@ emit!(DelegateChanged {
     }
 
     /** Recovers a user's `stake account` ownership by transferring ownership
-     * from a token account to the `owner` of that token account.
-     *
-     * This functionality addresses the scenario where a user mistakenly
-     * created a stake account using their token account address as the owner.
+           * from a token account to the `owner` of that token account.
+           *
+           * This functionality addresses the scenario where a user mistakenly
+           * created a stake account using their token account address as the owner.
      */
     pub fn recover_account(ctx: Context<RecoverAccount>) -> Result<()> {
         // Check that there aren't any staked tokens in the account.

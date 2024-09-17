@@ -25,12 +25,12 @@ impl CheckpointData {
     pub const CHECKPOINT_SIZE: usize = 16;
     pub const CHECKPOINT_DATA_HEADER_SIZE: usize = 40;
 
-    pub const LEN: usize = 80; // 8 + 32 + 8 + 8
+    pub const LEN: usize = 1024; // 8 + 32 + 8 + 8
 
 
     pub fn initialize(&mut self, owner: &Pubkey) {
         self.owner = *owner;
-        self.next_index = 1;
+        self.next_index = 0;
     }
 }
 
@@ -102,6 +102,79 @@ pub fn read_checkpoint_at_index(
     let checkpoint_bytes = &data[offset..offset + element_size];
     let checkpoint = Checkpoint::try_from_slice(checkpoint_bytes).map_err(|_| ProgramError::InvalidAccountData)?;
     Ok(checkpoint)
+}
+
+pub enum Operation {
+    Add,
+    Subtract,
+}
+pub fn update_delegate_checkpoint<'info>(
+    checkpoints_loader: &mut AccountLoader<'info, CheckpointData>,
+    checkpoints_account_info: &AccountInfo<'info>,
+    amount_delta: u64,
+    operation: Operation,
+    current_timestamp: u64,
+    payer_account_info: &AccountInfo<'info>,
+    system_program_account_info: &AccountInfo<'info>,
+) -> Result<()> {
+    // Step 1: Immutable borrow to get latest_index and latest_checkpoint
+    let latest_index = {
+        let checkpoint_data = checkpoints_loader.load()?;
+        if checkpoint_data.next_index == 0 { 0 } else {
+            checkpoint_data.next_index - 1
+        }
+    };
+
+    let latest_checkpoint = read_checkpoint_at_index(
+        checkpoints_account_info,
+        latest_index as usize,
+    )?;
+
+    let mut current_index = latest_index;
+
+    if latest_checkpoint.timestamp != current_timestamp {
+        // Step 2: Mutable borrow to update next_index and resize if needed
+        {
+            let mut checkpoint_data = checkpoints_loader.load_mut()?;
+            checkpoint_data.next_index += 1;
+            current_index = checkpoint_data.next_index;
+
+            let required_size = 8
+                + CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
+                + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
+
+            drop(checkpoint_data);
+
+            if required_size > checkpoints_account_info.data_len() {
+                resize_account(
+                    checkpoints_account_info,
+                    payer_account_info,
+                    system_program_account_info,
+                    required_size,
+                )?;
+            }
+        } // Mutable borrow ends here
+    }
+
+    let new_value = match operation {
+        Operation::Add => latest_checkpoint.value.checked_add(amount_delta)
+            .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
+        Operation::Subtract => latest_checkpoint.value.checked_sub(amount_delta)
+            .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
+    };
+
+    let new_checkpoint = Checkpoint {
+        timestamp: current_timestamp,
+        value: new_value,
+    };
+
+    write_checkpoint_at_index(
+        checkpoints_account_info,
+        current_index as usize,
+        &new_checkpoint,
+    )?;
+
+    Ok(())
 }
 
 
