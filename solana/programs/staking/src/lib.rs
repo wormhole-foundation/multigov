@@ -13,6 +13,8 @@ use context::*;
 use contexts::*;
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
+use state::checkpoints::{find_checkpoint_le, read_checkpoint_at_index, resize_account, write_checkpoint_at_index, Checkpoint, CheckpointData};
+
 
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
 
@@ -136,13 +138,13 @@ pub mod staking {
 
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
-
+        
         if let Some(vesting_balance) = &ctx.accounts.vesting_balance {
             stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
         } else {
             stake_account_metadata.recorded_vesting_balance = 0;
         }
-
+        
         let current_delegate = stake_account_metadata.delegate;
         stake_account_metadata.delegate = delegatee;
 
@@ -151,66 +153,183 @@ pub mod staking {
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
 
         let total_balance = recorded_balance + recorded_vesting_balance;
-
-        emit!(DelegateChanged {
+emit!(DelegateChanged {
             delegator: ctx.accounts.stake_account_checkpoints.key(),
             from_delegate: current_delegate,
             to_delegate: delegatee,
             total_delegated_votes: total_balance
         });
-
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
-
-        let delegatee_stake_account_checkpoints = &mut ctx
-            .accounts
-            .delegatee_stake_account_checkpoints
-            .load_mut()?;
-
         if current_delegate != delegatee {
             if current_delegate != Pubkey::default() {
-                let current_delegate_stake_account_checkpoints = &mut ctx
-                    .accounts
-                    .current_delegate_stake_account_checkpoints
-                    .load_mut()?;
+                let current_delegate_checkpoints_account_info =
+                    ctx.accounts.current_delegate_stake_account_checkpoints.to_account_info();
 
-                let latest_current_delegate_checkpoint_value =
-                    current_delegate_stake_account_checkpoints
-                        .latest()?
-                        .unwrap_or(0);
+                // Step 1: Immutable borrow to get latest_index and latest_checkpoint
+                let latest_index = {
+                    let checkpoint_data = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
+                    checkpoint_data.next_index - 1
+                };
 
-                if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
-                    current_timestamp,
-                    latest_current_delegate_checkpoint_value - total_balance,
-                ) {};
+                let latest_checkpoint = read_checkpoint_at_index(
+                    &current_delegate_checkpoints_account_info,
+                    latest_index as usize,
+                )?;
+
+                let mut current_index = latest_index;
+
+                if latest_checkpoint.timestamp != current_timestamp {
+                    // Step 2: Mutable borrow to update next_index and resize if needed
+                    {
+                        let mut checkpoint_data =
+                            ctx.accounts.current_delegate_stake_account_checkpoints.load_mut()?;
+                        checkpoint_data.next_index += 1;
+                        current_index = checkpoint_data.next_index;
+
+                        let required_size = 8
+                            + CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
+                            + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
+
+                        if required_size > current_delegate_checkpoints_account_info.data_len() {
+                            resize_account(
+                                &current_delegate_checkpoints_account_info,
+                                &ctx.accounts.payer.to_account_info(),
+                                &ctx.accounts.system_program.to_account_info(),
+                                required_size,
+                            )?;
+                        }
+                    } // Mutable borrow ends here
+                }
+
+                let new_checkpoint = Checkpoint {
+                    timestamp: current_timestamp,
+                    value: latest_checkpoint.value - total_balance,
+                };
+
+                write_checkpoint_at_index(
+                    &current_delegate_checkpoints_account_info,
+                    current_index as usize,
+                    &new_checkpoint,
+                )?;
             }
 
             if delegatee != Pubkey::default() {
-                let latest_delegatee_checkpoint_value =
-                    delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
-                if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
-                    current_timestamp,
-                    latest_delegatee_checkpoint_value + *current_stake_balance,
-                ) {};
+                let delegatee_checkpoints_account_info =
+                    ctx.accounts.delegatee_stake_account_checkpoints.to_account_info();
+
+                // Step 1: Immutable borrow to get latest_index and latest_checkpoint
+                let latest_index = {
+                    let checkpoint_data = ctx.accounts.delegatee_stake_account_checkpoints.load()?;
+                    checkpoint_data.next_index - 1
+                };
+
+                let latest_checkpoint = read_checkpoint_at_index(
+                    &delegatee_checkpoints_account_info,
+                    latest_index as usize,
+                )?;
+
+                let mut current_index = latest_index;
+
+                if latest_checkpoint.timestamp != current_timestamp {
+                    // Step 2: Mutable borrow to update next_index and resize if needed
+                    {
+                        let mut checkpoint_data =
+                            ctx.accounts.delegatee_stake_account_checkpoints.load_mut()?;
+                        checkpoint_data.next_index += 1;
+                        current_index = checkpoint_data.next_index;
+
+                        let required_size = 8
+                            + CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
+                            + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
+
+                        if required_size > delegatee_checkpoints_account_info.data_len() {
+                            resize_account(
+                                &delegatee_checkpoints_account_info,
+                                &ctx.accounts.payer.to_account_info(),
+                                &ctx.accounts.system_program.to_account_info(),
+                                required_size,
+                            )?;
+                        }
+                    } // Mutable borrow ends here
+                }
+
+                let new_checkpoint = Checkpoint {
+                    timestamp: current_timestamp,
+                    value: latest_checkpoint.value + current_stake_balance,
+                };
+
+                write_checkpoint_at_index(
+                    &delegatee_checkpoints_account_info,
+                    current_index as usize,
+                    &new_checkpoint,
+                )?;
             }
 
-            if *current_stake_balance != recorded_balance {
-                stake_account_metadata.recorded_balance = *current_stake_balance;
+            if current_stake_balance != recorded_balance {
+                stake_account_metadata.recorded_balance = current_stake_balance;
             }
         } else {
-            if *current_stake_balance != total_balance {
-                let latest_delegatee_checkpoint_value =
-                    delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
-                if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
-                    current_timestamp,
-                    latest_delegatee_checkpoint_value + *current_stake_balance - total_balance,
-                ) {};
-                stake_account_metadata.recorded_balance = *current_stake_balance;
+            if current_stake_balance != total_balance {
+                let delegatee_checkpoints_account_info =
+                    ctx.accounts.delegatee_stake_account_checkpoints.to_account_info();
+
+                // Step 1: Immutable borrow to get latest_index and latest_checkpoint
+                let latest_index = {
+                    let checkpoint_data = ctx.accounts.delegatee_stake_account_checkpoints.load()?;
+                    checkpoint_data.next_index - 1
+                };
+
+                let latest_checkpoint = read_checkpoint_at_index(
+                    &delegatee_checkpoints_account_info,
+                    latest_index as usize,
+                )?;
+
+                let mut current_index = latest_index;
+
+                if latest_checkpoint.timestamp != current_timestamp {
+                    // Step 2: Mutable borrow to update next_index and resize if needed
+                    {
+                        let mut checkpoint_data =
+                            ctx.accounts.delegatee_stake_account_checkpoints.load_mut()?;
+                        checkpoint_data.next_index += 1;
+                        current_index = checkpoint_data.next_index;
+
+                        let required_size = 8
+                            + CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
+                            + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
+
+                        if required_size > delegatee_checkpoints_account_info.data_len() {
+                            resize_account(
+                                &delegatee_checkpoints_account_info,
+                                &ctx.accounts.payer.to_account_info(),
+                                &ctx.accounts.system_program.to_account_info(),
+                                required_size,
+                            )?;
+                        }
+                    } // Mutable borrow ends here
+                }
+
+                let new_checkpoint = Checkpoint {
+                    timestamp: current_timestamp,
+                    value: latest_checkpoint.value + current_stake_balance - total_balance,
+                };
+
+                write_checkpoint_at_index(
+                    &delegatee_checkpoints_account_info,
+                    current_index as usize,
+                    &new_checkpoint,
+                )?;
+
+                stake_account_metadata.recorded_balance = current_stake_balance;
             }
         }
-
+        
         Ok(())
     }
+
+
+
 
     pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, amount: u64) -> Result<()> {
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
@@ -270,44 +389,50 @@ pub mod staking {
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
 
-        let voter_checkpoints = &mut ctx.accounts.voter_checkpoints.load_mut()?;
+        let voter_checkpoints = ctx.accounts.voter_checkpoints.to_account_info();
 
         let total_weight =
-            utils::voter_votes::get_past_votes(voter_checkpoints, proposal.vote_start)?;
+            find_checkpoint_le(&voter_checkpoints, proposal.vote_start)?;
 
-        require!(total_weight.clone() > 0, ErrorCode::NoWeight);
+        if let Some(checkpoint) = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)? {
+            let total_weight = checkpoint.value;
 
-        let proposal_voters_weight_cast = &mut ctx.accounts.proposal_voters_weight_cast;
+            require!(total_weight.clone() > 0, ErrorCode::NoWeight);
 
-        // Initialize proposal_voters_weight_cast if it hasn't been initialized yet
-        if proposal_voters_weight_cast.value == 0 {
-            proposal_voters_weight_cast.initialize(proposal_id, &ctx.accounts.payer.key());
+            let proposal_voters_weight_cast = &mut ctx.accounts.proposal_voters_weight_cast;
+
+            // Initialize proposal_voters_weight_cast if it hasn't been initialized yet
+            if proposal_voters_weight_cast.value == 0 {
+                proposal_voters_weight_cast.initialize(proposal_id, &ctx.accounts.payer.key());
+            }
+
+            require!(
+                proposal_voters_weight_cast.value <= total_weight.clone(),
+                ErrorCode::AllWeightCast
+            );
+
+            let new_weight =
+                against_votes + for_votes + abstain_votes + proposal_voters_weight_cast.value;
+
+            require!(new_weight <= total_weight, ErrorCode::VoteWouldExceedWeight);
+
+            proposal_voters_weight_cast.set(new_weight);
+
+            proposal.against_votes += against_votes;
+            proposal.for_votes += for_votes;
+            proposal.abstain_votes += abstain_votes;
+
+            emit!(VoteCast {
+                voter: ctx.accounts.voter_checkpoints.key(),
+                proposal_id: proposal_id,
+                weight: total_weight,
+                against_votes: against_votes,
+                for_votes: for_votes,
+                abstain_votes: abstain_votes
+            });
+        } else {
+            return Err(error!(ErrorCode::CheckpointNotFound))
         }
-
-        require!(
-            proposal_voters_weight_cast.value <= total_weight.clone(),
-            ErrorCode::AllWeightCast
-        );
-
-        let new_weight =
-            against_votes + for_votes + abstain_votes + proposal_voters_weight_cast.value;
-
-        require!(new_weight <= total_weight, ErrorCode::VoteWouldExceedWeight);
-
-        proposal_voters_weight_cast.set(new_weight);
-
-        proposal.against_votes += against_votes;
-        proposal.for_votes += for_votes;
-        proposal.abstain_votes += abstain_votes;
-
-        emit!(VoteCast {
-            voter: ctx.accounts.voter_checkpoints.key(),
-            proposal_id: proposal_id,
-            weight: total_weight,
-            against_votes: against_votes,
-            for_votes: for_votes,
-            abstain_votes: abstain_votes
-        });
 
         Ok(())
     }

@@ -17,7 +17,7 @@ impl WasmCheckpointData {
     #[wasm_bindgen(constructor)]
     pub fn from_buffer(buffer: &[u8]) -> Result<WasmCheckpointData, JsValue> {
         convert_error(WasmCheckpointData::from_buffer_impl(
-            &buffer[..CheckpointData::LEN],
+            &buffer[..CheckpointData::CHECKPOINT_DATA_HEADER_SIZE],
         ))
     }
     fn from_buffer_impl(buffer: &[u8]) -> Result<WasmCheckpointData, Error> {
@@ -28,18 +28,13 @@ impl WasmCheckpointData {
         })
     }
 
-    #[wasm_bindgen(js_name=getVoterVotes)]
-    pub fn get_voter_votes(&self) -> Result<u64, JsValue> {
-        convert_error(crate::utils::voter_votes::get_votes(&self.wrapped))
-    }
-
-    #[wasm_bindgen(js_name=getVoterPastVotes)]
-    pub fn get_voter_past_votes(&self, timestamp: u64) -> Result<u64, JsValue> {
-        convert_error(crate::utils::voter_votes::get_past_votes(
-            &self.wrapped,
-            timestamp,
-        ))
-    }
+    // #[wasm_bindgen(js_name=getVoterPastVotes)]
+    // pub fn get_voter_past_votes(&self, timestamp: u64) -> Result<u64, JsValue> {
+    //     convert_error(crate::utils::voter_votes::get_past_votes(
+    //         &self.wrapped,
+    //         timestamp,
+    //     ))
+    // }
 }
 
 #[wasm_bindgen]
@@ -196,7 +191,7 @@ reexport_seed_const!(PROPOSAL_SEED);
 impl Constants {
     #[wasm_bindgen]
     pub fn CHECKPOINT_DATA_SIZE() -> usize {
-        CheckpointData::LEN
+        CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
     }
 }
 

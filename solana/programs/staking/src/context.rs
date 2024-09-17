@@ -114,6 +114,8 @@ pub struct Delegate<'info> {
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
     pub mint: Account<'info, Mint>,
+    pub system_program: Program<'info, System>,
+
 }
 
 #[derive(Accounts)]
@@ -370,7 +372,13 @@ pub struct CreateStakeAccount<'info> {
     pub payer: Signer<'info>,
 
     // Stake program accounts:
-    #[account(mut)]
+    #[account(
+        init,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref()],
+        bump,
+        payer = payer,
+        space = checkpoints::CheckpointData::LEN,
+    )]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(init, payer = payer, space = stake_account::StakeAccountMetadata::LEN, seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,

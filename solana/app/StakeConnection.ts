@@ -359,15 +359,7 @@ export class StakeConnection {
         ],
         this.program.programId,
     )[0];
-
-
-    await this.sendAndConfirmAsVersionedTransaction([await this.program.methods
-        .initializeCheckpointData()
-        .accounts({
-          checkpointData: checkpointDataAddress,
-        })
-        .instruction()]);
-
+    
 
     instructions.push(
       await this.program.methods
