@@ -20,22 +20,15 @@ export async function assertBalanceMatches(
   assert.equal(balanceSummary.balance.toString(), expected.toString());
 }
 
-export async function assertVoterVotesEquals(
-  stakeAccount: StakeAccount,
-  expectedVoterVotes: BN,
-) {
-  const currentActual = stakeAccount.getVotes();
-  assert.equal(currentActual.toString(), expectedVoterVotes.toString());
-}
 
 export function createAddProposalTestBytes(proposalIdInput: Uint8Array, voteStartInput: number): Uint8Array {
     // QueryResponse fields
     const version = new Uint8Array([1]); // version (1 byte)
     const requestChainId = new Uint8Array(new Uint16Array([1]).buffer); // request_chain_id (2 bytes)
-    
+
     // Choose request_id length based on requestChainId (32 bytes here since request_chain_id != 0)
     const requestId = new Uint8Array(32).fill(3); // request_id (32 bytes for on-chain request)
-    
+
     const requestLengthSkip = new Uint8Array(4).fill(0); // Skipped 4 bytes for request length
 
     // Simulate empty QueryRequest (can be replaced with actual data if needed)

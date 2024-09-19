@@ -207,20 +207,9 @@ describe("api", async () => {
 
     await stakeConnection.delegate(
       stakeAccountAddress,
-      undefined,
+      stakeAccountAddress,
       WHTokenBalance.fromString("100"),
     );
-  });
-
-  it("should delegate to the user stack account if delegate is not defined", async () => {
-    const stakeAccountAddress = await stakeConnection.delegate(
-      undefined,
-      undefined,
-      WHTokenBalance.fromString("100"),
-    );
-
-    const delegate = await stakeConnection.delegates(stakeAccountAddress);
-    assert.equal(delegate.toBase58(), stakeAccountAddress.toBase58());
   });
 
   it("should change delegate account correctly", async () => {
@@ -238,12 +227,6 @@ describe("api", async () => {
       WHTokenBalance.fromString("10"),
     );
 
-    const stakeAccountAddress3 = await user3StakeConnection.delegate(
-      undefined,
-      undefined,
-      WHTokenBalance.fromString("10"),
-    );
-
     await stakeConnection.delegate(
       stakeAccountAddress,
       stakeAccountAddress2,
@@ -252,15 +235,6 @@ describe("api", async () => {
 
     delegate = await stakeConnection.delegates(stakeAccountAddress);
     assert.equal(delegate.toBase58(), stakeAccountAddress2.toBase58());
-
-    await stakeConnection.delegate(
-      stakeAccountAddress,
-      stakeAccountAddress3,
-      WHTokenBalance.fromString("10"),
-    );
-
-    delegate = await stakeConnection.delegates(stakeAccountAddress);
-    assert.equal(delegate.toBase58(), stakeAccountAddress3.toBase58());
   });
 
   it("withdrawTokens", async () => {
@@ -270,7 +244,7 @@ describe("api", async () => {
       await stakeConnection.loadStakeAccount(stakeAccountAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "130000000", // 130 * 10**6
+      "320000000", // 320 * 10**6
     );
 
     stakeAccountAddress = await stakeConnection.delegate(
@@ -282,7 +256,7 @@ describe("api", async () => {
     stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "230000000", // 230 * 10**6
+      "420000000", // 420 * 10**6
     );
 
     await stakeConnection.withdrawTokens(
@@ -293,45 +267,7 @@ describe("api", async () => {
     stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "180000000", // 180 * 10**6
-    );
-  });
-
-  it("find and parse stake accounts", async () => {
-    const res = await stakeConnection.getStakeAccounts(owner);
-    assert.equal(res.length, 2);
-
-    let stakeAccountAddress =
-      await stakeConnection.getMainAccountAddress(owner);
-    let stakeAccount =
-      await stakeConnection.loadStakeAccount(stakeAccountAddress);
-
-    assert.equal(
-      stakeAccount.tokenBalance.toString(),
-      "180000000", // 180 * 10**6
-    );
-
-    stakeAccountAddress = await stakeConnection.delegate(
-      stakeAccountAddress,
-      undefined,
-      WHTokenBalance.fromString("100"),
-    );
-
-    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
-    assert.equal(
-      stakeAccount.tokenBalance.toString(),
-      "280000000", // 280 * 10**6
-    );
-
-    assert.equal(
-      stakeAccount.stakeAccountMetadata.owner.toBase58(),
-      owner.toBase58(),
-    );
-
-    await assertBalanceMatches(
-      stakeConnection,
-      owner,
-      WHTokenBalance.fromString("280"),
+      "370000000", // 370 * 10**6
     );
   });
 

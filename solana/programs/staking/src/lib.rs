@@ -11,10 +11,12 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
 use contexts::*;
+use state::checkpoints::{
+    find_checkpoint_le, push_checkpoint, read_checkpoint_at_index, resize_account,
+    write_checkpoint_at_index, Checkpoint, CheckpointData, Operation,
+};
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
-use state::checkpoints::{find_checkpoint_le, read_checkpoint_at_index, resize_account, write_checkpoint_at_index,update_delegate_checkpoint, Checkpoint, CheckpointData, Operation};
-
 
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
 
@@ -161,12 +163,15 @@ emit!(DelegateChanged {
         });
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
+
         if current_delegate != delegatee {
             if current_delegate != Pubkey::default() {
-                let current_delegate_checkpoints_account_info =
-                    ctx.accounts.current_delegate_stake_account_checkpoints.to_account_info();
+                let current_delegate_checkpoints_account_info = ctx
+                    .accounts
+                    .current_delegate_stake_account_checkpoints
+                    .to_account_info();
 
-                update_delegate_checkpoint(
+                push_checkpoint(
                     &mut ctx.accounts.current_delegate_stake_account_checkpoints,
                     &current_delegate_checkpoints_account_info,
                     total_balance,
@@ -178,11 +183,12 @@ emit!(DelegateChanged {
             }
 
             if delegatee != Pubkey::default() {
-                msg!("delegatee != Pubkey::default() ");
-                let delegatee_checkpoints_account_info =
-                    ctx.accounts.delegatee_stake_account_checkpoints.to_account_info();
+                let delegatee_checkpoints_account_info = ctx
+                    .accounts
+                    .delegatee_stake_account_checkpoints
+                    .to_account_info();
 
-                update_delegate_checkpoint(
+                push_checkpoint(
                     &mut ctx.accounts.delegatee_stake_account_checkpoints,
                     &delegatee_checkpoints_account_info,
                     current_stake_balance,
@@ -198,8 +204,10 @@ emit!(DelegateChanged {
             }
         } else {
             if current_stake_balance != total_balance {
-                let delegatee_checkpoints_account_info =
-                    ctx.accounts.delegatee_stake_account_checkpoints.to_account_info();
+                let delegatee_checkpoints_account_info = ctx
+                    .accounts
+                    .delegatee_stake_account_checkpoints
+                    .to_account_info();
 
                 let (amount_delta, operation) = if current_stake_balance > total_balance {
                     (current_stake_balance - total_balance, Operation::Add)
@@ -207,7 +215,7 @@ emit!(DelegateChanged {
                     (total_balance - current_stake_balance, Operation::Subtract)
                 };
 
-                update_delegate_checkpoint(
+                push_checkpoint(
                     &mut ctx.accounts.delegatee_stake_account_checkpoints,
                     &delegatee_checkpoints_account_info,
                     amount_delta,
@@ -246,27 +254,35 @@ emit!(DelegateChanged {
 
         ctx.accounts.stake_account_custody.reload()?;
 
-        let recorded_balance = stake_account_metadata.recorded_balance;
+        let recorded_balance = &stake_account_metadata.recorded_balance;
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
 
         if stake_account_metadata.delegate != Pubkey::default() {
-            let current_delegate_stake_account_checkpoints = &mut ctx
+            let current_delegate_account_info = ctx
                 .accounts
                 .current_delegate_stake_account_checkpoints
-                .load_mut()?;
-
-            let latest_current_delegate_checkpoint_value =
-                current_delegate_stake_account_checkpoints
-                    .latest()?
-                    .unwrap_or(0);
-
+                .to_account_info();
             let config = &ctx.accounts.config;
             let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
 
-            if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
+            let (amount_delta, operation) = if current_stake_balance > recorded_balance {
+                (current_stake_balance - recorded_balance, Operation::Add)
+            } else {
+                (
+                    recorded_balance - current_stake_balance,
+                    Operation::Subtract,
+                )
+            };
+
+            push_checkpoint(
+                &mut ctx.accounts.current_delegate_stake_account_checkpoints,
+                &current_delegate_account_info,
+                amount_delta,
+                operation,
                 current_timestamp,
-                latest_current_delegate_checkpoint_value - recorded_balance + current_stake_balance,
-            ) {};
+                &ctx.accounts.payer.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+            )?;
         }
 
         ctx.accounts.stake_account_metadata.recorded_balance = *current_stake_balance;
@@ -285,8 +301,7 @@ emit!(DelegateChanged {
 
         let voter_checkpoints = ctx.accounts.voter_checkpoints.to_account_info();
 
-        let total_weight =
-            find_checkpoint_le(&voter_checkpoints, proposal.vote_start)?;
+        let total_weight = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)?;
 
         if let Some(checkpoint) = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)? {
             let total_weight = checkpoint.value;
@@ -344,10 +359,10 @@ emit!(DelegateChanged {
     }
 
     /** Recovers a user's `stake account` ownership by transferring ownership
-           * from a token account to the `owner` of that token account.
-           *
-           * This functionality addresses the scenario where a user mistakenly
-           * created a stake account using their token account address as the owner.
+     * from a token account to the `owner` of that token account.
+     *
+     * This functionality addresses the scenario where a user mistakenly
+     * created a stake account using their token account address as the owner.
      */
     pub fn recover_account(ctx: Context<RecoverAccount>) -> Result<()> {
         // Check that there aren't any staked tokens in the account.

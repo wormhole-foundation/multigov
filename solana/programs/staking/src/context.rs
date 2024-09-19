@@ -1,4 +1,5 @@
 use crate::error::ErrorCode;
+use crate::state::checkpoints::CheckpointData;
 use crate::state::*;
 use anchor_lang::{
     prelude::*,
@@ -8,7 +9,6 @@ use anchor_lang::{
 };
 use anchor_lang::solana_program::slot_history::Check;
 use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
-use crate::state::checkpoints::CheckpointData;
 
 use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 
@@ -115,7 +115,6 @@ pub struct Delegate<'info> {
     #[account(address = config.wh_token_mint)]
     pub mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
-
 }
 
 #[derive(Accounts)]
@@ -446,6 +445,7 @@ pub struct WithdrawTokens<'info> {
     pub config: Account<'info, global_config::GlobalConfig>,
     // Primitive accounts :
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>

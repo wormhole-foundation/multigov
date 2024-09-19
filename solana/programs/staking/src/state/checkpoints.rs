@@ -1,11 +1,11 @@
 use crate::error::ErrorCode;
-use anchor_lang::prelude::*;
-use bytemuck::{Pod, Zeroable};
-use std::fmt::Debug;
+use crate::state::checkpoints;
 use anchor_lang::prelude::borsh::{BorshDeserialize, BorshSerialize};
+use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction;
-use crate::state::checkpoints;
+use bytemuck::{Pod, Zeroable};
+use std::fmt::Debug;
 
 #[account(zero_copy)]
 #[derive(Default)]
@@ -23,10 +23,9 @@ pub struct DelegateVotesChanged {
 
 impl CheckpointData {
     pub const CHECKPOINT_SIZE: usize = 16;
-    pub const CHECKPOINT_DATA_HEADER_SIZE: usize = 40;
+    pub const CHECKPOINT_DATA_HEADER_SIZE: usize = 48;
 
-    pub const LEN: usize = 1024; // 8 + 32 + 8 + 8
-
+    pub const LEN: usize = 80; // 48 + 16
 
     pub fn initialize(&mut self, owner: &Pubkey) {
         self.owner = *owner;
@@ -44,6 +43,9 @@ pub fn resize_account<'info>(
     let required_lamports = Rent::get()?.minimum_balance(new_size);
     let lamports_needed = required_lamports.saturating_sub(current_lamports);
 
+    msg!(" in resize_account");
+
+    // Переводимо лампорти на акаунт, якщо потрібно
     if lamports_needed > 0 {
         invoke(
             &system_instruction::transfer(payer_info.key, account_info.key, lamports_needed),
@@ -55,6 +57,7 @@ pub fn resize_account<'info>(
         )?;
     }
 
+    // Розширюємо дані акаунту
     account_info.realloc(new_size, false)?;
 
     Ok(())
@@ -66,33 +69,30 @@ pub fn write_checkpoint_at_index(
     checkpoint: &Checkpoint,
 ) -> Result<()> {
     let mut data = account_info.try_borrow_mut_data()?;
-    let header_size = 8 + 32 + 8; // Враховуємо дискримінатор
+    let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE; // Враховуємо дискримінатор
     let data = &mut data[header_size..];
 
-    let element_size = 16;
+    let element_size = CheckpointData::CHECKPOINT_SIZE;
     let offset = index * element_size;
 
     if offset + element_size > data.len() {
         return Err(ProgramError::InvalidAccountData.into());
     }
 
-    let checkpoint_bytes = checkpoint.try_to_vec().map_err(|_| ProgramError::InvalidAccountData)?;
+    let checkpoint_bytes = checkpoint
+        .try_to_vec()
+        .map_err(|_| ProgramError::InvalidAccountData)?;
     data[offset..offset + element_size].copy_from_slice(&checkpoint_bytes);
 
     Ok(())
 }
 
-
-
-pub fn read_checkpoint_at_index(
-    account_info: &AccountInfo,
-    index: usize,
-) -> Result<Checkpoint> {
+pub fn read_checkpoint_at_index(account_info: &AccountInfo, index: usize) -> Result<Checkpoint> {
     let data = account_info.try_borrow_data()?;
-    let header_size = 8 + 32+8; // Враховуємо дискримінатор
+    let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE; // Враховуємо дискримінатор
     let data = &data[header_size..];
 
-    let element_size = 16;
+    let element_size = CheckpointData::CHECKPOINT_SIZE;
     let offset = index * element_size;
 
     if offset + element_size > data.len() {
@@ -100,7 +100,8 @@ pub fn read_checkpoint_at_index(
     }
 
     let checkpoint_bytes = &data[offset..offset + element_size];
-    let checkpoint = Checkpoint::try_from_slice(checkpoint_bytes).map_err(|_| ProgramError::InvalidAccountData)?;
+    let checkpoint = Checkpoint::try_from_slice(checkpoint_bytes)
+        .map_err(|_| ProgramError::InvalidAccountData)?;
     Ok(checkpoint)
 }
 
@@ -108,7 +109,7 @@ pub enum Operation {
     Add,
     Subtract,
 }
-pub fn update_delegate_checkpoint<'info>(
+pub fn push_checkpoint<'info>(
     checkpoints_loader: &mut AccountLoader<'info, CheckpointData>,
     checkpoints_account_info: &AccountInfo<'info>,
     amount_delta: u64,
@@ -118,30 +119,97 @@ pub fn update_delegate_checkpoint<'info>(
     system_program_account_info: &AccountInfo<'info>,
 ) -> Result<()> {
     // Step 1: Immutable borrow to get latest_index and latest_checkpoint
-    let latest_index = {
+    let (current_index, latest_checkpoint) = {
         let checkpoint_data = checkpoints_loader.load()?;
-        if checkpoint_data.next_index == 0 { 0 } else {
-            checkpoint_data.next_index - 1
+        if checkpoint_data.next_index == 0 {
+            (0, None) // If next_index is 0, set both to None
+        } else {
+            let latest_index = checkpoint_data.next_index - 1;
+            let checkpoint =
+                read_checkpoint_at_index(checkpoints_account_info, latest_index as usize)?;
+            (checkpoint_data.next_index, Some(checkpoint))
         }
     };
+    if let Some(ref latest_checkpoint) = latest_checkpoint {
+        if latest_checkpoint.timestamp != current_timestamp {
+            // Step 2: Mutable borrow to update next_index and resize if needed
+            {
+                let mut checkpoint_data = checkpoints_loader.load_mut()?;
+                checkpoint_data.next_index += 1;
+                let current_index = checkpoint_data.next_index;
 
-    let latest_checkpoint = read_checkpoint_at_index(
-        checkpoints_account_info,
-        latest_index as usize,
-    )?;
+                let required_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
+                    + (checkpoint_data.next_index as usize + 1) * CheckpointData::CHECKPOINT_SIZE;
 
-    let mut current_index = latest_index;
+                drop(checkpoint_data);
 
-    if latest_checkpoint.timestamp != current_timestamp {
-        // Step 2: Mutable borrow to update next_index and resize if needed
+                if required_size > checkpoints_account_info.data_len() {
+                    resize_account(
+                        checkpoints_account_info,
+                        payer_account_info,
+                        system_program_account_info,
+                        required_size,
+                    )?;
+                }
+            } // Mutable borrow ends here
+
+            // Calculate the new value, ensuring to handle the None case properly
+            let new_value = match operation {
+                Operation::Add => latest_checkpoint
+                    .value
+                    .checked_add(amount_delta)
+                    .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
+                Operation::Subtract => latest_checkpoint
+                    .value
+                    .checked_sub(amount_delta)
+                    .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
+            };
+
+            let new_checkpoint = Checkpoint {
+                timestamp: current_timestamp,
+                value: new_value,
+            };
+
+            write_checkpoint_at_index(
+                checkpoints_account_info,
+                current_index as usize,
+                &new_checkpoint,
+            )?;
+        } else {
+            // overwrite checkpoint with same current_timestamp
+
+            // Calculate the new value, ensuring to handle the None case properly
+            let new_value = match operation {
+                Operation::Add => latest_checkpoint
+                    .value
+                    .checked_add(amount_delta)
+                    .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
+                Operation::Subtract => latest_checkpoint
+                    .value
+                    .checked_sub(amount_delta)
+                    .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
+            };
+
+            let new_checkpoint = Checkpoint {
+                timestamp: current_timestamp,
+                value: new_value,
+            };
+
+            write_checkpoint_at_index(
+                checkpoints_account_info,
+                current_index as usize - 1,
+                &new_checkpoint,
+            )?;
+        }
+    } else {
+        // write first checkpoint
         {
             let mut checkpoint_data = checkpoints_loader.load_mut()?;
             checkpoint_data.next_index += 1;
-            current_index = checkpoint_data.next_index;
+            let current_index = checkpoint_data.next_index;
 
-            let required_size = 8
-                + CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
-                + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
+            let required_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
+                + (checkpoint_data.next_index as usize + 1) * CheckpointData::CHECKPOINT_SIZE;
 
             drop(checkpoint_data);
 
@@ -154,29 +222,21 @@ pub fn update_delegate_checkpoint<'info>(
                 )?;
             }
         } // Mutable borrow ends here
+
+        let new_checkpoint = Checkpoint {
+            timestamp: current_timestamp,
+            value: amount_delta,
+        };
+
+        write_checkpoint_at_index(
+            checkpoints_account_info,
+            current_index as usize,
+            &new_checkpoint,
+        )?;
     }
-
-    let new_value = match operation {
-        Operation::Add => latest_checkpoint.value.checked_add(amount_delta)
-            .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
-        Operation::Subtract => latest_checkpoint.value.checked_sub(amount_delta)
-            .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
-    };
-
-    let new_checkpoint = Checkpoint {
-        timestamp: current_timestamp,
-        value: new_value,
-    };
-
-    write_checkpoint_at_index(
-        checkpoints_account_info,
-        current_index as usize,
-        &new_checkpoint,
-    )?;
 
     Ok(())
 }
-
 
 pub fn find_checkpoint_le(
     account_info: &AccountInfo,
@@ -219,52 +279,52 @@ pub fn find_checkpoint_le(
     Ok(result)
 }
 
-    // 
-    // pub fn push(&mut self,
-    //             account_info: &AccountInfo,
-    //             timestamp: u64,
-    //             value: u64) -> Result<(u64, u64)> {
-    //     if self.next_index > 0 {
-    //         let last_checkpoint = self
-    //             .read_checkpoint((self.next_index - 1) as usize)?
-    //             .ok_or(ErrorCode::CheckpointNotFound)?;
-    //         let last_value = last_checkpoint.value;
-    // 
-    //         require!(
-    //             last_checkpoint.timestamp <= timestamp,
-    //             ErrorCode::InvalidTimestamp
-    //         );
-    // 
-    //         if last_checkpoint.timestamp == timestamp {
-    //             let new_checkpoint = Checkpoint { timestamp, value };
-    //             self.write_checkpoint((self.next_index - 1) as usize, &new_checkpoint)?;
-    //         } else {
-    //             let new_checkpoint = Checkpoint { timestamp, value };
-    //             let i = self.reserve_new_index().unwrap();
-    //             self.write_checkpoint(i, &new_checkpoint)?;
-    //         }
-    // 
-    //         emit!(DelegateVotesChanged {
-    //             delegate: self.owner,
-    //             previous_balance: last_value,
-    //             new_balance: value
-    //         });
-    // 
-    //         Ok((last_value, value))
-    //     } else {
-    //         let new_checkpoint = Checkpoint { timestamp, value };
-    //         let i = self.reserve_new_index().unwrap();
-    //         self.write_checkpoint(i, &new_checkpoint)?;
-    // 
-    //         emit!(DelegateVotesChanged {
-    //             delegate: self.owner,
-    //             previous_balance: 0,
-    //             new_balance: value
-    //         });
-    // 
-    //         Ok((0, value))
-    //     }
-    // }
+//
+// pub fn push(&mut self,
+//             account_info: &AccountInfo,
+//             timestamp: u64,
+//             value: u64) -> Result<(u64, u64)> {
+//     if self.next_index > 0 {
+//         let last_checkpoint = self
+//             .read_checkpoint((self.next_index - 1) as usize)?
+//             .ok_or(ErrorCode::CheckpointNotFound)?;
+//         let last_value = last_checkpoint.value;
+//
+//         require!(
+//             last_checkpoint.timestamp <= timestamp,
+//             ErrorCode::InvalidTimestamp
+//         );
+//
+//         if last_checkpoint.timestamp == timestamp {
+//             let new_checkpoint = Checkpoint { timestamp, value };
+//             self.write_checkpoint((self.next_index - 1) as usize, &new_checkpoint)?;
+//         } else {
+//             let new_checkpoint = Checkpoint { timestamp, value };
+//             let i = self.reserve_new_index().unwrap();
+//             self.write_checkpoint(i, &new_checkpoint)?;
+//         }
+//
+//         emit!(DelegateVotesChanged {
+//             delegate: self.owner,
+//             previous_balance: last_value,
+//             new_balance: value
+//         });
+//
+//         Ok((last_value, value))
+//     } else {
+//         let new_checkpoint = Checkpoint { timestamp, value };
+//         let i = self.reserve_new_index().unwrap();
+//         self.write_checkpoint(i, &new_checkpoint)?;
+//
+//         emit!(DelegateVotesChanged {
+//             delegate: self.owner,
+//             previous_balance: 0,
+//             new_balance: value
+//         });
+//
+//         Ok((0, value))
+//     }
+// }
 // }
 
 #[derive(Clone, Copy, Default, BorshSerialize, BorshDeserialize)]
@@ -272,7 +332,6 @@ pub struct Checkpoint {
     pub timestamp: u64,
     pub value: u64,
 }
-
 
 // #[cfg(test)]
 // pub mod tests {
@@ -284,7 +343,7 @@ pub struct Checkpoint {
 //     use quickcheck_macros::quickcheck;
 //     use rand::Rng;
 //     use std::collections::HashSet;
-// 
+//
 //     #[test]
 //     fn test_serialized_size() {
 //         assert_eq!(
@@ -298,7 +357,7 @@ pub struct Checkpoint {
 //         // Checks that the checkpoint struct fits in the individual checkpoint buffer
 //         assert!(std::mem::size_of::<Checkpoint>() + 8 <= CHECKPOINT_BUFFER_SIZE);
 //     }
-// 
+//
 //     #[test]
 //     fn test_none_is_zero() {
 //         // Checks that it's fine to initialize a checkpoint buffer with zeros
@@ -307,14 +366,14 @@ pub struct Checkpoint {
 //             .unwrap()
 //             .is_none());
 //     }
-// 
+//
 //     // A vector of DataOperation will be tested on both our struct and on a HashSet
 //     #[derive(Clone, Debug)]
 //     enum DataOperation {
 //         Add(Checkpoint),
 //         Modify(Checkpoint),
 //     }
-// 
+//
 //     // Boiler plate to generate random instances
 //     impl Arbitrary for Checkpoint {
 //         fn arbitrary(g: &mut Gen) -> Self {
@@ -324,7 +383,7 @@ pub struct Checkpoint {
 //             };
 //         }
 //     }
-// 
+//
 //     impl Arbitrary for DataOperation {
 //         fn arbitrary(g: &mut Gen) -> Self {
 //             let sample = u8::arbitrary(g);
@@ -339,7 +398,7 @@ pub struct Checkpoint {
 //             }
 //         }
 //     }
-// 
+//
 //     impl CheckpointData {
 //         fn to_set(self, next_index: u64) -> HashSet<Checkpoint> {
 //             let mut res: HashSet<Checkpoint> = HashSet::new();
@@ -354,7 +413,7 @@ pub struct Checkpoint {
 //                     panic!()
 //                 }
 //             }
-// 
+//
 //             for i in next_index..(MAX_CHECKPOINTS as u64) {
 //                 assert_eq!(
 //                     Option::<Checkpoint>::None,
@@ -364,7 +423,7 @@ pub struct Checkpoint {
 //             return res;
 //         }
 //     }
-// 
+//
 //     #[quickcheck]
 //     fn prop(input: Vec<DataOperation>) -> bool {
 //         let mut checkpoint_data = CheckpointData::default();
@@ -397,25 +456,25 @@ pub struct Checkpoint {
 //                     }
 //                 }
 //             }
-// 
+//
 //             if set != checkpoint_data.to_set(next_index) {
 //                 return false;
 //             };
 //         }
 //         return set == checkpoint_data.to_set(next_index);
 //     }
-// 
+//
 //     #[test]
 //     fn test_get_at_probably_recent_timestamp() {
 //         let mut checkpoint_data = CheckpointData::default();
-// 
+//
 //         // Add some checkpoints
 //         checkpoint_data.push(100, 1000).unwrap();
 //         checkpoint_data.push(200, 2000).unwrap();
 //         checkpoint_data.push(300, 3000).unwrap();
 //         checkpoint_data.push(400, 4000).unwrap();
 //         checkpoint_data.push(500, 5000).unwrap();
-// 
+//
 //         // Test exact matches
 //         assert_eq!(
 //             checkpoint_data
@@ -435,7 +494,7 @@ pub struct Checkpoint {
 //                 .unwrap(),
 //             Some(5000)
 //         );
-// 
+//
 //         // Test timestamps between checkpoints
 //         assert_eq!(
 //             checkpoint_data
@@ -455,7 +514,7 @@ pub struct Checkpoint {
 //                 .unwrap(),
 //             Some(4000)
 //         );
-// 
+//
 //         // Test timestamp before first checkpoint
 //         assert_eq!(
 //             checkpoint_data
@@ -463,7 +522,7 @@ pub struct Checkpoint {
 //                 .unwrap(),
 //             None
 //         );
-// 
+//
 //         // Test timestamp after last checkpoint
 //         assert_eq!(
 //             checkpoint_data
@@ -472,35 +531,35 @@ pub struct Checkpoint {
 //             Some(5000)
 //         );
 //     }
-// 
+//
 //     #[test]
 //     fn test_upper_binary_lookup() {
 //         let mut checkpoint_data = CheckpointData::default();
-// 
+//
 //         // Add some checkpoints
 //         checkpoint_data.push(100, 1000).unwrap();
 //         checkpoint_data.push(200, 2000).unwrap();
 //         checkpoint_data.push(300, 3000).unwrap();
 //         checkpoint_data.push(400, 4000).unwrap();
 //         checkpoint_data.push(500, 5000).unwrap();
-// 
+//
 //         // Test exact matches
 //         assert_eq!(checkpoint_data.upper_binary_lookup(100, 0, 5).unwrap(), 1);
 //         assert_eq!(checkpoint_data.upper_binary_lookup(300, 0, 5).unwrap(), 3);
 //         assert_eq!(checkpoint_data.upper_binary_lookup(500, 0, 5).unwrap(), 5);
-// 
+//
 //         // Test timestamps between checkpoints
 //         assert_eq!(checkpoint_data.upper_binary_lookup(150, 0, 5).unwrap(), 1);
 //         assert_eq!(checkpoint_data.upper_binary_lookup(250, 0, 5).unwrap(), 2);
 //         assert_eq!(checkpoint_data.upper_binary_lookup(450, 0, 5).unwrap(), 4);
-// 
+//
 //         // Test timestamp before first checkpoint
 //         assert_eq!(checkpoint_data.upper_binary_lookup(50, 0, 5).unwrap(), 0);
-// 
+//
 //         // Test timestamp after last checkpoint
 //         assert_eq!(checkpoint_data.upper_binary_lookup(600, 0, 5).unwrap(), 5);
 //     }
-// 
+//
 //     #[quickcheck]
 //     fn prop_get_at_probably_recent_timestamp(timestamps: Vec<u64>) -> bool {
 //         let mut checkpoint_data = CheckpointData::default();
@@ -510,14 +569,14 @@ pub struct Checkpoint {
 //             .collect();
 //         sorted_timestamps.sort();
 //         sorted_timestamps.dedup();
-// 
+//
 //         for (i, &timestamp) in sorted_timestamps.iter().enumerate() {
 //             if i >= MAX_CHECKPOINTS {
 //                 break;
 //             }
 //             checkpoint_data.push(timestamp, i as u64).unwrap();
 //         }
-// 
+//
 //         // Check that we can retrieve all inserted checkpoints
 //         for (i, &timestamp) in sorted_timestamps.iter().enumerate() {
 //             if i >= MAX_CHECKPOINTS {
@@ -531,7 +590,7 @@ pub struct Checkpoint {
 //                 return false;
 //             }
 //         }
-// 
+//
 //         // Check some random timestamps
 //         let mut rng = rand::thread_rng();
 //         for _ in 0..100 {
@@ -555,7 +614,7 @@ pub struct Checkpoint {
 //                 return false;
 //             }
 //         }
-// 
+//
 //         true
 //     }
 // }

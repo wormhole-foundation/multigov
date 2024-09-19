@@ -36,6 +36,7 @@ import {
 } from "./transaction";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import * as console from "node:console";
+import { CheckpointAccount, readCheckpoints } from "./checkpoints";
 
 import {
   signaturesToSolanaArray,
@@ -258,15 +259,13 @@ export class StakeConnection {
     return { guardianSignaturesData };
   }
 
-  async fetchCheckpointAccount(address: PublicKey) {
-    const inbuf =
-      await this.program.provider.connection.getAccountInfo(address);
-
-    const stakeAccountCheckpointsWasm = new wasm.WasmCheckpointData(
-      inbuf!.data,
+  async fetchCheckpointAccount(address: PublicKey): Promise<CheckpointAccount> {
+    let checkpointsAccount = await readCheckpoints(
+      this.provider.connection,
+      address,
     );
-
-    return { stakeAccountCheckpointsWasm };
+    console.log(checkpointsAccount.toString());
+    return checkpointsAccount;
   }
 
   public async fetchStakeAccountMetadata(
@@ -288,8 +287,7 @@ export class StakeConnection {
 
   /** Stake accounts are loaded by a StakeConnection object */
   public async loadStakeAccount(address: PublicKey): Promise<StakeAccount> {
-    const { stakeAccountCheckpointsWasm } =
-      await this.fetchCheckpointAccount(address);
+    const checkpointAccount = await this.fetchCheckpointAccount(address);
 
     const stakeAccountMetadata = await this.fetchStakeAccountMetadata(address);
 
@@ -319,7 +317,7 @@ export class StakeConnection {
 
     return new StakeAccount(
       address,
-      stakeAccountCheckpointsWasm,
+      checkpointAccount,
       stakeAccountMetadata,
       tokenBalance,
       authorityAddress,
@@ -351,15 +349,13 @@ export class StakeConnection {
     instructions: TransactionInstruction[],
     owner: PublicKey,
   ): Promise<PublicKey> {
-
     const checkpointDataAddress = PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-          owner.toBuffer(),
-        ],
-        this.program.programId,
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        owner.toBuffer(),
+      ],
+      this.program.programId,
     )[0];
-    
 
     instructions.push(
       await this.program.methods
@@ -567,15 +563,16 @@ export class StakeConnection {
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
-  /** Gets the current votes balance of the delegate's stake account. */
-  public getVotes(delegateStakeAccount: StakeAccount): BN {
-    return delegateStakeAccount.getVotes();
-  }
-
-  /** Gets the voting power of the delegate's stake account at a specified past timestamp. */
-  public getPastVotes(delegateStakeAccount: StakeAccount, timestamp: BN): BN {
-    return delegateStakeAccount.getPastVotes(timestamp);
-  }
+  // /** Gets the current votes balance of the delegate's stake account. */
+  // public getVotes(delegateStakeAccount: StakeAccount): BN {
+  //   this.program.account.checkpointData.fetch();
+  //   return delegateStakeAccount.getVotes();
+  // }
+  //
+  // /** Gets the voting power of the delegate's stake account at a specified past timestamp. */
+  // public getPastVotes(delegateStakeAccount: StakeAccount, timestamp: BN): BN {
+  //   return delegateStakeAccount.getPastVotes(timestamp);
+  // }
 
   /** Gets the current delegate's stake account associated with the specified stake account. */
   public async delegates(stakeAccount: PublicKey): Promise<PublicKey> {
@@ -637,7 +634,7 @@ export interface BalanceSummary {
 
 export class StakeAccount {
   address: PublicKey;
-  stakeAccountCheckpointsWasm: any;
+  checkpointAccount: CheckpointAccount;
   stakeAccountMetadata: StakeAccountMetadata;
   tokenBalance: bigint;
   authorityAddress: PublicKey;
@@ -646,7 +643,7 @@ export class StakeAccount {
 
   constructor(
     address: PublicKey,
-    stakeAccountCheckpointsWasm: any,
+    checkpointAccount: any,
     stakeAccountMetadata: StakeAccountMetadata,
     tokenBalance: bigint,
     authorityAddress: PublicKey,
@@ -654,7 +651,7 @@ export class StakeAccount {
     config: GlobalConfig,
   ) {
     this.address = address;
-    this.stakeAccountCheckpointsWasm = stakeAccountCheckpointsWasm;
+    this.checkpointAccount = checkpointAccount;
     this.stakeAccountMetadata = stakeAccountMetadata;
     this.tokenBalance = tokenBalance;
     this.authorityAddress = authorityAddress;
