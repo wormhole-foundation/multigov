@@ -11,7 +11,8 @@ import {
   ParsedPerChainQueryResponse,
   ParsedQueryResponse,
   InvalidContractAddress,
-  SolanaAccountQueryResponse
+  SolanaAccountQueryResponse,
+  InvalidChainId
 } from "wormhole-sdk/QueryResponse.sol";
 import {toWormholeFormat} from "wormhole-sdk/Utils.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
@@ -47,8 +48,10 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
   uint16 public constant SPOKE_CHAIN_ID = 1; // Solana
   uint48 public constant VOTE_TIME_EXTENSION = 1 days;
   uint48 public constant MINIMUM_VOTE_EXTENSION = 1 hours;
-  bytes32 public constant EXPECTED_PROGRAM_ID = bytes32(uint256(0x1));
+  bytes32 public constant EXPECTED_PROGRAM_ID =
+    bytes32(hex"42d381e13c2e2771f21a539e8cece69bbcf00759884d0a108cd808bf8d8feded");
   uint8 public constant SOLANA_TOKEN_DECIMALS = 6;
+  address PROPOSER = makeAddr("proposer");
 
   function setUp() public {
     _setupWormhole();
@@ -80,26 +83,62 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       new HubSolanaSpokeVoteDecoder(address(wormhole), address(hubVotePool), EXPECTED_PROGRAM_ID, SOLANA_TOKEN_DECIMALS);
 
     vm.prank(address(timelock));
-    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, addressToBytes32(address(0x1234))); // Mock Solana program
-      // address
+    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, EXPECTED_PROGRAM_ID); // Mock Solana program
+
+    token.mint(PROPOSER, PROPOSAL_THRESHOLD * 2);
+    vm.prank(PROPOSER);
+    token.delegate(PROPOSER);
+    vm.warp(vm.getBlockTimestamp() + 1);
+    // address
   }
 
-  function _buildSolanaVoteQueryResponse(bytes32 _programId, uint16 _chainId, bytes memory _voteData)
+  function _createEmptyProposal() internal returns (uint256 proposalId) {
+    address[] memory targets = new address[](1);
+    uint256[] memory values = new uint256[](1);
+    bytes[] memory calldatas = new bytes[](1);
+    string memory description = "Test Proposal";
+
+    vm.warp(vm.getBlockTimestamp() + 7 days);
+    vm.prank(PROPOSER);
+    proposalId = hubGovernor.propose(targets, values, calldatas, description);
+
+    return proposalId;
+  }
+
+  function _buildPdaEntries(uint256 _proposalId) internal view returns (bytes[] memory _pdaEntries, bytes memory _seeds, uint8 _numSeeds){
+    bytes[] memory seeds = new bytes[](2);
+    seeds[0] = "proposal";
+    seeds[1] = abi.encodePacked(bytes32(uint256(_proposalId)));
+    (_seeds, _numSeeds) = QueryTest.buildSolanaPdaSeedBytes(seeds);
+    bytes memory _solanaPdaEntry = QueryTest.buildSolanaPdaEntry(
+      bytes32(hex"42d381e13c2e2771f21a539e8cece69bbcf00759884d0a108cd808bf8d8feded"), _numSeeds, _seeds
+    );
+
+    _pdaEntries = new bytes[](1);
+    _pdaEntries[0] = _solanaPdaEntry;
+
+
+  }
+  function _buildSolanaVoteQueryResponse(uint256 _proposalId, uint16 _queryChainId, bytes memory _voteData) internal view returns (bytes memory) {
+		 return _buildSolanaVoteQueryResponse(EXPECTED_PROGRAM_ID, _proposalId, _queryChainId, _voteData);
+  }
+
+  function _buildSolanaVoteQueryResponse(bytes32 _programId, uint256 _proposalId, uint16 _queryChainId, bytes memory _voteData)
     internal
     view
     returns (bytes memory)
   {
-    bytes memory solanaQuery = QueryTest.buildSolanaAccountRequestBytes(
+    (bytes[] memory _pdaEntries, bytes memory _seeds, uint8 _numSeeds) = _buildPdaEntries(_proposalId);
+    bytes memory solanaQuery = QueryTest.buildSolanaPdaRequestBytes(
       bytes("finalized"),
       0, // min_context_slot
       0, // data_slice_offset
       0, // data_slice_length
-      1, // num_accounts
-      abi.encode(_programId) // account
+      _pdaEntries
     );
 
     bytes memory perChainRequest =
-      QueryTest.buildPerChainRequestBytes(_chainId, hubSolanaSpokeVoteDecoder.QT_SOL_ACCOUNT(), solanaQuery);
+      QueryTest.buildPerChainRequestBytes(_queryChainId, hubSolanaSpokeVoteDecoder.QT_SOL_PDA(), solanaQuery);
 
     bytes memory queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
       VERSION, // version
@@ -108,24 +147,29 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       perChainRequest
     );
 
-    bytes memory solanaAccountResult = QueryTest.buildEthCallResultBytes(
-      abi.encode(
-        uint64(1000), // lamports (8 bytes)
-        uint64(0), // rent_epoch (8 bytes)
-        bool(true), // executable (1 byte)
-        _programId, // owner (32 bytes)
-        uint32(_voteData.length), // data length (4 bytes)
-        _voteData // account data
-      )
+	bytes32 _programIdReset = _programId;
+    bytes memory _newVoteData = _voteData;
+     bytes memory solanaPdaResult = abi.encodePacked(
+      _programIdReset, // program id
+        // hex"42d381e13c2e2771f21a539e8cece69bbcf00759884d0a108cd808bf8d8feded", // account
+      uint8(254), // bump
+      uint64(1000), // lamports (8 bytes)
+      uint64(0), // rent_epoch (8 bytes)
+      bool(false), // executable (1 byte)
+      _programIdReset, // owner
+      uint32(_newVoteData.length),
+      _newVoteData // data
     );
 
-    bytes memory resp = QueryTest.buildSolanaAccountResponseBytes(
+    bytes memory resp = QueryTest.buildSolanaPdaResponseBytes(
       uint64(vm.getBlockNumber()), // slot_number
       uint64(vm.getBlockTimestamp()) * 1000, // block_time microseconds
       blockhash(vm.getBlockNumber()), // block_hash
       1, // num_results
-      solanaAccountResult
+      solanaPdaResult
     );
+
+	uint16 queryChain = _queryChainId;
 
     bytes memory fullResponse = QueryTest.buildQueryResponseBytes(
       VERSION,
@@ -133,13 +177,13 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       OFF_CHAIN_SIGNATURE,
       queryRequestBytes,
       1, // num per chain responses
-      QueryTest.buildPerChainResponseBytes(_chainId, hubSolanaSpokeVoteDecoder.QT_SOL_ACCOUNT(), resp)
+      QueryTest.buildPerChainResponseBytes(queryChain, hubSolanaSpokeVoteDecoder.QT_SOL_PDA(), resp)
     );
 
     console.log("Solana Query Length:", solanaQuery.length);
     console.log("Per Chain Request Length:", perChainRequest.length);
     console.log("Query Request Bytes Length:", queryRequestBytes.length);
-    console.log("Solana Account Result Length:", solanaAccountResult.length);
+    console.log("Solana Account Result Length:", solanaPdaResult.length);
     console.log("Response Length:", resp.length);
     console.log("Full Response Length:", fullResponse.length);
 
@@ -168,19 +212,27 @@ contract Constructor is HubSolanaSpokeVoteDecoderTest {
     assertEq(voteDecoder.SOLANA_TOKEN_DECIMALS(), _solanaTokenDecimals);
   }
 }
-
+// 1. InvalidDataSlice
+// 2. Too many results
+// 3. invalid proposal seed first
+// 4. invalid seed second
+// 5. Data incorrect length
+// 6. Invalid account owner
+// 7. Invalid contract address
 contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
   function _scale(uint256 _amount) internal view returns (uint256) {
     return _amount
       * (10 ** (hubSolanaSpokeVoteDecoder.HUB_TOKEN_DECIMALS() - hubSolanaSpokeVoteDecoder.SOLANA_TOKEN_DECIMALS()));
   }
 
-  function testFuzz_CorrectlyParseChainResponseNice(uint256 _proposalId) public {
+  function testFuzz_CorrectlyParseChainResponseNice() public {
     _setGovernor(hubGovernor);
 
-    bytes memory voteData = abi.encode(_proposalId, uint64(100), uint64(200), uint64(50));
+    vm.warp(vm.getBlockTimestamp() + 7 days);
+    uint256 proposalId = _createEmptyProposal();
+    bytes memory voteData = abi.encodePacked(uint256(proposalId), uint64(100), uint64(200), uint64(50));
 
-    bytes memory voteQueryResponseRaw = _buildSolanaVoteQueryResponse(EXPECTED_PROGRAM_ID, SPOKE_CHAIN_ID, voteData);
+    bytes memory voteQueryResponseRaw = _buildSolanaVoteQueryResponse(proposalId, SPOKE_CHAIN_ID, voteData);
 
     ParsedQueryResponse memory parsedResp =
       hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
@@ -188,103 +240,175 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     ISpokeVoteDecoder.QueryVote memory queryVote =
       hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
 
-    assertEq(queryVote.proposalId, _proposalId, "Proposal ID mismatch");
-    assertEq(
-      queryVote.spokeProposalId, keccak256(abi.encode(SPOKE_CHAIN_ID, _proposalId)), "Spoke proposal ID mismatch"
-    );
+    assertEq(queryVote.proposalId, proposalId, "Proposal ID mismatch");
+    assertEq(queryVote.spokeProposalId, keccak256(abi.encode(SPOKE_CHAIN_ID, proposalId)), "Spoke proposal ID mismatch");
     assertEq(queryVote.proposalVote.abstainVotes, _scale(50), "Abstain votes mismatch");
     assertEq(queryVote.proposalVote.againstVotes, _scale(100), "Against votes mismatch");
     assertEq(queryVote.proposalVote.forVotes, _scale(200), "For votes mismatch");
     assertEq(queryVote.chainId, SPOKE_CHAIN_ID, "Chain ID mismatch");
   }
 
-  // function testFuzz_RevertIf_SpokeIsNotRegistered(uint256 _proposalId, uint16 _queryChainId) public {
-  //   vm.assume(_queryChainId != HUB_CHAIN_ID && _queryChainId != SPOKE_CHAIN_ID);
+  function testFuzz_RevertIf_InvalidDataSlice(uint64 _requestDataSliceOffset, uint64 _requestDataSliceLength) public {
+		vm.assume(_requestDataSliceOffset != 0 && _requestDataSliceLength != 0);
+    uint256 _proposalId = _createEmptyProposal();
+    bytes memory voteData = abi.encodePacked(uint256(_proposalId), uint64(100), uint64(200), uint64(50));
+    (bytes[] memory _pdaEntries, bytes memory _seeds, uint8 _numSeeds) = _buildPdaEntries(_proposalId);
+    bytes memory solanaQuery = QueryTest.buildSolanaPdaRequestBytes(
+      bytes("finalized"),
+      _requestDataSliceOffset, // min_context_slot
+      _requestDataSliceLength, // data_slice_offset
+      0, // data_slice_length
+	  _pdaEntries
+    );
 
-  //   bytes memory voteQueryResponseRaw =
-  //     _buildSolanaVoteQueryResponse(EXPECTED_PROGRAM_ID, _queryChainId, VoteData(_proposalId, 100, 200, 50));
+     bytes memory perChainRequest =
+      QueryTest.buildPerChainRequestBytes(SPOKE_CHAIN_ID, hubSolanaSpokeVoteDecoder.QT_SOL_PDA(), solanaQuery);
 
-  //   ParsedQueryResponse memory parsedResp =
-  //     hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw,
-  // _getSignatures(voteQueryResponseRaw));
+    bytes memory queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      1, // num per chain requests
+      perChainRequest
+    );
 
-  //   assertEq(hubVotePool.getSpoke(_queryChainId, vm.getBlockTimestamp()), bytes32(0), "Spoke should not be
-  // registered");
+     bytes memory solanaPdaResult = abi.encodePacked(
+      hex"42d381e13c2e2771f21a539e8cece69bbcf00759884d0a108cd808bf8d8feded", // program id
+        // hex"42d381e13c2e2771f21a539e8cece69bbcf00759884d0a108cd808bf8d8feded", // account
+      uint8(254), // bump
+      uint64(1000), // lamports (8 bytes)
+      uint64(0), // rent_epoch (8 bytes)
+      bool(false), // executable (1 byte)
+      hex"42d381e13c2e2771f21a539e8cece69bbcf00759884d0a108cd808bf8d8feded", // owner
+      uint32(voteData.length),
+      voteData // data
+    );
 
-  //   vm.expectRevert(InvalidContractAddress.selector);
-  //   hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
-  // }
+    bytes memory resp = QueryTest.buildSolanaPdaResponseBytes(
+      uint64(vm.getBlockNumber()), // slot_number
+      uint64(vm.getBlockTimestamp()) * 1000, // block_time microseconds
+      blockhash(vm.getBlockNumber()), // block_hash
+      1, // num_results
+      solanaPdaResult
+    );
 
-  // function testFuzz_RevertIf_QueryBlockIsNotFinalized(uint256 _proposalId, bytes32 _slot, bytes memory _commitment)
-  //   public
-  // {
-  //   vm.assume(keccak256(abi.encodePacked(_commitment)) != keccak256("finalized"));
+    bytes memory fullResponse = QueryTest.buildQueryResponseBytes(
+      VERSION,
+      OFF_CHAIN_SENDER,
+      OFF_CHAIN_SIGNATURE,
+      queryRequestBytes,
+      1, // num per chain responses
+      QueryTest.buildPerChainResponseBytes(SPOKE_CHAIN_ID, hubSolanaSpokeVoteDecoder.QT_SOL_PDA(), resp)
+    );
 
-  //   bytes memory solanaQuery = QueryTest.buildSolanaAccountRequestBytes(
-  //     _commitment,
-  //     0, // min_context_slot
-  //     0, // data_slice_offset
-  //     0, // data_slice_length
-  //     1, // num_accounts
-  //     abi.encodePacked(EXPECTED_PROGRAM_ID)
-  //   );
+    IWormhole.Signature[] memory signatures = _getSignatures(fullResponse);
+    ParsedQueryResponse memory parsedResp = hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(fullResponse, signatures);
 
-  //   bytes memory queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
-  //     VERSION,
-  //     0,
-  //     1,
-  //     QueryTest.buildPerChainRequestBytes(SPOKE_CHAIN_ID, hubSolanaSpokeVoteDecoder.QT_SOL_ACCOUNT(), solanaQuery)
-  //   );
+    vm.expectRevert(abi.encodeWithSelector(HubSolanaSpokeVoteDecoder.InvalidDataSlice.selector));
+    hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
 
-  //   bytes memory accountData = abi.encodePacked(uint64(100), uint64(200), uint64(50));
 
-  //   bytes memory solanaResp = QueryTest.buildSolanaAccountResponseBytes(
-  //     0,
-  //     uint64(block.timestamp),
-  //     blockhash(block.number),
-  //     1,
-  //     QueryTest.buildEthCallResultBytes(
-  //       abi.encodePacked(
-  //         EXPECTED_PROGRAM_ID, // owner
-  //         uint8(1), // executable
-  //         uint64(1000), // lamports
-  //         uint32(accountData.length), // data length
-  //         accountData,
-  //         EXPECTED_PROGRAM_ID // program_id
-  //       )
-  //     )
-  //   );
+  }
 
-  //   bytes memory _resp = QueryTest.buildQueryResponseBytes(
-  //     VERSION,
-  //     OFF_CHAIN_SENDER,
-  //     OFF_CHAIN_SIGNATURE,
-  //     queryRequestBytes,
-  //     1,
-  //     QueryTest.buildPerChainResponseBytes(SPOKE_CHAIN_ID, hubSolanaSpokeVoteDecoder.QT_SOL_ACCOUNT(), solanaResp)
-  //   );
+  function testFuzz_RevertIf_SpokeIsNotRegistered(uint16 _queryChainId) public {
+    vm.assume(_queryChainId != SPOKE_CHAIN_ID);
 
-  //   IWormhole.Signature[] memory signatures = _getSignatures(_resp);
-  //   ParsedQueryResponse memory parsedResp = hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(_resp, signatures);
+    vm.warp(vm.getBlockTimestamp() + 7 days);
+    uint256 proposalId = _createEmptyProposal();
 
-  //   vm.expectRevert(abi.encodeWithSelector(HubSolanaSpokeVoteDecoder.InvalidQueryCommitment.selector));
-  //   hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
-  // }
+    bytes memory voteData = abi.encodePacked(uint256(proposalId), uint64(100), uint64(200), uint64(50));
+    bytes memory voteQueryResponseRaw =
+      _buildSolanaVoteQueryResponse(proposalId, _queryChainId, voteData);
 
-  // function testFuzz_RevertIf_InvalidProgramId(uint256 _proposalId, bytes32 _invalidProgramId) public {
-  //   vm.assume(_invalidProgramId != EXPECTED_PROGRAM_ID);
+    ParsedQueryResponse memory parsedResp =
+      hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
 
-  //   bytes memory voteQueryResponseRaw =
-  //     _buildSolanaVoteQueryResponse(_invalidProgramId, SPOKE_CHAIN_ID, VoteData(_proposalId, 100, 200, 50));
+    assertEq(
+      hubVotePool.getSpoke(_queryChainId, vm.getBlockTimestamp()),
+      bytes32(0),
+      "Spoke should not be registered"
+    );
 
-  //   ParsedQueryResponse memory parsedResp =
-  //     hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw,
-  // _getSignatures(voteQueryResponseRaw));
+    vm.expectRevert(InvalidChainId.selector);
+    hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
+  }
 
-  //   vm.expectRevert(abi.encodeWithSelector(HubSolanaSpokeVoteDecoder.InvalidProgramId.selector,
-  // EXPECTED_PROGRAM_ID));
-  //   hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
-  // }
+  function testFuzz_RevertIf_QueryBlockIsNotFinalized(uint256 _proposalId, bytes32 _slot, bytes12 _commitment)
+    public
+  {
+    vm.assume(_commitment != bytes12("finalized"));
+
+    bytes memory voteData = abi.encodePacked(uint256(_proposalId), uint64(100), uint64(200), uint64(50));
+    (bytes[] memory _pdaEntries, bytes memory _seeds, uint8 _numSeeds) = _buildPdaEntries(_proposalId);
+    bytes memory solanaQuery = QueryTest.buildSolanaPdaRequestBytes(
+      abi.encodePacked(_commitment),
+      0, // min_context_slot
+      0, // data_slice_offset
+      0, // data_slice_length
+	  _pdaEntries
+    );
+
+     bytes memory perChainRequest =
+      QueryTest.buildPerChainRequestBytes(SPOKE_CHAIN_ID, hubSolanaSpokeVoteDecoder.QT_SOL_PDA(), solanaQuery);
+
+    bytes memory queryRequestBytes = QueryTest.buildOffChainQueryRequestBytes(
+      VERSION, // version
+      0, // nonce
+      1, // num per chain requests
+      perChainRequest
+    );
+
+     bytes memory solanaPdaResult = abi.encodePacked(
+      hex"42d381e13c2e2771f21a539e8cece69bbcf00759884d0a108cd808bf8d8feded", // program id
+        // hex"42d381e13c2e2771f21a539e8cece69bbcf00759884d0a108cd808bf8d8feded", // account
+      uint8(254), // bump
+      uint64(1000), // lamports (8 bytes)
+      uint64(0), // rent_epoch (8 bytes)
+      bool(false), // executable (1 byte)
+      hex"42d381e13c2e2771f21a539e8cece69bbcf00759884d0a108cd808bf8d8feded", // owner
+      uint32(voteData.length),
+      voteData // data
+    );
+
+    bytes memory resp = QueryTest.buildSolanaPdaResponseBytes(
+      uint64(vm.getBlockNumber()), // slot_number
+      uint64(vm.getBlockTimestamp()) * 1000, // block_time microseconds
+      blockhash(vm.getBlockNumber()), // block_hash
+      1, // num_results
+      solanaPdaResult
+    );
+
+    bytes memory fullResponse = QueryTest.buildQueryResponseBytes(
+      VERSION,
+      OFF_CHAIN_SENDER,
+      OFF_CHAIN_SIGNATURE,
+      queryRequestBytes,
+      1, // num per chain responses
+      QueryTest.buildPerChainResponseBytes(SPOKE_CHAIN_ID, hubSolanaSpokeVoteDecoder.QT_SOL_PDA(), resp)
+    );
+
+    IWormhole.Signature[] memory signatures = _getSignatures(fullResponse);
+    ParsedQueryResponse memory parsedResp = hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(fullResponse, signatures);
+
+    vm.expectRevert(abi.encodeWithSelector(HubSolanaSpokeVoteDecoder.InvalidQueryCommitment.selector));
+    hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
+  }
+
+  function testFuzz_RevertIf_InvalidProgramId(uint256 _proposalId, bytes32 _invalidProgramId) public {
+    vm.assume(_invalidProgramId != EXPECTED_PROGRAM_ID);
+
+    vm.warp(vm.getBlockTimestamp() + 7 days);
+    uint256 proposalId = _createEmptyProposal();
+
+    bytes memory voteData = abi.encodePacked(uint256(_proposalId), uint64(100), uint64(200), uint64(50));
+    bytes memory voteQueryResponseRaw =
+      _buildSolanaVoteQueryResponse(_invalidProgramId, _proposalId, SPOKE_CHAIN_ID, voteData);
+
+    ParsedQueryResponse memory parsedResp =
+      hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
+
+    vm.expectRevert(abi.encodeWithSelector(HubSolanaSpokeVoteDecoder.InvalidProgramId.selector, EXPECTED_PROGRAM_ID));
+    hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
+  }
 }
 
 contract SupportsInterface is HubSolanaSpokeVoteDecoderTest {
