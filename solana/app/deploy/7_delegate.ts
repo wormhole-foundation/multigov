@@ -29,7 +29,8 @@ async function main() {
     );
 
     const user = provider.wallet.publicKey;
-    const stakeAccountAddress = await stakeConnection.getMainAccountAddress(user);
+    const stakeAccountAddress =
+      await stakeConnection.getMainAccountAddress(user);
     console.log(stakeAccountAddress);
 
     await stakeConnection.delegate(

@@ -10,10 +10,12 @@ use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
+use contexts::*;
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
 mod context;
+mod contexts;
 mod error;
 mod state;
 mod utils;
@@ -44,6 +46,7 @@ pub struct ProposalCreated {
 }
 
 declare_id!("5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ");
+
 #[program]
 pub mod staking {
     /// Creates a global config for the program
@@ -112,6 +115,13 @@ pub mod staking {
 
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+
+        if let Some(vesting_balance) = &ctx.accounts.vesting_balance {
+            stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
+        } else {
+            stake_account_metadata.recorded_vesting_balance = 0;
+        }
+
         let current_delegate = stake_account_metadata.delegate;
         stake_account_metadata.delegate = delegatee;
 
@@ -122,7 +132,10 @@ pub mod staking {
         });
 
         let recorded_balance = stake_account_metadata.recorded_balance;
+        let recorded_vesting_balance = stake_account_metadata.recorded_vesting_balance;
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
+
+        let total_balance = recorded_balance + recorded_vesting_balance;
 
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
@@ -146,7 +159,7 @@ pub mod staking {
 
                 if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
                     current_timestamp,
-                    latest_current_delegate_checkpoint_value - recorded_balance,
+                    latest_current_delegate_checkpoint_value - total_balance,
                 ) {};
             }
 
@@ -163,12 +176,12 @@ pub mod staking {
                 stake_account_metadata.recorded_balance = *current_stake_balance;
             }
         } else {
-            if *current_stake_balance != recorded_balance {
+            if *current_stake_balance != total_balance {
                 let latest_delegatee_checkpoint_value =
                     delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
                 if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
                     current_timestamp,
-                    latest_delegatee_checkpoint_value + *current_stake_balance - recorded_balance,
+                    latest_delegatee_checkpoint_value + *current_stake_balance - total_balance,
                 ) {};
                 stake_account_metadata.recorded_balance = *current_stake_balance;
             }
@@ -325,5 +338,43 @@ pub mod staking {
         ctx.accounts.stake_account_metadata.owner = new_owner;
 
         Ok(())
+    }
+
+    //------------------------------------ VESTING ------------------------------------------------
+    // Initialize a new Config, setting up a mint, vault and admin
+    pub fn initialize_vesting_config(ctx: Context<Initialize>, seed: u64) -> Result<()> {
+        ctx.accounts.initialize(seed, ctx.bumps.config)
+    }
+
+    // Create a vesting balance account
+    pub fn create_vesting_balance(ctx: Context<CreateVestingBalance>) -> Result<()> {
+        ctx.accounts
+            .create_vesting_balance(ctx.bumps.vesting_balance)
+    }
+
+    // Finalize a Config, disabling any further creation or cancellation of Vesting accounts
+    pub fn finalize_vesting_config(ctx: Context<Finalize>) -> Result<()> {
+        ctx.accounts.finalize()
+    }
+
+    // Open a new Vesting account and deposit equivalent vested tokens to vault
+    pub fn create_vesting(ctx: Context<CreateVesting>, maturation: i64, amount: u64) -> Result<()> {
+        ctx.accounts
+            .create_vesting(maturation, amount, ctx.bumps.vest)
+    }
+
+    // Claim from and close a Vesting account
+    pub fn claim_vesting(ctx: Context<ClaimVesting>) -> Result<()> {
+        ctx.accounts.close_vesting()
+    }
+
+    // Cancel and close a Vesting account for a non-finalized Config
+    pub fn cancel_vesting(ctx: Context<CancelVesting>) -> Result<()> {
+        ctx.accounts.cancel_vesting()
+    }
+
+    // Allow admin to withdraw surplus tokens in excess of total vested amount
+    pub fn withdraw_surplus(ctx: Context<WithdrawSurplus>) -> Result<()> {
+        ctx.accounts.withdraw_surplus()
     }
 }

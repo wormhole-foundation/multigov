@@ -39,7 +39,8 @@ describe("voter_votes_test", async () => {
   });
 
   it("delegate votes appear after delegation", async () => {
-    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
+    let stakeAccountAddress =
+      await stakeConnection.getMainAccountAddress(owner);
 
     stakeAccountAddress = await stakeConnection.delegate(
       stakeAccountAddress,
@@ -47,7 +48,8 @@ describe("voter_votes_test", async () => {
       WHTokenBalance.fromString("50"),
     );
 
-    let stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
+    let stakeAccount =
+      await stakeConnection.loadStakeAccount(stakeAccountAddress);
     await assertVoterVotesEquals(stakeAccount, new BN("50000000")); // 50 * 10**6
 
     await stakeConnection.delegate(

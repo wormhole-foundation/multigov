@@ -204,7 +204,9 @@ export class StakeConnection {
     } else {
       return accounts.reduce(
         (prev: StakeAccount, curr: StakeAccount): StakeAccount => {
-          return prev.tokenBalance > curr.tokenBalance ? curr.address : prev.address;
+          return prev.tokenBalance > curr.tokenBalance
+            ? curr.address
+            : prev.address;
         },
       );
     }
@@ -464,6 +466,7 @@ export class StakeConnection {
           currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccount,
           delegateeStakeAccountCheckpoints: delegateeStakeAccount,
           stakeAccountCheckpoints: currentStakeAccount,
+          vestingBalance: null,
           mint: this.config.whTokenMint,
         })
         .instruction(),
@@ -545,6 +548,7 @@ export class StakeConnection {
 
   /** Gets the current votes balance of the delegate's stake account. */
   public getVotes(delegateStakeAccount: StakeAccount): BN {
+    this.program.account.checkpointData.fetch();
     return delegateStakeAccount.getVotes();
   }
 
