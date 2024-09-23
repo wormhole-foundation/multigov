@@ -113,7 +113,8 @@ describe("api", async () => {
   });
 
   it("delegate", async () => {
-    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
+    let stakeAccountAddress =
+      await stakeConnection.getMainAccountAddress(owner);
     stakeAccountAddress = await stakeConnection.delegate(
       stakeAccountAddress,
       stakeAccountAddress,
@@ -145,7 +146,8 @@ describe("api", async () => {
   });
 
   it("should change delegate account correctly", async () => {
-    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
+    let stakeAccountAddress =
+      await stakeConnection.getMainAccountAddress(owner);
     stakeAccountAddress = await stakeConnection.delegate(
       stakeAccountAddress,
       undefined,
@@ -184,8 +186,10 @@ describe("api", async () => {
   });
 
   it("withdrawTokens", async () => {
-    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
-    let stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
+    let stakeAccountAddress =
+      await stakeConnection.getMainAccountAddress(owner);
+    let stakeAccount =
+      await stakeConnection.loadStakeAccount(stakeAccountAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
       "130000000", // 130 * 10**6
@@ -219,8 +223,10 @@ describe("api", async () => {
     const res = await stakeConnection.getStakeAccounts(owner);
     assert.equal(res.length, 2);
 
-    let stakeAccountAddress = await stakeConnection.getMainAccountAddress(owner);
-    let stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
+    let stakeAccountAddress =
+      await stakeConnection.getMainAccountAddress(owner);
+    let stakeAccount =
+      await stakeConnection.loadStakeAccount(stakeAccountAddress);
 
     assert.equal(
       stakeAccount.tokenBalance.toString(),
@@ -252,7 +258,8 @@ describe("api", async () => {
   });
 
   it("castVote", async () => {
-    let stakeAccountAddress = await user2StakeConnection.getMainAccountAddress(user2);
+    let stakeAccountAddress =
+      await user2StakeConnection.getMainAccountAddress(user2);
 
     stakeAccountAddress = await user2StakeConnection.delegate(
       stakeAccountAddress,
