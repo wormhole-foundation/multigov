@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {CHAIN_ID_SOLANA} from "wormhole-sdk/Chains.sol";
+import {InvalidChainId} from "wormhole-sdk/QueryResponse.sol";
 import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
 import {IMessageDispatcher} from "src/interfaces/IMessageDispatcher.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
@@ -73,7 +74,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
 
     uint256 nextMessageId = dispatcher.nextMessageId();
     bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
-    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
+    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions.length, instructions);
 
     dispatcher.dispatch(payload);
 
@@ -98,7 +99,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
 
     uint256 nextMessageId = dispatcher.nextMessageId();
     bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
-    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
+    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions.length, instructions);
 
     dispatcher.dispatch(payload);
 
@@ -120,7 +121,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
 
     uint256 nextMessageId = dispatcher.nextMessageId();
     bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
-    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
+    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions.length, instructions);
 
     vm.expectEmit();
     emit IMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);
@@ -134,7 +135,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
       new HubSolanaMessageDispatcher.SolanaInstruction[](1);
     bytes memory payload = abi.encode(_invalidChainId, instructions);
 
-    vm.expectRevert(HubSolanaMessageDispatcher.InvalidChainId.selector);
+    vm.expectRevert(InvalidChainId.selector);
     dispatcher.dispatch(payload);
   }
 
