@@ -9,18 +9,14 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {
   QueryResponse,
   ParsedPerChainQueryResponse,
-  SolanaAccountQueryResponse,
   InvalidContractAddress,
   InvalidChainId,
-  SolanaAccountResult,
-  SolanaPdaResult,
   SolanaPdaQueryResponse
 } from "wormhole-sdk/QueryResponse.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {ISpokeVoteDecoder} from "src/interfaces/ISpokeVoteDecoder.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 /// @title HubSolanaSpokeVoteDecoder
 /// @author [ScopeLift](https://scopelift.co)
@@ -32,11 +28,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   bytes12 public constant SOLANA_COMMITMENT_LEVEL = "finalized";
   uint256 public constant DEFAULT_QUERY_VALUE = 0;
   bytes32 public constant PROPOSAL_SEED = bytes32("proposal");
-  // 48 bytes
-  // 5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ program id
-  // check proposal id, proposal seed
-  // "proposal"
-  // Create testing
 
   /// @notice The hub vote pool used to validate message emitter.
   HubVotePool public immutable HUB_VOTE_POOL;
@@ -52,7 +43,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
   error TooManySolanaPdaResults(uint256 resultsLength);
   error InvalidProgramId(bytes32 expectedProgramId);
-  error InvalidDataLength();
   error InvalidDataSlice();
   error InvalidQueryCommitment();
   error InvalidSeedsLength();
@@ -63,6 +53,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubVotePool The address for the hub vote pool.
   /// @param _expectedProgramId The expected Solana program ID.
+  /// @param _solanaTokenDecimals The number of decimals for the Solana token.
   constructor(address _core, address _hubVotePool, bytes32 _expectedProgramId, uint8 _solanaTokenDecimals)
     QueryResponse(_core)
   {
@@ -85,18 +76,22 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   {
     SolanaPdaQueryResponse memory _parsedPdaQueryRes = parseSolanaPdaQueryResponse(_perChainResp);
 
-    // verify chain id is solana
+    // verify chain id is Solana
     if (_perChainResp.chainId != SOLANA_CHAIN_ID) revert InvalidChainId();
+
     // verify expected data offset and length
     if (
       _parsedPdaQueryRes.requestDataSliceOffset != DEFAULT_QUERY_VALUE
         || _parsedPdaQueryRes.requestDataSliceLength != DEFAULT_QUERY_VALUE
     ) revert InvalidDataSlice();
+
     // verity results length
     if (_parsedPdaQueryRes.results.length != 1) revert TooManySolanaPdaResults(_parsedPdaQueryRes.results.length);
 
     // verify program id
-    if (_parsedPdaQueryRes.results[0].programId != EXPECTED_PROGRAM_ID) revert InvalidProgramId(_parsedPdaQueryRes.results[0].programId);
+    if (_parsedPdaQueryRes.results[0].programId != EXPECTED_PROGRAM_ID) {
+      revert InvalidProgramId(_parsedPdaQueryRes.results[0].programId);
+    }
 
     // verify seeds length
     if (_parsedPdaQueryRes.results[0].seeds.length != 2) revert InvalidSeedsLength();
@@ -109,7 +104,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
     if (bytes12(_parsedPdaQueryRes.requestCommitment) != SOLANA_COMMITMENT_LEVEL) revert InvalidQueryCommitment();
 
-    // TODO: Solana side returns u64 so doing the same here
     (uint256 _proposalId, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
       _parseData(_parsedPdaQueryRes.results[0].data);
 
@@ -118,11 +112,10 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
         || bytes32(_parsedPdaQueryRes.results[0].seeds[1]) != bytes32(uint256(_proposalId))
     ) revert InvalidProposalIdSeed();
 
-    // verify expected data length needs to be changed to 48 in the future
+    // verify expected data length
     _parsedPdaQueryRes.results[0].data.checkLength(56);
 
     // Check owner
-    // TODO: what is the address to check here. This may need to be changed
     if (_parsedPdaQueryRes.results[0].owner != EXPECTED_PROGRAM_ID) revert InvalidAccountOwner();
 
     uint256 _voteStart = _governor.proposalSnapshot(_proposalId);
@@ -154,7 +147,9 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     return _interfaceId == type(ISpokeVoteDecoder).interfaceId || ERC165.supportsInterface(_interfaceId);
   }
 
-  //(_proposalId, _offset) = _parsedPdaQueryRes.results[0].data.asUint64Unchecked(_offset);
+  // @notice Parse the vote data from a solana pda query.
+  // @param _data The solana query result.
+  // @return The proposals id and vote totals.
   function _parseData(bytes memory _data) internal pure returns (uint256, uint64, uint64, uint64) {
     uint256 _offset = 0;
     bytes32 _proposalIdBytes;
@@ -169,14 +164,14 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   }
 
   /// @notice Scales an amount from original decimals to target decimals
-  /// @param amount The amount to scale
-  /// @param fromDecimals The original decimals
-  /// @param toDecimals The target decimals
+  /// @param _amount The amount to scale
+  /// @param _fromDecimals The original decimals
+  /// @param _toDecimals The target decimals
   /// @return The scaled amount
-  function _scale(uint256 amount, uint8 fromDecimals, uint8 toDecimals) internal pure returns (uint256) {
-    if (fromDecimals == toDecimals) return amount;
+  function _scale(uint256 _amount, uint8 _fromDecimals, uint8 _toDecimals) internal pure returns (uint256) {
+    if (_fromDecimals == _toDecimals) return _amount;
 
-    if (fromDecimals > toDecimals) return amount / (10 ** (fromDecimals - toDecimals));
-    else return amount * (10 ** (toDecimals - fromDecimals));
+    if (_fromDecimals > _toDecimals) return _amount / (10 ** (_fromDecimals - _toDecimals));
+    else return _amount * (10 ** (_toDecimals - _fromDecimals));
   }
 }
