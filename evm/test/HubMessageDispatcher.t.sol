@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
+import {IMessageDispatcher} from "src/interfaces/IMessageDispatcher.sol";
 import {TimelockControllerFake} from "test/fakes/TimelockControllerFake.sol";
 import {ProposalBuilder} from "test/helpers/ProposalBuilder.sol";
 import {WormholeCoreMock} from "test/mocks/WormholeCoreMock.sol";
@@ -94,7 +95,7 @@ contract Dispatch is HubMessageDispatcherTest {
       abi.encode(nextMessageId, _wormholeChainId, builder.targets(), builder.values(), builder.calldatas());
 
     vm.expectEmit();
-    emit HubMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);
+    emit IMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);
     dispatcher.dispatch(payload);
   }
 
