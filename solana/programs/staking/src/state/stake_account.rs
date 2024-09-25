@@ -62,8 +62,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            std::mem::size_of::<StakeAccountMetadata>()
-                + StakeAccountMetadata::discriminator().len()
+            size_of::<StakeAccountMetadata>() + StakeAccountMetadata::discriminator().len()
                 <= StakeAccountMetadata::LEN
         );
     }

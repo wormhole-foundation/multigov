@@ -28,7 +28,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            std::mem::size_of::<GlobalConfig>()
+            size_of::<GlobalConfig>()
                 + GlobalConfig::discriminator().len()
                 + 8 // mock_clock_time 
                 == GlobalConfig::LEN

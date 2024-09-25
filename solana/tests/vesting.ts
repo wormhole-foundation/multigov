@@ -39,7 +39,6 @@ import { CheckpointAccount } from "../app/checkpoints";
 const portNumber = getPortNumber(path.basename(__filename));
 
 describe("vesting", () => {
-  console.log(portNumber);
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
 

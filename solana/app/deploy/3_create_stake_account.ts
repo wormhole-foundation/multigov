@@ -14,9 +14,6 @@ async function main() {
 
     const stakeAccountSecret = new Keypair();
 
-    console.log(stakeAccountSecret);
-    console.log(stakeAccountSecret.publicKey);
-
     const connection = new Connection(RPC_NODE);
 
     const provider = new AnchorProvider(

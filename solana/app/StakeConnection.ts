@@ -31,7 +31,6 @@ import {
   TransactionBuilder,
 } from "./transaction";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
-import * as console from "node:console";
 import { CheckpointAccount, readCheckpoints } from "./checkpoints";
 
 import {
@@ -153,47 +152,6 @@ export class StakeConnection {
   /** The public key of the user of the staking program. This connection sends transactions as this user. */
   public userPublicKey(): PublicKey {
     return this.provider.wallet.publicKey;
-  }
-
-  public async getAllStakeAccountAddresses(): Promise<PublicKey[]> {
-    // Use the raw web3.js connection so that anchor doesn't try to borsh deserialize the zero-copy serialized account
-    const allAccts = await this.provider.connection.getProgramAccounts(
-      this.program.programId,
-      {
-        encoding: "base64",
-        filters: [
-          { memcmp: this.program.coder.accounts.memcmp("checkpointData") },
-        ],
-      },
-    );
-    return allAccts.map((acct) => acct.pubkey);
-  }
-
-  /** Deprecated
-   *  Gets a users stake accounts */
-  public async getStakeAccounts(user: PublicKey): Promise<StakeAccount[]> {
-    const res = await this.program.provider.connection.getProgramAccounts(
-      this.program.programId,
-      {
-        encoding: "base64",
-        filters: [
-          {
-            memcmp: this.program.coder.accounts.memcmp("checkpointData"),
-          },
-          {
-            memcmp: {
-              offset: 8,
-              bytes: user.toBase58(),
-            },
-          },
-        ],
-      },
-    );
-    return await Promise.all(
-      res.map(async (account) => {
-        return await this.loadStakeAccount(account.pubkey);
-      }),
-    );
   }
 
   /** Gets the user's stake account address with the most tokens or undefined if it doesn't exist */
@@ -616,17 +574,6 @@ export class StakeConnection {
 
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
-
-  // /** Gets the current votes balance of the delegate's stake account. */
-  // public getVotes(delegateStakeAccount: StakeAccount): BN {
-  //   this.program.account.checkpointData.fetch();
-  //   return delegateStakeAccount.getVotes();
-  // }
-  //
-  // /** Gets the voting power of the delegate's stake account at a specified past timestamp. */
-  // public getPastVotes(delegateStakeAccount: StakeAccount, timestamp: BN): BN {
-  //   return delegateStakeAccount.getPastVotes(timestamp);
-  // }
 
   /** Gets the current delegate's stake account associated with the specified stake account. */
   public async delegates(stakeAccount: PublicKey): Promise<PublicKey> {

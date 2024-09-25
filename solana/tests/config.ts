@@ -131,8 +131,6 @@ describe("config", async () => {
       program.programId,
     )[0];
 
-    console.log(checkpointDataAddress);
-
     await program.methods
       .createStakeAccount(owner)
       .accounts({

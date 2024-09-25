@@ -58,8 +58,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            std::mem::size_of::<ProposalData>() + ProposalData::discriminator().len()
-                <= ProposalData::LEN
+            size_of::<ProposalData>() + ProposalData::discriminator().len() <= ProposalData::LEN
         );
     }
 

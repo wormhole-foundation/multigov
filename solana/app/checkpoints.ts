@@ -32,7 +32,6 @@ class Checkpoint {
   }
 }
 
-// Визначаємо схему для CheckpointData
 const checkpointDataSchema = new Map<any, any>([
   [
     CheckpointData,
@@ -107,7 +106,6 @@ export async function readCheckpoints(
     headerData,
   ) as CheckpointData;
 
-  // Читаємо чекпоінти
   const checkpointsData = data.slice(headerSize);
   const elementSize = 16;
   const totalElements = Math.floor(checkpointsData.length / elementSize);
