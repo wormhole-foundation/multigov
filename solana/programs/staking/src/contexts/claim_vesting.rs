@@ -1,4 +1,4 @@
-use crate::context::{VESTING_BALANCE_SEED};
+use crate::context::VESTING_BALANCE_SEED;
 use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 use anchor_spl::{
