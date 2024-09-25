@@ -18,18 +18,14 @@ use std::convert::TryInto;
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
 
 use anchor_lang::solana_program::{
-    instruction::AccountMeta,
-    instruction::Instruction,
-    program::invoke_signed
+    instruction::AccountMeta, instruction::Instruction, program::invoke_signed,
 };
 
-use wormhole_query_sdk::{
-    structs::{ChainSpecificResponse, QueryResponse},
-};
+use wormhole_query_sdk::structs::{ChainSpecificResponse, QueryResponse};
 
 use crate::{
-    error::{QueriesSolanaVerifyError, ProposalWormholeMessageError},
-    state::{GuardianSignatures},
+    error::{ProposalWormholeMessageError, QueriesSolanaVerifyError},
+    state::GuardianSignatures,
 };
 
 // automatically generate module using program idl found in ./idls
@@ -151,7 +147,6 @@ pub mod staking {
         let current_delegate = stake_account_metadata.delegate;
         stake_account_metadata.delegate = delegatee;
 
-
         let recorded_balance = stake_account_metadata.recorded_balance;
         let recorded_vesting_balance = stake_account_metadata.recorded_vesting_balance;
         let current_stake_balance = ctx.accounts.stake_account_custody.amount;
@@ -241,7 +236,6 @@ pub mod staking {
 
         Ok(())
     }
-
 
     pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, amount: u64) -> Result<()> {
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
@@ -348,7 +342,7 @@ pub mod staking {
                 abstain_votes
             });
         } else {
-            return Err(error!(ErrorCode::CheckpointNotFound))
+            return Err(error!(ErrorCode::CheckpointNotFound));
         }
 
         Ok(())
@@ -429,10 +423,12 @@ pub mod staking {
         Ok(())
     }
 
-
     //------------------------------------ SPOKE MESSAGE EXECUTOR ------------------------------------------------
     // Initialize and setting a spoke message executor
-    pub fn initialize_spoke_message_executor(ctx: Context<InitializeSpokeMessageExecutor>, hub_chain_id: u16) -> Result<()> {
+    pub fn initialize_spoke_message_executor(
+        ctx: Context<InitializeSpokeMessageExecutor>,
+        hub_chain_id: u16,
+    ) -> Result<()> {
         let executor = &mut ctx.accounts.executor;
         executor.bump = ctx.bumps.executor;
         executor.hub_dispatcher = ctx.accounts.hub_dispatcher.key();
@@ -443,7 +439,10 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn set_message_received(ctx: Context<SetMessageReceived>, _message_hash: [u8; 32]) -> Result<()> {
+    pub fn set_message_received(
+        ctx: Context<SetMessageReceived>,
+        _message_hash: [u8; 32],
+    ) -> Result<()> {
         let message_received = &mut ctx.accounts.message_received;
         message_received.executed = true;
         Ok(())
@@ -462,14 +461,17 @@ pub mod staking {
     }
 
     //------------------------------------ SPOKE AIRLOCK ------------------------------------------------
-    pub fn initialize_spoke_airlock(ctx: Context<InitializeSpokeAirlock>, message_executor: Pubkey) -> Result<()> {
+    pub fn initialize_spoke_airlock(
+        ctx: Context<InitializeSpokeAirlock>,
+        message_executor: Pubkey,
+    ) -> Result<()> {
         let airlock = &mut ctx.accounts.airlock;
         airlock.bump = ctx.bumps.airlock;
         airlock.message_executor = message_executor;
         Ok(())
     }
 
-    pub fn execute_operation<'info> (
+    pub fn execute_operation<'info>(
         ctx: Context<'_, '_, '_, 'info, ExecuteOperation<'info>>,
         cpi_target_program_id: Pubkey,
         instruction_data: Vec<u8>,
@@ -484,7 +486,8 @@ pub mod staking {
         let mut all_account_infos = ctx.accounts.to_account_infos();
         all_account_infos.extend_from_slice(ctx.remaining_accounts);
 
-        let account_metas = all_account_infos.clone()
+        let account_metas = all_account_infos
+            .clone()
             .into_iter()
             .map(|account| AccountMeta::new(*account.key, false))
             .collect();
@@ -504,13 +507,17 @@ pub mod staking {
 
     //------------------------------------ SPOKE METADATA COLLECTOR ------------------------------------------------
     // Initialize and setting a spoke metadata collector
-    pub fn initialize_spoke_metadata_collector(ctx: Context<InitializeSpokeMetadataCollector>, hub_chain_id: u16, hub_proposal_metadata: [u8; 20]) -> Result<()> {
+    pub fn initialize_spoke_metadata_collector(
+        ctx: Context<InitializeSpokeMetadataCollector>,
+        hub_chain_id: u16,
+        hub_proposal_metadata: [u8; 20],
+    ) -> Result<()> {
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
         let _ = spoke_metadata_collector.initialize(
             ctx.bumps.spoke_metadata_collector,
             hub_chain_id,
             hub_proposal_metadata,
-            CORE_BRIDGE_PROGRAM_ID
+            CORE_BRIDGE_PROGRAM_ID,
         );
 
         Ok(())
@@ -534,7 +541,7 @@ pub mod staking {
         ctx: Context<AddProposal>,
         bytes: Vec<u8>,
         proposal_id: [u8; 32],
-        _guardian_set_index: u32
+        _guardian_set_index: u32,
     ) -> Result<()> {
         let response = QueryResponse::deserialize(&bytes)
             .map_err(|_| QueriesSolanaVerifyError::FailedToParseResponse)?;
@@ -559,7 +566,8 @@ pub mod staking {
                 ProposalWormholeMessageError::TooManyEthCallResults
             );
 
-            let proposal_data = spoke_metadata_collector.parse_eth_response_proposal_data(&eth_response.results[0])?;
+            let proposal_data = spoke_metadata_collector
+                .parse_eth_response_proposal_data(&eth_response.results[0])?;
 
             require!(
                 proposal_data.contract_address == spoke_metadata_collector.hub_proposal_metadata,
@@ -576,7 +584,7 @@ pub mod staking {
             let _ = proposal.add_proposal(
                 proposal_data.proposal_id,
                 proposal_data.vote_start,
-                spoke_metadata_collector.safe_window
+                spoke_metadata_collector.safe_window,
             );
 
             emit!(ProposalCreated {

@@ -16,9 +16,7 @@ use crate::{
     state::{GuardianSignatures, WormholeGuardianSet},
 };
 
-use wormhole_query_sdk::{
-    MESSAGE_PREFIX, QUERY_MESSAGE_LEN,
-};
+use wormhole_query_sdk::{MESSAGE_PREFIX, QUERY_MESSAGE_LEN};
 
 use wormhole_raw_vaas::{utils::quorum, GuardianSetSig};
 
@@ -289,9 +287,9 @@ impl<'info> AddProposal<'info> {
             }
 
             // Does this guardian index exist in this guardian set?
-            let guardian_pubkey = guardian_keys.get(index).ok_or_else(|| {
-                error!(QueriesSolanaVerifyError::InvalidGuardianIndexOutOfRange)
-            })?;
+            let guardian_pubkey = guardian_keys
+                .get(index)
+                .ok_or_else(|| error!(QueriesSolanaVerifyError::InvalidGuardianIndexOutOfRange))?;
 
             // Now verify that the signature agrees with the expected Guardian's pubkey.
             verify_guardian_signature(&sig, guardian_pubkey, digest.as_ref())?;

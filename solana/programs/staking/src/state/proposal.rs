@@ -74,6 +74,9 @@ pub mod tests {
             safe_window: 50,
         };
 
-        assert_eq!(proposal.proposal_votes().unwrap(), Some((proposal_id, 50, 40, 30)));
+        assert_eq!(
+            proposal.proposal_votes().unwrap(),
+            Some((proposal_id, 50, 40, 30))
+        );
     }
 }

@@ -120,7 +120,8 @@ impl WasmProposalData {
 
     #[wasm_bindgen(js_name=proposalVotes)]
     pub fn proposal_votes(&self) -> Result<VotesSummary, JsValue> {
-        let Ok(Some((proposal_id, against_votes, for_votes, abstain_votes))) = self.wrapped.proposal_votes()
+        let Ok(Some((proposal_id, against_votes, for_votes, abstain_votes))) =
+            self.wrapped.proposal_votes()
         else {
             return Err("Failed to get proposal votes".into());
         };
