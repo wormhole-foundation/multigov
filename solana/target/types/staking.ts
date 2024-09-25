@@ -321,7 +321,7 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "vesterTa"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -476,7 +476,10 @@ export type Staking = {
         {
           "name": "vester",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "vestingBalance"
+          ]
         },
         {
           "name": "mint"
@@ -542,8 +545,7 @@ export type Staking = {
           "name": "vesterTa",
           "writable": true,
           "relations": [
-            "vest",
-            "vestingBalance"
+            "vest"
           ]
         },
         {
@@ -639,10 +641,20 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "vesterTa"
+                "path": "vester_ta.owner"
               }
             ]
           }
+        },
+        {
+          "name": "stakeAccountCheckpoints",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "stakeAccountMetadata",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "associatedTokenProgram",
@@ -711,7 +723,25 @@ export type Staking = {
         },
         {
           "name": "stakeAccountCheckpoints",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  119,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              }
+            ]
+          }
         },
         {
           "name": "stakeAccountMetadata",
@@ -955,7 +985,7 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "vesterTa"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -1027,7 +1057,7 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "vesterTa"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -1239,10 +1269,15 @@ export type Staking = {
         },
         {
           "name": "vestingBalance",
+          "writable": true,
           "optional": true
         },
         {
           "name": "mint"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -1478,6 +1513,53 @@ export type Staking = {
           }
         }
       ]
+    },
+    {
+      "name": "initializeCheckpointData",
+      "discriminator": [
+        114,
+        39,
+        223,
+        92,
+        21,
+        65,
+        77,
+        151
+      ],
+      "accounts": [
+        {
+          "name": "checkpointData",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  119,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "initializeSpokeAirlock",
@@ -2608,6 +2690,10 @@ export type Staking = {
         {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -2859,48 +2945,98 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "failedToParseResponse",
-      "msg": "Failed to parse response"
+      "name": "tooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
     },
     {
       "code": 6001,
-      "name": "writeAuthorityMismatch",
-      "msg": "Write authority mismatch"
+      "name": "genericOverflow",
+      "msg": "An arithmetic operation unexpectedly overflowed"
     },
     {
       "code": 6002,
-      "name": "guardianSetExpired",
-      "msg": "Guardian set expired"
+      "name": "checkpointSerDe",
+      "msg": "Error deserializing checkpoint"
     },
     {
       "code": 6003,
-      "name": "invalidMessageHash",
-      "msg": "Invalid message hash"
+      "name": "checkpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
     },
     {
       "code": 6004,
-      "name": "noQuorum",
-      "msg": "No quorum"
+      "name": "notLlcMember",
+      "msg": "You need to be an LLC member to perform this action"
     },
     {
       "code": 6005,
-      "name": "invalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
+      "name": "recoverWithStake",
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
     },
     {
       "code": 6006,
-      "name": "invalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
+      "name": "checkpointNotFound",
+      "msg": "Checkpoint not found"
     },
     {
       "code": 6007,
-      "name": "invalidSignature",
-      "msg": "Invalid signature"
+      "name": "invalidTimestamp",
+      "msg": "Invalid timestamp"
     },
     {
       "code": 6008,
-      "name": "invalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "invalidLlcAgreement",
+      "msg": "Invalid LLC agreement"
+    },
+    {
+      "code": 6009,
+      "name": "noWeight",
+      "msg": "No Weight"
+    },
+    {
+      "code": 6010,
+      "name": "allWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6011,
+      "name": "voteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6012,
+      "name": "withdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
+    },
+    {
+      "code": 6013,
+      "name": "insufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
+    },
+    {
+      "code": 6014,
+      "name": "proposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6015,
+      "name": "invalidMessageExecutor",
+      "msg": "Invalid message executor"
+    },
+    {
+      "code": 6016,
+      "name": "invalidSpokeAirlock",
+      "msg": "Invalid spoke airlock"
+    },
+    {
+      "code": 6017,
+      "name": "invalidVestingBalance",
+      "msg": "Invalid vesting balance owner"
+    },
+    {
+      "code": 6018,
+      "name": "other",
+      "msg": "other"
     }
   ],
   "types": [
@@ -2920,36 +3056,6 @@ export type Staking = {
           {
             "name": "nextIndex",
             "type": "u64"
-          },
-          {
-            "name": "checkpoints",
-            "type": {
-              "defined": {
-                "name": "checkpoints"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "checkpoints",
-      "repr": {
-        "kind": "c"
-      },
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "array": [
-              {
-                "array": [
-                  "u8",
-                  24
-                ]
-              },
-              32
-            ]
           }
         ]
       }
@@ -3369,7 +3475,7 @@ export type Staking = {
         "kind": "struct",
         "fields": [
           {
-            "name": "vesterTa",
+            "name": "vester",
             "type": "pubkey"
           },
           {
@@ -3379,6 +3485,10 @@ export type Staking = {
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "stakeAccountMetadata",
+            "type": "pubkey"
           }
         ]
       }

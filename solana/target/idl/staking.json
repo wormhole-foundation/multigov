@@ -315,7 +315,7 @@
               },
               {
                 "kind": "account",
-                "path": "vester_ta"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -470,7 +470,10 @@
         {
           "name": "vester",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "vesting_balance"
+          ]
         },
         {
           "name": "mint"
@@ -536,8 +539,7 @@
           "name": "vester_ta",
           "writable": true,
           "relations": [
-            "vest",
-            "vesting_balance"
+            "vest"
           ]
         },
         {
@@ -633,10 +635,20 @@
               },
               {
                 "kind": "account",
-                "path": "vester_ta"
+                "path": "vester_ta.owner"
               }
             ]
           }
+        },
+        {
+          "name": "stake_account_checkpoints",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "stake_account_metadata",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "associated_token_program",
@@ -705,7 +717,25 @@
         },
         {
           "name": "stake_account_checkpoints",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  119,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              }
+            ]
+          }
         },
         {
           "name": "stake_account_metadata",
@@ -949,7 +979,7 @@
               },
               {
                 "kind": "account",
-                "path": "vester_ta"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -1021,7 +1051,7 @@
               },
               {
                 "kind": "account",
-                "path": "vester_ta"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -1233,10 +1263,15 @@
         },
         {
           "name": "vesting_balance",
+          "writable": true,
           "optional": true
         },
         {
           "name": "mint"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -1472,6 +1507,53 @@
           }
         }
       ]
+    },
+    {
+      "name": "initialize_checkpoint_data",
+      "discriminator": [
+        114,
+        39,
+        223,
+        92,
+        21,
+        65,
+        77,
+        151
+      ],
+      "accounts": [
+        {
+          "name": "checkpoint_data",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  119,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "initialize_spoke_airlock",
@@ -2602,6 +2684,10 @@
         {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -2853,48 +2939,98 @@
   "errors": [
     {
       "code": 6000,
-      "name": "FailedToParseResponse",
-      "msg": "Failed to parse response"
+      "name": "TooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
     },
     {
       "code": 6001,
-      "name": "WriteAuthorityMismatch",
-      "msg": "Write authority mismatch"
+      "name": "GenericOverflow",
+      "msg": "An arithmetic operation unexpectedly overflowed"
     },
     {
       "code": 6002,
-      "name": "GuardianSetExpired",
-      "msg": "Guardian set expired"
+      "name": "CheckpointSerDe",
+      "msg": "Error deserializing checkpoint"
     },
     {
       "code": 6003,
-      "name": "InvalidMessageHash",
-      "msg": "Invalid message hash"
+      "name": "CheckpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
     },
     {
       "code": 6004,
-      "name": "NoQuorum",
-      "msg": "No quorum"
+      "name": "NotLlcMember",
+      "msg": "You need to be an LLC member to perform this action"
     },
     {
       "code": 6005,
-      "name": "InvalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
+      "name": "RecoverWithStake",
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
     },
     {
       "code": 6006,
-      "name": "InvalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
+      "name": "CheckpointNotFound",
+      "msg": "Checkpoint not found"
     },
     {
       "code": 6007,
-      "name": "InvalidSignature",
-      "msg": "Invalid signature"
+      "name": "InvalidTimestamp",
+      "msg": "Invalid timestamp"
     },
     {
       "code": 6008,
-      "name": "InvalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "InvalidLlcAgreement",
+      "msg": "Invalid LLC agreement"
+    },
+    {
+      "code": 6009,
+      "name": "NoWeight",
+      "msg": "No Weight"
+    },
+    {
+      "code": 6010,
+      "name": "AllWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6011,
+      "name": "VoteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6012,
+      "name": "WithdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
+    },
+    {
+      "code": 6013,
+      "name": "InsufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
+    },
+    {
+      "code": 6014,
+      "name": "ProposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidMessageExecutor",
+      "msg": "Invalid message executor"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidSpokeAirlock",
+      "msg": "Invalid spoke airlock"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidVestingBalance",
+      "msg": "Invalid vesting balance owner"
+    },
+    {
+      "code": 6018,
+      "name": "Other",
+      "msg": "Other"
     }
   ],
   "types": [
@@ -2914,36 +3050,6 @@
           {
             "name": "next_index",
             "type": "u64"
-          },
-          {
-            "name": "checkpoints",
-            "type": {
-              "defined": {
-                "name": "Checkpoints"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Checkpoints",
-      "repr": {
-        "kind": "c"
-      },
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "array": [
-              {
-                "array": [
-                  "u8",
-                  24
-                ]
-              },
-              32
-            ]
           }
         ]
       }
@@ -3363,7 +3469,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "vester_ta",
+            "name": "vester",
             "type": "pubkey"
           },
           {
@@ -3373,6 +3479,10 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "stake_account_metadata",
+            "type": "pubkey"
           }
         ]
       }
