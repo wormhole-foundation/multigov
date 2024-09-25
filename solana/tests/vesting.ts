@@ -171,6 +171,7 @@ describe("vesting", () => {
       WHTokenBalance.fromString("1000"),
     );
 
+    await stakeConnection.createStakeAccount();
     await vesterStakeConnection.createStakeAccount();
 
     accounts = {
@@ -284,7 +285,12 @@ describe("vesting", () => {
   it("Create another unmatured vest", async () => {
     await stakeConnection.program.methods
       .createVesting(EVEN_LATER, new BN(1337e6))
-      .accounts({ ...accounts, vest: vestEvenLater })
+      .accounts({
+        ...accounts,
+        vest: vestEvenLater,
+        stakeAccountCheckpoints: null,
+        stakeAccountMetadata: null,
+      })
       .signers([admin])
       .rpc()
       .then(confirm);
@@ -294,7 +300,12 @@ describe("vesting", () => {
     try {
       await stakeConnection.program.methods
         .claimVesting()
-        .accounts({ ...accounts, vest: vestNow })
+        .accounts({
+          ...accounts,
+          vest: vestNow,
+          stakeAccountCheckpoints: null,
+          stakeAccountMetadata: null,
+        })
         .signers([vester])
         .rpc()
         .then(confirm);
@@ -366,20 +377,16 @@ describe("vesting", () => {
     }
   });
 
-  it("Claim a vest after activation", async () => {
-    await stakeConnection.program.methods
-      .claimVesting()
-      .accounts({ ...accounts, vest: vestNow })
-      .signers([vester])
-      .rpc()
-      .then(confirm);
-  });
-
   it("Fail to claim an unmatured vest", async () => {
     try {
       await stakeConnection.program.methods
         .claimVesting()
-        .accounts({ ...accounts, vest: vestEvenLater })
+        .accounts({
+          ...accounts,
+          vest: vestEvenLater,
+          stakeAccountCheckpoints: null,
+          stakeAccountMetadata: null,
+        })
         .signers([vester])
         .rpc()
         .then(confirm);
@@ -397,7 +404,7 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("should successfully stake vested amount", async () => {
+  it("should successfully stake vest", async () => {
     let stakeAccountAddress = await vesterStakeConnection.getMainAccountAddress(
       vesterStakeConnection.userPublicKey(),
     );
@@ -412,8 +419,145 @@ describe("vesting", () => {
       await vesterStakeConnection.fetchStakeAccountMetadata(
         stakeAccountAddress,
       );
+
     let vesterStakeCheckpoints: CheckpointAccount =
       await vesterStakeConnection.fetchCheckpointAccount(stakeAccountAddress);
+    assert.equal(
+      vesterStakeMetadata.recordedVestingBalance.toString(),
+      "2674000000",
+    );
+    assert.equal(
+      vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "2674000000",
+    );
+  });
+
+  it("should fail to claim without stakeAccountMetadata", async () => {
+    try {
+      await stakeConnection.program.methods
+        .claimVesting()
+        .accounts({
+          ...accounts,
+          vest: vestNow,
+          stakeAccountCheckpoints: null,
+          stakeAccountMetadata: null,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalance",
+      );
+    }
+  });
+
+  it("should fail to claim without stakeAccountCheckpoints", async () => {
+    let stakeAccountAddress = await vesterStakeConnection.getMainAccountAddress(
+      vesterStakeConnection.userPublicKey(),
+    );
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(stakeAccountAddress);
+    try {
+      await stakeConnection.program.methods
+        .claimVesting()
+        .accounts({
+          ...accounts,
+          vest: vestNow,
+          stakeAccountCheckpoints: null,
+          stakeAccountMetadata: stakeAccountMetadataAddress,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalance",
+      );
+    }
+  });
+
+  it("should fail to claim with incorrect stakeAccountMetadata", async () => {
+    let incorrectStakeAccount = await stakeConnection.getMainAccountAddress(
+      stakeConnection.userPublicKey(),
+    );
+    let incorrectStakeAccountMetadataAddress =
+      await stakeConnection.getStakeMetadataAddress(incorrectStakeAccount);
+    try {
+      await stakeConnection.program.methods
+        .claimVesting()
+        .accounts({
+          ...accounts,
+          vest: vestNow,
+          stakeAccountCheckpoints: incorrectStakeAccount,
+          stakeAccountMetadata: incorrectStakeAccountMetadataAddress,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalance",
+      );
+    }
+  });
+
+  it("should fail to claim with incorrect stakeAccountCheckpoints ", async () => {
+    let stakeAccountAddress = await vesterStakeConnection.getMainAccountAddress(
+      vesterStakeConnection.userPublicKey(),
+    );
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(stakeAccountAddress);
+
+    let incorrectStakeAccount = await stakeConnection.getMainAccountAddress(
+      stakeConnection.userPublicKey(),
+    );
+    try {
+      await stakeConnection.program.methods
+        .claimVesting()
+        .accounts({
+          ...accounts,
+          vest: vestNow,
+          stakeAccountCheckpoints: incorrectStakeAccount,
+          stakeAccountMetadata: stakeAccountMetadataAddress,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalance",
+      );
+    }
+  });
+
+  it("should successfully claim staked vest", async () => {
+    let stakeAccountAddress = await vesterStakeConnection.getMainAccountAddress(
+      vesterStakeConnection.userPublicKey(),
+    );
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(stakeAccountAddress);
+
+    await stakeConnection.program.methods
+      .claimVesting()
+      .accounts({
+        ...accounts,
+        vest: vestNow,
+        stakeAccountCheckpoints: stakeAccountAddress,
+        stakeAccountMetadata: stakeAccountMetadataAddress,
+      })
+      .signers([vester])
+      .rpc({ skipPreflight: true })
+      .then(confirm);
+
+    let vesterStakeMetadata: StakeAccountMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        stakeAccountAddress,
+      );
+
+    let vesterStakeCheckpoints: CheckpointAccount =
+      await vesterStakeConnection.fetchCheckpointAccount(stakeAccountAddress);
+
     assert.equal(
       vesterStakeMetadata.recordedVestingBalance.toString(),
       "1337000000",

@@ -214,6 +214,24 @@ export class StakeConnection {
     return account !== null ? checkpointDataAccountPublicKey : undefined;
   }
 
+  public async getStakeMetadataAddress(
+    checkpointAccount: PublicKey,
+  ): Promise<PublicKey | undefined> {
+    let stakeMetadataAccount = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()),
+        checkpointAccount.toBuffer(),
+      ],
+      this.program.programId,
+    )[0];
+
+    const account =
+      await this.program.account.stakeAccountMetadata.fetchNullable(
+        stakeMetadataAccount,
+      );
+    return account !== null ? stakeMetadataAccount : undefined;
+  }
+
   async fetchProposalAccount(proposalId: Buffer) {
     const proposalAccount = PublicKey.findProgramAddressSync(
       [

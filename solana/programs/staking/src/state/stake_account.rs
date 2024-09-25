@@ -46,7 +46,7 @@ impl StakeAccountMetadata {
         self.custody_bump = custody_bump;
         self.authority_bump = authority_bump;
         self.owner = *owner;
-        self.delegate = anchor_lang::prelude::Pubkey::default();
+        self.delegate = Pubkey::default();
         self.recorded_balance = 0;
         self.recorded_vesting_balance = 0;
         self.signed_agreement_hash = None;

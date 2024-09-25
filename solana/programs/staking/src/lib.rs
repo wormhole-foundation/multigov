@@ -138,11 +138,12 @@ pub mod staking {
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
 
-        if let Some(vesting_balance) = &ctx.accounts.vesting_balance {
+        if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
             require!(
                 vesting_balance.vester.key() == stake_account_metadata.owner.key(),
                 ErrorCode::InvalidVestingBalance
             );
+            vesting_balance.stake_account_metadata = stake_account_metadata.key();
 
             stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
         }

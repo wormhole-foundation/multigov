@@ -30,6 +30,7 @@ impl<'info> CreateVestingBalance<'info> {
     pub fn create_vesting_balance(&mut self, bump: u8) -> Result<()> {
         self.vesting_balance.set_inner(VestingBalance {
             vester: self.vester_ta.owner.key(),
+            stake_account_metadata: Pubkey::default(),
             total_vesting_balance: 0,
             bump,
         });
