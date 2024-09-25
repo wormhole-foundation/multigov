@@ -1,4 +1,4 @@
-use crate::context::{STAKE_ACCOUNT_METADATA_SEED, VESTING_BALANCE_SEED};
+use crate::context::{VESTING_BALANCE_SEED};
 use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -72,19 +72,9 @@ impl<'info> ClaimVesting<'info> {
                 &mut self.stake_account_metadata,
                 &mut self.stake_account_checkpoints,
             ) {
-                // Compute the expected PDA address for stake_account_metadata
-                let expected_metadata_pda = Pubkey::find_program_address(
-                    &[
-                        STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                        stake_account_checkpoints.key().as_ref(),
-                    ],
-                    &crate::ID,
-                )
-                .0;
-
                 // Verify that the actual address matches the expected one
                 require!(
-                    stake_account_metadata.key() == expected_metadata_pda,
+                    stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
                     ErrorCode::InvalidVestingBalance
                 );
 
