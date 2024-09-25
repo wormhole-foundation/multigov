@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {CHAIN_ID_SOLANA} from "wormhole-sdk/Chains.sol";
+import {InvalidChainId} from "wormhole-sdk/QueryResponse.sol";
 import {WormholeDispatcher} from "src/WormholeDispatcher.sol";
 import {IMessageDispatcher} from "src/interfaces/IMessageDispatcher.sol";
 
@@ -12,9 +13,6 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher, IMessageDispatcher {
   /// @notice The id for the next message published.
   /// @dev This value is incremented after each successful message dispatch.
   uint256 public nextMessageId = 1;
-
-  /// @notice Thrown if the chain id is not Solana.
-  error InvalidChainId();
 
   /// @notice Thrown if the instruction set is empty.
   error EmptyInstructionSet();
@@ -56,7 +54,6 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher, IMessageDispatcher {
   /// execution.
   /// @dev This function encodes the message, publishes it via Wormhole, and emits an event.
   /// Note that Solana has transaction size limits which are not enforced here.
-  /// No ETH is required or accepted for this operation.
   /// @param _payload An encoding of the target wormhole chain id and the Solana instructions to be executed.
   function dispatch(bytes calldata _payload) external payable {
     _checkOwner();
@@ -69,8 +66,8 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher, IMessageDispatcher {
     if (_wormholeChainId != CHAIN_ID_SOLANA) revert InvalidChainId();
     if (instructions.length == 0) revert EmptyInstructionSet();
 
-    bytes memory payload = abi.encode(nextMessageId, _wormholeChainId, instructions);
-    _publishMessage(payload, 0);
+    bytes memory payload = abi.encode(nextMessageId, _wormholeChainId, instructions.length, instructions);
+    _publishMessage(payload, msg.value);
 
     emit MessageDispatched(nextMessageId, payload);
     nextMessageId++;
