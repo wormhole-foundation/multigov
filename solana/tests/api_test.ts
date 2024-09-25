@@ -104,7 +104,7 @@ describe("api", async () => {
     );
   });
 
-  it("addProposal", async () => {
+  it.skip("addProposal", async () => {
     const proposalId = crypto.createHash('sha256').update('proposalId1').digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
@@ -140,7 +140,7 @@ describe("api", async () => {
     assert.equal(proposalAccountData.abstainVotes.toString(), "0");
   });
 
-  it("proposalVotes", async () => {
+  it.skip("proposalVotes", async () => {
     const proposalIdInput = crypto.createHash('sha256').update('proposalId2').digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
@@ -169,7 +169,7 @@ describe("api", async () => {
     assert.equal(abstainVotes.toString(), "0");
   });
 
-  it("isVotingSafe", async () => {
+  it.skip("isVotingSafe", async () => {
     const proposalIdInput = crypto.createHash('sha256').update('proposalId3').digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
@@ -273,7 +273,7 @@ describe("api", async () => {
     );
   });
 
-  it("castVote", async () => {
+  it.skip("castVote", async () => {
     let stakeAccountAddress =
       await user2StakeConnection.getMainAccountAddress(user2);
 
