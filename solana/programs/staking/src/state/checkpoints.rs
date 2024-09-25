@@ -4,8 +4,6 @@ use anchor_lang::prelude::borsh::{BorshDeserialize, BorshSerialize};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction;
-use bytemuck::{Pod, Zeroable};
-use std::fmt::Debug;
 
 #[account(zero_copy)]
 #[derive(Default)]

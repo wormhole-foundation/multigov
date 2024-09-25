@@ -297,13 +297,13 @@ export function makeDefaultConfig(
  * */
 export async function newUserStakeConnection(
   stakeConnection: StakeConnection,
+  userKeypair: Keypair,
   config: AnchorConfig,
   whMintAccount: Keypair,
   whMintAuthority: Keypair,
   amount?: WHTokenBalance,
 ): Promise<StakeConnection> {
   const connection = stakeConnection.provider.connection;
-  const userKeypair = Keypair.generate();
   const provider = new AnchorProvider(connection, new Wallet(userKeypair), {});
 
   await requestWHTokenAirdrop(

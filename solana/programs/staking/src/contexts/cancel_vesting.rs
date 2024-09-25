@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
+use crate::context::VESTING_BALANCE_SEED;
 use crate::state::VestingBalance;
 use crate::{
     error::VestingError,
@@ -19,7 +20,7 @@ pub struct CancelVesting<'info> {
     vester_ta: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
-        constraint = config.finalized == false @ VestingError::VestingFinalized, // Vesting cannot be cancelled after vest is finalized
+        constraint = `!config.finalize @ VestingError::VestingFinalized, // Vesting cannot be cancelled after vest is finalized
         has_one = admin, // Arbitrary check as admin is baked into the PDA
         has_one = mint, // Arbitrary check as mint is baked into the PDA
         seeds = [b"config", admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
@@ -36,7 +37,7 @@ pub struct CancelVesting<'info> {
     vest: Account<'info, Vesting>,
     #[account(
         mut,
-        seeds = [b"vesting_balance",  vester_ta.key().as_ref()],
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), vester_ta.owner.key().as_ref()],
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,

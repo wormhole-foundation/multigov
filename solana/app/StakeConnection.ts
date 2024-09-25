@@ -9,11 +9,8 @@ import {
 import {
   Connection,
   PublicKey,
-  Signer,
-  SystemProgram,
   SYSVAR_CLOCK_PUBKEY,
   TransactionInstruction,
-  Transaction,
 } from "@solana/web3.js";
 import * as importedWasm from "@wormhole/staking-wasm";
 import {
@@ -28,7 +25,6 @@ import { Staking } from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
 import { WHTokenBalance } from "./whTokenBalance";
 import { STAKING_ADDRESS, CORE_BRIDGE_ADDRESS } from "./constants";
-import * as crypto from "crypto";
 import {
   PriorityFeeConfig,
   sendTransactions,
@@ -49,8 +45,8 @@ let wasm = importedWasm;
 export { wasm };
 
 export type GlobalConfig = IdlAccounts<Staking>["globalConfig"];
-type CheckpointData = IdlAccounts<Staking>["checkpointData"];
-type StakeAccountMetadata = IdlAccounts<Staking>["stakeAccountMetadata"];
+export type CheckpointData = IdlAccounts<Staking>["checkpointData"];
+export type StakeAccountMetadata = IdlAccounts<Staking>["stakeAccountMetadata"];
 
 export class StakeConnection {
   program: Program<Staking>;
@@ -173,7 +169,8 @@ export class StakeConnection {
     return allAccts.map((acct) => acct.pubkey);
   }
 
-  /** Gets a users stake accounts */
+  /** Deprecated
+   *  Gets a users stake accounts */
   public async getStakeAccounts(user: PublicKey): Promise<StakeAccount[]> {
     const res = await this.program.provider.connection.getProgramAccounts(
       this.program.programId,
@@ -203,21 +200,18 @@ export class StakeConnection {
   public async getMainAccountAddress(
     user: PublicKey,
   ): Promise<PublicKey | undefined> {
-    const accounts = await this.getStakeAccounts(user);
+    let checkpointDataAccountPublicKey = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        user.toBuffer(),
+      ],
+      this.program.programId,
+    )[0];
 
-    if (accounts.length == 0) {
-      return undefined;
-    } else if (accounts.length == 1) {
-      return accounts[0].address;
-    } else {
-      return accounts.reduce(
-        (prev: StakeAccount, curr: StakeAccount): StakeAccount => {
-          return prev.tokenBalance > curr.tokenBalance
-            ? curr
-            : prev;
-        },
-      ).address;
-    }
+    const account = await this.program.account.checkpointData.fetchNullable(
+      checkpointDataAccountPublicKey,
+    );
+    return account !== null ? checkpointDataAccountPublicKey : undefined;
   }
 
   async fetchProposalAccount(proposalId: Buffer) {
@@ -260,12 +254,7 @@ export class StakeConnection {
   }
 
   async fetchCheckpointAccount(address: PublicKey): Promise<CheckpointAccount> {
-    let checkpointsAccount = await readCheckpoints(
-      this.provider.connection,
-      address,
-    );
-    console.log(checkpointsAccount.toString());
-    return checkpointsAccount;
+    return await readCheckpoints(this.provider.connection, address);
   }
 
   public async fetchStakeAccountMetadata(
@@ -345,6 +334,29 @@ export class StakeConnection {
     }
   }
 
+  public async createStakeAccount(): Promise<void> {
+    const instructions: TransactionInstruction[] = [];
+
+    const checkpointDataAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        this.userPublicKey().toBuffer(),
+      ],
+      this.program.programId,
+    )[0];
+
+    instructions.push(
+      await this.program.methods
+        .createStakeAccount(this.userPublicKey())
+        .accounts({
+          stakeAccountCheckpoints: checkpointDataAddress,
+          mint: this.config.whTokenMint,
+        })
+        .instruction(),
+    );
+    await this.sendAndConfirmAsVersionedTransaction(instructions);
+  }
+
   public async withCreateAccount(
     instructions: TransactionInstruction[],
     owner: PublicKey,
@@ -368,29 +380,6 @@ export class StakeConnection {
     );
 
     return checkpointDataAddress;
-  }
-
-  public async isLlcMember(stakeAccount: PublicKey) {
-    const stakeAccountMetadata =
-      await this.fetchStakeAccountMetadata(stakeAccount);
-    return (
-      JSON.stringify(stakeAccountMetadata.signedAgreementHash) ==
-      JSON.stringify(this.config.agreementHash)
-    );
-  }
-
-  public async withJoinDaoLlc(
-    instructions: TransactionInstruction[],
-    stakeAccountAddress: PublicKey,
-  ) {
-    instructions.push(
-      await this.program.methods
-        .joinDaoLlc(this.config.agreementHash)
-        .accounts({
-          stakeAccountCheckpoints: stakeAccountAddress,
-        })
-        .instruction(),
-    );
   }
 
   public async buildTransferInstruction(
@@ -421,6 +410,57 @@ export class StakeConnection {
     return ix;
   }
 
+  public async delegate_with_vest(
+    stakeAccount: PublicKey,
+    delegateeStakeAccount: PublicKey,
+    amount: WHTokenBalance,
+    include_vest: boolean,
+  ): Promise<PublicKey> {
+    let currentStakeAccount: PublicKey;
+    let currentDelegateStakeAccount: PublicKey;
+    let vestingBalanceAccount: PublicKey = null;
+    const instructions: TransactionInstruction[] = [];
+
+    currentStakeAccount = stakeAccount;
+    currentDelegateStakeAccount = await this.delegates(currentStakeAccount);
+    if (currentDelegateStakeAccount.equals(PublicKey.default)) {
+      currentDelegateStakeAccount = stakeAccount;
+    }
+
+    if (amount.toBN().gt(new BN(0))) {
+      instructions.push(
+        await this.buildTransferInstruction(currentStakeAccount, amount.toBN()),
+      );
+    }
+
+    if (include_vest) {
+      vestingBalanceAccount = PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
+          this.userPublicKey().toBuffer(),
+        ],
+        this.program.programId,
+      )[0];
+    }
+
+    instructions.push(
+      await this.program.methods
+        .delegate(delegateeStakeAccount)
+        .accounts({
+          currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccount,
+          delegateeStakeAccountCheckpoints: delegateeStakeAccount,
+          stakeAccountCheckpoints: currentStakeAccount,
+          vestingBalance: vestingBalanceAccount,
+          mint: this.config.whTokenMint,
+        })
+        .instruction(),
+    );
+
+    await this.sendAndConfirmAsVersionedTransaction(instructions);
+
+    return currentStakeAccount;
+  }
+
   public async delegate(
     stakeAccount: PublicKey | undefined,
     delegateeStakeAccount: PublicKey | undefined,
@@ -444,10 +484,6 @@ export class StakeConnection {
     if (!delegateeStakeAccount) {
       delegateeStakeAccount = currentDelegateStakeAccount;
     }
-
-    // if (!stakeAccount || !(await this.isLlcMember(stakeAccount))) {
-    //   await this.withJoinDaoLlc(instructions, currentStakeAccount);
-    // }
 
     if (amount.toBN().gt(new BN(0))) {
       instructions.push(
@@ -657,19 +693,6 @@ export class StakeAccount {
     this.authorityAddress = authorityAddress;
     this.totalSupply = totalSupply;
     this.config = config;
-  }
-
-  /** Gets the current votes balance. */
-  public getVotes(): BN {
-    return new BN(this.stakeAccountCheckpointsWasm.getVoterVotes().toString());
-  }
-
-  /** Gets the voting power at a specified past timestamp. */
-  public getPastVotes(timestamp: BN): BN {
-    const voterVotes =
-      this.stakeAccountCheckpointsWasm.getVoterPastVotes(timestamp);
-
-    return new BN(voterVotes.toString());
   }
 
   public delegates(): PublicKey {

@@ -74,6 +74,7 @@ describe("api", async () => {
 
     user2StakeConnection = await newUserStakeConnection(
       stakeConnection,
+      Keypair.generate(),
       config,
       whMintAccount,
       whMintAuthority,
@@ -83,6 +84,7 @@ describe("api", async () => {
 
     user3StakeConnection = await newUserStakeConnection(
       stakeConnection,
+      Keypair.generate(),
       config,
       whMintAccount,
       whMintAuthority,

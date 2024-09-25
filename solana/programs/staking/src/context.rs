@@ -7,7 +7,6 @@ use anchor_lang::{
         self, keccak, program_memory::sol_memcpy, secp256k1_recover::secp256k1_recover,
     },
 };
-use anchor_lang::solana_program::slot_history::Check;
 use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
 use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
@@ -29,6 +28,7 @@ pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
 pub const CHECKPOINT_DATA_SEED: &str = "owner";
 pub const CONFIG_SEED: &str = "config";
 pub const PROPOSAL_SEED: &str = "proposal";
+pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";

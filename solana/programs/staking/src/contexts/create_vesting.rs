@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
+use crate::context::VESTING_BALANCE_SEED;
 use crate::state::VestingBalance;
 use crate::{
     error::VestingError,
@@ -37,7 +38,7 @@ pub struct CreateVesting<'info> {
     vest: Account<'info, Vesting>,
     #[account(
         mut,
-        seeds = [b"vesting_balance",  vester_ta.key().as_ref()],
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), vester_ta.owner.key().as_ref()],
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,

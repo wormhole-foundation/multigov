@@ -23,21 +23,30 @@ import assert from "assert";
 import {
   ANCHOR_CONFIG_PATH,
   getPortNumber,
+  makeDefaultConfig,
+  newUserStakeConnection,
   readAnchorConfig,
+  standardSetup,
   startValidator,
 } from "./utils/before";
 import path from "path";
 import { AnchorError, AnchorProvider, Program } from "@coral-xyz/anchor";
 import * as console from "node:console";
+import { StakeConnection, WHTokenBalance } from "../app";
+import { StakeAccountMetadata } from "../app/StakeConnection";
+import { CheckpointAccount } from "../app/checkpoints";
 
 const portNumber = getPortNumber(path.basename(__filename));
 
 describe("vesting", () => {
-  const anchorConfig = readAnchorConfig(ANCHOR_CONFIG_PATH);
+  console.log(portNumber);
+  const whMintAccount = new Keypair();
+  const whMintAuthority = new Keypair();
 
   const confirm = async (signature: string): Promise<string> => {
-    const block = await connection.getLatestBlockhash();
-    await connection.confirmTransaction({
+    const block =
+      await stakeConnection.provider.connection.getLatestBlockhash();
+    await stakeConnection.provider.connection.confirmTransaction({
       signature,
       ...block,
     });
@@ -45,9 +54,8 @@ describe("vesting", () => {
     return signature;
   };
 
-  let program: Program;
-  let provider: AnchorProvider;
-  let connection: Connection;
+  let stakeConnection: StakeConnection;
+  let controller;
 
   const NOW = new BN(Math.floor(new Date().getTime() / 1000));
   const LATER = NOW.add(new BN(1000));
@@ -68,11 +76,19 @@ describe("vesting", () => {
     vestEvenLater,
     vestLater,
     vestEvenLaterAgain,
-    vestingBalance;
+    vestingBalance,
+    vesterStakeConnection;
 
   before(async () => {
-    ({ program, provider } = await startValidator(portNumber, anchorConfig));
-    connection = provider.connection;
+    const anchorConfig = readAnchorConfig(ANCHOR_CONFIG_PATH);
+    ({ controller, stakeConnection } = await standardSetup(
+      portNumber,
+      anchorConfig,
+      whMintAccount,
+      whMintAuthority,
+      makeDefaultConfig(whMintAccount.publicKey),
+      WHTokenBalance.fromString("1000"),
+    ));
 
     config = PublicKey.findProgramAddressSync(
       [
@@ -81,7 +97,7 @@ describe("vesting", () => {
         mint.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
       ],
-      program.programId,
+      stakeConnection.program.programId,
     )[0];
     vault = getAssociatedTokenAddressSync(
       mint.publicKey,
@@ -108,7 +124,7 @@ describe("vesting", () => {
         vesterTa.toBuffer(),
         NOW.toBuffer("le", 8),
       ],
-      program.programId,
+      stakeConnection.program.programId,
     )[0];
 
     vestLater = PublicKey.findProgramAddressSync(
@@ -118,7 +134,7 @@ describe("vesting", () => {
         vesterTa.toBuffer(),
         LATER.toBuffer("le", 8),
       ],
-      program.programId,
+      stakeConnection.program.programId,
     )[0];
 
     vestEvenLater = PublicKey.findProgramAddressSync(
@@ -128,7 +144,7 @@ describe("vesting", () => {
         vesterTa.toBuffer(),
         EVEN_LATER.toBuffer("le", 8),
       ],
-      program.programId,
+      stakeConnection.program.programId,
     )[0];
 
     vestEvenLaterAgain = PublicKey.findProgramAddressSync(
@@ -138,13 +154,24 @@ describe("vesting", () => {
         vesterTa.toBuffer(),
         EVEN_LATER_AGAIN.toBuffer("le", 8),
       ],
-      program.programId,
+      stakeConnection.program.programId,
     )[0];
 
     vestingBalance = PublicKey.findProgramAddressSync(
-      [Buffer.from("vesting_balance"), vesterTa.toBuffer()],
-      program.programId,
+      [Buffer.from("vesting_balance"), vester.publicKey.toBuffer()],
+      stakeConnection.program.programId,
     )[0];
+
+    vesterStakeConnection = await newUserStakeConnection(
+      stakeConnection,
+      vester,
+      anchorConfig,
+      whMintAccount,
+      whMintAuthority,
+      WHTokenBalance.fromString("1000"),
+    );
+
+    await vesterStakeConnection.createStakeAccount();
 
     accounts = {
       admin: admin.publicKey,
@@ -159,23 +186,25 @@ describe("vesting", () => {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
-      // vestingBalance: vestingBalance
+      vestingBalance: vestingBalance,
     };
   });
 
   it("Airdrop", async () => {
-    let lamports = await getMinimumBalanceForRentExemptMint(connection);
+    let lamports = await getMinimumBalanceForRentExemptMint(
+      stakeConnection.provider.connection,
+    );
     let tx = new Transaction();
     tx.instructions = [
       ...[admin, vester].map((k) =>
         SystemProgram.transfer({
-          fromPubkey: provider.publicKey,
+          fromPubkey: stakeConnection.provider.publicKey,
           toPubkey: k.publicKey,
           lamports: 10 * LAMPORTS_PER_SOL,
         }),
       ),
       SystemProgram.createAccount({
-        fromPubkey: provider.publicKey,
+        fromPubkey: stakeConnection.provider.publicKey,
         newAccountPubkey: mint.publicKey,
         lamports,
         space: MINT_SIZE,
@@ -189,14 +218,14 @@ describe("vesting", () => {
         TOKEN_2022_PROGRAM_ID,
       ),
       createAssociatedTokenAccountIdempotentInstruction(
-        provider.publicKey,
+        stakeConnection.provider.publicKey,
         adminAta,
         admin.publicKey,
         mint.publicKey,
         TOKEN_2022_PROGRAM_ID,
       ),
       createAssociatedTokenAccountIdempotentInstruction(
-        provider.publicKey,
+        stakeConnection.provider.publicKey,
         vesterTa,
         vester.publicKey,
         mint.publicKey,
@@ -211,11 +240,11 @@ describe("vesting", () => {
         TOKEN_2022_PROGRAM_ID,
       ),
     ];
-    await provider.sendAndConfirm(tx, [admin, mint]);
+    await stakeConnection.provider.sendAndConfirm(tx, [admin, mint]);
   });
 
   it("Initialize config", async () => {
-    await program.methods
+    await stakeConnection.program.methods
       .initializeVestingConfig(seed)
       .accounts({ ...accounts })
       .signers([admin])
@@ -224,7 +253,7 @@ describe("vesting", () => {
   });
 
   it("Create vesting balance", async () => {
-    await program.methods
+    await stakeConnection.program.methods
       .createVestingBalance()
       .accounts({ ...accounts, vestingBalance: vestingBalance })
       .signers([admin])
@@ -233,7 +262,7 @@ describe("vesting", () => {
   });
 
   it("Create a matured vest", async () => {
-    await program.methods
+    await stakeConnection.program.methods
       .createVesting(NOW, new BN(1337e6))
       .accounts({ ...accounts, vest: vestNow })
       .signers([admin])
@@ -244,7 +273,7 @@ describe("vesting", () => {
   });
 
   it("Create an unmatured vest", async () => {
-    await program.methods
+    await stakeConnection.program.methods
       .createVesting(LATER, new BN(1337e6))
       .accounts({ ...accounts, vest: vestLater })
       .signers([admin])
@@ -253,7 +282,7 @@ describe("vesting", () => {
   });
 
   it("Create another unmatured vest", async () => {
-    await program.methods
+    await stakeConnection.program.methods
       .createVesting(EVEN_LATER, new BN(1337e6))
       .accounts({ ...accounts, vest: vestEvenLater })
       .signers([admin])
@@ -263,7 +292,7 @@ describe("vesting", () => {
 
   it("Fail to claim a vest before finalization", async () => {
     try {
-      await program.methods
+      await stakeConnection.program.methods
         .claimVesting()
         .accounts({ ...accounts, vest: vestNow })
         .signers([vester])
@@ -278,7 +307,7 @@ describe("vesting", () => {
   });
 
   it("Cancel a vest", async () => {
-    await program.methods
+    await stakeConnection.program.methods
       .cancelVesting()
       .accounts({ ...accounts, vest: vestLater })
       .signers([admin])
@@ -287,7 +316,7 @@ describe("vesting", () => {
   });
 
   it("Finalizes the vest", async () => {
-    await program.methods
+    await stakeConnection.program.methods
       .finalizeVestingConfig()
       .accounts({ ...accounts })
       .signers([admin])
@@ -309,12 +338,12 @@ describe("vesting", () => {
         TOKEN_2022_PROGRAM_ID,
       ),
     );
-    await provider.sendAndConfirm(tx, [admin]);
+    await stakeConnection.provider.sendAndConfirm(tx, [admin]);
   });
 
   it("Fail to cancel a vest after finalization", async () => {
     try {
-      await program.methods
+      await stakeConnection.program.methods
         .cancelVesting()
         .accounts({ ...accounts, vest: vestEvenLater })
         .signers([admin])
@@ -326,7 +355,7 @@ describe("vesting", () => {
 
   it("Fail to create a vest after finalize", async () => {
     try {
-      await program.methods
+      await stakeConnection.program.methods
         .createVesting(EVEN_LATER_AGAIN, new BN(1337e6))
         .accounts({ ...accounts, vest: vestEvenLaterAgain })
         .signers([admin])
@@ -338,7 +367,7 @@ describe("vesting", () => {
   });
 
   it("Claim a vest after activation", async () => {
-    await program.methods
+    await stakeConnection.program.methods
       .claimVesting()
       .accounts({ ...accounts, vest: vestNow })
       .signers([vester])
@@ -348,7 +377,7 @@ describe("vesting", () => {
 
   it("Fail to claim an unmatured vest", async () => {
     try {
-      await program.methods
+      await stakeConnection.program.methods
         .claimVesting()
         .accounts({ ...accounts, vest: vestEvenLater })
         .signers([vester])
@@ -360,11 +389,38 @@ describe("vesting", () => {
   });
 
   it("Withdraw surplus tokens", async () => {
-    await program.methods
+    await stakeConnection.program.methods
       .withdrawSurplus()
       .accounts({ ...accounts })
       .signers([admin])
       .rpc()
       .then(confirm);
+  });
+
+  it("should successfully stake vested amount", async () => {
+    let stakeAccountAddress = await vesterStakeConnection.getMainAccountAddress(
+      vesterStakeConnection.userPublicKey(),
+    );
+
+    await vesterStakeConnection.delegate_with_vest(
+      stakeAccountAddress,
+      stakeAccountAddress,
+      WHTokenBalance.fromString("0"),
+      true,
+    );
+    let vesterStakeMetadata: StakeAccountMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        stakeAccountAddress,
+      );
+    let vesterStakeCheckpoints: CheckpointAccount =
+      await vesterStakeConnection.fetchCheckpointAccount(stakeAccountAddress);
+    assert.equal(
+      vesterStakeMetadata.recordedVestingBalance.toString(),
+      "1337000000",
+    );
+    assert.equal(
+      vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "1337000000",
+    );
   });
 });

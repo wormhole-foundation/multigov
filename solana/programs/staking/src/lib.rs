@@ -11,10 +11,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
 use contexts::*;
-use state::checkpoints::{
-    find_checkpoint_le, push_checkpoint, read_checkpoint_at_index, resize_account,
-    write_checkpoint_at_index, Checkpoint, CheckpointData, Operation,
-};
+use state::checkpoints::{find_checkpoint_le, push_checkpoint, Operation};
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
@@ -142,9 +139,13 @@ pub mod staking {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
 
         if let Some(vesting_balance) = &ctx.accounts.vesting_balance {
+            require!(
+                vesting_balance.vester.key() == stake_account_metadata.owner.key(),
+                ErrorCode::InvalidVestingBalance
+            );
+
             stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
         } else {
-            stake_account_metadata.recorded_vesting_balance = 0;
         }
 
         let current_delegate = stake_account_metadata.delegate;
@@ -191,7 +192,9 @@ emit!(DelegateChanged {
                 push_checkpoint(
                     &mut ctx.accounts.delegatee_stake_account_checkpoints,
                     &delegatee_checkpoints_account_info,
-                    current_stake_balance,
+                    current_stake_balance
+                        .checked_add(recorded_vesting_balance)
+                        .unwrap(),
                     Operation::Add,
                     current_timestamp,
                     &ctx.accounts.payer.to_account_info(),
@@ -203,16 +206,22 @@ emit!(DelegateChanged {
                 stake_account_metadata.recorded_balance = current_stake_balance;
             }
         } else {
-            if current_stake_balance != total_balance {
+            if current_stake_balance != recorded_balance {
                 let delegatee_checkpoints_account_info = ctx
                     .accounts
                     .delegatee_stake_account_checkpoints
                     .to_account_info();
 
-                let (amount_delta, operation) = if current_stake_balance > total_balance {
-                    (current_stake_balance - total_balance, Operation::Add)
+                let (amount_delta, operation) = if current_stake_balance > recorded_balance {
+                    (
+                        current_stake_balance.checked_sub(recorded_balance).unwrap(),
+                        Operation::Add,
+                    )
                 } else {
-                    (total_balance - current_stake_balance, Operation::Subtract)
+                    (
+                        recorded_balance.checked_sub(current_stake_balance).unwrap(),
+                        Operation::Subtract,
+                    )
                 };
 
                 push_checkpoint(
@@ -300,13 +309,11 @@ emit!(DelegateChanged {
         let proposal = &mut ctx.accounts.proposal;
 
         let voter_checkpoints = ctx.accounts.voter_checkpoints.to_account_info();
-
-        let total_weight = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)?;
-
+        
         if let Some(checkpoint) = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)? {
             let total_weight = checkpoint.value;
 
-            require!(total_weight.clone() > 0, ErrorCode::NoWeight);
+            require!(total_weight > 0, ErrorCode::NoWeight);
 
             let proposal_voters_weight_cast = &mut ctx.accounts.proposal_voters_weight_cast;
 
@@ -316,7 +323,7 @@ emit!(DelegateChanged {
             }
 
             require!(
-                proposal_voters_weight_cast.value <= total_weight.clone(),
+                proposal_voters_weight_cast.value <= total_weight,
                 ErrorCode::AllWeightCast
             );
 

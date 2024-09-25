@@ -1,3 +1,4 @@
+use crate::context::VESTING_BALANCE_SEED;
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -46,8 +47,8 @@ pub struct ClaimVesting<'info> {
     vest: Account<'info, Vesting>,
     #[account(
         mut,
-        has_one = vester_ta, // This check is arbitrary, as ATA is baked into the PDA
-        seeds = [b"vesting_balance",  vester_ta.key().as_ref()],
+        has_one = vester, // This check is arbitrary, as ATA is baked into the PDA
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), vester_ta.owner.key().as_ref()],
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,
