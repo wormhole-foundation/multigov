@@ -247,7 +247,7 @@ impl<'info> AddProposal<'info> {
         // Compute the message hash.
         let message_hash = [
             MESSAGE_PREFIX,
-            &solana_program::keccak::hashv(&[&bytes]).to_bytes(),
+            &solana_program::keccak::hashv(&[bytes]).to_bytes(),
         ]
         .concat();
 
