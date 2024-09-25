@@ -6,15 +6,15 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(BorshSchema)]
 pub struct ProposalVotersWeightCast {
-    pub proposal_id: u64,
+    pub proposal_id: [u8; 32],
     pub voter: Pubkey,
     pub value: u64,
 }
 
 impl ProposalVotersWeightCast {
-    pub const LEN: usize = 8 + 8 + 32 + 8;
+    pub const LEN: usize = 8 + 32 + 32 + 8;
 
-    pub fn initialize(&mut self, proposal_id: u64, voter: &Pubkey) {
+    pub fn initialize(&mut self, proposal_id: [u8; 32], voter: &Pubkey) {
         self.proposal_id = proposal_id;
         self.voter = *voter;
         self.value = 0;

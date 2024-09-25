@@ -2,10 +2,13 @@ import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
-import { STAKING_ADDRESS } from "../constants";
+import { STAKING_ADDRESS, CORE_BRIDGE_ADDRESS } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import BN from "bn.js";
 import assert from "assert";
+import crypto from 'crypto';
+import { getWormholeBridgeData } from "../helpers/wormholeBridgeConfig";
+import { createAddProposalTestBytes } from "../../tests/utils/api_utils";
 
 async function main() {
   try {
@@ -23,11 +26,28 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalId = new BN(4);
-    const voteStart = new BN(Math.floor(Date.now() / 1000));
-    const safeWindow = new BN(24 * 60 * 60); // 24 hour
+    const info = await getWormholeBridgeData(connection, CORE_BRIDGE_ADDRESS);
+    let guardianSetIndex = info.guardianSetIndex;
+    const mockGuardianSetIndex = 5;
 
-    await stakeConnection.addProposal(proposalId, voteStart, safeWindow);
+    const proposalIdInput = crypto.createHash('sha256').update('proposalId4').digest();
+    console.log("proposalIdInput:", proposalIdInput.toString('hex'));
+    const voteStart = Math.floor(Date.now() / 1000);
+
+    const ethProposalResponseBytes = createAddProposalTestBytes(proposalIdInput, voteStart);
+    const signaturesKeypair = Keypair.generate();
+    const mock = new QueryProxyMock({});
+    const mockSignatures = mock.sign(
+      ethProposalResponseBytes
+    );
+    await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+
+    await stakeConnection.addProposal(
+      proposalIdInput,
+      ethProposalResponseBytes,
+      signaturesKeypair.publicKey,
+      mockGuardianSetIndex
+    );
   } catch (err) {
     console.error("Error:", err);
   }

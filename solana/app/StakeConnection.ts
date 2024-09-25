@@ -27,7 +27,7 @@ import BN from "bn.js";
 import { Staking } from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
 import { WHTokenBalance } from "./whTokenBalance";
-import { STAKING_ADDRESS } from "./constants";
+import { STAKING_ADDRESS, CORE_BRIDGE_ADDRESS } from "./constants";
 import * as crypto from "crypto";
 import {
   PriorityFeeConfig,
@@ -36,6 +36,13 @@ import {
 } from "./transaction";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import * as console from "node:console";
+
+import {
+  signaturesToSolanaArray,
+} from "@wormhole-foundation/wormhole-query-sdk";
+
+import { deriveGuardianSetKey } from "./helpers/guardianSet";
+import { Keypair } from "@solana/web3.js";
 
 let wasm = importedWasm;
 export { wasm };
@@ -125,7 +132,7 @@ export class StakeConnection {
           await this.provider.connection.getAddressLookupTable(
             this.addressLookupTable,
           )
-        ).value
+        ).value ?? undefined
       : undefined;
 
     const transactions =
@@ -205,18 +212,18 @@ export class StakeConnection {
       return accounts.reduce(
         (prev: StakeAccount, curr: StakeAccount): StakeAccount => {
           return prev.tokenBalance > curr.tokenBalance
-            ? curr.address
-            : prev.address;
+            ? curr
+            : prev;
         },
-      );
+      ).address;
     }
   }
 
-  async fetchProposalAccount(proposalId: BN) {
+  async fetchProposalAccount(proposalId: Buffer) {
     const proposalAccount = PublicKey.findProgramAddressSync(
       [
         utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()),
-        proposalId.toArrayLike(Buffer, "be", 8),
+        proposalId,
       ],
       this.program.programId,
     )[0];
@@ -224,7 +231,7 @@ export class StakeConnection {
     return { proposalAccount };
   }
 
-  async fetchProposalAccountWasm(proposalId: BN) {
+  async fetchProposalAccountWasm(proposalId: Buffer) {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
     const inbuf =
@@ -235,13 +242,20 @@ export class StakeConnection {
     return { proposalAccountWasm };
   }
 
-  async fetchProposalAccountData(proposalId: BN) {
+  async fetchProposalAccountData(proposalId: Buffer) {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
     const proposalAccountData =
       await this.program.account.proposalData.fetch(proposalAccount);
 
     return { proposalAccountData };
+  }
+
+  async fetchGuardianSignaturesData(address: PublicKey) {
+    const guardianSignaturesData =
+      await this.program.account.guardianSignatures.fetch(address);
+
+    return { guardianSignaturesData };
   }
 
   async fetchCheckpointAccount(address: PublicKey) {
@@ -478,7 +492,7 @@ export class StakeConnection {
   }
 
   public async castVote(
-    proposalId: BN,
+    proposalId: Buffer,
     stakeAccount: PublicKey,
     againstVotes: BN,
     forVotes: BN,
@@ -489,7 +503,7 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .castVote(proposalId, againstVotes, forVotes, abstainVotes)
+        .castVote(Array.from(proposalId), againstVotes, forVotes, abstainVotes)
         .accountsPartial({
           proposal: proposalAccount,
           voterCheckpoints: stakeAccount,
@@ -500,7 +514,8 @@ export class StakeConnection {
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
-  public async proposalVotes(proposalId: BN): Promise<{
+  public async proposalVotes(proposalId: Buffer): Promise<{
+    proposalId: Buffer;
     againstVotes: BN;
     forVotes: BN;
     abstainVotes: BN;
@@ -511,13 +526,14 @@ export class StakeConnection {
     const proposalData = proposalAccountWasm.proposalVotes();
 
     return {
+      proposalId: Buffer.from(proposalData.proposal_id.toBytes()),
       againstVotes: new BN(proposalData.against_votes.toString()),
       forVotes: new BN(proposalData.for_votes.toString()),
       abstainVotes: new BN(proposalData.abstain_votes.toString()),
     };
   }
 
-  public async isVotingSafe(proposalId: BN): Promise<boolean> {
+  public async isVotingSafe(proposalId: Buffer): Promise<boolean> {
     const { proposalAccountWasm } =
       await this.fetchProposalAccountWasm(proposalId);
 
@@ -525,10 +541,24 @@ export class StakeConnection {
     return proposalAccountWasm.isVotingSafe(BigInt(currentTimestamp));
   }
 
+  /** Post signatures */
+  public async postSignatures(
+    querySignatures: string[],
+    signaturesKeypair: Keypair
+  ) {
+    const signatureData = signaturesToSolanaArray(querySignatures);
+    await this.program.methods
+      .postSignatures(signatureData, signatureData.length)
+      .accounts({ guardianSignatures: signaturesKeypair.publicKey })
+      .signers([signaturesKeypair])
+      .rpc();
+  }
+
   public async addProposal(
-    proposalId: BN,
-    vote_start: BN,
-    safe_window: BN,
+    proposalId: Buffer,
+    ethProposalResponseBytes: Uint8Array,
+    guardianSignatures: PublicKey,
+    guardianSetIndex: number
   ): Promise<void> {
     const instructions: TransactionInstruction[] = [];
 
@@ -536,9 +566,14 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .addProposal(proposalId, vote_start, safe_window)
+        .addProposal(Buffer.from(ethProposalResponseBytes), Array.from(proposalId), guardianSetIndex)
         .accountsPartial({
           proposal: proposalAccount,
+          guardianSignatures: guardianSignatures,
+          guardianSet: deriveGuardianSetKey(
+            CORE_BRIDGE_ADDRESS,
+            guardianSetIndex
+          )
         })
         .instruction(),
     );
@@ -548,7 +583,6 @@ export class StakeConnection {
 
   /** Gets the current votes balance of the delegate's stake account. */
   public getVotes(delegateStakeAccount: StakeAccount): BN {
-    this.program.account.checkpointData.fetch();
     return delegateStakeAccount.getVotes();
   }
 
