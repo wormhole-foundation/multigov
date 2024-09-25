@@ -12,9 +12,12 @@ import {
 import BN from "bn.js";
 import path from "path";
 import { expectFailApi } from "./utils/utils";
-import { assertBalanceMatches, createAddProposalTestBytes } from "./utils/api_utils";
+import {
+  assertBalanceMatches,
+  createAddProposalTestBytes,
+} from "./utils/api_utils";
 import { WHTokenBalance } from "../app";
-import crypto from 'crypto';
+import crypto from "crypto";
 import {
   QueryProxyMock,
   signaturesToSolanaArray,
@@ -95,25 +98,37 @@ describe("api", async () => {
 
   it("postSignatures", async () => {
     const signaturesKeypair = Keypair.generate();
-    await stakeConnection.postSignatures(ethProposalResponse.signatures, signaturesKeypair);
-    const { guardianSignaturesData } =await stakeConnection.fetchGuardianSignaturesData(signaturesKeypair.publicKey);
-    const expectedSignatures = signaturesToSolanaArray(ethProposalResponse.signatures);
+    await stakeConnection.postSignatures(
+      ethProposalResponse.signatures,
+      signaturesKeypair,
+    );
+    const { guardianSignaturesData } =
+      await stakeConnection.fetchGuardianSignaturesData(
+        signaturesKeypair.publicKey,
+      );
+    const expectedSignatures = signaturesToSolanaArray(
+      ethProposalResponse.signatures,
+    );
     assert.equal(
-      Buffer.from(guardianSignaturesData.guardianSignatures[1]).toString('hex'),
-      Buffer.from(expectedSignatures[1]).toString('hex'),
+      Buffer.from(guardianSignaturesData.guardianSignatures[1]).toString("hex"),
+      Buffer.from(expectedSignatures[1]).toString("hex"),
     );
   });
 
   it.skip("addProposal", async () => {
-    const proposalId = crypto.createHash('sha256').update('proposalId1').digest();
+    const proposalId = crypto
+      .createHash("sha256")
+      .update("proposalId1")
+      .digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createAddProposalTestBytes(proposalId, voteStart);
+    const ethProposalResponseBytes = createAddProposalTestBytes(
+      proposalId,
+      voteStart,
+    );
     const signaturesKeypair = Keypair.generate();
     const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(
-      ethProposalResponseBytes
-    );
+    const mockSignatures = mock.sign(ethProposalResponseBytes);
     await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
     const mockGuardianSetIndex = 5;
 
@@ -121,11 +136,14 @@ describe("api", async () => {
       proposalId,
       ethProposalResponseBytes,
       signaturesKeypair.publicKey,
-      mockGuardianSetIndex
+      mockGuardianSetIndex,
     );
     const { proposalAccountData } =
       await stakeConnection.fetchProposalAccountData(proposalId);
-    assert.equal(Buffer.from(proposalAccountData.id).toString('hex'), proposalId.toString('hex'));
+    assert.equal(
+      Buffer.from(proposalAccountData.id).toString("hex"),
+      proposalId.toString("hex"),
+    );
     assert.equal(
       proposalAccountData.voteStart.toString(),
       voteStart.toString(),
@@ -141,15 +159,19 @@ describe("api", async () => {
   });
 
   it.skip("proposalVotes", async () => {
-    const proposalIdInput = crypto.createHash('sha256').update('proposalId2').digest();
+    const proposalIdInput = crypto
+      .createHash("sha256")
+      .update("proposalId2")
+      .digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createAddProposalTestBytes(proposalIdInput, voteStart);
+    const ethProposalResponseBytes = createAddProposalTestBytes(
+      proposalIdInput,
+      voteStart,
+    );
     const signaturesKeypair = Keypair.generate();
     const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(
-      ethProposalResponseBytes
-    );
+    const mockSignatures = mock.sign(ethProposalResponseBytes);
     await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
     const mockGuardianSetIndex = 5;
 
@@ -157,28 +179,32 @@ describe("api", async () => {
       proposalIdInput,
       ethProposalResponseBytes,
       signaturesKeypair.publicKey,
-      mockGuardianSetIndex
+      mockGuardianSetIndex,
     );
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
       await stakeConnection.proposalVotes(_proposalId);
 
-    assert.equal(proposalId.toString('hex'), _proposalId.toString('hex'));
+    assert.equal(proposalId.toString("hex"), _proposalId.toString("hex"));
     assert.equal(againstVotes.toString(), "0");
     assert.equal(forVotes.toString(), "0");
     assert.equal(abstainVotes.toString(), "0");
   });
 
   it.skip("isVotingSafe", async () => {
-    const proposalIdInput = crypto.createHash('sha256').update('proposalId3').digest();
+    const proposalIdInput = crypto
+      .createHash("sha256")
+      .update("proposalId3")
+      .digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createAddProposalTestBytes(proposalIdInput, voteStart);
+    const ethProposalResponseBytes = createAddProposalTestBytes(
+      proposalIdInput,
+      voteStart,
+    );
     const signaturesKeypair = Keypair.generate();
     const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(
-      ethProposalResponseBytes
-    );
+    const mockSignatures = mock.sign(ethProposalResponseBytes);
     await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
     const mockGuardianSetIndex = 5;
 
@@ -186,7 +212,7 @@ describe("api", async () => {
       proposalIdInput,
       ethProposalResponseBytes,
       signaturesKeypair.publicKey,
-      mockGuardianSetIndex
+      mockGuardianSetIndex,
     );
 
     assert.equal(await stakeConnection.isVotingSafe(proposalId), true);
@@ -283,23 +309,30 @@ describe("api", async () => {
       WHTokenBalance.fromString("150"),
     );
 
-    const proposalIdInput = crypto.createHash('sha256').update('proposalId4').digest();
+    const proposalIdInput = crypto
+      .createHash("sha256")
+      .update("proposalId4")
+      .digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createAddProposalTestBytes(proposalIdInput, voteStart);
+    const ethProposalResponseBytes = createAddProposalTestBytes(
+      proposalIdInput,
+      voteStart,
+    );
     const signaturesKeypair = Keypair.generate();
     const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(
-      ethProposalResponseBytes
+    const mockSignatures = mock.sign(ethProposalResponseBytes);
+    await user2StakeConnection.postSignatures(
+      mockSignatures,
+      signaturesKeypair,
     );
-    await user2StakeConnection.postSignatures(mockSignatures, signaturesKeypair);
     const mockGuardianSetIndex = 5;
 
     await user2StakeConnection.addProposal(
       proposalIdInput,
       ethProposalResponseBytes,
       signaturesKeypair.publicKey,
-      mockGuardianSetIndex
+      mockGuardianSetIndex,
     );
 
     await user2StakeConnection.delegate(
@@ -333,7 +366,7 @@ describe("api", async () => {
     const { proposalId, againstVotes, forVotes, abstainVotes } =
       await user2StakeConnection.proposalVotes(proposalIdInput);
 
-    assert.equal(proposalId.toString('hex'), proposalIdInput.toString('hex'));
+    assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
     assert.equal(againstVotes.toString(), "20");
     assert.equal(forVotes.toString(), "37");
     assert.equal(abstainVotes.toString(), "22");

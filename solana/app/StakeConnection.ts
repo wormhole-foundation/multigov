@@ -33,9 +33,7 @@ import {
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import { CheckpointAccount, readCheckpoints } from "./checkpoints";
 
-import {
-  signaturesToSolanaArray,
-} from "@wormhole-foundation/wormhole-query-sdk";
+import { signaturesToSolanaArray } from "@wormhole-foundation/wormhole-query-sdk";
 
 import { deriveGuardianSetKey } from "./helpers/guardianSet";
 import { Keypair } from "@solana/web3.js";
@@ -124,11 +122,11 @@ export class StakeConnection {
     instructions: TransactionInstruction[],
   ) {
     const addressLookupTableAccount = this.addressLookupTable
-      ? (
+      ? ((
           await this.provider.connection.getAddressLookupTable(
             this.addressLookupTable,
           )
-        ).value ?? undefined
+        ).value ?? undefined)
       : undefined;
 
     const transactions =
@@ -192,10 +190,7 @@ export class StakeConnection {
 
   async fetchProposalAccount(proposalId: Buffer) {
     const proposalAccount = PublicKey.findProgramAddressSync(
-      [
-        utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()),
-        proposalId,
-      ],
+      [utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()), proposalId],
       this.program.programId,
     )[0];
 
@@ -538,7 +533,7 @@ export class StakeConnection {
   /** Post signatures */
   public async postSignatures(
     querySignatures: string[],
-    signaturesKeypair: Keypair
+    signaturesKeypair: Keypair,
   ) {
     const signatureData = signaturesToSolanaArray(querySignatures);
     await this.program.methods
@@ -552,7 +547,7 @@ export class StakeConnection {
     proposalId: Buffer,
     ethProposalResponseBytes: Uint8Array,
     guardianSignatures: PublicKey,
-    guardianSetIndex: number
+    guardianSetIndex: number,
   ): Promise<void> {
     const instructions: TransactionInstruction[] = [];
 
@@ -560,14 +555,18 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .addProposal(Buffer.from(ethProposalResponseBytes), Array.from(proposalId), guardianSetIndex)
+        .addProposal(
+          Buffer.from(ethProposalResponseBytes),
+          Array.from(proposalId),
+          guardianSetIndex,
+        )
         .accountsPartial({
           proposal: proposalAccount,
           guardianSignatures: guardianSignatures,
           guardianSet: deriveGuardianSetKey(
             CORE_BRIDGE_ADDRESS,
-            guardianSetIndex
-          )
+            guardianSetIndex,
+          ),
         })
         .instruction(),
     );

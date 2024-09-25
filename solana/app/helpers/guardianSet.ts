@@ -3,7 +3,7 @@ import * as anchor from "@coral-xyz/anchor";
 
 export function deriveGuardianSetKey(
   wormholeProgramId: anchor.web3.PublicKey,
-  index: number
+  index: number,
 ): anchor.web3.PublicKey {
   return anchor.web3.PublicKey.findProgramAddressSync(
     [
@@ -14,6 +14,6 @@ export function deriveGuardianSetKey(
         return buf;
       })(),
     ],
-    wormholeProgramId
+    wormholeProgramId,
   )[0];
 }
