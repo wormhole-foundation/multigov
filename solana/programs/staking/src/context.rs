@@ -1,5 +1,4 @@
 use crate::error::ErrorCode;
-use crate::state::checkpoints::CheckpointData;
 use crate::state::*;
 use anchor_lang::{
     prelude::*,
@@ -512,22 +511,6 @@ pub struct RecoverAccount<'info> {
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,
 }
-
-#[derive(Accounts)]
-pub struct InitializeCheckpointData<'info> {
-    #[account(
-        init,
-        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), signer.key().as_ref()],
-        bump,
-        payer = signer,
-        space = 10 * 1024_usize
-    )]
-    pub checkpoint_data: AccountLoader<'info, CheckpointData>,
-    #[account(mut)]
-    pub signer: Signer<'info>,
-    pub system_program: Program<'info, System>,
-}
-
 #[derive(Accounts)]
 pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(mut)]

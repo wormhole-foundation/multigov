@@ -419,10 +419,6 @@ pub mod staking {
         ctx.accounts.withdraw_surplus()
     }
 
-    pub fn initialize_checkpoint_data(_ctx: Context<InitializeCheckpointData>) -> Result<()> {
-        Ok(())
-    }
-
     //------------------------------------ SPOKE MESSAGE EXECUTOR ------------------------------------------------
     // Initialize and setting a spoke message executor
     pub fn initialize_spoke_message_executor(
