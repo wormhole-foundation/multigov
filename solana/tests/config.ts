@@ -10,11 +10,12 @@ import {
   getDummyAgreementHash2,
 } from "./utils/before";
 import { expectFail, createMint } from "./utils/utils";
-import BN from "bn.js";
 import assert from "assert";
 import path from "path";
 import * as wasm from "@wormhole/staking-wasm";
 import { WH_TOKEN_DECIMALS, WHTokenBalance, StakeConnection } from "../app";
+import * as console from "node:console";
+import BN from "bn.js";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -71,7 +72,7 @@ describe("config", async () => {
         freeze: false,
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(10),
+        mockClockTime: new BN(0),
       })
       .rpc({
         skipPreflight: DEBUG,
@@ -97,7 +98,7 @@ describe("config", async () => {
         freeze: false,
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(10),
+        mockClockTime: new BN(0),
       }),
     );
   });
@@ -115,29 +116,27 @@ describe("config", async () => {
         freeze: false,
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(10),
+        mockClockTime: new BN(0),
       }),
     );
 
     const owner = program.provider.wallet.publicKey;
     const stakeAccountKeypair = new Keypair();
-    const instructions: TransactionInstruction[] = [];
 
-    instructions.push(
-      await program.account.checkpointData.createInstruction(
-        stakeAccountKeypair,
-        wasm.Constants.CHECKPOINT_DATA_SIZE(),
-      ),
-    );
+    const checkpointDataAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        owner.toBuffer(),
+      ],
+      program.programId,
+    )[0];
 
     await program.methods
       .createStakeAccount(owner)
-      .preInstructions(instructions)
       .accounts({
-        stakeAccountCheckpoints: stakeAccountKeypair.publicKey,
+        stakeAccountCheckpoints: checkpointDataAddress,
         mint: whMintAccount.publicKey,
       })
-      .signers([stakeAccountKeypair])
       .rpc();
 
     stakeAccountAddress = stakeAccountKeypair.publicKey;
@@ -213,7 +212,7 @@ describe("config", async () => {
         freeze: false,
         pdaAuthority: program.provider.wallet.publicKey,
         agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(10),
+        mockClockTime: new BN(0),
       }),
     );
 
@@ -231,7 +230,7 @@ describe("config", async () => {
         freeze: false,
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(10),
+        mockClockTime: new BN(0),
       }),
     );
   });
@@ -255,7 +254,7 @@ describe("config", async () => {
         freeze: false,
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash2(),
-        mockClockTime: new BN(10),
+        mockClockTime: new BN(0),
       }),
     );
   });

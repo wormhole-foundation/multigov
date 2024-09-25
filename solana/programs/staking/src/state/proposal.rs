@@ -58,8 +58,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            std::mem::size_of::<ProposalData>() + ProposalData::discriminator().len()
-                <= ProposalData::LEN
+            size_of::<ProposalData>() + ProposalData::discriminator().len() <= ProposalData::LEN
         );
     }
 
@@ -75,6 +74,9 @@ pub mod tests {
             safe_window: 50,
         };
 
-        assert_eq!(proposal.proposal_votes().unwrap(), Some((proposal_id, 50, 40, 30)));
+        assert_eq!(
+            proposal.proposal_votes().unwrap(),
+            Some((proposal_id, 50, 40, 30))
+        );
     }
 }

@@ -321,7 +321,7 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "vesterTa"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -476,7 +476,10 @@ export type Staking = {
         {
           "name": "vester",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "vestingBalance"
+          ]
         },
         {
           "name": "mint"
@@ -542,8 +545,7 @@ export type Staking = {
           "name": "vesterTa",
           "writable": true,
           "relations": [
-            "vest",
-            "vestingBalance"
+            "vest"
           ]
         },
         {
@@ -639,10 +641,20 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "vesterTa"
+                "path": "vester_ta.owner"
               }
             ]
           }
+        },
+        {
+          "name": "stakeAccountCheckpoints",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "stakeAccountMetadata",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "associatedTokenProgram",
@@ -711,7 +723,25 @@ export type Staking = {
         },
         {
           "name": "stakeAccountCheckpoints",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  119,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              }
+            ]
+          }
         },
         {
           "name": "stakeAccountMetadata",
@@ -955,7 +985,7 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "vesterTa"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -1027,7 +1057,7 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "vesterTa"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -1239,10 +1269,15 @@ export type Staking = {
         },
         {
           "name": "vestingBalance",
+          "writable": true,
           "optional": true
         },
         {
           "name": "mint"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -2608,6 +2643,10 @@ export type Staking = {
         {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -2920,36 +2959,6 @@ export type Staking = {
           {
             "name": "nextIndex",
             "type": "u64"
-          },
-          {
-            "name": "checkpoints",
-            "type": {
-              "defined": {
-                "name": "checkpoints"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "checkpoints",
-      "repr": {
-        "kind": "c"
-      },
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "array": [
-              {
-                "array": [
-                  "u8",
-                  24
-                ]
-              },
-              32
-            ]
           }
         ]
       }
@@ -3369,7 +3378,7 @@ export type Staking = {
         "kind": "struct",
         "fields": [
           {
-            "name": "vesterTa",
+            "name": "vester",
             "type": "pubkey"
           },
           {
@@ -3379,6 +3388,10 @@ export type Staking = {
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "stakeAccountMetadata",
+            "type": "pubkey"
           }
         ]
       }

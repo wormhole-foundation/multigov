@@ -11,8 +11,7 @@ import path from "path";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { StakeConnection, WHTokenBalance } from "../app";
 import { BN, Wallet } from "@coral-xyz/anchor";
-import { assertVoterVotesEquals } from "./utils/api_utils";
-import * as console from "node:console";
+import assert from "assert";
 
 const portNumber = getPortNumber(path.basename(__filename));
 
@@ -50,7 +49,10 @@ describe("voter_votes_test", async () => {
 
     let stakeAccount =
       await stakeConnection.loadStakeAccount(stakeAccountAddress);
-    await assertVoterVotesEquals(stakeAccount, new BN("50000000")); // 50 * 10**6
+    assert.equal(
+      stakeAccount.checkpointAccount.getLastCheckpoint().value.toString(),
+      "50000000",
+    );
 
     await stakeConnection.delegate(
       stakeAccountAddress,
@@ -59,7 +61,10 @@ describe("voter_votes_test", async () => {
     );
 
     stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
-    await assertVoterVotesEquals(stakeAccount, new BN("65000000")); // 65 * 10**6
+    assert.equal(
+      stakeAccount.checkpointAccount.getLastCheckpoint().value.toString(),
+      "65000000",
+    );
   });
 
   after(async () => {

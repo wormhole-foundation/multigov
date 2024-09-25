@@ -19,7 +19,7 @@ pub struct Finalize<'info> {
     // Initialize a vesting config for a specific admin, mint and seed
     #[account(
         mut,
-        constraint = config.finalized == false @ VestingError::VestingFinalized,
+        constraint = !config.finalized @ VestingError::VestingFinalized,
         seeds = [b"config", admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]

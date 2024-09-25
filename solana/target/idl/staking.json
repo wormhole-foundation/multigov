@@ -315,7 +315,7 @@
               },
               {
                 "kind": "account",
-                "path": "vester_ta"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -470,7 +470,10 @@
         {
           "name": "vester",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "vesting_balance"
+          ]
         },
         {
           "name": "mint"
@@ -536,8 +539,7 @@
           "name": "vester_ta",
           "writable": true,
           "relations": [
-            "vest",
-            "vesting_balance"
+            "vest"
           ]
         },
         {
@@ -633,10 +635,20 @@
               },
               {
                 "kind": "account",
-                "path": "vester_ta"
+                "path": "vester_ta.owner"
               }
             ]
           }
+        },
+        {
+          "name": "stake_account_checkpoints",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "stake_account_metadata",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "associated_token_program",
@@ -705,7 +717,25 @@
         },
         {
           "name": "stake_account_checkpoints",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  119,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              }
+            ]
+          }
         },
         {
           "name": "stake_account_metadata",
@@ -949,7 +979,7 @@
               },
               {
                 "kind": "account",
-                "path": "vester_ta"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -1021,7 +1051,7 @@
               },
               {
                 "kind": "account",
-                "path": "vester_ta"
+                "path": "vester_ta.owner"
               }
             ]
           }
@@ -1233,10 +1263,15 @@
         },
         {
           "name": "vesting_balance",
+          "writable": true,
           "optional": true
         },
         {
           "name": "mint"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -2602,6 +2637,10 @@
         {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -2914,36 +2953,6 @@
           {
             "name": "next_index",
             "type": "u64"
-          },
-          {
-            "name": "checkpoints",
-            "type": {
-              "defined": {
-                "name": "Checkpoints"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Checkpoints",
-      "repr": {
-        "kind": "c"
-      },
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "array": [
-              {
-                "array": [
-                  "u8",
-                  24
-                ]
-              },
-              32
-            ]
           }
         ]
       }
@@ -3363,7 +3372,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "vester_ta",
+            "name": "vester",
             "type": "pubkey"
           },
           {
@@ -3373,6 +3382,10 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "stake_account_metadata",
+            "type": "pubkey"
           }
         ]
       }
