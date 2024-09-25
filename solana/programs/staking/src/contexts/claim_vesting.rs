@@ -30,7 +30,7 @@ pub struct ClaimVesting<'info> {
     vester_ta: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
-        constraint = config.finalized == true @ VestingError::VestingUnfinalized,
+        constraint = config.finalized @ VestingError::VestingUnfinalized,
         seeds = [b"config", config.admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]

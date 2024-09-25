@@ -21,7 +21,7 @@ pub struct CreateVesting<'info> {
     vester_ta: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
-        constraint = config.finalized == false @ VestingError::VestingFinalized, // Vesting cannot be cancelled after vest is finalized
+        constraint = !config.finalized @ VestingError::VestingFinalized, // Vesting cannot be cancelled after vest is finalized
         has_one = admin, // This check is arbitrary, as mint is baked into the PDA
         has_one = mint, // This check is arbitrary, as mint is baked into the PDA
         seeds = [b"config", admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],

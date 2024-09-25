@@ -1,5 +1,4 @@
 use crate::error::ErrorCode;
-use crate::state::checkpoints;
 use anchor_lang::prelude::borsh::{BorshDeserialize, BorshSerialize};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke;
@@ -134,7 +133,6 @@ pub fn push_checkpoint<'info>(
             {
                 let mut checkpoint_data = checkpoints_loader.load_mut()?;
                 checkpoint_data.next_index += 1;
-                let current_index = checkpoint_data.next_index;
 
                 let required_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
                     + (checkpoint_data.next_index as usize + 1) * CheckpointData::CHECKPOINT_SIZE;
@@ -204,7 +202,6 @@ pub fn push_checkpoint<'info>(
         {
             let mut checkpoint_data = checkpoints_loader.load_mut()?;
             checkpoint_data.next_index += 1;
-            let current_index = checkpoint_data.next_index;
 
             let required_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
                 + (checkpoint_data.next_index as usize + 1) * CheckpointData::CHECKPOINT_SIZE;

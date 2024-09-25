@@ -522,7 +522,7 @@ pub struct InitializeCheckpointData<'info> {
         seeds = [CHECKPOINT_DATA_SEED.as_bytes(), signer.key().as_ref()],
         bump,
         payer = signer,
-        space = 10 * (1024 as usize)
+        space = 10 * 1024_usize
     )]
     pub checkpoint_data: AccountLoader<'info, CheckpointData>,
     #[account(mut)]

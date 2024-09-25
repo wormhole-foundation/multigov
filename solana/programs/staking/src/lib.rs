@@ -145,7 +145,6 @@ pub mod staking {
             );
 
             stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
-        } else {
         }
 
         let current_delegate = stake_account_metadata.delegate;
@@ -205,37 +204,35 @@ emit!(DelegateChanged {
             if current_stake_balance != recorded_balance {
                 stake_account_metadata.recorded_balance = current_stake_balance;
             }
-        } else {
-            if current_stake_balance != recorded_balance {
-                let delegatee_checkpoints_account_info = ctx
-                    .accounts
-                    .delegatee_stake_account_checkpoints
-                    .to_account_info();
+        } else if current_stake_balance != recorded_balance {
+            let delegatee_checkpoints_account_info = ctx
+                .accounts
+                .delegatee_stake_account_checkpoints
+                .to_account_info();
 
-                let (amount_delta, operation) = if current_stake_balance > recorded_balance {
-                    (
-                        current_stake_balance.checked_sub(recorded_balance).unwrap(),
-                        Operation::Add,
-                    )
-                } else {
-                    (
-                        recorded_balance.checked_sub(current_stake_balance).unwrap(),
-                        Operation::Subtract,
-                    )
-                };
+            let (amount_delta, operation) = if current_stake_balance > recorded_balance {
+                (
+                    current_stake_balance.checked_sub(recorded_balance).unwrap(),
+                    Operation::Add,
+                )
+            } else {
+                (
+                    recorded_balance.checked_sub(current_stake_balance).unwrap(),
+                    Operation::Subtract,
+                )
+            };
 
-                push_checkpoint(
-                    &mut ctx.accounts.delegatee_stake_account_checkpoints,
-                    &delegatee_checkpoints_account_info,
-                    amount_delta,
-                    operation,
-                    current_timestamp,
-                    &ctx.accounts.payer.to_account_info(),
-                    &ctx.accounts.system_program.to_account_info(),
-                )?;
+            push_checkpoint(
+                &mut ctx.accounts.delegatee_stake_account_checkpoints,
+                &delegatee_checkpoints_account_info,
+                amount_delta,
+                operation,
+                current_timestamp,
+                &ctx.accounts.payer.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+            )?;
 
-                stake_account_metadata.recorded_balance = current_stake_balance;
-            }
+            stake_account_metadata.recorded_balance = current_stake_balance;
         }
 
         Ok(())
@@ -309,7 +306,7 @@ emit!(DelegateChanged {
         let proposal = &mut ctx.accounts.proposal;
 
         let voter_checkpoints = ctx.accounts.voter_checkpoints.to_account_info();
-        
+
         if let Some(checkpoint) = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)? {
             let total_weight = checkpoint.value;
 
@@ -340,11 +337,11 @@ emit!(DelegateChanged {
 
             emit!(VoteCast {
                 voter: ctx.accounts.voter_checkpoints.key(),
-                proposal_id: proposal_id,
+                proposal_id,
                 weight: total_weight,
-                against_votes: against_votes,
-                for_votes: for_votes,
-                abstain_votes: abstain_votes
+                against_votes,
+                for_votes,
+                abstain_votes
             });
         } else {
             return Err(error!(ErrorCode::CheckpointNotFound))
