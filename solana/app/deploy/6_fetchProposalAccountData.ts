@@ -5,7 +5,7 @@ import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import BN from "bn.js";
-import crypto from 'crypto';
+import crypto from "crypto";
 
 async function main() {
   try {
@@ -23,8 +23,11 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalId = crypto.createHash('sha256').update('proposalId4').digest();
-    console.log("proposalId:", proposalId.toString('hex'));
+    const proposalId = crypto
+      .createHash("sha256")
+      .update("proposalId4")
+      .digest();
+    console.log("proposalId:", proposalId.toString("hex"));
 
     const { proposalAccountData } =
       await stakeConnection.fetchProposalAccountData(proposalId);

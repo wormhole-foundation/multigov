@@ -33,8 +33,8 @@ impl MessageReceived {
 
 #[cfg(test)]
 pub mod tests {
-    use super::SpokeMessageExecutor;
     use super::MessageReceived;
+    use super::SpokeMessageExecutor;
     use anchor_lang::Discriminator;
 
     #[test]
@@ -49,8 +49,7 @@ pub mod tests {
     #[test]
     fn check_message_received_size() {
         assert!(
-            std::mem::size_of::<MessageReceived>()
-                + MessageReceived::discriminator().len()
+            std::mem::size_of::<MessageReceived>() + MessageReceived::discriminator().len()
                 == MessageReceived::LEN
         );
     }

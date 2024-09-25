@@ -38,7 +38,9 @@ pub enum ErrorCode {
     InvalidMessageExecutor,
     #[msg("Invalid spoke airlock")] //6016
     InvalidSpokeAirlock,
-    #[msg("Other")] //6015
+    #[msg("Invalid vesting balance owner")] //6017
+    InvalidVestingBalance,
+    #[msg("Other")] //6018
     Other,
 }
 

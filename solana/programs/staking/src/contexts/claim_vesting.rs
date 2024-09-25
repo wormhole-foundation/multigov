@@ -1,9 +1,14 @@
+use crate::context::VESTING_BALANCE_SEED;
+use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
+use std::convert::TryInto;
 
+use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
+use crate::state::stake_account::StakeAccountMetadata;
 use crate::state::VestingBalance;
 use crate::{
     error::VestingError,
@@ -29,7 +34,7 @@ pub struct ClaimVesting<'info> {
     vester_ta: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
-        constraint = config.finalized == true @ VestingError::VestingUnfinalized,
+        constraint = config.finalized @ VestingError::VestingUnfinalized,
         seeds = [b"config", config.admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
@@ -46,11 +51,15 @@ pub struct ClaimVesting<'info> {
     vest: Account<'info, Vesting>,
     #[account(
         mut,
-        has_one = vester_ta, // This check is arbitrary, as ATA is baked into the PDA
-        seeds = [b"vesting_balance",  vester_ta.key().as_ref()],
+        has_one = vester,
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), vester_ta.owner.key().as_ref()],
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,
+    #[account(mut)]
+    pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
+    #[account(mut)]
+    pub stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
     system_program: Program<'info, System>,
@@ -58,6 +67,48 @@ pub struct ClaimVesting<'info> {
 
 impl<'info> ClaimVesting<'info> {
     pub fn close_vesting(&mut self) -> Result<()> {
+        if self.vesting_balance.stake_account_metadata != Pubkey::default() {
+            if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
+                &mut self.stake_account_metadata,
+                &mut self.stake_account_checkpoints,
+            ) {
+                // Verify that the actual address matches the expected one
+                require!(
+                    stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
+                    ErrorCode::InvalidVestingBalance
+                );
+
+                // Additional checks to ensure the owner matches
+                require!(
+                    stake_account_metadata.owner == self.vesting_balance.vester,
+                    ErrorCode::InvalidVestingBalance
+                );
+
+                // Update the recorded vesting balance
+                stake_account_metadata.recorded_vesting_balance = stake_account_metadata
+                    .recorded_vesting_balance
+                    .checked_sub(self.vest.amount)
+                    .ok_or(VestingError::Underflow)?;
+
+                // Update checkpoints
+                let current_delegate_checkpoints_account_info =
+                    stake_account_checkpoints.to_account_info();
+
+                let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
+
+                push_checkpoint(
+                    stake_account_checkpoints,
+                    &current_delegate_checkpoints_account_info,
+                    self.vest.amount,
+                    Operation::Subtract,
+                    current_timestamp,
+                    &self.vester.to_account_info(),
+                    &self.system_program.to_account_info(),
+                )?;
+            } else {
+                return err!(ErrorCode::InvalidVestingBalance);
+            }
+        }
         self.config.vested = self
             .config
             .vested

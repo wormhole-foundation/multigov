@@ -1,13 +1,11 @@
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
 
-use crate::{
-    error::ProposalWormholeMessageError,
-};
+use crate::error::ProposalWormholeMessageError;
 
 /// Save window by default
 #[constant]
-pub const DEFAULT_SAVE_WINDOW: u64 = 24*60*60;
+pub const DEFAULT_SAVE_WINDOW: u64 = 24 * 60 * 60;
 
 pub struct ProposalDataFromEthResponse {
     pub contract_address: [u8; 20],
@@ -47,23 +45,31 @@ impl SpokeMetadataCollector {
         Ok(())
     }
 
-    pub fn parse_eth_response_proposal_data(&mut self, data: &[u8]) -> Result<ProposalDataFromEthResponse> {
+    pub fn parse_eth_response_proposal_data(
+        &mut self,
+        data: &[u8],
+    ) -> Result<ProposalDataFromEthResponse> {
         require!(
             data.len() == 60, // 20 + 32 + 8
             ProposalWormholeMessageError::InvalidDataLength
         );
 
         // Parse contract_address (20 bytes)
-        let contract_address: [u8; 20] = data[0..20].try_into()
+        let contract_address: [u8; 20] = data[0..20]
+            .try_into()
             .map_err(|_| ProposalWormholeMessageError::ErrorOfContractAddressParsing)?;
 
         // Parse proposal_id (32 bytes)
-        let proposal_id: [u8; 32] = data[20..52].try_into()
+        let proposal_id: [u8; 32] = data[20..52]
+            .try_into()
             .map_err(|_| ProposalWormholeMessageError::ErrorOfProposalIdParsing)?;
 
         // Parse vote_start (8 bytes)
-        let vote_start = u64::from_le_bytes(data[52..60].try_into()
-            .map_err(|_| ProposalWormholeMessageError::ErrorOfVoteStartParsing)?);
+        let vote_start = u64::from_le_bytes(
+            data[52..60]
+                .try_into()
+                .map_err(|_| ProposalWormholeMessageError::ErrorOfVoteStartParsing)?,
+        );
 
         Ok(ProposalDataFromEthResponse {
             contract_address,

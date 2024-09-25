@@ -297,13 +297,13 @@ export function makeDefaultConfig(
  * */
 export async function newUserStakeConnection(
   stakeConnection: StakeConnection,
+  userKeypair: Keypair,
   config: AnchorConfig,
   whMintAccount: Keypair,
   whMintAuthority: Keypair,
   amount?: WHTokenBalance,
 ): Promise<StakeConnection> {
   const connection = stakeConnection.provider.connection;
-  const userKeypair = Keypair.generate();
   const provider = new AnchorProvider(connection, new Wallet(userKeypair), {});
 
   await requestWHTokenAirdrop(
@@ -420,8 +420,8 @@ export async function standardSetup(
 
   /// Wormhole Hub Proposal Metadata Contract (Ethereum address)
   const hubProposalMetadata = new Uint8Array([
-    0x69, 0xCB, 0xB9, 0xA5, 0x90, 0x72, 0x66, 0x36, 0x25, 0xA6,
-    0xE3, 0xEB, 0x3A, 0xEE, 0x31, 0xE4, 0x35, 0x21, 0x3F, 0x7B
+    0x69, 0xcb, 0xb9, 0xa5, 0x90, 0x72, 0x66, 0x36, 0x25, 0xa6, 0xe3, 0xeb,
+    0x3a, 0xee, 0x31, 0xe4, 0x35, 0x21, 0x3f, 0x7b,
   ]);
 
   await program.methods

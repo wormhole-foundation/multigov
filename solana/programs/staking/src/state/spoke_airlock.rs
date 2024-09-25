@@ -20,8 +20,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            std::mem::size_of::<SpokeAirlock>()
-                + SpokeAirlock::discriminator().len()
+            std::mem::size_of::<SpokeAirlock>() + SpokeAirlock::discriminator().len()
                 == SpokeAirlock::LEN
         );
     }

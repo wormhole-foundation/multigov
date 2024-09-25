@@ -1,7 +1,7 @@
+use crate::context::VESTING_BALANCE_SEED;
+use crate::state::VestingBalance;
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-
-use crate::state::VestingBalance;
 
 #[derive(Accounts)]
 #[instruction()]
@@ -13,12 +13,12 @@ pub struct CreateVestingBalance<'info> {
         init,
         payer = admin,
         space = VestingBalance::INIT_SPACE,
-        seeds = [b"vesting_balance", vester_ta.key().as_ref()],
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), vester_ta.owner.key().as_ref()],
         bump
     )]
     vesting_balance: Account<'info, VestingBalance>,
     #[account(
-        token::mint = mint, // Використовуємо mint
+        token::mint = mint,
         token::token_program = token_program
     )]
     vester_ta: InterfaceAccount<'info, TokenAccount>,
@@ -29,7 +29,8 @@ pub struct CreateVestingBalance<'info> {
 impl<'info> CreateVestingBalance<'info> {
     pub fn create_vesting_balance(&mut self, bump: u8) -> Result<()> {
         self.vesting_balance.set_inner(VestingBalance {
-            vester_ta: self.vester_ta.key(),
+            vester: self.vester_ta.owner.key(),
+            stake_account_metadata: Pubkey::default(),
             total_vesting_balance: 0,
             bump,
         });

@@ -33,8 +33,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            std::mem::size_of::<ProposalVotersWeightCast>()
-                + ProposalVotersWeightCast::discriminator().len()
+            size_of::<ProposalVotersWeightCast>() + ProposalVotersWeightCast::discriminator().len()
                 <= ProposalVotersWeightCast::LEN
         );
     }

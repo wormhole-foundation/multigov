@@ -11,24 +11,21 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
 use contexts::*;
+use state::checkpoints::{find_checkpoint_le, push_checkpoint, Operation};
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
 
 use anchor_lang::solana_program::{
-    instruction::AccountMeta,
-    instruction::Instruction,
-    program::invoke_signed
+    instruction::AccountMeta, instruction::Instruction, program::invoke_signed,
 };
 
-use wormhole_query_sdk::{
-    structs::{ChainSpecificResponse, QueryResponse},
-};
+use wormhole_query_sdk::structs::{ChainSpecificResponse, QueryResponse};
 
 use crate::{
-    error::{QueriesSolanaVerifyError, ProposalWormholeMessageError},
-    state::{GuardianSignatures},
+    error::{ProposalWormholeMessageError, QueriesSolanaVerifyError},
+    state::GuardianSignatures,
 };
 
 // automatically generate module using program idl found in ./idls
@@ -137,10 +134,14 @@ pub mod staking {
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
 
-        if let Some(vesting_balance) = &ctx.accounts.vesting_balance {
+        if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
+            require!(
+                vesting_balance.vester.key() == stake_account_metadata.owner.key(),
+                ErrorCode::InvalidVestingBalance
+            );
+            vesting_balance.stake_account_metadata = stake_account_metadata.key();
+
             stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
-        } else {
-            stake_account_metadata.recorded_vesting_balance = 0;
         }
 
         let current_delegate = stake_account_metadata.delegate;
@@ -148,7 +149,7 @@ pub mod staking {
 
         let recorded_balance = stake_account_metadata.recorded_balance;
         let recorded_vesting_balance = stake_account_metadata.recorded_vesting_balance;
-        let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
+        let current_stake_balance = ctx.accounts.stake_account_custody.amount;
 
         let total_balance = recorded_balance + recorded_vesting_balance;
 
@@ -162,51 +163,75 @@ pub mod staking {
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
 
-        let delegatee_stake_account_checkpoints = &mut ctx
-            .accounts
-            .delegatee_stake_account_checkpoints
-            .load_mut()?;
-
         if current_delegate != delegatee {
             if current_delegate != Pubkey::default() {
-                let current_delegate_stake_account_checkpoints = &mut ctx
+                let current_delegate_checkpoints_account_info = ctx
                     .accounts
                     .current_delegate_stake_account_checkpoints
-                    .load_mut()?;
+                    .to_account_info();
 
-                let latest_current_delegate_checkpoint_value =
-                    current_delegate_stake_account_checkpoints
-                        .latest()?
-                        .unwrap_or(0);
-
-                if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
+                push_checkpoint(
+                    &mut ctx.accounts.current_delegate_stake_account_checkpoints,
+                    &current_delegate_checkpoints_account_info,
+                    total_balance,
+                    Operation::Subtract,
                     current_timestamp,
-                    latest_current_delegate_checkpoint_value - total_balance,
-                ) {};
+                    &ctx.accounts.payer.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
+                )?;
             }
 
             if delegatee != Pubkey::default() {
-                let latest_delegatee_checkpoint_value =
-                    delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
-                if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
+                let delegatee_checkpoints_account_info = ctx
+                    .accounts
+                    .delegatee_stake_account_checkpoints
+                    .to_account_info();
+
+                push_checkpoint(
+                    &mut ctx.accounts.delegatee_stake_account_checkpoints,
+                    &delegatee_checkpoints_account_info,
+                    current_stake_balance
+                        .checked_add(recorded_vesting_balance)
+                        .unwrap(),
+                    Operation::Add,
                     current_timestamp,
-                    latest_delegatee_checkpoint_value + *current_stake_balance,
-                ) {};
+                    &ctx.accounts.payer.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
+                )?;
             }
 
-            if *current_stake_balance != recorded_balance {
-                stake_account_metadata.recorded_balance = *current_stake_balance;
+            if current_stake_balance != recorded_balance {
+                stake_account_metadata.recorded_balance = current_stake_balance;
             }
-        } else {
-            if *current_stake_balance != total_balance {
-                let latest_delegatee_checkpoint_value =
-                    delegatee_stake_account_checkpoints.latest()?.unwrap_or(0);
-                if let Ok((_, _)) = delegatee_stake_account_checkpoints.push(
-                    current_timestamp,
-                    latest_delegatee_checkpoint_value + *current_stake_balance - total_balance,
-                ) {};
-                stake_account_metadata.recorded_balance = *current_stake_balance;
-            }
+        } else if current_stake_balance != recorded_balance {
+            let delegatee_checkpoints_account_info = ctx
+                .accounts
+                .delegatee_stake_account_checkpoints
+                .to_account_info();
+
+            let (amount_delta, operation) = if current_stake_balance > recorded_balance {
+                (
+                    current_stake_balance.checked_sub(recorded_balance).unwrap(),
+                    Operation::Add,
+                )
+            } else {
+                (
+                    recorded_balance.checked_sub(current_stake_balance).unwrap(),
+                    Operation::Subtract,
+                )
+            };
+
+            push_checkpoint(
+                &mut ctx.accounts.delegatee_stake_account_checkpoints,
+                &delegatee_checkpoints_account_info,
+                amount_delta,
+                operation,
+                current_timestamp,
+                &ctx.accounts.payer.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+            )?;
+
+            stake_account_metadata.recorded_balance = current_stake_balance;
         }
 
         Ok(())
@@ -233,27 +258,35 @@ pub mod staking {
 
         ctx.accounts.stake_account_custody.reload()?;
 
-        let recorded_balance = stake_account_metadata.recorded_balance;
+        let recorded_balance = &stake_account_metadata.recorded_balance;
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
 
         if stake_account_metadata.delegate != Pubkey::default() {
-            let current_delegate_stake_account_checkpoints = &mut ctx
+            let current_delegate_account_info = ctx
                 .accounts
                 .current_delegate_stake_account_checkpoints
-                .load_mut()?;
-
-            let latest_current_delegate_checkpoint_value =
-                current_delegate_stake_account_checkpoints
-                    .latest()?
-                    .unwrap_or(0);
-
+                .to_account_info();
             let config = &ctx.accounts.config;
             let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
 
-            if let Ok((_, _)) = current_delegate_stake_account_checkpoints.push(
+            let (amount_delta, operation) = if current_stake_balance > recorded_balance {
+                (current_stake_balance - recorded_balance, Operation::Add)
+            } else {
+                (
+                    recorded_balance - current_stake_balance,
+                    Operation::Subtract,
+                )
+            };
+
+            push_checkpoint(
+                &mut ctx.accounts.current_delegate_stake_account_checkpoints,
+                &current_delegate_account_info,
+                amount_delta,
+                operation,
                 current_timestamp,
-                latest_current_delegate_checkpoint_value - recorded_balance + current_stake_balance,
-            ) {};
+                &ctx.accounts.payer.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+            )?;
         }
 
         ctx.accounts.stake_account_metadata.recorded_balance = *current_stake_balance;
@@ -270,44 +303,47 @@ pub mod staking {
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
 
-        let voter_checkpoints = &mut ctx.accounts.voter_checkpoints.load_mut()?;
+        let voter_checkpoints = ctx.accounts.voter_checkpoints.to_account_info();
 
-        let total_weight =
-            utils::voter_votes::get_past_votes(voter_checkpoints, proposal.vote_start)?;
+        if let Some(checkpoint) = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)? {
+            let total_weight = checkpoint.value;
 
-        require!(total_weight.clone() > 0, ErrorCode::NoWeight);
+            require!(total_weight > 0, ErrorCode::NoWeight);
 
-        let proposal_voters_weight_cast = &mut ctx.accounts.proposal_voters_weight_cast;
+            let proposal_voters_weight_cast = &mut ctx.accounts.proposal_voters_weight_cast;
 
-        // Initialize proposal_voters_weight_cast if it hasn't been initialized yet
-        if proposal_voters_weight_cast.value == 0 {
-            proposal_voters_weight_cast.initialize(proposal_id, &ctx.accounts.payer.key());
+            // Initialize proposal_voters_weight_cast if it hasn't been initialized yet
+            if proposal_voters_weight_cast.value == 0 {
+                proposal_voters_weight_cast.initialize(proposal_id, &ctx.accounts.payer.key());
+            }
+
+            require!(
+                proposal_voters_weight_cast.value <= total_weight,
+                ErrorCode::AllWeightCast
+            );
+
+            let new_weight =
+                against_votes + for_votes + abstain_votes + proposal_voters_weight_cast.value;
+
+            require!(new_weight <= total_weight, ErrorCode::VoteWouldExceedWeight);
+
+            proposal_voters_weight_cast.set(new_weight);
+
+            proposal.against_votes += against_votes;
+            proposal.for_votes += for_votes;
+            proposal.abstain_votes += abstain_votes;
+
+            emit!(VoteCast {
+                voter: ctx.accounts.voter_checkpoints.key(),
+                proposal_id,
+                weight: total_weight,
+                against_votes,
+                for_votes,
+                abstain_votes
+            });
+        } else {
+            return Err(error!(ErrorCode::CheckpointNotFound));
         }
-
-        require!(
-            proposal_voters_weight_cast.value <= total_weight.clone(),
-            ErrorCode::AllWeightCast
-        );
-
-        let new_weight =
-            against_votes + for_votes + abstain_votes + proposal_voters_weight_cast.value;
-
-        require!(new_weight <= total_weight, ErrorCode::VoteWouldExceedWeight);
-
-        proposal_voters_weight_cast.set(new_weight);
-
-        proposal.against_votes += against_votes;
-        proposal.for_votes += for_votes;
-        proposal.abstain_votes += abstain_votes;
-
-        emit!(VoteCast {
-            voter: ctx.accounts.voter_checkpoints.key(),
-            proposal_id: proposal_id,
-            weight: total_weight,
-            against_votes: against_votes,
-            for_votes: for_votes,
-            abstain_votes: abstain_votes
-        });
 
         Ok(())
     }
@@ -385,7 +421,10 @@ pub mod staking {
 
     //------------------------------------ SPOKE MESSAGE EXECUTOR ------------------------------------------------
     // Initialize and setting a spoke message executor
-    pub fn initialize_spoke_message_executor(ctx: Context<InitializeSpokeMessageExecutor>, hub_chain_id: u16) -> Result<()> {
+    pub fn initialize_spoke_message_executor(
+        ctx: Context<InitializeSpokeMessageExecutor>,
+        hub_chain_id: u16,
+    ) -> Result<()> {
         let executor = &mut ctx.accounts.executor;
         executor.bump = ctx.bumps.executor;
         executor.hub_dispatcher = ctx.accounts.hub_dispatcher.key();
@@ -396,7 +435,10 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn set_message_received(ctx: Context<SetMessageReceived>, _message_hash: [u8; 32]) -> Result<()> {
+    pub fn set_message_received(
+        ctx: Context<SetMessageReceived>,
+        _message_hash: [u8; 32],
+    ) -> Result<()> {
         let message_received = &mut ctx.accounts.message_received;
         message_received.executed = true;
         Ok(())
@@ -415,14 +457,17 @@ pub mod staking {
     }
 
     //------------------------------------ SPOKE AIRLOCK ------------------------------------------------
-    pub fn initialize_spoke_airlock(ctx: Context<InitializeSpokeAirlock>, message_executor: Pubkey) -> Result<()> {
+    pub fn initialize_spoke_airlock(
+        ctx: Context<InitializeSpokeAirlock>,
+        message_executor: Pubkey,
+    ) -> Result<()> {
         let airlock = &mut ctx.accounts.airlock;
         airlock.bump = ctx.bumps.airlock;
         airlock.message_executor = message_executor;
         Ok(())
     }
 
-    pub fn execute_operation<'info> (
+    pub fn execute_operation<'info>(
         ctx: Context<'_, '_, '_, 'info, ExecuteOperation<'info>>,
         cpi_target_program_id: Pubkey,
         instruction_data: Vec<u8>,
@@ -437,7 +482,8 @@ pub mod staking {
         let mut all_account_infos = ctx.accounts.to_account_infos();
         all_account_infos.extend_from_slice(ctx.remaining_accounts);
 
-        let account_metas = all_account_infos.clone()
+        let account_metas = all_account_infos
+            .clone()
             .into_iter()
             .map(|account| AccountMeta::new(*account.key, false))
             .collect();
@@ -457,13 +503,17 @@ pub mod staking {
 
     //------------------------------------ SPOKE METADATA COLLECTOR ------------------------------------------------
     // Initialize and setting a spoke metadata collector
-    pub fn initialize_spoke_metadata_collector(ctx: Context<InitializeSpokeMetadataCollector>, hub_chain_id: u16, hub_proposal_metadata: [u8; 20]) -> Result<()> {
+    pub fn initialize_spoke_metadata_collector(
+        ctx: Context<InitializeSpokeMetadataCollector>,
+        hub_chain_id: u16,
+        hub_proposal_metadata: [u8; 20],
+    ) -> Result<()> {
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
         let _ = spoke_metadata_collector.initialize(
             ctx.bumps.spoke_metadata_collector,
             hub_chain_id,
             hub_proposal_metadata,
-            CORE_BRIDGE_PROGRAM_ID
+            CORE_BRIDGE_PROGRAM_ID,
         );
 
         Ok(())
@@ -487,7 +537,7 @@ pub mod staking {
         ctx: Context<AddProposal>,
         bytes: Vec<u8>,
         proposal_id: [u8; 32],
-        _guardian_set_index: u32
+        _guardian_set_index: u32,
     ) -> Result<()> {
         let response = QueryResponse::deserialize(&bytes)
             .map_err(|_| QueriesSolanaVerifyError::FailedToParseResponse)?;
@@ -512,7 +562,8 @@ pub mod staking {
                 ProposalWormholeMessageError::TooManyEthCallResults
             );
 
-            let proposal_data = spoke_metadata_collector.parse_eth_response_proposal_data(&eth_response.results[0])?;
+            let proposal_data = spoke_metadata_collector
+                .parse_eth_response_proposal_data(&eth_response.results[0])?;
 
             require!(
                 proposal_data.contract_address == spoke_metadata_collector.hub_proposal_metadata,
@@ -529,7 +580,7 @@ pub mod staking {
             let _ = proposal.add_proposal(
                 proposal_data.proposal_id,
                 proposal_data.vote_start,
-                spoke_metadata_collector.safe_window
+                spoke_metadata_collector.safe_window,
             );
 
             emit!(ProposalCreated {

@@ -6,7 +6,7 @@ import { STAKING_ADDRESS, CORE_BRIDGE_ADDRESS } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import BN from "bn.js";
 import assert from "assert";
-import crypto from 'crypto';
+import crypto from "crypto";
 import { getWormholeBridgeData } from "../helpers/wormholeBridgeConfig";
 import { createAddProposalTestBytes } from "../../tests/utils/api_utils";
 
@@ -30,23 +30,27 @@ async function main() {
     let guardianSetIndex = info.guardianSetIndex;
     const mockGuardianSetIndex = 5;
 
-    const proposalIdInput = crypto.createHash('sha256').update('proposalId4').digest();
-    console.log("proposalIdInput:", proposalIdInput.toString('hex'));
+    const proposalIdInput = crypto
+      .createHash("sha256")
+      .update("proposalId4")
+      .digest();
+    console.log("proposalIdInput:", proposalIdInput.toString("hex"));
     const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createAddProposalTestBytes(proposalIdInput, voteStart);
+    const ethProposalResponseBytes = createAddProposalTestBytes(
+      proposalIdInput,
+      voteStart,
+    );
     const signaturesKeypair = Keypair.generate();
     const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(
-      ethProposalResponseBytes
-    );
+    const mockSignatures = mock.sign(ethProposalResponseBytes);
     await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
 
     await stakeConnection.addProposal(
       proposalIdInput,
       ethProposalResponseBytes,
       signaturesKeypair.publicKey,
-      mockGuardianSetIndex
+      mockGuardianSetIndex,
     );
   } catch (err) {
     console.error("Error:", err);

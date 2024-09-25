@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { parseIdlErrors, Program } from "@coral-xyz/anchor";
+import { parseIdlErrors, Program, utils } from "@coral-xyz/anchor";
 import { Staking } from "../target/types/staking";
 import {
   createTransferInstruction,
@@ -40,7 +40,6 @@ describe("staking", async () => {
 
   let provider: anchor.AnchorProvider;
 
-  const stakeAccountSecret = new Keypair();
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
   const zeroPubkey = new PublicKey(0);
@@ -77,12 +76,20 @@ describe("staking", async () => {
   it("creates staking account", async () => {
     const owner = provider.wallet.publicKey;
 
+    const checkpointDataAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        owner.toBuffer(),
+      ],
+      program.programId,
+    )[0];
+
     const [metadataAccount, metadataBump] = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(
           wasm.Constants.STAKE_ACCOUNT_METADATA_SEED(),
         ),
-        stakeAccountSecret.publicKey.toBuffer(),
+        checkpointDataAddress.toBuffer(),
       ],
       program.programId,
     );
@@ -90,7 +97,7 @@ describe("staking", async () => {
     const [custodyAccount, custodyBump] = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-        stakeAccountSecret.publicKey.toBuffer(),
+        checkpointDataAddress.toBuffer(),
       ],
       program.programId,
     );
@@ -98,24 +105,17 @@ describe("staking", async () => {
     const [authorityAccount, authorityBump] = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.AUTHORITY_SEED()),
-        stakeAccountSecret.publicKey.toBuffer(),
+        checkpointDataAddress.toBuffer(),
       ],
       program.programId,
     );
 
     const tx = await program.methods
       .createStakeAccount(owner)
-      .preInstructions([
-        await program.account.checkpointData.createInstruction(
-          stakeAccountSecret,
-          wasm.Constants.CHECKPOINT_DATA_SIZE(),
-        ),
-      ])
       .accounts({
-        stakeAccountCheckpoints: stakeAccountSecret.publicKey,
+        stakeAccountCheckpoints: checkpointDataAddress,
         mint: whMintAccount.publicKey,
       })
-      .signers([stakeAccountSecret])
       .rpc({
         skipPreflight: DEBUG,
       });
@@ -144,10 +144,18 @@ describe("staking", async () => {
     const transaction = new Transaction();
     const from_account = userAta;
 
+    const checkpointDataAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        provider.wallet.publicKey.toBuffer(),
+      ],
+      program.programId,
+    )[0];
+
     const toAccount = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-        stakeAccountSecret.publicKey.toBuffer(),
+        checkpointDataAddress.toBuffer(),
       ],
       program.programId,
     )[0];
@@ -168,11 +176,19 @@ describe("staking", async () => {
   it("withdraws tokens", async () => {
     const toAccount = userAta;
 
+    const checkpointDataAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        provider.wallet.publicKey.toBuffer(),
+      ],
+      program.programId,
+    )[0];
+
     await program.methods
       .withdrawTokens(new BN(1))
       .accounts({
-        currentDelegateStakeAccountCheckpoints: stakeAccountSecret.publicKey,
-        stakeAccountCheckpoints: stakeAccountSecret.publicKey,
+        currentDelegateStakeAccountCheckpoints: checkpointDataAddress,
+        stakeAccountCheckpoints: checkpointDataAddress,
         destination: toAccount,
       })
       .rpc({ skipPreflight: DEBUG });

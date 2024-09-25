@@ -15,17 +15,17 @@ use crate::{
     state::{GuardianSignatures, WormholeGuardianSet},
 };
 
-use wormhole_query_sdk::{
-    MESSAGE_PREFIX, QUERY_MESSAGE_LEN,
-};
+use wormhole_query_sdk::{MESSAGE_PREFIX, QUERY_MESSAGE_LEN};
 
 use wormhole_raw_vaas::{utils::quorum, GuardianSetSig};
 
 pub const AUTHORITY_SEED: &str = "authority";
 pub const CUSTODY_SEED: &str = "custody";
 pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
+pub const CHECKPOINT_DATA_SEED: &str = "owner";
 pub const CONFIG_SEED: &str = "config";
 pub const PROPOSAL_SEED: &str = "proposal";
+pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
@@ -105,12 +105,13 @@ pub struct Delegate<'info> {
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Box<Account<'info, global_config::GlobalConfig>>,
-    #[account()]
+    #[account(mut)]
     pub vesting_balance: Option<Account<'info, VestingBalance>>,
 
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
     pub mint: Account<'info, Mint>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -245,7 +246,7 @@ impl<'info> AddProposal<'info> {
         // Compute the message hash.
         let message_hash = [
             MESSAGE_PREFIX,
-            &solana_program::keccak::hashv(&[&bytes]).to_bytes(),
+            &solana_program::keccak::hashv(&[bytes]).to_bytes(),
         ]
         .concat();
 
@@ -285,9 +286,9 @@ impl<'info> AddProposal<'info> {
             }
 
             // Does this guardian index exist in this guardian set?
-            let guardian_pubkey = guardian_keys.get(index).ok_or_else(|| {
-                error!(QueriesSolanaVerifyError::InvalidGuardianIndexOutOfRange)
-            })?;
+            let guardian_pubkey = guardian_keys
+                .get(index)
+                .ok_or_else(|| error!(QueriesSolanaVerifyError::InvalidGuardianIndexOutOfRange))?;
 
             // Now verify that the signature agrees with the expected Guardian's pubkey.
             verify_guardian_signature(&sig, guardian_pubkey, digest.as_ref())?;
@@ -367,7 +368,13 @@ pub struct CreateStakeAccount<'info> {
     pub payer: Signer<'info>,
 
     // Stake program accounts:
-    #[account(zero)]
+    #[account(
+        init,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref()],
+        bump,
+        payer = payer,
+        space = checkpoints::CheckpointData::LEN,
+    )]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(init, payer = payer, space = stake_account::StakeAccountMetadata::LEN, seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
@@ -435,6 +442,7 @@ pub struct WithdrawTokens<'info> {
     pub config: Account<'info, global_config::GlobalConfig>,
     // Primitive accounts :
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
@@ -503,7 +511,6 @@ pub struct RecoverAccount<'info> {
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,
 }
-
 #[derive(Accounts)]
 pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(mut)]

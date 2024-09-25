@@ -17,7 +17,7 @@ impl WasmCheckpointData {
     #[wasm_bindgen(constructor)]
     pub fn from_buffer(buffer: &[u8]) -> Result<WasmCheckpointData, JsValue> {
         convert_error(WasmCheckpointData::from_buffer_impl(
-            &buffer[..CheckpointData::LEN],
+            &buffer[..CheckpointData::CHECKPOINT_DATA_HEADER_SIZE],
         ))
     }
     fn from_buffer_impl(buffer: &[u8]) -> Result<WasmCheckpointData, Error> {
@@ -26,19 +26,6 @@ impl WasmCheckpointData {
         Ok(WasmCheckpointData {
             wrapped: checkpoint_data,
         })
-    }
-
-    #[wasm_bindgen(js_name=getVoterVotes)]
-    pub fn get_voter_votes(&self) -> Result<u64, JsValue> {
-        convert_error(crate::utils::voter_votes::get_votes(&self.wrapped))
-    }
-
-    #[wasm_bindgen(js_name=getVoterPastVotes)]
-    pub fn get_voter_past_votes(&self, timestamp: u64) -> Result<u64, JsValue> {
-        convert_error(crate::utils::voter_votes::get_past_votes(
-            &self.wrapped,
-            timestamp,
-        ))
     }
 }
 
@@ -125,7 +112,8 @@ impl WasmProposalData {
 
     #[wasm_bindgen(js_name=proposalVotes)]
     pub fn proposal_votes(&self) -> Result<VotesSummary, JsValue> {
-        let Ok(Some((proposal_id, against_votes, for_votes, abstain_votes))) = self.wrapped.proposal_votes()
+        let Ok(Some((proposal_id, against_votes, for_votes, abstain_votes))) =
+            self.wrapped.proposal_votes()
         else {
             return Err("Failed to get proposal votes".into());
         };
@@ -188,14 +176,16 @@ macro_rules! reexport_seed_const {
 reexport_seed_const!(AUTHORITY_SEED);
 reexport_seed_const!(CUSTODY_SEED);
 reexport_seed_const!(STAKE_ACCOUNT_METADATA_SEED);
+reexport_seed_const!(CHECKPOINT_DATA_SEED);
 reexport_seed_const!(CONFIG_SEED);
 reexport_seed_const!(PROPOSAL_SEED);
+reexport_seed_const!(VESTING_BALANCE_SEED);
 
 #[wasm_bindgen]
 impl Constants {
     #[wasm_bindgen]
     pub fn CHECKPOINT_DATA_SIZE() -> usize {
-        CheckpointData::LEN
+        CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
     }
 }
 

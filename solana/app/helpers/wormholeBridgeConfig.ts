@@ -3,22 +3,20 @@ import * as anchor from "@coral-xyz/anchor";
 import { getAccountData } from "./utils/account";
 
 export function deriveWormholeBridgeDataKey(
-  wormholeProgramId: anchor.web3.PublicKey
+  wormholeProgramId: anchor.web3.PublicKey,
 ): anchor.web3.PublicKey {
   return anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("Bridge")],
-    wormholeProgramId
+    wormholeProgramId,
   )[0];
 }
 
 export async function getWormholeBridgeData(
   connection: anchor.web3.Connection,
   wormholeProgramId: anchor.web3.PublicKey,
-  commitment?: anchor.web3.Commitment
+  commitment?: anchor.web3.Commitment,
 ): Promise<BridgeData> {
   return connection
     .getAccountInfo(deriveWormholeBridgeDataKey(wormholeProgramId), commitment)
     .then((info) => BridgeData.deserialize(getAccountData(info)));
 }
-
-
