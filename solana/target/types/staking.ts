@@ -8,7 +8,7 @@ export type Staking = {
   "address": "5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ",
   "metadata": {
     "name": "staking",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
@@ -26,6 +26,86 @@ export type Staking = {
         152
       ],
       "accounts": [
+        {
+          "name": "guardianSet",
+          "docs": [
+            "Guardian set used for signature verification."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  71,
+                  117,
+                  97,
+                  114,
+                  100,
+                  105,
+                  97,
+                  110,
+                  83,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "guardianSetIndex"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                43,
+                18,
+                70,
+                201,
+                238,
+                250,
+                60,
+                70,
+                103,
+                146,
+                37,
+                49,
+                17,
+                243,
+                95,
+                236,
+                30,
+                232,
+                238,
+                94,
+                157,
+                235,
+                196,
+                18,
+                210,
+                233,
+                173,
+                173,
+                254,
+                205,
+                204,
+                114
+              ]
+            }
+          }
+        },
+        {
+          "name": "guardianSignatures",
+          "docs": [
+            "Stores unverified guardian signatures as they are too large to fit in the instruction data."
+          ],
+          "writable": true
+        },
+        {
+          "name": "refundRecipient",
+          "relations": [
+            "guardianSignatures"
+          ]
+        },
         {
           "name": "payer",
           "writable": true,
@@ -57,22 +137,64 @@ export type Staking = {
           }
         },
         {
+          "name": "spokeMetadataCollector",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
+          "name": "bytes",
+          "type": "bytes"
+        },
+        {
           "name": "proposalId",
-          "type": "u64"
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
-          "name": "voteStart",
-          "type": "u64"
-        },
-        {
-          "name": "safeWindow",
-          "type": "u64"
+          "name": "guardianSetIndex",
+          "type": "u32"
         }
       ]
     },
@@ -317,7 +439,12 @@ export type Staking = {
       "args": [
         {
           "name": "proposalId",
-          "type": "u64"
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
           "name": "againstVotes",
@@ -527,6 +654,36 @@ export type Staking = {
         {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closeSignatures",
+      "docs": [
+        "Allows the initial payer to close the signature account in case the query was invalid."
+      ],
+      "discriminator": [
+        192,
+        65,
+        63,
+        117,
+        213,
+        138,
+        179,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "guardianSignatures",
+          "writable": true
+        },
+        {
+          "name": "refundRecipient",
+          "signer": true,
+          "relations": [
+            "guardianSignatures"
+          ]
         }
       ],
       "args": []
@@ -1096,6 +1253,60 @@ export type Staking = {
       ]
     },
     {
+      "name": "executeOperation",
+      "discriminator": [
+        105,
+        240,
+        250,
+        159,
+        65,
+        132,
+        111,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "airlock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "cpiTargetProgramId",
+          "type": "pubkey"
+        },
+        {
+          "name": "instructionData",
+          "type": "bytes"
+        },
+        {
+          "name": "value",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "finalizeVestingConfig",
       "discriminator": [
         172,
@@ -1264,6 +1475,219 @@ export type Staking = {
             "defined": {
               "name": "globalConfig"
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "initializeSpokeAirlock",
+      "discriminator": [
+        43,
+        108,
+        186,
+        101,
+        188,
+        130,
+        241,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "airlock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "messageExecutor",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initializeSpokeMessageExecutor",
+      "discriminator": [
+        0,
+        62,
+        206,
+        121,
+        203,
+        198,
+        201,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "executor",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  101,
+                  120,
+                  101,
+                  99,
+                  117,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "hubDispatcher"
+        },
+        {
+          "name": "airlock",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "hubChainId",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "initializeSpokeMetadataCollector",
+      "discriminator": [
+        87,
+        206,
+        214,
+        2,
+        27,
+        75,
+        52,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "spokeMetadataCollector",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "hubChainId",
+          "type": "u16"
+        },
+        {
+          "name": "hubProposalMetadata",
+          "type": {
+            "array": [
+              "u8",
+              20
+            ]
           }
         }
       ]
@@ -1486,6 +1910,52 @@ export type Staking = {
       ]
     },
     {
+      "name": "postSignatures",
+      "discriminator": [
+        138,
+        2,
+        53,
+        166,
+        45,
+        77,
+        137,
+        51
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "guardianSignatures",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "guardianSignatures",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                66
+              ]
+            }
+          }
+        },
+        {
+          "name": "totalSignatures",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "recoverAccount",
       "docs": [
         "Recovers a user's `stake account` ownership by transferring ownership\n     * from a token account to the `owner` of that token account.\n     *\n     * This functionality addresses the scenario where a user mistakenly\n     * created a stake account using their token account address as the owner."
@@ -1563,6 +2033,149 @@ export type Staking = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "setAirlock",
+      "discriminator": [
+        78,
+        190,
+        90,
+        185,
+        79,
+        223,
+        32,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "executor",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  101,
+                  120,
+                  101,
+                  99,
+                  117,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "airlock",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "setMessageReceived",
+      "discriminator": [
+        170,
+        14,
+        143,
+        39,
+        174,
+        228,
+        118,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "messageReceived",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  118,
+                  101,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "messageHash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "messageHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "updateAgreementHash",
@@ -2046,6 +2659,32 @@ export type Staking = {
       ]
     },
     {
+      "name": "guardianSignatures",
+      "discriminator": [
+        203,
+        184,
+        130,
+        157,
+        113,
+        14,
+        184,
+        83
+      ]
+    },
+    {
+      "name": "messageReceived",
+      "discriminator": [
+        159,
+        83,
+        82,
+        195,
+        196,
+        71,
+        241,
+        221
+      ]
+    },
+    {
       "name": "proposalData",
       "discriminator": [
         194,
@@ -2069,6 +2708,45 @@ export type Staking = {
         32,
         96,
         196
+      ]
+    },
+    {
+      "name": "spokeAirlock",
+      "discriminator": [
+        116,
+        204,
+        166,
+        85,
+        235,
+        207,
+        0,
+        58
+      ]
+    },
+    {
+      "name": "spokeMessageExecutor",
+      "discriminator": [
+        95,
+        181,
+        136,
+        40,
+        47,
+        138,
+        250,
+        58
+      ]
+    },
+    {
+      "name": "spokeMetadataCollector",
+      "discriminator": [
+        233,
+        64,
+        21,
+        231,
+        81,
+        240,
+        52,
+        222
       ]
     },
     {
@@ -2108,6 +2786,19 @@ export type Staking = {
         199,
         9,
         182
+      ]
+    },
+    {
+      "name": "wormholeGuardianSet",
+      "discriminator": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
       ]
     }
   ],
@@ -2168,83 +2859,48 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "tooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "failedToParseResponse",
+      "msg": "Failed to parse response"
     },
     {
       "code": 6001,
-      "name": "genericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "writeAuthorityMismatch",
+      "msg": "Write authority mismatch"
     },
     {
       "code": 6002,
-      "name": "checkpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "guardianSetExpired",
+      "msg": "Guardian set expired"
     },
     {
       "code": 6003,
-      "name": "checkpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "invalidMessageHash",
+      "msg": "Invalid message hash"
     },
     {
       "code": 6004,
-      "name": "notLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
+      "name": "noQuorum",
+      "msg": "No quorum"
     },
     {
       "code": 6005,
-      "name": "recoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+      "name": "invalidGuardianIndexNonIncreasing",
+      "msg": "Invalid guardian index non increasing"
     },
     {
       "code": 6006,
-      "name": "checkpointNotFound",
-      "msg": "Checkpoint not found"
+      "name": "invalidGuardianIndexOutOfRange",
+      "msg": "Invalid guardian index out of range"
     },
     {
       "code": 6007,
-      "name": "invalidTimestamp",
-      "msg": "Invalid timestamp"
+      "name": "invalidSignature",
+      "msg": "Invalid signature"
     },
     {
       "code": 6008,
-      "name": "invalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "noWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "allWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "voteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "withdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "insufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "proposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "other",
-      "msg": "other"
+      "name": "invalidGuardianKeyRecovery",
+      "msg": "Invalid guardian key recovery"
     }
   ],
   "types": [
@@ -2350,6 +3006,10 @@ export type Staking = {
           {
             "name": "toDelegate",
             "type": "pubkey"
+          },
+          {
+            "name": "totalDelegatedVotes",
+            "type": "u64"
           }
         ]
       }
@@ -2416,13 +3076,61 @@ export type Staking = {
       }
     },
     {
+      "name": "guardianSignatures",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "refundRecipient",
+            "docs": [
+              "Payer of this guardian signatures account.",
+              "Only they may amend signatures.",
+              "Used for reimbursements upon cleanup."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "guardianSignatures",
+            "docs": [
+              "Unverified guardian signatures."
+            ],
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  66
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "messageReceived",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "executed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "proposalCreated",
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "proposalId",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "voteStart",
@@ -2438,7 +3146,12 @@ export type Staking = {
         "fields": [
           {
             "name": "id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "againstVotes",
@@ -2470,7 +3183,12 @@ export type Staking = {
         "fields": [
           {
             "name": "proposalId",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "voter",
@@ -2478,6 +3196,87 @@ export type Staking = {
           },
           {
             "name": "value",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "spokeAirlock",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "messageExecutor",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "spokeMessageExecutor",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "hubDispatcher",
+            "type": "pubkey"
+          },
+          {
+            "name": "hubChainId",
+            "type": "u16"
+          },
+          {
+            "name": "spokeChainId",
+            "type": "u16"
+          },
+          {
+            "name": "wormholeCore",
+            "type": "pubkey"
+          },
+          {
+            "name": "airlock",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "spokeMetadataCollector",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "hubChainId",
+            "type": "u16"
+          },
+          {
+            "name": "hubProposalMetadata",
+            "type": {
+              "array": [
+                "u8",
+                20
+              ]
+            }
+          },
+          {
+            "name": "wormholeCore",
+            "type": "pubkey"
+          },
+          {
+            "name": "safeWindow",
             "type": "u64"
           }
         ]
@@ -2595,7 +3394,12 @@ export type Staking = {
           },
           {
             "name": "proposalId",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "weight",
@@ -2615,6 +3419,59 @@ export type Staking = {
           }
         ]
       }
+    },
+    {
+      "name": "wormholeGuardianSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "docs": [
+              "Index representing an incrementing version number for this guardian set."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "keys",
+            "docs": [
+              "Ethereum-style public keys."
+            ],
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  20
+                ]
+              }
+            }
+          },
+          {
+            "name": "creationTime",
+            "docs": [
+              "Timestamp representing the time this guardian became active."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "expirationTime",
+            "docs": [
+              "Expiration time when VAAs issued by this set are no longer valid."
+            ],
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "defaultSaveWindow",
+      "docs": [
+        "Save window by default"
+      ],
+      "type": "u64",
+      "value": "86400"
     }
   ]
 };

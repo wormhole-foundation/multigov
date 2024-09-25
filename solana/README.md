@@ -9,6 +9,7 @@ Before you begin, ensure you have met the following requirements:
 - Node.js v20.10.0
 - Solana CLI v1.18.20
 - Anchor v0.30.1
+- Rust compiler 1.80.1
 - Docker
 
 ## Building the Project

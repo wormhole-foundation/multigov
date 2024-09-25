@@ -5,7 +5,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Debug, BorshSchema)]
 pub struct ProposalData {
-    pub id: u64,
+    pub id: [u8; 32],
     pub against_votes: u64,
     pub for_votes: u64,
     pub abstain_votes: u64,
@@ -16,7 +16,7 @@ pub struct ProposalData {
 impl ProposalData {
     pub const LEN: usize = 10240; // 8 + 6 * 8;
 
-    fn initialize(&mut self, proposal_id: u64, vote_start: u64, safe_window: u64) {
+    fn initialize(&mut self, proposal_id: [u8; 32], vote_start: u64, safe_window: u64) {
         self.id = proposal_id;
         self.against_votes = 0;
         self.for_votes = 0;
@@ -27,7 +27,7 @@ impl ProposalData {
 
     pub fn add_proposal(
         &mut self,
-        proposal_id: u64,
+        proposal_id: [u8; 32],
         vote_start: u64,
         safe_window: u64,
     ) -> anchor_lang::Result<()> {
@@ -36,8 +36,9 @@ impl ProposalData {
         Ok(())
     }
 
-    pub fn proposal_votes(&self) -> Result<Option<(u64, u64, u64)>> {
+    pub fn proposal_votes(&self) -> Result<Option<([u8; 32], u64, u64, u64)>> {
         Ok(Some((
+            self.id,
             self.against_votes,
             self.for_votes,
             self.abstain_votes,
@@ -64,8 +65,9 @@ pub mod tests {
 
     #[test]
     fn proposal_votes_test() {
+        let proposal_id: [u8; 32] = [1; 32];
         let proposal = &mut ProposalData {
-            id: 1,
+            id: proposal_id,
             against_votes: 50,
             for_votes: 40,
             abstain_votes: 30,
@@ -73,6 +75,6 @@ pub mod tests {
             safe_window: 50,
         };
 
-        assert_eq!(proposal.proposal_votes().unwrap(), Some((50, 40, 30)));
+        assert_eq!(proposal.proposal_votes().unwrap(), Some((proposal_id, 50, 40, 30)));
     }
 }

@@ -34,6 +34,10 @@ pub enum ErrorCode {
     InsufficientWithdrawableBalance,
     #[msg("Proposal already exists")] //6014
     ProposalAlreadyExists,
+    #[msg("Invalid message executor")] //6015
+    InvalidMessageExecutor,
+    #[msg("Invalid spoke airlock")] //6016
+    InvalidSpokeAirlock,
     #[msg("Other")] //6015
     Other,
 }
@@ -52,4 +56,48 @@ pub enum VestingError {
     Overflow,
     #[msg("Integer underflow")]
     Underflow,
+}
+
+#[error_code]
+pub enum QueriesSolanaVerifyError {
+    #[msg("Failed to parse response")]
+    FailedToParseResponse,
+    #[msg("Write authority mismatch")]
+    WriteAuthorityMismatch,
+    #[msg("Guardian set expired")]
+    GuardianSetExpired,
+    #[msg("Invalid message hash")]
+    InvalidMessageHash,
+    #[msg("No quorum")]
+    NoQuorum,
+    #[msg("Invalid guardian index non increasing")]
+    InvalidGuardianIndexNonIncreasing,
+    #[msg("Invalid guardian index out of range")]
+    InvalidGuardianIndexOutOfRange,
+    #[msg("Invalid signature")]
+    InvalidSignature,
+    #[msg("Invalid guardian key recovery")]
+    InvalidGuardianKeyRecovery,
+}
+
+#[error_code]
+pub enum ProposalWormholeMessageError {
+    #[msg("Too many query responses")]
+    TooManyQueryResponses,
+    #[msg("Sender chain mismatch")]
+    SenderChainMismatch,
+    #[msg("Too many eth call results")]
+    TooManyEthCallResults,
+    #[msg("Invalid data length")]
+    InvalidDataLength,
+    #[msg("Error of contract_address parsing")]
+    ErrorOfContractAddressParsing,
+    #[msg("Error of proposal_id parsing")]
+    ErrorOfProposalIdParsing,
+    #[msg("Error of vote_start parsing")]
+    ErrorOfVoteStartParsing,
+    #[msg("Invalid hub proposal metadata contract")]
+    InvalidHubProposalMetadataContract,
+    #[msg("Invalid proposal_id")]
+    InvalidProposalId,
 }

@@ -1,0 +1,578 @@
+{
+    "address": "Bridge1p5gheXUvJ6jGWGeCsgPKgnE3YgdGKRVCMY9o",
+    "metadata": {
+        "name": "wormhole_bridge_core",
+        "version": "0.1.0",
+        "spec": "0.1.0",
+        "description": "Wormhole Bridge Core new IDL for Anchor 0.30.1"
+    },
+    "instructions": [
+        {
+            "name": "initialize",
+            "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
+            "accounts": [
+                {
+                    "name": "bridge",
+                    "writable": true
+                },
+                {
+                    "name": "guardian_set",
+                    "writable": true
+                },
+                {
+                    "name": "fee_collector",
+                    "writable": true
+                },
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "clock",
+                    "address": "SysvarC1ock11111111111111111111111111111111"
+                },
+                {
+                    "name": "rent",
+                    "address": "SysvarRent111111111111111111111111111111111"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "guardian_set_expiration_time",
+                    "type": "u32"
+                },
+                {
+                    "name": "fee",
+                    "type": "u64"
+                },
+                {
+                    "name": "initial_guardians",
+                    "type": {
+                      "vec": {
+                        "array": [
+                          "u8",
+                          20
+                        ]
+                      }
+                    }
+                  }
+            ]
+        },
+        {
+            "name": "post_message",
+            "discriminator": [214, 50, 100, 209, 38, 34, 7, 76],
+            "accounts": [
+                {
+                    "name": "bridge",
+                    "writable": true
+                },
+                {
+                    "name": "message",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "emitter",
+                    "signer": true
+                },
+                {
+                    "name": "sequence",
+                    "writable": true
+                },
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "fee_collector",
+                    "writable": true
+                },
+                {
+                    "name": "clock",
+                    "address": "SysvarC1ock11111111111111111111111111111111"
+                },
+                {
+                    "name": "rent",
+                    "address": "SysvarRent111111111111111111111111111111111"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "nonce",
+                    "type": "u32"
+                },
+                {
+                    "name": "payload",
+                    "type": "bytes"
+                },
+                {
+                    "name": "consistency_level",
+                    "type": "u8"
+                }
+            ]
+        },
+        {
+            "name": "post_vaa",
+            "discriminator": [8, 15, 198, 170, 97, 124, 250, 101],
+            "accounts": [
+                {
+                    "name": "guardian_set"
+                },
+                {
+                    "name": "bridge"
+                },
+                {
+                    "name": "signature_set"
+                },
+                {
+                    "name": "vaa",
+                    "writable": true
+                },
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "clock",
+                    "address": "SysvarC1ock11111111111111111111111111111111"
+                },
+                {
+                    "name": "rent",
+                    "address": "SysvarRent111111111111111111111111111111111"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "version",
+                    "type": "u8"
+                },
+                {
+                    "name": "guardian_set_index",
+                    "type": "u32"
+                },
+                {
+                    "name": "timestamp",
+                    "type": "u32"
+                },
+                {
+                    "name": "nonce",
+                    "type": "u32"
+                },
+                {
+                    "name": "emitter_chain",
+                    "type": "u16"
+                },
+                {
+                    "name": "emitter_address",
+                    "type": {
+                        "array": [
+                            "u8", 32
+                        ]
+                    }
+                },
+                {
+                    "name": "sequence",
+                    "type": "u64"
+                },
+                {
+                    "name": "consistency_level",
+                    "type": "u8"
+                },
+                {
+                    "name": "payload",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "set_fees",
+            "discriminator": [137, 178, 49, 58, 0, 245, 242, 190],
+            "accounts": [
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "bridge",
+                    "writable": true
+                },
+                {
+                    "name": "vaa"
+                },
+                {
+                    "name": "claim",
+                    "writable": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "transfer_fees",
+            "discriminator": [103, 60, 61, 79, 56, 61, 76, 49],
+            "accounts": [
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "bridge",
+                    "writable": true
+                },
+                {
+                    "name": "vaa"
+                },
+                {
+                    "name": "claim",
+                    "writable": true
+                },
+                {
+                    "name": "fee_collector",
+                    "writable": true
+                },
+                {
+                    "name": "recipient",
+                    "writable": true
+                },
+                {
+                    "name": "rent",
+                    "address": "SysvarRent111111111111111111111111111111111"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "upgrade_contract",
+            "discriminator": [2, 34, 185, 187, 170, 233, 37, 152],
+            "accounts": [
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "bridge",
+                    "writable": true
+                },
+                {
+                    "name": "vaa"
+                },
+                {
+                    "name": "claim",
+                    "writable": true
+                },
+                {
+                    "name": "upgrade_authority"
+                },
+                {
+                    "name": "spill",
+                    "writable": true
+                },
+                {
+                    "name": "implementation",
+                    "writable": true
+                },
+                {
+                    "name": "program_data",
+                    "writable": true
+                },
+                {
+                    "name": "wormhole_program",
+                    "writable": true
+                },
+                {
+                    "name": "rent",
+                    "address": "SysvarRent111111111111111111111111111111111"
+                },
+                {
+                    "name": "clock",
+                    "address": "SysvarC1ock11111111111111111111111111111111"
+                },
+                {
+                    "name": "bpf_loader_upgradeable",
+                    "address": "BPFLoaderUpgradeab1e11111111111111111111111"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "upgrade_guardian_set",
+            "discriminator": [150, 225, 139, 106, 81, 170, 91, 209],
+            "accounts": [
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "bridge",
+                    "writable": true
+                },
+                {
+                    "name": "vaa"
+                },
+                {
+                    "name": "claim",
+                    "writable": true
+                },
+                {
+                    "name": "guardian_set_old",
+                    "writable": true
+                },
+                {
+                    "name": "guardian_set_new",
+                    "writable": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "verify_signatures",
+            "discriminator": [147, 53, 25, 146, 20, 29, 35, 90],
+            "accounts": [
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "guardian_set"
+                },
+                {
+                    "name": "signature_set",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "instructions"
+                },
+                {
+                    "name": "rent",
+                    "address": "SysvarRent111111111111111111111111111111111"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "signature_status",
+                    "type": {
+                        "array": [
+                            "i8", 19
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "post_message_unreliable",
+            "discriminator": [21, 37, 251, 218, 111, 40, 84, 5],
+            "accounts": [
+                {
+                    "name": "bridge",
+                    "writable": true
+                },
+                {
+                    "name": "message",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "emitter",
+                    "signer": true
+                },
+                {
+                    "name": "sequence",
+                    "writable": true
+                },
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "fee_collector",
+                    "writable": true
+                },
+                {
+                    "name": "clock",
+                    "address": "SysvarC1ock11111111111111111111111111111111"
+                },
+                {
+                    "name": "rent",
+                    "address": "SysvarRent111111111111111111111111111111111"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "nonce",
+                    "type": "u32"
+                },
+                {
+                    "name": "payload",
+                    "type": "bytes"
+                },
+                {
+                    "name": "consistency_level",
+                    "type": "u8"
+                }
+            ]
+        }
+    ],
+    "accounts": [
+        {
+            "name": "PostedMessage",
+            "discriminator": [254, 161, 252, 44, 158, 117, 222, 247]
+        },
+        {
+            "name": "PostedVAA",
+            "discriminator": [30, 127, 25, 83, 211, 157, 225, 196]
+        }
+    ],
+    "types": [
+        {
+            "name": "PostedMessage",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "vaa_version",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "consistency_level",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "vaa_time",
+                        "type": "u32"
+                    },
+                    {
+                        "name": "vaa_signature_account",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "submission_time",
+                        "type": "u32"
+                    },
+                    {
+                        "name": "nonce",
+                        "type": "u32"
+                    },
+                    {
+                        "name": "sequence",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "emitter_chain",
+                        "type": "u16"
+                    },
+                    {
+                        "name": "emitter_address",
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ]
+                        }
+                    },
+                    {
+                        "name": "payload",
+                        "type": "bytes"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "PostedVAA",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "vaa_version",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "consistency_level",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "vaa_time",
+                        "type": "u32"
+                    },
+                    {
+                        "name": "vaa_signature_account",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "submission_time",
+                        "type": "u32"
+                    },
+                    {
+                        "name": "nonce",
+                        "type": "u32"
+                    },
+                    {
+                        "name": "sequence",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "emitter_chain",
+                        "type": "u16"
+                    },
+                    {
+                        "name": "emitter_address",
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ]
+                        }
+                    },
+                    {
+                        "name": "payload",
+                        "type": "bytes"
+                    }
+                ]
+            }
+        }
+    ]
+}

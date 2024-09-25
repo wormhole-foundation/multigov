@@ -15,7 +15,7 @@ async function main() {
 
     const stakeAccountAddress = new PublicKey(
       // stakeAccountSecret.publicKey generated in  3_create_stake_account.ts
-      "EHbjaCjypw3HAZMWskLhX1KtmVUDmNFrijPcBtfqH8S3",
+      "6TA6RXAuzeo58nFvtLkq128EyGEb96kHuHYprfME7dGM",
     );
 
     const connection = new Connection(RPC_NODE);
@@ -49,7 +49,7 @@ async function main() {
       from_account,
       toAccount,
       provider.wallet.publicKey,
-      101,
+      50,
     );
 
     transaction.add(ix);

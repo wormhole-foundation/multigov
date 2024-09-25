@@ -2,7 +2,7 @@
   "address": "5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ",
   "metadata": {
     "name": "staking",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
@@ -20,6 +20,86 @@
         152
       ],
       "accounts": [
+        {
+          "name": "guardian_set",
+          "docs": [
+            "Guardian set used for signature verification."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  71,
+                  117,
+                  97,
+                  114,
+                  100,
+                  105,
+                  97,
+                  110,
+                  83,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "guardian_set_index"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                43,
+                18,
+                70,
+                201,
+                238,
+                250,
+                60,
+                70,
+                103,
+                146,
+                37,
+                49,
+                17,
+                243,
+                95,
+                236,
+                30,
+                232,
+                238,
+                94,
+                157,
+                235,
+                196,
+                18,
+                210,
+                233,
+                173,
+                173,
+                254,
+                205,
+                204,
+                114
+              ]
+            }
+          }
+        },
+        {
+          "name": "guardian_signatures",
+          "docs": [
+            "Stores unverified guardian signatures as they are too large to fit in the instruction data."
+          ],
+          "writable": true
+        },
+        {
+          "name": "refund_recipient",
+          "relations": [
+            "guardian_signatures"
+          ]
+        },
         {
           "name": "payer",
           "writable": true,
@@ -51,22 +131,64 @@
           }
         },
         {
+          "name": "spoke_metadata_collector",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
+          "name": "bytes",
+          "type": "bytes"
+        },
+        {
           "name": "proposal_id",
-          "type": "u64"
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
-          "name": "vote_start",
-          "type": "u64"
-        },
-        {
-          "name": "safe_window",
-          "type": "u64"
+          "name": "_guardian_set_index",
+          "type": "u32"
         }
       ]
     },
@@ -311,7 +433,12 @@
       "args": [
         {
           "name": "proposal_id",
-          "type": "u64"
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
           "name": "against_votes",
@@ -521,6 +648,36 @@
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_signatures",
+      "docs": [
+        "Allows the initial payer to close the signature account in case the query was invalid."
+      ],
+      "discriminator": [
+        192,
+        65,
+        63,
+        117,
+        213,
+        138,
+        179,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "guardian_signatures",
+          "writable": true
+        },
+        {
+          "name": "refund_recipient",
+          "signer": true,
+          "relations": [
+            "guardian_signatures"
+          ]
         }
       ],
       "args": []
@@ -1090,6 +1247,60 @@
       ]
     },
     {
+      "name": "execute_operation",
+      "discriminator": [
+        105,
+        240,
+        250,
+        159,
+        65,
+        132,
+        111,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "airlock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "cpi_target_program_id",
+          "type": "pubkey"
+        },
+        {
+          "name": "instruction_data",
+          "type": "bytes"
+        },
+        {
+          "name": "_value",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "finalize_vesting_config",
       "discriminator": [
         172,
@@ -1258,6 +1469,219 @@
             "defined": {
               "name": "GlobalConfig"
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize_spoke_airlock",
+      "discriminator": [
+        43,
+        108,
+        186,
+        101,
+        188,
+        130,
+        241,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "airlock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "message_executor",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initialize_spoke_message_executor",
+      "discriminator": [
+        0,
+        62,
+        206,
+        121,
+        203,
+        198,
+        201,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "executor",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  101,
+                  120,
+                  101,
+                  99,
+                  117,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "hub_dispatcher"
+        },
+        {
+          "name": "airlock",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "hub_chain_id",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "initialize_spoke_metadata_collector",
+      "discriminator": [
+        87,
+        206,
+        214,
+        2,
+        27,
+        75,
+        52,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "spoke_metadata_collector",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "hub_chain_id",
+          "type": "u16"
+        },
+        {
+          "name": "hub_proposal_metadata",
+          "type": {
+            "array": [
+              "u8",
+              20
+            ]
           }
         }
       ]
@@ -1480,6 +1904,52 @@
       ]
     },
     {
+      "name": "post_signatures",
+      "discriminator": [
+        138,
+        2,
+        53,
+        166,
+        45,
+        77,
+        137,
+        51
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "guardian_signatures",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "guardian_signatures",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                66
+              ]
+            }
+          }
+        },
+        {
+          "name": "total_signatures",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "recover_account",
       "docs": [
         "Recovers a user's `stake account` ownership by transferring ownership\n     * from a token account to the `owner` of that token account.\n     *\n     * This functionality addresses the scenario where a user mistakenly\n     * created a stake account using their token account address as the owner."
@@ -1557,6 +2027,149 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "set_airlock",
+      "discriminator": [
+        78,
+        190,
+        90,
+        185,
+        79,
+        223,
+        32,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "executor",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  111,
+                  107,
+                  101,
+                  95,
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  101,
+                  120,
+                  101,
+                  99,
+                  117,
+                  116,
+                  111,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "airlock",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  105,
+                  114,
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_message_received",
+      "discriminator": [
+        170,
+        14,
+        143,
+        39,
+        174,
+        228,
+        118,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "message_received",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  115,
+                  115,
+                  97,
+                  103,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  118,
+                  101,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "message_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "_message_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "update_agreement_hash",
@@ -2040,6 +2653,32 @@
       ]
     },
     {
+      "name": "GuardianSignatures",
+      "discriminator": [
+        203,
+        184,
+        130,
+        157,
+        113,
+        14,
+        184,
+        83
+      ]
+    },
+    {
+      "name": "MessageReceived",
+      "discriminator": [
+        159,
+        83,
+        82,
+        195,
+        196,
+        71,
+        241,
+        221
+      ]
+    },
+    {
       "name": "ProposalData",
       "discriminator": [
         194,
@@ -2063,6 +2702,45 @@
         32,
         96,
         196
+      ]
+    },
+    {
+      "name": "SpokeAirlock",
+      "discriminator": [
+        116,
+        204,
+        166,
+        85,
+        235,
+        207,
+        0,
+        58
+      ]
+    },
+    {
+      "name": "SpokeMessageExecutor",
+      "discriminator": [
+        95,
+        181,
+        136,
+        40,
+        47,
+        138,
+        250,
+        58
+      ]
+    },
+    {
+      "name": "SpokeMetadataCollector",
+      "discriminator": [
+        233,
+        64,
+        21,
+        231,
+        81,
+        240,
+        52,
+        222
       ]
     },
     {
@@ -2102,6 +2780,19 @@
         199,
         9,
         182
+      ]
+    },
+    {
+      "name": "WormholeGuardianSet",
+      "discriminator": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
       ]
     }
   ],
@@ -2162,83 +2853,48 @@
   "errors": [
     {
       "code": 6000,
-      "name": "TooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "FailedToParseResponse",
+      "msg": "Failed to parse response"
     },
     {
       "code": 6001,
-      "name": "GenericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "WriteAuthorityMismatch",
+      "msg": "Write authority mismatch"
     },
     {
       "code": 6002,
-      "name": "CheckpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "GuardianSetExpired",
+      "msg": "Guardian set expired"
     },
     {
       "code": 6003,
-      "name": "CheckpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "InvalidMessageHash",
+      "msg": "Invalid message hash"
     },
     {
       "code": 6004,
-      "name": "NotLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
+      "name": "NoQuorum",
+      "msg": "No quorum"
     },
     {
       "code": 6005,
-      "name": "RecoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+      "name": "InvalidGuardianIndexNonIncreasing",
+      "msg": "Invalid guardian index non increasing"
     },
     {
       "code": 6006,
-      "name": "CheckpointNotFound",
-      "msg": "Checkpoint not found"
+      "name": "InvalidGuardianIndexOutOfRange",
+      "msg": "Invalid guardian index out of range"
     },
     {
       "code": 6007,
-      "name": "InvalidTimestamp",
-      "msg": "Invalid timestamp"
+      "name": "InvalidSignature",
+      "msg": "Invalid signature"
     },
     {
       "code": 6008,
-      "name": "InvalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "NoWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "AllWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "VoteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "WithdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "InsufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "ProposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "Other",
-      "msg": "Other"
+      "name": "InvalidGuardianKeyRecovery",
+      "msg": "Invalid guardian key recovery"
     }
   ],
   "types": [
@@ -2344,6 +3000,10 @@
           {
             "name": "to_delegate",
             "type": "pubkey"
+          },
+          {
+            "name": "total_delegated_votes",
+            "type": "u64"
           }
         ]
       }
@@ -2410,13 +3070,61 @@
       }
     },
     {
+      "name": "GuardianSignatures",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "refund_recipient",
+            "docs": [
+              "Payer of this guardian signatures account.",
+              "Only they may amend signatures.",
+              "Used for reimbursements upon cleanup."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian_signatures",
+            "docs": [
+              "Unverified guardian signatures."
+            ],
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  66
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MessageReceived",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "executed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "ProposalCreated",
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "proposal_id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "vote_start",
@@ -2432,7 +3140,12 @@
         "fields": [
           {
             "name": "id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "against_votes",
@@ -2464,7 +3177,12 @@
         "fields": [
           {
             "name": "proposal_id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "voter",
@@ -2472,6 +3190,87 @@
           },
           {
             "name": "value",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpokeAirlock",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "message_executor",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpokeMessageExecutor",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "hub_dispatcher",
+            "type": "pubkey"
+          },
+          {
+            "name": "hub_chain_id",
+            "type": "u16"
+          },
+          {
+            "name": "spoke_chain_id",
+            "type": "u16"
+          },
+          {
+            "name": "wormhole_core",
+            "type": "pubkey"
+          },
+          {
+            "name": "airlock",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpokeMetadataCollector",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "hub_chain_id",
+            "type": "u16"
+          },
+          {
+            "name": "hub_proposal_metadata",
+            "type": {
+              "array": [
+                "u8",
+                20
+              ]
+            }
+          },
+          {
+            "name": "wormhole_core",
+            "type": "pubkey"
+          },
+          {
+            "name": "safe_window",
             "type": "u64"
           }
         ]
@@ -2589,7 +3388,12 @@
           },
           {
             "name": "proposal_id",
-            "type": "u64"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "weight",
@@ -2609,6 +3413,59 @@
           }
         ]
       }
+    },
+    {
+      "name": "WormholeGuardianSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "docs": [
+              "Index representing an incrementing version number for this guardian set."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "keys",
+            "docs": [
+              "Ethereum-style public keys."
+            ],
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  20
+                ]
+              }
+            }
+          },
+          {
+            "name": "creation_time",
+            "docs": [
+              "Timestamp representing the time this guardian became active."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "expiration_time",
+            "docs": [
+              "Expiration time when VAAs issued by this set are no longer valid."
+            ],
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "DEFAULT_SAVE_WINDOW",
+      "docs": [
+        "Save window by default"
+      ],
+      "type": "u64",
+      "value": "86400"
     }
   ]
 }

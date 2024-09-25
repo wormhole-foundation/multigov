@@ -14,6 +14,26 @@ use contexts::*;
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
+use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
+
+use anchor_lang::solana_program::{
+    instruction::AccountMeta,
+    instruction::Instruction,
+    program::invoke_signed
+};
+
+use wormhole_query_sdk::{
+    structs::{ChainSpecificResponse, QueryResponse},
+};
+
+use crate::{
+    error::{QueriesSolanaVerifyError, ProposalWormholeMessageError},
+    state::{GuardianSignatures},
+};
+
+// automatically generate module using program idl found in ./idls
+declare_program!(wormhole_bridge_core);
+
 mod context;
 mod contexts;
 mod error;
@@ -27,12 +47,13 @@ pub struct DelegateChanged {
     pub delegator: Pubkey,
     pub from_delegate: Pubkey,
     pub to_delegate: Pubkey,
+    pub total_delegated_votes: u64,
 }
 
 #[event]
 pub struct VoteCast {
     pub voter: Pubkey,
-    pub proposal_id: u64,
+    pub proposal_id: [u8; 32],
     pub weight: u64,
     pub against_votes: u64,
     pub for_votes: u64,
@@ -41,7 +62,7 @@ pub struct VoteCast {
 
 #[event]
 pub struct ProposalCreated {
-    pub proposal_id: u64,
+    pub proposal_id: [u8; 32],
     pub vote_start: u64,
 }
 
@@ -125,17 +146,18 @@ pub mod staking {
         let current_delegate = stake_account_metadata.delegate;
         stake_account_metadata.delegate = delegatee;
 
-        emit!(DelegateChanged {
-            delegator: ctx.accounts.stake_account_checkpoints.key(),
-            from_delegate: current_delegate,
-            to_delegate: delegatee
-        });
-
         let recorded_balance = stake_account_metadata.recorded_balance;
         let recorded_vesting_balance = stake_account_metadata.recorded_vesting_balance;
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
 
         let total_balance = recorded_balance + recorded_vesting_balance;
+
+        emit!(DelegateChanged {
+            delegator: ctx.accounts.stake_account_checkpoints.key(),
+            from_delegate: current_delegate,
+            to_delegate: delegatee,
+            total_delegated_votes: total_balance
+        });
 
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
@@ -239,26 +261,9 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn add_proposal(
-        ctx: Context<AddProposal>,
-        proposal_id: u64,
-        vote_start: u64,
-        safe_window: u64,
-    ) -> Result<()> {
-        let proposal = &mut ctx.accounts.proposal;
-        let _ = proposal.add_proposal(proposal_id, vote_start, safe_window);
-
-        emit!(ProposalCreated {
-            proposal_id: proposal_id,
-            vote_start: vote_start
-        });
-
-        Ok(())
-    }
-
     pub fn cast_vote(
         ctx: Context<CastVote>,
-        proposal_id: u64,
+        proposal_id: [u8; 32],
         against_votes: u64,
         for_votes: u64,
         abstain_votes: u64,
@@ -377,4 +382,199 @@ pub mod staking {
     pub fn withdraw_surplus(ctx: Context<WithdrawSurplus>) -> Result<()> {
         ctx.accounts.withdraw_surplus()
     }
+
+    //------------------------------------ SPOKE MESSAGE EXECUTOR ------------------------------------------------
+    // Initialize and setting a spoke message executor
+    pub fn initialize_spoke_message_executor(ctx: Context<InitializeSpokeMessageExecutor>, hub_chain_id: u16) -> Result<()> {
+        let executor = &mut ctx.accounts.executor;
+        executor.bump = ctx.bumps.executor;
+        executor.hub_dispatcher = ctx.accounts.hub_dispatcher.key();
+        executor.hub_chain_id = hub_chain_id;
+        executor.spoke_chain_id = SOLANA_CHAIN;
+        executor.wormhole_core = CORE_BRIDGE_PROGRAM_ID;
+        executor.airlock = ctx.accounts.airlock.key();
+        Ok(())
+    }
+
+    pub fn set_message_received(ctx: Context<SetMessageReceived>, _message_hash: [u8; 32]) -> Result<()> {
+        let message_received = &mut ctx.accounts.message_received;
+        message_received.executed = true;
+        Ok(())
+    }
+
+    pub fn set_airlock(ctx: Context<SetAirlock>) -> Result<()> {
+        let executor = &mut ctx.accounts.executor;
+
+        require!(
+            ctx.accounts.payer.key() == executor.airlock,
+            ErrorCode::InvalidSpokeAirlock
+        );
+
+        executor.airlock = ctx.accounts.airlock.key();
+        Ok(())
+    }
+
+    //------------------------------------ SPOKE AIRLOCK ------------------------------------------------
+    pub fn initialize_spoke_airlock(ctx: Context<InitializeSpokeAirlock>, message_executor: Pubkey) -> Result<()> {
+        let airlock = &mut ctx.accounts.airlock;
+        airlock.bump = ctx.bumps.airlock;
+        airlock.message_executor = message_executor;
+        Ok(())
+    }
+
+    pub fn execute_operation<'info> (
+        ctx: Context<'_, '_, '_, 'info, ExecuteOperation<'info>>,
+        cpi_target_program_id: Pubkey,
+        instruction_data: Vec<u8>,
+        _value: u64,
+    ) -> Result<()> {
+        let airlock = &ctx.accounts.airlock;
+        require!(
+            ctx.accounts.payer.key() == airlock.message_executor,
+            ErrorCode::InvalidMessageExecutor
+        );
+
+        let mut all_account_infos = ctx.accounts.to_account_infos();
+        all_account_infos.extend_from_slice(ctx.remaining_accounts);
+
+        let account_metas = all_account_infos.clone()
+            .into_iter()
+            .map(|account| AccountMeta::new(*account.key, false))
+            .collect();
+
+        let instruction = Instruction {
+            program_id: cpi_target_program_id,
+            accounts: account_metas,
+            data: instruction_data,
+        };
+
+        let signer_seeds: &[&[&[u8]]] = &[&[b"airlock", &[airlock.bump]]];
+
+        invoke_signed(&instruction, &all_account_infos, signer_seeds)?;
+
+        Ok(())
+    }
+
+    //------------------------------------ SPOKE METADATA COLLECTOR ------------------------------------------------
+    // Initialize and setting a spoke metadata collector
+    pub fn initialize_spoke_metadata_collector(ctx: Context<InitializeSpokeMetadataCollector>, hub_chain_id: u16, hub_proposal_metadata: [u8; 20]) -> Result<()> {
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+        let _ = spoke_metadata_collector.initialize(
+            ctx.bumps.spoke_metadata_collector,
+            hub_chain_id,
+            hub_proposal_metadata,
+            CORE_BRIDGE_PROGRAM_ID
+        );
+
+        Ok(())
+    }
+
+    pub fn post_signatures(
+        ctx: Context<PostSignatures>,
+        guardian_signatures: Vec<[u8; 66]>,
+        total_signatures: u8,
+    ) -> Result<()> {
+        _post_signatures(ctx, guardian_signatures, total_signatures)
+    }
+
+    /// Allows the initial payer to close the signature account in case the query was invalid.
+    pub fn close_signatures(_ctx: Context<CloseSignatures>) -> Result<()> {
+        Ok(())
+    }
+
+    #[access_control(AddProposal::constraints(&ctx, &bytes))]
+    pub fn add_proposal(
+        ctx: Context<AddProposal>,
+        bytes: Vec<u8>,
+        proposal_id: [u8; 32],
+        _guardian_set_index: u32
+    ) -> Result<()> {
+        let response = QueryResponse::deserialize(&bytes)
+            .map_err(|_| QueriesSolanaVerifyError::FailedToParseResponse)?;
+
+        require!(
+            response.responses.len() == 1,
+            ProposalWormholeMessageError::TooManyQueryResponses
+        );
+
+        let response = &response.responses[0];
+
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+
+        require!(
+            response.chain_id == spoke_metadata_collector.hub_chain_id,
+            ProposalWormholeMessageError::SenderChainMismatch
+        );
+
+        if let ChainSpecificResponse::EthCallQueryResponse(eth_response) = &response.response {
+            require!(
+                eth_response.results.len() == 1,
+                ProposalWormholeMessageError::TooManyEthCallResults
+            );
+
+            let proposal_data = spoke_metadata_collector.parse_eth_response_proposal_data(&eth_response.results[0])?;
+
+            require!(
+                proposal_data.contract_address == spoke_metadata_collector.hub_proposal_metadata,
+                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
+            );
+
+            require!(
+                proposal_data.proposal_id == proposal_id,
+                ProposalWormholeMessageError::InvalidProposalId
+            );
+
+            let proposal = &mut ctx.accounts.proposal;
+
+            let _ = proposal.add_proposal(
+                proposal_data.proposal_id,
+                proposal_data.vote_start,
+                spoke_metadata_collector.safe_window
+            );
+
+            emit!(ProposalCreated {
+                proposal_id: proposal_data.proposal_id,
+                vote_start: proposal_data.vote_start
+            });
+        }
+
+        Ok(())
+    }
+}
+
+/// Creates or appends to a GuardianSignatures account for subsequent use by verify_query.
+/// This is necessary as the Wormhole query response (220 bytes)
+/// and 13 guardian signatures (a quorum of the current 19 mainnet guardians, 66 bytes each)
+/// alongside the required accounts is larger than the transaction size limit on Solana (1232 bytes).
+///
+/// This instruction allows for the initial payer to append additional signatures to the account by calling the instruction again.
+/// This may be necessary if a quorum of signatures from the current guardian set grows larger than can fit into a single transaction.
+///
+/// The GuardianSignatures account can be closed by anyone with a successful update_root_with_query instruction
+/// or by the initial payer via close_signatures, either of which will refund the initial payer.
+fn _post_signatures(
+    ctx: Context<PostSignatures>,
+    mut guardian_signatures: Vec<[u8; 66]>,
+    _total_signatures: u8,
+) -> Result<()> {
+    if ctx.accounts.guardian_signatures.is_initialized() {
+        require_eq!(
+            ctx.accounts.guardian_signatures.refund_recipient,
+            ctx.accounts.payer.key(),
+            QueriesSolanaVerifyError::WriteAuthorityMismatch
+        );
+        ctx.accounts
+            .guardian_signatures
+            .guardian_signatures
+            .append(&mut guardian_signatures);
+    } else {
+        ctx.accounts
+            .guardian_signatures
+            .set_inner(GuardianSignatures {
+                refund_recipient: ctx.accounts.payer.key(),
+                guardian_signatures,
+            });
+    }
+
+    Ok(())
 }
