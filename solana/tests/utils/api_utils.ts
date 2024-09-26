@@ -24,78 +24,128 @@ export function createAddProposalTestBytes(
   proposalIdInput: Uint8Array,
   voteStartInput: number,
 ): Uint8Array {
-  // QueryResponse fields
-  const version = new Uint8Array([1]); // version (1 byte)
-  const requestChainId = new Uint8Array(new Uint16Array([1]).buffer); // request_chain_id (2 bytes)
+  const version = new Uint8Array([1]); // QueryRequest and QueryResponse version (1 byte)
+  const chainId = new Uint8Array(new Uint16Array([1]).buffer); // Blockchain ID (2 bytes)
 
-  // Choose request_id length based on requestChainId (32 bytes here since request_chain_id != 0)
-  const requestId = new Uint8Array(32).fill(3); // request_id (32 bytes for on-chain request)
+  // queryType == 1 corresponds to ChainSpecificResponse::EthCallQueryResponse
+  // and ChainSpecificQuery::EthCallQueryRequest
+  const queryType = new Uint8Array([1]); // query type (1 byte)
 
-  const requestLengthSkip = new Uint8Array(4).fill(0); // Skipped 4 bytes for request length
+  // Choose requestId length based on chainId (32 bytes here since chainId != 0)
+  const requestId = new Uint8Array(32).fill(3); // request id (32 bytes for on-chain request)
 
-  // Simulate empty QueryRequest (can be replaced with actual data if needed)
-  const queryRequest = new Uint8Array([0]); // Let's assume request is 1 byte for simplicity
+  // QueryRequest fields
+  const nonce = new Uint8Array(new Uint32Array([12345]).buffer); // nonce (4 bytes)
+  const numRequests = new Uint8Array([1]); // number of requests (1 byte)
+
+  const blockId = 12345;
+  const blockTagString = `0x${blockId.toString(16)}`; // block tag string
+  const blockTagLength = new Uint8Array(new Uint32Array([blockTagString.length]).buffer); // length of block tag (4 bytes)
+  const blockTag = new Uint8Array(Buffer.from(blockTagString)); // block tag
+
+  const callDataLength = new Uint8Array([1]); // length of call data (1 bytes)
+  const dataLength = new Uint8Array(new Uint32Array([1]).buffer); // length of data (4 bytes)
+  const callDataTo = [0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef, 0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef, 0x12, 0x34, 0x56, 0x78]; // 20-byte `to` address
+  const callDataData = [0xde]; // data
+
+  // Prepare EthCallQueryRequest structure in bytes (blockTagLength + blockTag + callDataLength + callDataTo + dataLength + callDataData)
+  const ethCallQueryRequest = new Uint8Array(4 + blockTagString.length + 1 + 20 + 4 + 1);
+  ethCallQueryRequest.set(blockTagLength, 0); // length of block tag (4 bytes)
+  ethCallQueryRequest.set(blockTag, 4); // block tag (blockTagString.length bytes)
+  ethCallQueryRequest.set(callDataLength, 4 + blockTagString.length); // length of call data (1 bytes)
+  ethCallQueryRequest.set(callDataTo, 4 + blockTagString.length + 1); // callDataTo (20 bytes)
+  ethCallQueryRequest.set(dataLength, 4 + blockTagString.length + 1 + 20); // length of callDataData (4 bytes)
+  ethCallQueryRequest.set(callDataData, 4 + blockTagString.length + 1 + 20 + 4); // callDataData (1 byte)
+
+  const ethCallQueryRequestLength = new Uint8Array(new Uint32Array([ethCallQueryRequest.length]).buffer);
+
+  // Prepare PerChainQueryRequest structure in bytes (chain_id + queryType + ethCallQueryRequestLength + ethCallQueryRequest)
+  const perChainQueryRequest = new Uint8Array(2 + 1 + 4 + ethCallQueryRequest.length);
+  perChainQueryRequest.set(chainId, 0); // chain id (2 bytes)
+  perChainQueryRequest.set(queryType, 2); // query type (1 byte)
+  perChainQueryRequest.set(ethCallQueryRequestLength, 3); // length of ethCallQueryRequest (4 bytes)
+  perChainQueryRequest.set(ethCallQueryRequest, 7); // ethCallQueryRequest
+
+  // Prepare QueryRequest structure in bytes (version + nonce + numRequests + perChainQueryRequest)
+  const queryRequest = new Uint8Array(
+      version.length +
+      nonce.length +
+      numRequests.length +
+      perChainQueryRequest.length
+  );
+
+  queryRequest.set(version, 0); // version (1 byte)
+  queryRequest.set(nonce, 1); // nonce (4 bytes)
+  queryRequest.set(numRequests, 5); // number of requests (1 byte)
+  queryRequest.set(perChainQueryRequest, 6); // request (2 bytes)
+
+  const queryRequestLength = new Uint8Array(new Uint32Array([queryRequest.length]).buffer); // queryRequest length (4 bytes)
 
   // Number of responses (1 response in this case)
   const numResponses = new Uint8Array([1]);
 
-  // PerChainQueryResponse fields
-  const chainId = new Uint8Array(new Uint16Array([1]).buffer); // chain_id (2 bytes)
-
   // EthCallQueryResponse fields
   const blockNumber = new Uint8Array(
     new BigUint64Array([BigInt(123456)]).buffer,
-  ); // block_number (8 bytes)
-  const blockHash = new Uint8Array(32).fill(0); // block_hash (32 bytes, example with zeros)
+  ); // block number (8 bytes)
+  const blockHash = new Uint8Array(32).fill(1); // block hash (32 bytes)
   const blockTime = new Uint8Array(
     new BigUint64Array([BigInt(Date.now())]).buffer,
-  ); // block_time (8 bytes)
+  ); // block time (8 bytes)
 
-  // EthCallQueryResponse results (example: one result as the 60-byte array)
-  const contractAddress = new Uint8Array(20).fill(1); // contract_address (20 bytes)
-  const proposalId = proposalIdInput; // proposal_id (32 bytes)
+  // first results fields
+  const contractAddress = new Uint8Array(20).fill(1); // contract address (20 bytes)
+  const proposalId = proposalIdInput; // proposal id (32 bytes)
   const voteStart = new Uint8Array(
     new BigUint64Array([BigInt(voteStartInput)]).buffer,
-  ); // vote_start (8 bytes)
+  ); // vote start (8 bytes)
 
-  // Combine all parts into the result array
+  // one result as the 60-byte array
   const result = new Uint8Array(60); // 20 + 32 + 8 = 60 bytes
-  result.set(contractAddress, 0); // contract_address (20 bytes)
-  result.set(proposalId, 20); // proposal_id (32 bytes)
-  result.set(voteStart, 52); // vote_start (8 bytes)
+  result.set(contractAddress, 0); // contract address (20 bytes)
+  result.set(proposalId, 20); // proposal id (32 bytes)
+  result.set(voteStart, 52); // vote start (8 bytes)
 
-  const results = [result]; // One result for EthCallQueryResponse
+  const numResults = new Uint8Array([1]);
+  const resultLength = new Uint8Array(new Uint32Array([result.length]).buffer);
 
   // Prepare EthCallQueryResponse structure in bytes
-  const ethCallQueryResponse = new Uint8Array(48 + results[0].length);
-  ethCallQueryResponse.set(blockNumber, 0); // block_number (8 bytes)
-  ethCallQueryResponse.set(blockHash, 8); // block_hash (32 bytes)
-  ethCallQueryResponse.set(blockTime, 40); // block_time (8 bytes)
-  ethCallQueryResponse.set(results[0], 48); // first result in results array
+  const ethCallQueryResponse = new Uint8Array(8 + 32 + 8 + 1 + 4 + result.length);
+  ethCallQueryResponse.set(blockNumber, 0); // block number (8 bytes)
+  ethCallQueryResponse.set(blockHash, 8); // block hash (32 bytes)
+  ethCallQueryResponse.set(blockTime, 40); // block time (8 bytes)
+  ethCallQueryResponse.set(numResults, 48); // number of results (1 byte)
+  ethCallQueryResponse.set(resultLength, 49); // result length (4 bytes)
+  ethCallQueryResponse.set(result, 53); // result
 
-  // PerChainQueryResponse (chain_id + EthCallQueryResponse)
-  const perChainQueryResponse = new Uint8Array(2 + ethCallQueryResponse.length);
-  perChainQueryResponse.set(chainId, 0); // chain_id (2 bytes)
-  perChainQueryResponse.set(ethCallQueryResponse, 2); // EthCallQueryResponse data
+  // PerChainQueryResponse fields
+  const ethCallQueryResponseLength = new Uint8Array(new Uint32Array([ethCallQueryResponse.length]).buffer);
 
-  // QueryResponse (version + request_chain_id + request_id + skip + request + responses)
+  // Prepare PerChainQueryResponse structure in bytes (chain_id + query_type + ethCallQueryResponseLength + EthCallQueryResponse)
+  const perChainQueryResponse = new Uint8Array(2 + 1 + 4 + ethCallQueryResponse.length);
+  perChainQueryResponse.set(chainId, 0); // chain id (2 bytes)
+  perChainQueryResponse.set(queryType, 2); // query type (1 byte)
+  perChainQueryResponse.set(ethCallQueryResponseLength, 3); // response length (4 bytes)
+  perChainQueryResponse.set(ethCallQueryResponse, 7); // EthCallQueryResponse data
+
+  // QueryResponse (version + chainId + requestId + queryRequestLength + queryRequest + numResponses + responses)
   const queryResponse = new Uint8Array(
     version.length +
-      requestChainId.length +
+      chainId.length +
       requestId.length +
-      requestLengthSkip.length +
+      queryRequestLength.length +
       queryRequest.length +
       numResponses.length +
       perChainQueryResponse.length,
   );
 
   queryResponse.set(version, 0); // version (1 byte)
-  queryResponse.set(requestChainId, 1); // request_chain_id (2 bytes)
-  queryResponse.set(requestId, 3); // request_id (32 bytes in this case)
-  queryResponse.set(requestLengthSkip, 35); // skip 4 bytes for request length
-  queryResponse.set(queryRequest, 39); // request (1 byte in this example)
-  queryResponse.set(numResponses, 40); // number of responses (1 byte)
-  queryResponse.set(perChainQueryResponse, 41); // first PerChainQueryResponse
+  queryResponse.set(chainId, 1); // chain id (2 bytes)
+  queryResponse.set(requestId, 3); // request id (32 bytes in this case)
+  queryResponse.set(queryRequestLength, 35); // queryRequest length (4 bytes) 
+  queryResponse.set(queryRequest, 39); // queryRequest
+  queryResponse.set(numResponses, 39 + queryRequest.length); // number of responses (1 byte)
+  queryResponse.set(perChainQueryResponse, 39 + queryRequest.length + 1); // first responses
 
   return queryResponse;
 }

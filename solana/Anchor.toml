@@ -26,3 +26,7 @@ ledger_dir = "./.anchor/test-ledger"
 idl_path = "./target/idl/staking.json"
 binary_path = "./target/deploy/staking.so"
 
+### Wormhole Core Bridge Guardian Set 5 (mock)
+[guardian_set_5]
+address = "7uZXwew7N7oKqNNUmoXWa5GBQPWGHd8vzJVtWivALLAJ"
+filename = "tests/accounts/guardian_set_5_mock.json"
