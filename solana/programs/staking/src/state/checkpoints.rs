@@ -4,6 +4,10 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction;
 
+/// CheckpointData account has a fixed header (owner, next_index)
+/// and a dynamic tail where checkpoints are stored in byte format
+/// This is designed to be able to dynamically extend the CheckpointData account up to 10Mb
+/// This will save approximately 655,000 checkpoints into one account
 #[account(zero_copy)]
 #[derive(Default)]
 pub struct CheckpointData {
@@ -22,7 +26,7 @@ impl CheckpointData {
     pub const CHECKPOINT_SIZE: usize = 16;
     pub const CHECKPOINT_DATA_HEADER_SIZE: usize = 48;
 
-    pub const LEN: usize = 80; // 48 + 16
+    pub const LEN: usize = 80; // 48 + 16 (header + space for one checkpoint)
 
     pub fn initialize(&mut self, owner: &Pubkey) {
         self.owner = *owner;
@@ -30,6 +34,7 @@ impl CheckpointData {
     }
 }
 
+/// Increase account allocation every time a new checkpoint is added
 pub fn resize_account<'info>(
     account_info: &AccountInfo<'info>,
     payer_info: &AccountInfo<'info>,
@@ -39,8 +44,6 @@ pub fn resize_account<'info>(
     let current_lamports = account_info.lamports();
     let required_lamports = Rent::get()?.minimum_balance(new_size);
     let lamports_needed = required_lamports.saturating_sub(current_lamports);
-
-    msg!(" in resize_account");
 
     if lamports_needed > 0 {
         invoke(
@@ -64,7 +67,7 @@ pub fn write_checkpoint_at_index(
     checkpoint: &Checkpoint,
 ) -> Result<()> {
     let mut data = account_info.try_borrow_mut_data()?;
-    let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE; // Враховуємо дискримінатор
+    let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE;
     let data = &mut data[header_size..];
 
     let element_size = CheckpointData::CHECKPOINT_SIZE;
@@ -84,7 +87,7 @@ pub fn write_checkpoint_at_index(
 
 pub fn read_checkpoint_at_index(account_info: &AccountInfo, index: usize) -> Result<Checkpoint> {
     let data = account_info.try_borrow_data()?;
-    let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE; // Враховуємо дискримінатор
+    let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE;
     let data = &data[header_size..];
 
     let element_size = CheckpointData::CHECKPOINT_SIZE;

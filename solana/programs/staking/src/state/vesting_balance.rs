@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+/// Used to store the total vesting balance of a single vester
+/// It is also used to delegate vesting
 #[account]
 pub struct VestingBalance {
     pub vester: Pubkey,
