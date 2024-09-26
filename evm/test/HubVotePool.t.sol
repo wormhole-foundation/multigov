@@ -191,6 +191,18 @@ contract RegisterQueryType is HubVotePoolTest {
     assertEq(address(hubVotePool.voteTypeDecoder(_queryType)), address(0));
   }
 
+  function testFuzz_EmitesQueryRegisteredEventWhenSetToZeroAddress(uint8 _queryType) public {
+    vm.startPrank(timelock);
+    hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
+
+    vm.expectEmit();
+    emit HubVotePool.QueryTypeRegistered(_queryType, address(hubCrossChainEvmVote), address(0));
+    hubVotePool.registerQueryType(_queryType, address(0));
+    vm.stopPrank();
+
+    assertEq(address(hubVotePool.voteTypeDecoder(_queryType)), address(0));
+  }
+
   function testFuzz_RevertIf_ERC165IsNotSupported(uint8 queryType) public {
     vm.startPrank(timelock);
     GovernorMock gov = new GovernorMock();

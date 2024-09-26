@@ -171,13 +171,14 @@ contract HubVotePool is QueryResponse, Ownable {
   }
 
   function _registerQueryType(address _implementation, uint8 _queryType) internal {
+    emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
+
     if (_implementation == address(0)) {
       delete voteTypeDecoder[_queryType];
       return;
     }
     bool _isValid = _implementation.supportsInterface(type(ISpokeVoteDecoder).interfaceId);
     if (!_isValid) revert InvalidQueryVoteImpl();
-    emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
     voteTypeDecoder[_queryType] = ISpokeVoteDecoder(_implementation);
   }
 
