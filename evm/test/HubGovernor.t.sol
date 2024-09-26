@@ -66,6 +66,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     vm.prank(address(timelock));
     hubVotePool.setGovernor(address(governor));
 
+    vm.prank(address(timelock));
     extender.initialize(payable(governor));
   }
 

@@ -67,6 +67,7 @@ contract HubProposalExtender is Ownable, IVoteExtender {
   /// @param _governor Address of the hub governor.
   function initialize(address payable _governor) external {
     if (initialized) revert AlreadyInitialized();
+    _checkOwner();
     initialized = true;
     governor = HubGovernor(_governor);
   }

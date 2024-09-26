@@ -76,6 +76,7 @@ contract Initialize is HubProposalExtenderTest {
       _safeWindow,
       _minimumDecisionWindow
     );
+    vm.prank(initialOwner);
     hubExtender.initialize(payable(_governor));
     assertEq(address(hubExtender.governor()), _governor);
   }
@@ -96,9 +97,35 @@ contract Initialize is HubProposalExtenderTest {
       _safeWindow,
       _minimumDecisionWindow
     );
+    vm.prank(initialOwner);
     hubExtender.initialize(payable(_governor));
 
     vm.expectRevert(HubProposalExtender.AlreadyInitialized.selector);
+    vm.prank(initialOwner);
+    hubExtender.initialize(payable(_governor));
+  }
+
+  function testFuzz_RevertIf_CallerIsNotTheOwner(
+    address _whitelistedVoteExtender,
+    uint48 _extensionDuration,
+    address _governor,
+    uint48 _minimumExtensionDuration,
+    uint32 _safeWindow,
+    uint48 _minimumDecisionWindow
+  ) public {
+    hubExtender = new HubProposalExtenderHarness(
+      _whitelistedVoteExtender,
+      _extensionDuration,
+      initialOwner,
+      _minimumExtensionDuration,
+      _safeWindow,
+      _minimumDecisionWindow
+    );
+    vm.prank(initialOwner);
+    hubExtender.initialize(payable(_governor));
+
+    vm.expectRevert(HubProposalExtender.AlreadyInitialized.selector);
+    vm.prank(initialOwner);
     hubExtender.initialize(payable(_governor));
   }
 }
