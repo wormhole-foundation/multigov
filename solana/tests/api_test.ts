@@ -116,14 +116,14 @@ describe("api", async () => {
   });
 
   it("addProposal", async () => {
-    const proposalId = crypto
+    const proposalIdInput = crypto
       .createHash("sha256")
       .update("proposalId1")
       .digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
     const ethProposalResponseBytes = createAddProposalTestBytes(
-      proposalId,
+      proposalIdInput,
       voteStart,
     );
     const signaturesKeypair = Keypair.generate();
@@ -132,18 +132,18 @@ describe("api", async () => {
     await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
     const mockGuardianSetIndex = 5;
 
-    let tx = await stakeConnection.addProposal(
-      proposalId,
+    await stakeConnection.addProposal(
+      proposalIdInput,
       ethProposalResponseBytes,
       signaturesKeypair.publicKey,
       mockGuardianSetIndex,
     );
-    console.log("tx:", tx)
+
     const { proposalAccountData } =
-      await stakeConnection.fetchProposalAccountData(proposalId);
+      await stakeConnection.fetchProposalAccountData(proposalIdInput);
     assert.equal(
       Buffer.from(proposalAccountData.id).toString("hex"),
-      proposalId.toString("hex"),
+      proposalIdInput.toString("hex"),
     );
     assert.equal(
       proposalAccountData.voteStart.toString(),
@@ -184,9 +184,9 @@ describe("api", async () => {
     );
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
-      await stakeConnection.proposalVotes(_proposalId);
+      await stakeConnection.proposalVotes(proposalIdInput);
 
-    assert.equal(proposalId.toString("hex"), _proposalId.toString("hex"));
+    assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
     assert.equal(againstVotes.toString(), "0");
     assert.equal(forVotes.toString(), "0");
     assert.equal(abstainVotes.toString(), "0");
@@ -216,7 +216,7 @@ describe("api", async () => {
       mockGuardianSetIndex,
     );
 
-    assert.equal(await stakeConnection.isVotingSafe(proposalId), true);
+    assert.equal(await stakeConnection.isVotingSafe(proposalIdInput), true);
   });
 
   it("delegate", async () => {

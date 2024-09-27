@@ -2,6 +2,7 @@ import { StakeAccount, StakeConnection } from "../../app/StakeConnection";
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { WHTokenBalance } from "../../app";
+import { hubChainId, hubProposalMetadata } from "../../app/constants";
 import assert from "assert";
 import {
   QueryRequest,
@@ -33,13 +34,11 @@ export function createAddProposalTestBytes(
   proposalIdInput: Uint8Array,
   voteStartInput: number,
 ): Uint8Array {
-  const chainId = 1;
-
   const queryRequest = new QueryRequest(
     42, // nonce
     [
       new PerChainQueryRequest(
-        chainId, // chain id
+        hubChainId, // chain id
         new EthCallQueryRequest(
           987654, // block number
           [ 
@@ -54,7 +53,7 @@ export function createAddProposalTestBytes(
   )
 
   // first results fields
-  const contractAddress = new Uint8Array(20).fill(1); // contract address (20 bytes)
+  const contractAddress = hubProposalMetadata; // contract address (20 bytes)
   const proposalId = proposalIdInput; // proposal id (32 bytes)
   const voteStart = new Uint8Array(
     new BigUint64Array([BigInt(voteStartInput)]).buffer,
@@ -67,12 +66,12 @@ export function createAddProposalTestBytes(
   result.set(voteStart, 52); // vote start (8 bytes)
 
   const serializedQueryResponse = new QueryResponse(
-    chainId, // chain id
+    hubChainId, // chain id
     Buffer.from(new Array(32).fill(3)).toString("hex"), // request id (32 bytes for on-chain request since chainId != 0)
     queryRequest,
     [
       new PerChainQueryResponse(
-        chainId, // chain id
+        hubChainId, // chain id
         new EthCallQueryResponse(
           BigInt(987654), // block number
           "0x123abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123a", // block hash
