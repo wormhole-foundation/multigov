@@ -56,10 +56,13 @@ pub struct ClaimVesting<'info> {
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,
+    /// CheckpointData and StakeAccountMetadata accounts are optional because
+    /// in order to be able to claim vests that have not been delegated
     #[account(mut)]
     pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
     #[account(mut)]
     pub stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
+
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
     system_program: Program<'info, System>,
@@ -67,6 +70,8 @@ pub struct ClaimVesting<'info> {
 
 impl<'info> ClaimVesting<'info> {
     pub fn close_vesting(&mut self) -> Result<()> {
+
+        // If vesting_balance.stake_account_metadata is not set it means that vester has not delegated his vests
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
             if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
                 &mut self.stake_account_metadata,

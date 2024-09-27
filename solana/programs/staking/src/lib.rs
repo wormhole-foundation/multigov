@@ -64,7 +64,6 @@ pub struct ProposalCreated {
 }
 
 declare_id!("5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ");
-
 #[program]
 pub mod staking {
     /// Creates a global config for the program
