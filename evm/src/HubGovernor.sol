@@ -10,6 +10,7 @@ import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/Go
 import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {GovernorCountingFractional} from "src/lib/GovernorCountingFractional.sol";
 import {GovernorSettableFixedQuorum} from "src/extensions/GovernorSettableFixedQuorum.sol";
@@ -87,8 +88,9 @@ contract HubGovernor is
   {
     HubVotePool _hubVotePool = new HubVotePool(_params.wormholeCore, address(this), _params.hubVotePoolOwner);
     _setHubVotePool(address(_hubVotePool));
-    if (_params.governorProposalExtender.code.length == 0) revert InvalidProposalExtender();
+    if (_params.governorProposalExtender.code.length == 0 || Ownable(_params.governorProposalExtender).owner() != address(_params.timelock)) revert InvalidProposalExtender();
     HUB_PROPOSAL_EXTENDER = IVoteExtender(_params.governorProposalExtender);
+	
   }
 
   function hubVotePool(uint96 _timepoint) public view virtual returns (HubVotePool) {

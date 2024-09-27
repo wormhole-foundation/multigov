@@ -7,6 +7,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
 import {GovernorCountingFractional} from "src/lib/GovernorCountingFractional.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
@@ -36,7 +37,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION);
+    extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(timelock), MINIMUM_VOTE_EXTENSION);
 
     hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
 
@@ -64,9 +65,6 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
 
     vm.prank(address(timelock));
     hubVotePool.setGovernor(address(governor));
-
-    vm.prank(initialOwner);
-    extender.transferOwnership(address(timelock));
 
     extender.initialize(payable(governor));
   }
@@ -139,7 +137,9 @@ contract Constructor is HubGovernorTest {
     // Prevent the etching over of precompiles
     _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
 
-    vm.etch(_voteExtender, address(token).code);
+    vm.etch(_voteExtender, address(extender).code);
+	vm.prank(address(0));
+	Ownable(_voteExtender).transferOwnership(address(_timelock));
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
       token: ERC20Votes(_token),
@@ -156,6 +156,7 @@ contract Constructor is HubGovernorTest {
 
     HubGovernor _governor = new HubGovernor(params);
 
+	// TODO: Add test for wrong owner extender
     assertEq(_governor.name(), _name);
     assertEq(address(_governor.token()), _token);
     assertEq(address(_governor.timelock()), _timelock);
