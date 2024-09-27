@@ -41,16 +41,16 @@ export function createAddProposalTestBytes(
         hubChainId, // chain id
         new EthCallQueryRequest(
           987654, // block number
-          [ 
+          [
             {
               to: "0x130Db1B83d205562461eD0720B37f1FBC21Bf67F", // 20-byte `to` address
               data: "0x01234567",
             },
-          ] // call data
-        )
+          ], // call data
+        ),
       ),
-    ] // requests
-  )
+    ], // requests
+  );
 
   // first results fields
   const contractAddress = hubProposalMetadata; // contract address (20 bytes)
@@ -76,10 +76,10 @@ export function createAddProposalTestBytes(
           BigInt(987654), // block number
           "0x123abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123a", // block hash
           BigInt(Date.now()), // block time
-          [uint8ArrayToHex(result)] // results
-        )
+          [uint8ArrayToHex(result)], // results
+        ),
       ),
-    ]
+    ],
   ).serialize();
 
   return serializedQueryResponse;
