@@ -11,6 +11,7 @@ import {EmptyWormholeAddress, InvalidContractAddress, InvalidChainId} from "worm
 import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
+import {HubSpokeRegistry} from "src/HubSpokeRegistry.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubEvmSpokeAggregateProposerHarness} from "test/harnesses/HubEvmSpokeAggregateProposerHarness.sol";
 import {WormholeEthQueryTest} from "test/helpers/WormholeEthQueryTest.sol";
@@ -28,6 +29,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
   ERC20VotesFake public token;
   TimelockControllerFake public timelock;
   HubProposalExtender public extender;
+  HubSpokeRegistry public spokeRegistry; 
 
   uint48 public constant INITIAL_MAX_QUERY_TIMESTAMP_OFFSET = 1 hours;
 
@@ -74,8 +76,9 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
 
     hubGovernor = new HubGovernorHarness(params);
 
+	spokeRegistry = new HubSpokeRegistry();
     crossChainAggregateProposer = new HubEvmSpokeAggregateProposerHarness(
-      address(wormhole), address(hubGovernor), INITIAL_MAX_QUERY_TIMESTAMP_OFFSET
+      address(wormhole), address(hubGovernor),  address(spokeRegistry), INITIAL_MAX_QUERY_TIMESTAMP_OFFSET
     );
     hubGovernor.exposed_setWhitelistedProposer(address(crossChainAggregateProposer));
 
@@ -347,25 +350,27 @@ contract Constructor is Test {
   function testFuzz_CorrectlySetConstructorArgs(
     address _core,
     address _hubGovernor,
+    address _spokeRegistry,
     uint48 _initialMaxQueryTimestampOffset
   ) public {
     vm.assume(_core != address(0));
     vm.assume(_hubGovernor != address(0));
 
     HubEvmSpokeAggregateProposer crossChainAggregateProposer =
-      new HubEvmSpokeAggregateProposer(_core, _hubGovernor, _initialMaxQueryTimestampOffset);
+      new HubEvmSpokeAggregateProposer(_core, _hubGovernor, _spokeRegistry, _initialMaxQueryTimestampOffset);
     assertEq(address(crossChainAggregateProposer.HUB_GOVERNOR()), _hubGovernor);
+    assertEq(address(crossChainAggregateProposer.spokeRegistry()), _spokeRegistry);
   }
 
-  function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, uint48 _initialMaxQueryTimestampOffset) public {
+  function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, address _spokeRegistry, uint48 _initialMaxQueryTimestampOffset) public {
     vm.expectRevert(EmptyWormholeAddress.selector);
-    new HubEvmSpokeAggregateProposer(address(0), _hubGovernor, _initialMaxQueryTimestampOffset);
+    new HubEvmSpokeAggregateProposer(address(0), _hubGovernor, _spokeRegistry, _initialMaxQueryTimestampOffset);
   }
 
-  function testFuzz_RevertIf_HubGovernorIsZeroAddress(address _core, uint48 _initialMaxQueryTimestampOffset) public {
+  function testFuzz_RevertIf_HubGovernorIsZeroAddress(address _core, address _spokeRegistry, uint48 _initialMaxQueryTimestampOffset) public {
     vm.assume(_core != address(0));
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-    new HubEvmSpokeAggregateProposer(_core, address(0), _initialMaxQueryTimestampOffset);
+    new HubEvmSpokeAggregateProposer(_core, address(0), _spokeRegistry, _initialMaxQueryTimestampOffset);
   }
 }
 
@@ -527,7 +532,6 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
   }
 
   function testFuzz_CorrectlyCheckAndProposeIfEligibleWithAtLeastTwoTokenCheckpoints(
-    uint128 _voteWeight,
     uint16 _chainId,
     address _spokeAddress,
     string memory _description,
@@ -639,7 +643,6 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
   }
 
   function testFuzz_RevertIf_QueryDoesNotHaveEnoughWeightAndCheckpointMinimumIsTooLow(
-    uint128 _voteWeight,
     uint16 _chainId,
     address _spokeAddress,
     string memory _description,
@@ -1044,17 +1047,17 @@ contract RegisterSpoke is HubEvmSpokeAggregateProposerTest {
     vm.prank(crossChainAggregateProposer.owner());
     crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
 
-    assertEq(crossChainAggregateProposer.registeredSpokes(_chainId), _spokeAddress);
+    assertEq(crossChainAggregateProposer.spokeRegistry().registeredSpokes(_chainId), _spokeAddress);
   }
 
   function testFuzz_EmitsSpokeRegistered(uint16 _chainId, address _spokeAddress) public {
     vm.assume(_spokeAddress != address(0));
 
-    address existingAddress = crossChainAggregateProposer.registeredSpokes(_chainId);
+    address existingAddress = crossChainAggregateProposer.spokeRegistry().registeredSpokes(_chainId);
     vm.prank(crossChainAggregateProposer.owner());
     vm.expectEmit();
     emit HubEvmSpokeAggregateProposer.SpokeRegistered(_chainId, existingAddress, _spokeAddress);
-    crossChainAggregateProposer.registerSpoke(_chainId, _spokeAddress);
+    crossChainAggregateProposer.spokeRegistry().registerSpoke(_chainId, _spokeAddress);
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(uint16 _chainId, address _spokeAddress, address _caller) public {

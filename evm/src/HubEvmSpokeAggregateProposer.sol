@@ -15,6 +15,7 @@ import {
   InvalidFunctionSignature
 } from "wormhole-sdk/QueryResponse.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {HubSpokeRegistry} from "src/HubSpokeRegistry.sol";
 
 /// @title HubEvmSpokeAggregateProposer
 /// @author [ScopeLift](https://scopelift.co)
@@ -26,6 +27,9 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
 
   /// @notice The governor where new proposals will be created.
   IGovernor public immutable HUB_GOVERNOR;
+
+  /// @notice The registered spoke aggregators for a proposer query.
+  HubSpokeRegistry public immutable spokeRegistry;
 
   /// @notice The max timestamp difference between the requested target time in the query and the current block time on
   /// the hub.
@@ -59,22 +63,20 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   /// @notice Thrown when a spoke address is not registered for a given chain.
   error UnregisteredSpoke(uint16 chainId, address spokeAddress);
 
-  /// @notice A mapping of registered spoke aggregators per chain. These chains and addresses determine the chains and
-  /// addresses that can be queried in order to aggregate voting weight.
-  mapping(uint16 wormholeChainId => address spokeVoteAggregator) public registeredSpokes;
-
   /// @notice A mapping of proposal id to the address that created the proposal.
   mapping(uint256 proposalId => address creator) public proposalCreators;
 
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubGovernor The governor where proposals are created.
+  /// @param _spokeRegistry The contract that maintains the registered spoke aggregators.
   /// @param _initialMaxQueryTimestampOffset The initial offset for queries.
-  constructor(address _core, address _hubGovernor, uint48 _initialMaxQueryTimestampOffset)
+  constructor(address _core, address _hubGovernor, address _spokeRegistry, uint48 _initialMaxQueryTimestampOffset)
     QueryResponse(_core)
     Ownable(_hubGovernor)
   {
     HUB_GOVERNOR = IGovernor(_hubGovernor);
     maxQueryTimestampOffset = _initialMaxQueryTimestampOffset;
+    spokeRegistry = HubSpokeRegistry(_spokeRegistry);
   }
 
   /// @notice A function for an aggregate proposer to cancel the proposal they have created.
@@ -126,7 +128,7 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   /// @param _spokeVoteAggregator The spoke vote aggregator to register.
   function registerSpoke(uint16 _chainId, address _spokeVoteAggregator) external {
     _checkOwner();
-    _registerSpoke(_chainId, _spokeVoteAggregator);
+    spokeRegistry.registerSpoke(_chainId, _spokeVoteAggregator);
   }
 
   /// @notice The owner sets a new max offset time for incoming queries.
@@ -207,13 +209,6 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
     return (address(uint160(_extractedAccount)), _extractedTimepoint);
   }
 
-  /// @notice Registers a new chain and address from where to receive queries.
-  /// @param _chainId The chain id to register.
-  /// @param _spokeAddress The spoke address to register.
-  function _registerSpoke(uint16 _chainId, address _spokeAddress) internal {
-    emit SpokeRegistered(_chainId, registeredSpokes[_chainId], _spokeAddress);
-    registeredSpokes[_chainId] = _spokeAddress;
-  }
 
   /// @notice Sets a new max offset time for incoming queries.
   /// @param _newMaxQueryTimestampOffset The new max query time offset.
@@ -228,7 +223,7 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   /// @param _chainId The wormhole chain id of the query.
   /// @param _r The Eth calldata of the query.
   function _validateEthCallData(uint16 _chainId, EthCallData memory _r) internal view {
-    address _registeredSpokeAddress = registeredSpokes[_chainId];
+    address _registeredSpokeAddress = spokeRegistry.registeredSpokes(_chainId);
     if (_registeredSpokeAddress == address(0) || _r.contractAddress != _registeredSpokeAddress) {
       revert InvalidContractAddress();
     }
