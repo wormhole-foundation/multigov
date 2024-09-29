@@ -115,15 +115,15 @@ describe("api", async () => {
     );
   });
 
-  it.skip("addProposal", async () => {
-    const proposalId = crypto
+  it("addProposal", async () => {
+    const proposalIdInput = crypto
       .createHash("sha256")
       .update("proposalId1")
       .digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
     const ethProposalResponseBytes = createAddProposalTestBytes(
-      proposalId,
+      proposalIdInput,
       voteStart,
     );
     const signaturesKeypair = Keypair.generate();
@@ -133,16 +133,17 @@ describe("api", async () => {
     const mockGuardianSetIndex = 5;
 
     await stakeConnection.addProposal(
-      proposalId,
+      proposalIdInput,
       ethProposalResponseBytes,
       signaturesKeypair.publicKey,
       mockGuardianSetIndex,
     );
+
     const { proposalAccountData } =
-      await stakeConnection.fetchProposalAccountData(proposalId);
+      await stakeConnection.fetchProposalAccountData(proposalIdInput);
     assert.equal(
       Buffer.from(proposalAccountData.id).toString("hex"),
-      proposalId.toString("hex"),
+      proposalIdInput.toString("hex"),
     );
     assert.equal(
       proposalAccountData.voteStart.toString(),
@@ -158,7 +159,7 @@ describe("api", async () => {
     assert.equal(proposalAccountData.abstainVotes.toString(), "0");
   });
 
-  it.skip("proposalVotes", async () => {
+  it("proposalVotes", async () => {
     const proposalIdInput = crypto
       .createHash("sha256")
       .update("proposalId2")
@@ -183,15 +184,15 @@ describe("api", async () => {
     );
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
-      await stakeConnection.proposalVotes(_proposalId);
+      await stakeConnection.proposalVotes(proposalIdInput);
 
-    assert.equal(proposalId.toString("hex"), _proposalId.toString("hex"));
+    assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
     assert.equal(againstVotes.toString(), "0");
     assert.equal(forVotes.toString(), "0");
     assert.equal(abstainVotes.toString(), "0");
   });
 
-  it.skip("isVotingSafe", async () => {
+  it("isVotingSafe", async () => {
     const proposalIdInput = crypto
       .createHash("sha256")
       .update("proposalId3")
@@ -215,7 +216,7 @@ describe("api", async () => {
       mockGuardianSetIndex,
     );
 
-    assert.equal(await stakeConnection.isVotingSafe(proposalId), true);
+    assert.equal(await stakeConnection.isVotingSafe(proposalIdInput), true);
   });
 
   it("delegate", async () => {
@@ -299,7 +300,7 @@ describe("api", async () => {
     );
   });
 
-  it.skip("castVote", async () => {
+  it("castVote", async () => {
     let stakeAccountAddress =
       await user2StakeConnection.getMainAccountAddress(user2);
 
