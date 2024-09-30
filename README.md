@@ -73,7 +73,7 @@ This contract can be thought of as governance's "admin" on the spoke, with impor
   3. Multi gov will need to be redeployed for the new governor.
 - `HubVotePool`: A new contract must be deployed that reads the state from the old `HubVotePool` vote state at a given timestamp and then all of the spoke vote aggregators must be registered on the new hub vote pool.
 - `SpokeVoteAggregator`: A new spoke vote aggregator will need to be deployed which must be able to read the vote totals for any active proposals at the timestamp of the new deploy. The new spoke vote aggregator must be registered on the `HubVotePool`.
-- `SpokeMessageExecutor`: Deploy a new contract and then update the hub dispatcher to call the new spoke message executor.
+- `SpokeMessageExecutor`: This contract can be upgraded via a UUPS proxy via the airlock.
 
 ### Diagram
 
