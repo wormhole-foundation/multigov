@@ -88,9 +88,11 @@ contract HubGovernor is
   {
     HubVotePool _hubVotePool = new HubVotePool(_params.wormholeCore, address(this), _params.hubVotePoolOwner);
     _setHubVotePool(address(_hubVotePool));
-    if (_params.governorProposalExtender.code.length == 0 || Ownable(_params.governorProposalExtender).owner() != address(_params.timelock)) revert InvalidProposalExtender();
+    if (
+      _params.governorProposalExtender.code.length == 0
+        || Ownable(_params.governorProposalExtender).owner() != address(_params.timelock)
+    ) revert InvalidProposalExtender();
     HUB_PROPOSAL_EXTENDER = IVoteExtender(_params.governorProposalExtender);
-	
   }
 
   function hubVotePool(uint96 _timepoint) public view virtual returns (HubVotePool) {

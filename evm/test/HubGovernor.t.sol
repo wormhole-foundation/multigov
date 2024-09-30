@@ -138,8 +138,8 @@ contract Constructor is HubGovernorTest {
     _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
 
     vm.etch(_voteExtender, address(extender).code);
-	vm.prank(address(0));
-	Ownable(_voteExtender).transferOwnership(address(_timelock));
+    vm.prank(address(0));
+    Ownable(_voteExtender).transferOwnership(address(_timelock));
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
       token: ERC20Votes(_token),
@@ -156,7 +156,7 @@ contract Constructor is HubGovernorTest {
 
     HubGovernor _governor = new HubGovernor(params);
 
-	// TODO: Add test for wrong owner extender
+    // TODO: Add test for wrong owner extender
     assertEq(_governor.name(), _name);
     assertEq(address(_governor.token()), _token);
     assertEq(address(_governor.timelock()), _timelock);
