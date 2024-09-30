@@ -156,7 +156,6 @@ contract Constructor is HubGovernorTest {
 
     HubGovernor _governor = new HubGovernor(params);
 
-    // TODO: Add test for wrong owner extender
     assertEq(_governor.name(), _name);
     assertEq(address(_governor.token()), _token);
     assertEq(address(_governor.timelock()), _timelock);
@@ -165,6 +164,44 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
     assertEq(address(_governor.HUB_PROPOSAL_EXTENDER()), _voteExtender);
     assertNotEq(address(_governor.hubVotePool(uint96(block.timestamp))), address(0));
+  }
+
+  function testFuzz_RevertIf_ExtenderOwnerIsNotTheTimelock(
+    string memory _name,
+    address _token,
+    address payable _timelock,
+    uint48 _initialVotingDelay,
+    uint32 _initialVotingPeriod,
+    uint208 _initialProposalThreshold,
+    uint208 _initialQuorum,
+    address _voteExtender,
+    address _extenderOwner
+  ) public {
+    vm.assume(_initialVotingPeriod != 0);
+    vm.assume(_extenderOwner != address(0) && _timelock != address(0));
+    vm.assume(_extenderOwner != address(_timelock));
+    // Prevent the etching over of precompiles
+    _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
+
+    vm.etch(_voteExtender, address(extender).code);
+    vm.prank(address(0));
+    Ownable(_voteExtender).transferOwnership(_extenderOwner);
+    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+      name: _name,
+      token: ERC20Votes(_token),
+      timelock: TimelockController(_timelock),
+      initialVotingDelay: _initialVotingDelay,
+      initialVotingPeriod: _initialVotingPeriod,
+      initialProposalThreshold: _initialProposalThreshold,
+      initialQuorum: _initialQuorum,
+      hubVotePoolOwner: _timelock,
+      wormholeCore: address(wormhole),
+      governorProposalExtender: _voteExtender,
+      initialVoteWeightWindow: 1 days
+    });
+
+    vm.expectRevert(HubGovernor.InvalidProposalExtender.selector);
+    new HubGovernor(params);
   }
 
   function testFuzz_RevertIf_HubProposalExtenderIsEOA(
