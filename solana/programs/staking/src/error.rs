@@ -102,4 +102,10 @@ pub enum ProposalWormholeMessageError {
     InvalidHubProposalMetadataContract,
     #[msg("Invalid proposal_id")]
     InvalidProposalId,
+    #[msg("Non-finalized block")]
+    NonFinalizedBlock,
+    #[msg("Invalid ChainSpecificQuery")]
+    InvalidChainSpecificQuery,
+    #[msg("Invalid ChainSpecificResponse")]
+    InvalidChainSpecificResponse,
 }

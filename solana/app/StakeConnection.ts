@@ -69,6 +69,17 @@ export class StakeConnection {
     this.priorityFeeConfig = priorityFeeConfig ?? {};
   }
 
+  private async confirm(signature: string): Promise<string> {
+    const block =
+      await this.provider.connection.getLatestBlockhash();
+    await this.provider.connection.confirmTransaction({
+      signature,
+      ...block,
+    });
+
+    return signature;
+  }
+
   public static async connect(
     connection: Connection,
     wallet: Wallet,
@@ -548,30 +559,38 @@ export class StakeConnection {
     ethProposalResponseBytes: Uint8Array,
     guardianSignatures: PublicKey,
     guardianSetIndex: number,
+    unoptimized?: boolean
   ): Promise<void> {
-    const instructions: TransactionInstruction[] = [];
-
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
-    instructions.push(
-      await this.program.methods
-        .addProposal(
-          Buffer.from(ethProposalResponseBytes),
-          Array.from(proposalId),
+    const methodsBuilder = this.program.methods
+      .addProposal(
+        Buffer.from(ethProposalResponseBytes),
+        Array.from(proposalId),
+        guardianSetIndex,
+      )
+      .accountsPartial({
+        proposal: proposalAccount,
+        guardianSignatures: guardianSignatures,
+        guardianSet: deriveGuardianSetKey(
+          CORE_BRIDGE_ADDRESS,
           guardianSetIndex,
-        )
-        .accountsPartial({
-          proposal: proposalAccount,
-          guardianSignatures: guardianSignatures,
-          guardianSet: deriveGuardianSetKey(
-            CORE_BRIDGE_ADDRESS,
-            guardianSetIndex,
-          ),
-        })
-        .instruction(),
-    );
+        ),
+      })
 
-    await this.sendAndConfirmAsVersionedTransaction(instructions);
+    if (unoptimized) {
+      await methodsBuilder
+        .rpc()
+        .then(this.confirm);
+    } else {
+      const instructions: TransactionInstruction[] = [];
+
+      instructions.push(
+        await methodsBuilder.instruction(),
+      );
+
+      await this.sendAndConfirmAsVersionedTransaction(instructions);
+    }
   }
 
   /** Gets the current delegate's stake account associated with the specified stake account. */
