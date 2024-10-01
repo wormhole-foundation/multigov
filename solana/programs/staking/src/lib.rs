@@ -21,7 +21,7 @@ use anchor_lang::solana_program::{
     instruction::AccountMeta, instruction::Instruction, program::invoke_signed,
 };
 
-use wormhole_query_sdk::structs::{ChainSpecificResponse, QueryResponse};
+use wormhole_query_sdk::structs::{ChainSpecificQuery, ChainSpecificResponse, QueryResponse};
 
 use crate::{
     error::{ProposalWormholeMessageError, QueriesSolanaVerifyError},
@@ -546,6 +546,15 @@ pub mod staking {
             ProposalWormholeMessageError::TooManyQueryResponses
         );
 
+        if let ChainSpecificQuery::EthCallWithFinalityQueryRequest(eth_request) = &response.request.requests[0].query {
+            require!(
+                eth_request.finality == "finalized",
+                ProposalWormholeMessageError::NonFinalizedBlock
+            );
+        } else {
+            return Err(ProposalWormholeMessageError::InvalidChainSpecificQuery.into());
+        }
+
         let response = &response.responses[0];
 
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
@@ -555,7 +564,7 @@ pub mod staking {
             ProposalWormholeMessageError::SenderChainMismatch
         );
 
-        if let ChainSpecificResponse::EthCallQueryResponse(eth_response) = &response.response {
+        if let ChainSpecificResponse::EthCallWithFinalityQueryResponse(eth_response) = &response.response {
             require!(
                 eth_response.results.len() == 1,
                 ProposalWormholeMessageError::TooManyEthCallResults
@@ -586,6 +595,8 @@ pub mod staking {
                 proposal_id: proposal_data.proposal_id,
                 vote_start: proposal_data.vote_start
             });
+        } else {
+            return Err(ProposalWormholeMessageError::InvalidChainSpecificResponse.into());
         }
 
         Ok(())

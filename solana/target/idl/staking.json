@@ -642,6 +642,10 @@
         },
         {
           "name": "stake_account_checkpoints",
+          "docs": [
+            "CheckpointData and StakeAccountMetadata accounts are optional because",
+            "in order to be able to claim vests that have not been delegated"
+          ],
           "writable": true,
           "optional": true
         },
@@ -2892,103 +2896,44 @@
   "errors": [
     {
       "code": 6000,
-      "name": "TooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "NotFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "GenericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "NotInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "CheckpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "VestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "CheckpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "VestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "NotLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
+      "name": "Overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "RecoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
-    },
-    {
-      "code": 6006,
-      "name": "CheckpointNotFound",
-      "msg": "Checkpoint not found"
-    },
-    {
-      "code": 6007,
-      "name": "InvalidTimestamp",
-      "msg": "Invalid timestamp"
-    },
-    {
-      "code": 6008,
-      "name": "InvalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "NoWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "AllWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "VoteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "WithdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "InsufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "ProposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "InvalidMessageExecutor",
-      "msg": "Invalid message executor"
-    },
-    {
-      "code": 6016,
-      "name": "InvalidSpokeAirlock",
-      "msg": "Invalid spoke airlock"
-    },
-    {
-      "code": 6017,
-      "name": "InvalidVestingBalance",
-      "msg": "Invalid vesting balance owner"
-    },
-    {
-      "code": 6018,
-      "name": "Other",
-      "msg": "Other"
+      "name": "Underflow",
+      "msg": "Integer underflow"
     }
   ],
   "types": [
     {
       "name": "CheckpointData",
+      "docs": [
+        "CheckpointData account has a fixed header (owner, next_index)",
+        "and a dynamic tail where checkpoints are stored in byte format",
+        "This is designed to be able to dynamically extend the CheckpointData account up to 10Mb",
+        "This will save approximately 655,000 checkpoints into one account"
+      ],
       "serialization": "bytemuck",
       "repr": {
         "kind": "c"
@@ -3418,6 +3363,10 @@
     },
     {
       "name": "VestingBalance",
+      "docs": [
+        "Used to store the total vesting balance of a single vester",
+        "It is also used to delegate vesting"
+      ],
       "type": {
         "kind": "struct",
         "fields": [

@@ -14,7 +14,10 @@ import path from "path";
 import { expectFailApi } from "./utils/utils";
 import {
   assertBalanceMatches,
-  createAddProposalTestBytes,
+  createProposalQueryResponseBytes,
+  createNonFinalizedProposalQueryResponseBytes,
+  createProposalQueryResponseBytesWithInvalidChainSpecificQuery,
+  createProposalQueryResponseBytesWithInvalidChainSpecificResponse,
 } from "./utils/api_utils";
 import { WHTokenBalance } from "../app";
 import crypto from "crypto";
@@ -22,6 +25,7 @@ import {
   QueryProxyMock,
   signaturesToSolanaArray,
 } from "@wormhole-foundation/wormhole-query-sdk";
+import { AnchorError, AnchorProvider, Program } from "@coral-xyz/anchor";
 
 const portNumber = getPortNumber(path.basename(__filename));
 
@@ -115,48 +119,155 @@ describe("api", async () => {
     );
   });
 
-  it("addProposal", async () => {
-    const proposalIdInput = crypto
-      .createHash("sha256")
-      .update("proposalId1")
-      .digest();
-    const voteStart = Math.floor(Date.now() / 1000);
+  describe("addProposal", () => {
+    it("should correctly add a proposal", async () => {
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId11")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createAddProposalTestBytes(
-      proposalIdInput,
-      voteStart,
-    );
-    const signaturesKeypair = Keypair.generate();
-    const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(ethProposalResponseBytes);
-    await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
-    const mockGuardianSetIndex = 5;
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
 
-    await stakeConnection.addProposal(
-      proposalIdInput,
-      ethProposalResponseBytes,
-      signaturesKeypair.publicKey,
-      mockGuardianSetIndex,
-    );
+      await stakeConnection.addProposal(
+        proposalIdInput,
+        ethProposalResponseBytes,
+        signaturesKeypair.publicKey,
+        mockGuardianSetIndex,
+      );
 
-    const { proposalAccountData } =
-      await stakeConnection.fetchProposalAccountData(proposalIdInput);
-    assert.equal(
-      Buffer.from(proposalAccountData.id).toString("hex"),
-      proposalIdInput.toString("hex"),
-    );
-    assert.equal(
-      proposalAccountData.voteStart.toString(),
-      voteStart.toString(),
-    );
-    const safeWindow = new BN(24 * 60 * 60); // 24 hour
-    assert.equal(
-      proposalAccountData.safeWindow.toString(),
-      safeWindow.toString(),
-    );
-    assert.equal(proposalAccountData.againstVotes.toString(), "0");
-    assert.equal(proposalAccountData.forVotes.toString(), "0");
-    assert.equal(proposalAccountData.abstainVotes.toString(), "0");
+      const { proposalAccountData } =
+        await stakeConnection.fetchProposalAccountData(proposalIdInput);
+      assert.equal(
+        Buffer.from(proposalAccountData.id).toString("hex"),
+        proposalIdInput.toString("hex"),
+      );
+      assert.equal(
+        proposalAccountData.voteStart.toString(),
+        voteStart.toString(),
+      );
+      const safeWindow = new BN(24 * 60 * 60); // 24 hour
+      assert.equal(
+        proposalAccountData.safeWindow.toString(),
+        safeWindow.toString(),
+      );
+      assert.equal(proposalAccountData.againstVotes.toString(), "0");
+      assert.equal(proposalAccountData.forVotes.toString(), "0");
+      assert.equal(proposalAccountData.abstainVotes.toString(), "0");
+    });
+
+    it("should revert if query block is not finalized", async () => {
+        const proposalIdInput = crypto
+          .createHash("sha256")
+          .update("proposalId12")
+          .digest();
+        const voteStart = Math.floor(Date.now() / 1000);
+
+        // Create a correct query, but with an incorrect finality (not “finalized”)
+        const nonFinalizedEthProposalResponseBytes = createNonFinalizedProposalQueryResponseBytes(
+          proposalIdInput,
+          voteStart,
+        );
+
+        const signaturesKeypair = Keypair.generate();
+        const mock = new QueryProxyMock({});
+        const mockSignatures = mock.sign(nonFinalizedEthProposalResponseBytes);
+        await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+        const mockGuardianSetIndex = 5;
+
+        try {
+          await stakeConnection.addProposal(
+            proposalIdInput,
+            nonFinalizedEthProposalResponseBytes,
+            signaturesKeypair.publicKey,
+            mockGuardianSetIndex,
+            true,
+          );
+          assert.fail("Expected error was not thrown");
+        } catch (e) {
+          assert(
+            (e as AnchorError).error?.errorCode?.code === "NonFinalizedBlock",
+          );
+        }
+    });
+
+    it("should revert if chain-specific query is invalid", async () => {
+        const proposalIdInput = crypto
+          .createHash("sha256")
+          .update("proposalId13")
+          .digest();
+        const voteStart = Math.floor(Date.now() / 1000);
+
+        // Create an invalid chain-specific query that does not match EthCallWithFinalityQueryRequest
+        const invalidQueryEthProposalResponseBytes = createProposalQueryResponseBytesWithInvalidChainSpecificQuery(
+          proposalIdInput,
+          voteStart,
+        );
+
+        const signaturesKeypair = Keypair.generate();
+        const mock = new QueryProxyMock({});
+        const mockSignatures = mock.sign(invalidQueryEthProposalResponseBytes);
+        await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+        const mockGuardianSetIndex = 5;
+
+        try {
+          await stakeConnection.addProposal(
+            proposalIdInput,
+            invalidQueryEthProposalResponseBytes,
+            signaturesKeypair.publicKey,
+            mockGuardianSetIndex,
+            true,
+          );
+          assert.fail("Expected error was not thrown");
+        } catch (e) {
+          assert(
+            (e as AnchorError).error?.errorCode?.code === "InvalidChainSpecificQuery",
+          );
+        }
+    });
+
+    it("should revert if chain-specific response is invalid", async () => {
+        const proposalIdInput = crypto
+          .createHash("sha256")
+          .update("proposalId1")
+          .digest();
+        const voteStart = Math.floor(Date.now() / 1000);
+
+        // Create an invalid response that does not match EthCallWithFinalityQueryResponse
+        const invalidResponseEthProposalResponseBytes = createProposalQueryResponseBytesWithInvalidChainSpecificResponse(
+          proposalIdInput,
+          voteStart,
+        );
+
+        const signaturesKeypair = Keypair.generate();
+        const mock = new QueryProxyMock({});
+        const mockSignatures = mock.sign(invalidResponseEthProposalResponseBytes);
+        await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+        const mockGuardianSetIndex = 5;
+
+        try {
+          await stakeConnection.addProposal(
+            proposalIdInput,
+            invalidResponseEthProposalResponseBytes,
+            signaturesKeypair.publicKey,
+            mockGuardianSetIndex,
+            true,
+          );
+          assert.fail("Expected error was not thrown");
+        } catch (e) {
+          assert(
+            (e as AnchorError).error?.errorCode?.code === "InvalidChainSpecificResponse",
+          );
+        }
+    });
   });
 
   it("proposalVotes", async () => {
@@ -166,7 +277,7 @@ describe("api", async () => {
       .digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createAddProposalTestBytes(
+    const ethProposalResponseBytes = createProposalQueryResponseBytes(
       proposalIdInput,
       voteStart,
     );
@@ -199,7 +310,7 @@ describe("api", async () => {
       .digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createAddProposalTestBytes(
+    const ethProposalResponseBytes = createProposalQueryResponseBytes(
       proposalIdInput,
       voteStart,
     );
@@ -316,7 +427,7 @@ describe("api", async () => {
       .digest();
     const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createAddProposalTestBytes(
+    const ethProposalResponseBytes = createProposalQueryResponseBytes(
       proposalIdInput,
       voteStart,
     );
