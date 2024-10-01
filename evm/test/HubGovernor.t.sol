@@ -129,17 +129,13 @@ contract Constructor is HubGovernorTest {
     uint48 _initialVotingDelay,
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
-    uint208 _initialQuorum,
-    address _voteExtender
+    uint208 _initialQuorum
   ) public {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_timelock != address(0));
-    // Prevent the etching over of precompiles
-    _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
+    HubProposalExtender _voteExtender =
+      new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(_timelock), MINIMUM_VOTE_EXTENSION);
 
-    vm.etch(_voteExtender, address(extender).code);
-    vm.prank(address(0));
-    Ownable(_voteExtender).transferOwnership(address(_timelock));
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
       token: ERC20Votes(_token),
@@ -150,7 +146,7 @@ contract Constructor is HubGovernorTest {
       initialQuorum: _initialQuorum,
       hubVotePoolOwner: _timelock,
       wormholeCore: address(wormhole),
-      governorProposalExtender: _voteExtender,
+      governorProposalExtender: address(_voteExtender),
       initialVoteWeightWindow: 1 days
     });
 
@@ -162,7 +158,7 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.votingDelay(), _initialVotingDelay);
     assertEq(_governor.votingPeriod(), _initialVotingPeriod);
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
-    assertEq(address(_governor.HUB_PROPOSAL_EXTENDER()), _voteExtender);
+    assertEq(address(_governor.HUB_PROPOSAL_EXTENDER()), address(_voteExtender));
     assertNotEq(address(_governor.hubVotePool(uint96(block.timestamp))), address(0));
   }
 
@@ -180,12 +176,9 @@ contract Constructor is HubGovernorTest {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_extenderOwner != address(0) && _timelock != address(0));
     vm.assume(_extenderOwner != address(_timelock));
-    // Prevent the etching over of precompiles
-    _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
+    HubProposalExtender _voteExtender =
+      new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(_extenderOwner), MINIMUM_VOTE_EXTENSION);
 
-    vm.etch(_voteExtender, address(extender).code);
-    vm.prank(address(0));
-    Ownable(_voteExtender).transferOwnership(_extenderOwner);
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
       token: ERC20Votes(_token),
@@ -196,7 +189,7 @@ contract Constructor is HubGovernorTest {
       initialQuorum: _initialQuorum,
       hubVotePoolOwner: _timelock,
       wormholeCore: address(wormhole),
-      governorProposalExtender: _voteExtender,
+      governorProposalExtender: address(_voteExtender),
       initialVoteWeightWindow: 1 days
     });
 
