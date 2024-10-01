@@ -148,7 +148,7 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
     _validateChainId(_wormholeChainId);
 
     $._messageReceived[_wormholeMessage.hash] = true;
-    $._airlock.executeOperations(_targets, _values, _calldatas);
+    $._airlock.executeOperations{value: msg.value}(_targets, _values, _calldatas);
     emit ProposalExecuted(_wormholeMessage.emitterChainId, _wormholeMessage.emitterAddress, _messageId);
   }
 
