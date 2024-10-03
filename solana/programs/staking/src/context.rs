@@ -38,7 +38,7 @@ pub struct InitConfig<'info> {
     pub payer: Signer<'info>,
 
     #[account(
-        init_if_needed,
+        init,
         payer = payer,
         space = global_config::GlobalConfig::LEN,
         seeds = [CONFIG_SEED.as_bytes()],
