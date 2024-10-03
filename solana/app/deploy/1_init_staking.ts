@@ -18,7 +18,6 @@ async function main() {
     whTokenMint: WORMHOLE_TOKEN,
     freeze: false,
     pdaAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
-    agreementHash: Array.from(Buffer.alloc(0)),
   };
   await program.methods.initConfig(globalConfig).rpc();
 }
