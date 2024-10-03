@@ -64,7 +64,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
     HubProposalExtender extender = new HubProposalExtender(
-      config.voteExtenderAdmin, config.voteTimeExtension, config.voteExtenderAdmin, config.minimumExtensionTime
+      config.voteExtenderAdmin, config.voteTimeExtension, address(timelock), config.minimumExtensionTime
     );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({

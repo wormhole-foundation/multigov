@@ -56,7 +56,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
 
     hubVotePool = new HubVotePool(address(wormhole), initialOwner, address(timelock));
 
-    extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION);
+    extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(timelock), MINIMUM_VOTE_EXTENSION);
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",

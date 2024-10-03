@@ -7,6 +7,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {GovernorMinimumWeightedVoteWindow} from "src/extensions/GovernorMinimumWeightedVoteWindow.sol";
 import {GovernorCountingFractional} from "src/lib/GovernorCountingFractional.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
@@ -36,7 +37,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION);
+    extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(timelock), MINIMUM_VOTE_EXTENSION);
 
     hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
 
@@ -64,9 +65,6 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
 
     vm.prank(address(timelock));
     hubVotePool.setGovernor(address(governor));
-
-    vm.prank(initialOwner);
-    extender.transferOwnership(address(timelock));
 
     extender.initialize(payable(governor));
   }
@@ -131,15 +129,13 @@ contract Constructor is HubGovernorTest {
     uint48 _initialVotingDelay,
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
-    uint208 _initialQuorum,
-    address _voteExtender
+    uint208 _initialQuorum
   ) public {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_timelock != address(0));
-    // Prevent the etching over of precompiles
-    _voteExtender = address(uint160(bound(uint160(_voteExtender), 11, type(uint160).max)));
+    HubProposalExtender _voteExtender =
+      new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(_timelock), MINIMUM_VOTE_EXTENSION);
 
-    vm.etch(_voteExtender, address(token).code);
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
       token: ERC20Votes(_token),
@@ -150,7 +146,7 @@ contract Constructor is HubGovernorTest {
       initialQuorum: _initialQuorum,
       hubVotePoolOwner: _timelock,
       wormholeCore: address(wormhole),
-      governorProposalExtender: _voteExtender,
+      governorProposalExtender: address(_voteExtender),
       initialVoteWeightWindow: 1 days
     });
 
@@ -162,8 +158,43 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.votingDelay(), _initialVotingDelay);
     assertEq(_governor.votingPeriod(), _initialVotingPeriod);
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
-    assertEq(address(_governor.HUB_PROPOSAL_EXTENDER()), _voteExtender);
+    assertEq(address(_governor.HUB_PROPOSAL_EXTENDER()), address(_voteExtender));
     assertNotEq(address(_governor.hubVotePool(uint96(block.timestamp))), address(0));
+  }
+
+  function testFuzz_RevertIf_ExtenderOwnerIsNotTheTimelock(
+    string memory _name,
+    address _token,
+    address payable _timelock,
+    uint48 _initialVotingDelay,
+    uint32 _initialVotingPeriod,
+    uint208 _initialProposalThreshold,
+    uint208 _initialQuorum,
+    address _voteExtender,
+    address _extenderOwner
+  ) public {
+    vm.assume(_initialVotingPeriod != 0);
+    vm.assume(_extenderOwner != address(0) && _timelock != address(0));
+    vm.assume(_extenderOwner != address(_timelock));
+    HubProposalExtender _voteExtender =
+      new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(_extenderOwner), MINIMUM_VOTE_EXTENSION);
+
+    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+      name: _name,
+      token: ERC20Votes(_token),
+      timelock: TimelockController(_timelock),
+      initialVotingDelay: _initialVotingDelay,
+      initialVotingPeriod: _initialVotingPeriod,
+      initialProposalThreshold: _initialProposalThreshold,
+      initialQuorum: _initialQuorum,
+      hubVotePoolOwner: _timelock,
+      wormholeCore: address(wormhole),
+      governorProposalExtender: address(_voteExtender),
+      initialVoteWeightWindow: 1 days
+    });
+
+    vm.expectRevert(HubGovernor.InvalidProposalExtender.selector);
+    new HubGovernor(params);
   }
 
   function testFuzz_RevertIf_HubProposalExtenderIsEOA(
