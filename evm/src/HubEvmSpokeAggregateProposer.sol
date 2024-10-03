@@ -97,6 +97,8 @@ contract HubEvmSpokeAggregateProposer is QueryResponse, Ownable {
   /// @notice The function takes in wormhole queries and aggregates the voting weight across the spokes and hub for the
   /// caller. If the total voting weight is greater than the proposal threshold on the governor then the passed in
   /// proposal is created.
+  /// @dev A smart contract wallet calling this method must have the same address across all of the spokes for which
+  /// they want to aggregate voting power.
   /// @param _targets A list of contracts to call when a proposal is executed.
   /// @param _values A list of values to send when calling each target.
   /// @param _calldatas A list of calldatas to use when calling the targets.
