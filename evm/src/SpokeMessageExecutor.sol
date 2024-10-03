@@ -79,32 +79,32 @@ contract SpokeMessageExecutor is UUPSUpgradeable {
     $._airlock = new SpokeAirlock(address(this));
   }
 
-  function airlock() external returns (SpokeAirlock) {
+  function airlock() external view returns (SpokeAirlock) {
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     return $._airlock;
   }
 
-  function hubChainId() external returns (uint16) {
+  function hubChainId() external view returns (uint16) {
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     return $._hubChainId;
   }
 
-  function hubDispatcher() external returns (bytes32) {
+  function hubDispatcher() external view returns (bytes32) {
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     return $._hubDispatcher;
   }
 
-  function messageReceived(bytes32 _hash) external returns (bool) {
+  function messageReceived(bytes32 _hash) external view returns (bool) {
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     return $._messageReceived[_hash];
   }
 
-  function spokeChainId() external returns (uint16) {
+  function spokeChainId() external view returns (uint16) {
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     return $._spokeChainId;
   }
 
-  function wormholeCore() external returns (IWormhole) {
+  function wormholeCore() external view returns (IWormhole) {
     SpokeMessageExecutorStorage storage $ = _getSpokeMessageExecutorStorage();
     return $._wormholeCore;
   }

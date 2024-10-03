@@ -20,7 +20,7 @@ contract DeploySpokeContractsBase is Test, TestConstants {
 }
 
 contract DeploySpokeContractsTest is DeploySpokeContractsBase {
-  function testFork_deploySepoliaHubContracts() public {
+  function testFork_deploySepoliaSpokeContracts() public {
     vm.createSelectFork(vm.rpcUrl("optimism_sepolia"), 11_298_960);
 
     DeploySpokeContractsOptimismSepolia script = new DeploySpokeContractsOptimismSepolia();
@@ -36,7 +36,7 @@ contract DeploySpokeContractsTest is DeploySpokeContractsBase {
 
     assertEq(address(aggregator.VOTING_TOKEN()), 0x74f00907CFC6E44Fb72535cdD1eC52a37EacAbE4);
     assertEq(address(aggregator.spokeMetadataCollector()), address(spokeMetadataCollector));
-    assertEq(aggregator.owner(), deployer);
+    assertEq(aggregator.owner(), address(airlock));
     assertEq(aggregator.getVoteWeightWindowLength(uint48(block.timestamp)), 10 minutes);
 
     assertEq(messageExecutor.hubChainId(), 10_002);
