@@ -2902,33 +2902,98 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "notFullyVested",
-      "msg": "Not fully vested yet"
+      "name": "tooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
     },
     {
       "code": 6001,
-      "name": "notInSurplus",
-      "msg": "Vault is not in surplus"
+      "name": "genericOverflow",
+      "msg": "An arithmetic operation unexpectedly overflowed"
     },
     {
       "code": 6002,
-      "name": "vestingFinalized",
-      "msg": "Vesting finalized"
+      "name": "checkpointSerDe",
+      "msg": "Error deserializing checkpoint"
     },
     {
       "code": 6003,
-      "name": "vestingUnfinalized",
-      "msg": "Vesting unfinalized"
+      "name": "checkpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
     },
     {
       "code": 6004,
-      "name": "overflow",
-      "msg": "Integer overflow"
+      "name": "notLlcMember",
+      "msg": "You need to be an LLC member to perform this action"
     },
     {
       "code": 6005,
-      "name": "underflow",
-      "msg": "Integer underflow"
+      "name": "recoverWithStake",
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+    },
+    {
+      "code": 6006,
+      "name": "checkpointNotFound",
+      "msg": "Checkpoint not found"
+    },
+    {
+      "code": 6007,
+      "name": "invalidTimestamp",
+      "msg": "Invalid timestamp"
+    },
+    {
+      "code": 6008,
+      "name": "invalidLlcAgreement",
+      "msg": "Invalid LLC agreement"
+    },
+    {
+      "code": 6009,
+      "name": "noWeight",
+      "msg": "No Weight"
+    },
+    {
+      "code": 6010,
+      "name": "allWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6011,
+      "name": "voteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6012,
+      "name": "withdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
+    },
+    {
+      "code": 6013,
+      "name": "insufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
+    },
+    {
+      "code": 6014,
+      "name": "proposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6015,
+      "name": "invalidMessageExecutor",
+      "msg": "Invalid message executor"
+    },
+    {
+      "code": 6016,
+      "name": "invalidSpokeAirlock",
+      "msg": "Invalid spoke airlock"
+    },
+    {
+      "code": 6017,
+      "name": "invalidVestingBalance",
+      "msg": "Invalid vesting balance owner"
+    },
+    {
+      "code": 6018,
+      "name": "other",
+      "msg": "other"
     }
   ],
   "types": [
