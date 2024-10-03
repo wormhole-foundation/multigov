@@ -79,9 +79,7 @@ contract HubProposalExtender is Ownable, IVoteExtender {
     if (exists == 0) revert ProposalDoesNotExist();
     if (extendedDeadlines[_proposalId] != 0) revert ProposalAlreadyExtended();
     IGovernor.ProposalState state = governor.state(_proposalId);
-    if (state != IGovernor.ProposalState.Active && state != IGovernor.ProposalState.Pending) {
-      revert ProposalCannotBeExtended();
-    }
+    if (state != IGovernor.ProposalState.Active) revert ProposalCannotBeExtended();
 
     extendedDeadlines[_proposalId] = uint48(governor.proposalDeadline(_proposalId)) + extensionDuration;
   }
