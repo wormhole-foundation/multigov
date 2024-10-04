@@ -38,29 +38,29 @@ describe("voter_votes_test", async () => {
   });
 
   it("delegate votes appear after delegation", async () => {
-    let stakeAccountAddress =
-      await stakeConnection.getMainAccountAddress(owner);
+    let stakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(owner);
 
-    stakeAccountAddress = await stakeConnection.delegate(
-      stakeAccountAddress,
+    stakeAccountCheckpointsAddress = await stakeConnection.delegate(
+      stakeAccountCheckpointsAddress,
       undefined,
       WHTokenBalance.fromString("50"),
     );
 
     let stakeAccount =
-      await stakeConnection.loadStakeAccount(stakeAccountAddress);
+      await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
     assert.equal(
       stakeAccount.checkpointAccount.getLastCheckpoint().value.toString(),
       "50000000",
     );
 
     await stakeConnection.delegate(
-      stakeAccountAddress,
-      stakeAccountAddress,
+      stakeAccountCheckpointsAddress,
+      stakeAccountCheckpointsAddress,
       WHTokenBalance.fromString("15"),
     );
 
-    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
+    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
     assert.equal(
       stakeAccount.checkpointAccount.getLastCheckpoint().value.toString(),
       "65000000",

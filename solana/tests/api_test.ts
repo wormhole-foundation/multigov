@@ -331,69 +331,69 @@ describe("api", async () => {
   });
 
   it("delegate", async () => {
-    let stakeAccountAddress =
-      await stakeConnection.getMainAccountAddress(owner);
-    stakeAccountAddress = await stakeConnection.delegate(
-      stakeAccountAddress,
-      stakeAccountAddress,
+    let stakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(owner);
+    stakeAccountCheckpointsAddress = await stakeConnection.delegate(
+      stakeAccountCheckpointsAddress,
+      stakeAccountCheckpointsAddress,
       WHTokenBalance.fromString("100"),
     );
 
     await stakeConnection.delegate(
-      stakeAccountAddress,
-      stakeAccountAddress,
+      stakeAccountCheckpointsAddress,
+      stakeAccountCheckpointsAddress,
       WHTokenBalance.fromString("100"),
     );
 
     await stakeConnection.delegate(
-      stakeAccountAddress,
-      stakeAccountAddress,
+      stakeAccountCheckpointsAddress,
+      stakeAccountCheckpointsAddress,
       WHTokenBalance.fromString("100"),
     );
   });
 
   it("should change delegate account correctly", async () => {
-    let stakeAccountAddress =
-      await stakeConnection.getMainAccountAddress(owner);
-    stakeAccountAddress = await stakeConnection.delegate(
-      stakeAccountAddress,
+    let stakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(owner);
+    stakeAccountCheckpointsAddress = await stakeConnection.delegate(
+      stakeAccountCheckpointsAddress,
       undefined,
       WHTokenBalance.fromString("10"),
     );
 
-    const stakeAccountAddress2 = await user2StakeConnection.delegate(
+    const user2stakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
       undefined,
       undefined,
       WHTokenBalance.fromString("10"),
     );
 
     await stakeConnection.delegate(
-      stakeAccountAddress,
-      stakeAccountAddress2,
+      stakeAccountCheckpointsAddress,
+      user2stakeAccountCheckpointsAddress,
       WHTokenBalance.fromString("10"),
     );
 
-    delegate = await stakeConnection.delegates(stakeAccountAddress);
-    assert.equal(delegate.toBase58(), stakeAccountAddress2.toBase58());
+    delegate = await stakeConnection.delegates(stakeAccountCheckpointsAddress);
+    assert.equal(delegate.toBase58(), user2stakeAccountCheckpointsAddress.toBase58());
   });
 
   it("withdrawTokens", async () => {
-    let stakeAccountAddress =
-      await stakeConnection.getMainAccountAddress(owner);
+    let stakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(owner);
     let stakeAccount =
-      await stakeConnection.loadStakeAccount(stakeAccountAddress);
+      await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
       "320000000", // 320 * 10**6
     );
 
-    stakeAccountAddress = await stakeConnection.delegate(
-      stakeAccountAddress,
+    stakeAccountCheckpointsAddress = await stakeConnection.delegate(
+      stakeAccountCheckpointsAddress,
       undefined,
       WHTokenBalance.fromString("100"),
     );
 
-    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
+    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
       "420000000", // 420 * 10**6
@@ -404,7 +404,7 @@ describe("api", async () => {
       WHTokenBalance.fromString("50"),
     );
 
-    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountAddress);
+    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
       "370000000", // 370 * 10**6
@@ -412,11 +412,11 @@ describe("api", async () => {
   });
 
   it("castVote", async () => {
-    let stakeAccountAddress =
-      await user2StakeConnection.getMainAccountAddress(user2);
+    let stakeAccountCheckpointsAddress =
+      await user2StakeConnection.getStakeAccountCheckpointsAddress(user2);
 
-    stakeAccountAddress = await user2StakeConnection.delegate(
-      stakeAccountAddress,
+    stakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
+      stakeAccountCheckpointsAddress,
       undefined,
       WHTokenBalance.fromString("150"),
     );
@@ -448,28 +448,28 @@ describe("api", async () => {
     );
 
     await user2StakeConnection.delegate(
-      stakeAccountAddress,
+      stakeAccountCheckpointsAddress,
       undefined,
       WHTokenBalance.fromString("200"),
     );
 
     await user2StakeConnection.castVote(
       proposalIdInput,
-      stakeAccountAddress,
+      stakeAccountCheckpointsAddress,
       new BN(10),
       new BN(20),
       new BN(12),
     );
     await user2StakeConnection.castVote(
       proposalIdInput,
-      stakeAccountAddress,
+      stakeAccountCheckpointsAddress,
       new BN(10),
       new BN(10),
       new BN(0),
     );
     await user2StakeConnection.castVote(
       proposalIdInput,
-      stakeAccountAddress,
+      stakeAccountCheckpointsAddress,
       new BN(0),
       new BN(7),
       new BN(10),

@@ -8,7 +8,7 @@ import { USER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 
 async function main() {
   try {
-    const stakeAccountAddress = new PublicKey(
+    const stakeAccountCheckpointsAddress = new PublicKey(
       // stakeAccountSecret.publicKey generated in  3_create_stake_account.ts
       "EHbjaCjypw3HAZMWskLhX1KtmVUDmNFrijPcBtfqH8S3",
     );
@@ -33,7 +33,7 @@ async function main() {
     );
 
     await stakeConnection.delegate(
-      stakeAccountAddress,
+      stakeAccountCheckpointsAddress,
       delegateeStakeAccountAddress,
       WHTokenBalance.fromString("100"),
     );

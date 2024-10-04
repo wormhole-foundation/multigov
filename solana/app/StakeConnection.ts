@@ -163,8 +163,8 @@ export class StakeConnection {
     return this.provider.wallet.publicKey;
   }
 
-  /** Gets the user's stake account address with the most tokens or undefined if it doesn't exist */
-  public async getMainAccountAddress(
+  /** Gets the user's stake account CheckpointData address or undefined if it doesn't exist */
+  public async getStakeAccountCheckpointsAddress(
     user: PublicKey,
   ): Promise<PublicKey | undefined> {
     let checkpointDataAccountPublicKey = PublicKey.findProgramAddressSync(
@@ -175,10 +175,10 @@ export class StakeConnection {
       this.program.programId,
     )[0];
 
-    const account = await this.program.account.checkpointData.fetchNullable(
+    const accountData = await this.program.account.checkpointData.fetchNullable(
       checkpointDataAccountPublicKey,
     );
-    return account !== null ? checkpointDataAccountPublicKey : undefined;
+    return accountData !== null ? checkpointDataAccountPublicKey : undefined;
   }
 
   public async getStakeMetadataAddress(
@@ -627,7 +627,7 @@ export class StakeConnection {
       );
     }
 
-    let currentDelegateStakeAccountAddress = await this.delegates(
+    let currentDelegateStakeAccountCheckpointsAddress = await this.delegates(
       stakeAccount.address,
     );
 
@@ -636,7 +636,7 @@ export class StakeConnection {
         .withdrawTokens(amount.toBN())
         .accounts({
           currentDelegateStakeAccountCheckpoints:
-            currentDelegateStakeAccountAddress,
+            currentDelegateStakeAccountCheckpointsAddress,
           stakeAccountCheckpoints: stakeAccount.address,
           destination: toAccount,
         })

@@ -29,13 +29,13 @@ async function main() {
     );
 
     const user = provider.wallet.publicKey;
-    const stakeAccountAddress =
-      await stakeConnection.getMainAccountAddress(user);
-    console.log(stakeAccountAddress);
+    const stakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(user);
+    console.log(stakeAccountCheckpointsAddress);
 
     await stakeConnection.delegate(
-      stakeAccountAddress,
-      stakeAccountAddress,
+      stakeAccountCheckpointsAddress,
+      stakeAccountCheckpointsAddress,
       WHTokenBalance.fromString("100"),
     );
   } catch (err) {

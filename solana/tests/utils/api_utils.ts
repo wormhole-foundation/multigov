@@ -24,10 +24,10 @@ export async function assertBalanceMatches(
   owner: PublicKey,
   expected: WHTokenBalance,
 ) {
-  const stakeAccountAddress =
-    await stakeConnection.getMainAccountAddress(owner);
+  const stakeAccountCheckpointsAddress =
+    await stakeConnection.getStakeAccountCheckpointsAddress(owner);
   let stakeAccount =
-    await stakeConnection.loadStakeAccount(stakeAccountAddress);
+    await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
   const balanceSummary = stakeAccount.getBalanceSummary();
   assert.equal(balanceSummary.balance.toString(), expected.toString());
 }

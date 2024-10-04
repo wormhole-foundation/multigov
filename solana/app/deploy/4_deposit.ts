@@ -13,7 +13,7 @@ async function main() {
   try {
     const DEBUG = true;
 
-    const stakeAccountAddress = new PublicKey(
+    const stakeAccountCheckpointsAddress = new PublicKey(
       // stakeAccountSecret.publicKey generated in  3_create_stake_account.ts
       "6TA6RXAuzeo58nFvtLkq128EyGEb96kHuHYprfME7dGM",
     );
@@ -40,7 +40,7 @@ async function main() {
     const toAccount = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-        stakeAccountAddress.toBuffer(),
+        stakeAccountCheckpointsAddress.toBuffer(),
       ],
       program.programId,
     )[0];
