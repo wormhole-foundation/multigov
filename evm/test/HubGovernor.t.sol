@@ -37,7 +37,9 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
-    extender = new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(timelock), MINIMUM_VOTE_EXTENSION);
+    extender = new HubProposalExtender(
+      initialOwner, VOTE_TIME_EXTENSION, address(timelock), initialOwner, MINIMUM_VOTE_EXTENSION
+    );
 
     hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
 
@@ -66,7 +68,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     vm.prank(address(timelock));
     hubVotePool.setGovernor(address(governor));
 
-    vm.prank(address(timelock));
+    vm.prank(initialOwner);
     extender.initialize(payable(governor));
   }
 
@@ -130,12 +132,13 @@ contract Constructor is HubGovernorTest {
     uint48 _initialVotingDelay,
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
-    uint208 _initialQuorum
+    uint208 _initialQuorum,
+    address _deployer
   ) public {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_timelock != address(0));
     HubProposalExtender _voteExtender =
-      new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(_timelock), MINIMUM_VOTE_EXTENSION);
+      new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(_timelock), _deployer, MINIMUM_VOTE_EXTENSION);
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
@@ -160,6 +163,7 @@ contract Constructor is HubGovernorTest {
     assertEq(_governor.votingPeriod(), _initialVotingPeriod);
     assertEq(_governor.proposalThreshold(), _initialProposalThreshold);
     assertEq(address(_governor.HUB_PROPOSAL_EXTENDER()), address(_voteExtender));
+    assertEq(_voteExtender.DEPLOYER(), _deployer);
     assertNotEq(address(_governor.hubVotePool(uint96(block.timestamp))), address(0));
   }
 
@@ -172,13 +176,15 @@ contract Constructor is HubGovernorTest {
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
     address _voteExtender,
-    address _extenderOwner
+    address _extenderOwner,
+    address _deployer
   ) public {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_extenderOwner != address(0) && _timelock != address(0));
     vm.assume(_extenderOwner != address(_timelock));
-    HubProposalExtender _voteExtender =
-      new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(_extenderOwner), MINIMUM_VOTE_EXTENSION);
+    HubProposalExtender _voteExtender = new HubProposalExtender(
+      initialOwner, VOTE_TIME_EXTENSION, address(_extenderOwner), _deployer, MINIMUM_VOTE_EXTENSION
+    );
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,

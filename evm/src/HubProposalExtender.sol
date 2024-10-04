@@ -21,6 +21,9 @@ contract HubProposalExtender is Ownable, IVoteExtender {
   /// @notice The address of the trusted actor able to extend proposals.
   address public voteExtenderAdmin;
 
+  /// @notice The deployer of the hub vote extender.
+  address public immutable DEPLOYER;
+
   /// @notice The lower limit for extension duration.
   uint48 public immutable MINIMUM_EXTENSION_DURATION;
 
@@ -51,23 +54,31 @@ contract HubProposalExtender is Ownable, IVoteExtender {
   /// @notice Thrown when the extension duration is invalid.
   error InvalidExtensionDuration();
 
+  /// @notice Thrown when unauthorized address initializes this contract.
+  error UnauthorizedInitialize(address);
+
   /// @param _voteExtenderAdmin Address of the trusted actor able to extend proposals.
   /// @param _extensionDuration Amount of time for which target proposals will be extended.
   /// @param _owner Owner of the contract.
   /// @param _minimumExtensionDuration Lower limit for extension duration.
-  constructor(address _voteExtenderAdmin, uint48 _extensionDuration, address _owner, uint48 _minimumExtensionDuration)
-    Ownable(_owner)
-  {
+  constructor(
+    address _voteExtenderAdmin,
+    uint48 _extensionDuration,
+    address _owner,
+    address _deployer,
+    uint48 _minimumExtensionDuration
+  ) Ownable(_owner) {
     _setExtensionDuration(_extensionDuration);
     _setVoteExtenderAdmin(_voteExtenderAdmin);
     MINIMUM_EXTENSION_DURATION = _minimumExtensionDuration;
+    DEPLOYER = _deployer;
   }
 
   /// @notice Initializes the contract with the governor address.
   /// @param _governor Address of the hub governor.
   function initialize(address payable _governor) external {
     if (initialized) revert AlreadyInitialized();
-    _checkOwner();
+    if (msg.sender != DEPLOYER) revert UnauthorizedInitialize(msg.sender);
     initialized = true;
     governor = HubGovernor(_governor);
   }
