@@ -125,7 +125,7 @@ contract Initialize is HubProposalExtenderTest {
     address _caller,
     address _owner
   ) public {
-    vm.assume(_caller != _owner && _owner != address(0));
+    vm.assume(_caller != initialExtenderOwner && _owner != address(0));
     hubExtender = new HubProposalExtenderHarness(
       _whitelistedVoteExtender,
       _extensionDuration,
