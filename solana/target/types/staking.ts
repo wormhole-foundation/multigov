@@ -2902,63 +2902,48 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "tooManyQueryResponses",
-      "msg": "Too many query responses"
+      "name": "failedToParseResponse",
+      "msg": "Failed to parse response"
     },
     {
       "code": 6001,
-      "name": "senderChainMismatch",
-      "msg": "Sender chain mismatch"
+      "name": "writeAuthorityMismatch",
+      "msg": "Write authority mismatch"
     },
     {
       "code": 6002,
-      "name": "tooManyEthCallResults",
-      "msg": "Too many eth call results"
+      "name": "guardianSetExpired",
+      "msg": "Guardian set expired"
     },
     {
       "code": 6003,
-      "name": "invalidDataLength",
-      "msg": "Invalid data length"
+      "name": "invalidMessageHash",
+      "msg": "Invalid message hash"
     },
     {
       "code": 6004,
-      "name": "errorOfContractAddressParsing",
-      "msg": "Error of contract_address parsing"
+      "name": "noQuorum",
+      "msg": "No quorum"
     },
     {
       "code": 6005,
-      "name": "errorOfProposalIdParsing",
-      "msg": "Error of proposal_id parsing"
+      "name": "invalidGuardianIndexNonIncreasing",
+      "msg": "Invalid guardian index non increasing"
     },
     {
       "code": 6006,
-      "name": "errorOfVoteStartParsing",
-      "msg": "Error of vote_start parsing"
+      "name": "invalidGuardianIndexOutOfRange",
+      "msg": "Invalid guardian index out of range"
     },
     {
       "code": 6007,
-      "name": "invalidHubProposalMetadataContract",
-      "msg": "Invalid hub proposal metadata contract"
+      "name": "invalidSignature",
+      "msg": "Invalid signature"
     },
     {
       "code": 6008,
-      "name": "invalidProposalId",
-      "msg": "Invalid proposal_id"
-    },
-    {
-      "code": 6009,
-      "name": "nonFinalizedBlock",
-      "msg": "Non-finalized block"
-    },
-    {
-      "code": 6010,
-      "name": "invalidChainSpecificQuery",
-      "msg": "Invalid ChainSpecificQuery"
-    },
-    {
-      "code": 6011,
-      "name": "invalidChainSpecificResponse",
-      "msg": "Invalid ChainSpecificResponse"
+      "name": "invalidGuardianKeyRecovery",
+      "msg": "Invalid guardian key recovery"
     }
   ],
   "types": [

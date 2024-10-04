@@ -95,7 +95,6 @@ export async function readCheckpoints(
   }
 
   const data = accountInfo.data;
-
   const discriminatorLength = 8;
   const headerSize = discriminatorLength + 32 + 8;
 

@@ -1,4 +1,3 @@
-use crate::error::ErrorCode;
 use crate::state::*;
 use anchor_lang::{
     prelude::*,
@@ -12,6 +11,7 @@ use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 
 use crate::{
     error::QueriesSolanaVerifyError,
+    error::ErrorCode,
     state::{GuardianSignatures, WormholeGuardianSet},
 };
 

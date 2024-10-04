@@ -393,25 +393,39 @@ export class StakeConnection {
   }
 
   public async delegate_with_vest(
-    stakeAccount: PublicKey,
-    delegateeStakeAccount: PublicKey,
+    delegatee: PublicKey,
     amount: WHTokenBalance,
     include_vest: boolean,
   ): Promise<PublicKey> {
-    let currentStakeAccount: PublicKey;
-    let currentDelegateStakeAccount: PublicKey;
+    let stakeAccountCheckpointsAddress =
+      await this.getStakeAccountCheckpointsAddress(this.userPublicKey());
+
     let vestingBalanceAccount: PublicKey = null;
+    let currentDelegateStakeAccountCheckpointsAddress: PublicKey;
     const instructions: TransactionInstruction[] = [];
 
-    currentStakeAccount = stakeAccount;
-    currentDelegateStakeAccount = await this.delegates(currentStakeAccount);
-    if (currentDelegateStakeAccount.equals(PublicKey.default)) {
-      currentDelegateStakeAccount = stakeAccount;
+    if (!stakeAccountCheckpointsAddress) {
+      stakeAccountCheckpointsAddress = await this.withCreateAccount(
+        instructions,
+        this.userPublicKey(),
+      );
+      currentDelegateStakeAccountCheckpointsAddress = stakeAccountCheckpointsAddress;
+    } else {
+      currentDelegateStakeAccountCheckpointsAddress = await this.delegates(stakeAccountCheckpointsAddress);
+    }
+
+    let delegateeStakeAccountCheckpointsAddress: PublicKey;
+    if (delegatee) {
+      delegateeStakeAccountCheckpointsAddress = await this.getStakeAccountCheckpointsAddress(delegatee);
+    }
+
+    if (!delegateeStakeAccountCheckpointsAddress) {
+      delegateeStakeAccountCheckpointsAddress = currentDelegateStakeAccountCheckpointsAddress;
     }
 
     if (amount.toBN().gt(new BN(0))) {
       instructions.push(
-        await this.buildTransferInstruction(currentStakeAccount, amount.toBN()),
+        await this.buildTransferInstruction(stakeAccountCheckpointsAddress, amount.toBN()),
       );
     }
 
@@ -427,11 +441,11 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .delegate(delegateeStakeAccount)
+        .delegate(delegateeStakeAccountCheckpointsAddress)
         .accounts({
-          currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccount,
-          delegateeStakeAccountCheckpoints: delegateeStakeAccount,
-          stakeAccountCheckpoints: currentStakeAccount,
+          currentDelegateStakeAccountCheckpoints: currentDelegateStakeAccountCheckpointsAddress,
+          delegateeStakeAccountCheckpoints: delegateeStakeAccountCheckpointsAddress,
+          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
           vestingBalance: vestingBalanceAccount,
           mint: this.config.whTokenMint,
         })
@@ -439,8 +453,7 @@ export class StakeConnection {
     );
 
     await this.sendAndConfirmAsVersionedTransaction(instructions);
-
-    return currentStakeAccount;
+    return stakeAccountCheckpointsAddress;
   }
 
   public async delegate(

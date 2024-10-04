@@ -330,7 +330,7 @@ describe("api", async () => {
     assert.equal(await stakeConnection.isVotingSafe(proposalIdInput), true);
   });
 
-  it("delegate", async () => {
+  it("delegate2", async () => {
     await stakeConnection.delegate(
       owner,
       WHTokenBalance.fromString("100"),

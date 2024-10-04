@@ -404,13 +404,8 @@ describe("vesting", () => {
   });
 
   it("should successfully stake vest", async () => {
-    let stakeAccountCheckpointsAddress = await vesterStakeConnection.getStakeAccountCheckpointsAddress(
+    let stakeAccountCheckpointsAddress = await vesterStakeConnection.delegate_with_vest(
       vesterStakeConnection.userPublicKey(),
-    );
-
-    await vesterStakeConnection.delegate_with_vest(
-      stakeAccountCheckpointsAddress,
-      stakeAccountCheckpointsAddress,
       WHTokenBalance.fromString("0"),
       true,
     );
