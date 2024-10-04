@@ -176,14 +176,14 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
     uint256 _proposalId,
     uint64 _abstainVotes,
     string memory blockId,
-    bytes32 finality
+    bytes32 _finality
   ) public {
-    vm.assume(finality != bytes9("finalized"));
+    vm.assume(_finality != bytes9("finalized"));
     vm.prank(address(timelock));
     hubVotePool.registerSpoke(MAINNET_CHAIN_ID, toWormholeFormat(GOVERNANCE_CONTRACT));
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes(blockId), // random blockId: a hash of the block number
-      abi.encodePacked(bytes9(finality)), // finality
+      abi.encodePacked(bytes9(_finality)), // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         GOVERNANCE_CONTRACT, abi.encodeWithSignature("proposalVotes(uint256)", _proposalId)
@@ -241,14 +241,14 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
     uint256 _proposalId,
     uint64 _abstainVotes,
     string memory blockId,
-    bytes32 finality
+    bytes32 _finality
   ) public {
-    vm.assume(finality != bytes9("finalized"));
+    vm.assume(_finality != bytes9("finalized"));
     vm.prank(address(timelock));
     hubVotePool.registerSpoke(MAINNET_CHAIN_ID, toWormholeFormat(GOVERNANCE_CONTRACT));
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes(blockId), // random blockId: a hash of the block number
-      abi.encodePacked(finality), // finality
+      abi.encodePacked(_finality), // finality
       1, // numCallData
       QueryTest.buildEthCallDataBytes(
         GOVERNANCE_CONTRACT, abi.encodeWithSignature("proposalVotes(uint256)", _proposalId)
@@ -297,7 +297,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
 
     IWormhole.Signature[] memory signatures = _getSignatures(_resp);
     ParsedQueryResponse memory parsedResp = hubCrossChainEvmVote.parseAndVerifyQueryResponse(_resp, signatures);
-    vm.expectRevert(abi.encodeWithSelector(BytesParsing.LengthMismatch.selector, finality.length, 9));
+    vm.expectRevert(abi.encodeWithSelector(BytesParsing.LengthMismatch.selector, _finality.length, 9));
     hubCrossChainEvmVote.decode(parsedResp.responses[0], IGovernor(address(governor)));
   }
 }
