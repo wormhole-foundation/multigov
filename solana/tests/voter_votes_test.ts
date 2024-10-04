@@ -38,11 +38,7 @@ describe("voter_votes_test", async () => {
   });
 
   it("delegate votes appear after delegation", async () => {
-    let stakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(owner);
-
-    stakeAccountCheckpointsAddress = await stakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
+    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
       undefined,
       WHTokenBalance.fromString("50"),
     );
@@ -55,8 +51,7 @@ describe("voter_votes_test", async () => {
     );
 
     await stakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
-      stakeAccountCheckpointsAddress,
+      owner,
       WHTokenBalance.fromString("15"),
     );
 

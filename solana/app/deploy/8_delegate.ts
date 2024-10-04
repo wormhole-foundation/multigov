@@ -4,20 +4,10 @@ import { PublicKey, Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { WHTokenBalance } from "../whTokenBalance";
 import { STAKING_ADDRESS } from "../constants";
-import { USER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { USER_AUTHORITY_KEYPAIR, USER2_AUTHORITY_PATH, RPC_NODE } from "./devnet";
 
 async function main() {
   try {
-    const stakeAccountCheckpointsAddress = new PublicKey(
-      // stakeAccountSecret.publicKey generated in  3_create_stake_account.ts
-      "EHbjaCjypw3HAZMWskLhX1KtmVUDmNFrijPcBtfqH8S3",
-    );
-
-    const delegateeStakeAccountAddress = new PublicKey(
-      // stakeAccountSecret.publicKey generated in  3_create_stake_account.ts
-      "BdkvB5tRjYZMxbVPf7Xai6i5RPP6qXT4Zm7tmpHCmHaC",
-    );
-
     const connection = new Connection(RPC_NODE);
 
     const provider = new AnchorProvider(
@@ -33,8 +23,29 @@ async function main() {
     );
 
     await stakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
-      delegateeStakeAccountAddress,
+      undefined,
+      WHTokenBalance.fromString("100"),
+    );
+
+    const user2Provider = new AnchorProvider(
+      connection,
+      new Wallet(USER2_AUTHORITY_PATH),
+      {},
+    );
+
+    const user2StakeConnection = await StakeConnection.createStakeConnection(
+      connection,
+      user2Provider.wallet as Wallet,
+      STAKING_ADDRESS,
+    );
+
+    await user2StakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("100"),
+    );
+
+    await stakeConnection.delegate(
+      user2StakeConnection.userPublicKey(),
       WHTokenBalance.fromString("100"),
     );
   } catch (err) {

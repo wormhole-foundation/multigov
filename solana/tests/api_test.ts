@@ -331,45 +331,35 @@ describe("api", async () => {
   });
 
   it("delegate", async () => {
-    let stakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(owner);
-    stakeAccountCheckpointsAddress = await stakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
-      stakeAccountCheckpointsAddress,
+    await stakeConnection.delegate(
+      owner,
       WHTokenBalance.fromString("100"),
     );
 
     await stakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
-      stakeAccountCheckpointsAddress,
+      owner,
       WHTokenBalance.fromString("100"),
     );
 
     await stakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
-      stakeAccountCheckpointsAddress,
+      owner,
       WHTokenBalance.fromString("100"),
     );
   });
 
   it("should change delegate account correctly", async () => {
-    let stakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(owner);
-    stakeAccountCheckpointsAddress = await stakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
+    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
       undefined,
       WHTokenBalance.fromString("10"),
     );
 
-    const user2stakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
-      undefined,
+    let user2stakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
       undefined,
       WHTokenBalance.fromString("10"),
     );
 
     await stakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
-      user2stakeAccountCheckpointsAddress,
+      user2,
       WHTokenBalance.fromString("10"),
     );
 
@@ -387,8 +377,7 @@ describe("api", async () => {
       "320000000", // 320 * 10**6
     );
 
-    stakeAccountCheckpointsAddress = await stakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
+    await stakeConnection.delegate(
       undefined,
       WHTokenBalance.fromString("100"),
     );
@@ -412,11 +401,7 @@ describe("api", async () => {
   });
 
   it("castVote", async () => {
-    let stakeAccountCheckpointsAddress =
-      await user2StakeConnection.getStakeAccountCheckpointsAddress(user2);
-
-    stakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
+    let user2StakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
       undefined,
       WHTokenBalance.fromString("150"),
     );
@@ -448,28 +433,27 @@ describe("api", async () => {
     );
 
     await user2StakeConnection.delegate(
-      stakeAccountCheckpointsAddress,
       undefined,
       WHTokenBalance.fromString("200"),
     );
 
     await user2StakeConnection.castVote(
       proposalIdInput,
-      stakeAccountCheckpointsAddress,
+      user2StakeAccountCheckpointsAddress,
       new BN(10),
       new BN(20),
       new BN(12),
     );
     await user2StakeConnection.castVote(
       proposalIdInput,
-      stakeAccountCheckpointsAddress,
+      user2StakeAccountCheckpointsAddress,
       new BN(10),
       new BN(10),
       new BN(0),
     );
     await user2StakeConnection.castVote(
       proposalIdInput,
-      stakeAccountCheckpointsAddress,
+      user2StakeAccountCheckpointsAddress,
       new BN(0),
       new BN(7),
       new BN(10),

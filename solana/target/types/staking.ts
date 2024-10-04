@@ -2902,48 +2902,63 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "failedToParseResponse",
-      "msg": "Failed to parse response"
+      "name": "tooManyQueryResponses",
+      "msg": "Too many query responses"
     },
     {
       "code": 6001,
-      "name": "writeAuthorityMismatch",
-      "msg": "Write authority mismatch"
+      "name": "senderChainMismatch",
+      "msg": "Sender chain mismatch"
     },
     {
       "code": 6002,
-      "name": "guardianSetExpired",
-      "msg": "Guardian set expired"
+      "name": "tooManyEthCallResults",
+      "msg": "Too many eth call results"
     },
     {
       "code": 6003,
-      "name": "invalidMessageHash",
-      "msg": "Invalid message hash"
+      "name": "invalidDataLength",
+      "msg": "Invalid data length"
     },
     {
       "code": 6004,
-      "name": "noQuorum",
-      "msg": "No quorum"
+      "name": "errorOfContractAddressParsing",
+      "msg": "Error of contract_address parsing"
     },
     {
       "code": 6005,
-      "name": "invalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
+      "name": "errorOfProposalIdParsing",
+      "msg": "Error of proposal_id parsing"
     },
     {
       "code": 6006,
-      "name": "invalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
+      "name": "errorOfVoteStartParsing",
+      "msg": "Error of vote_start parsing"
     },
     {
       "code": 6007,
-      "name": "invalidSignature",
-      "msg": "Invalid signature"
+      "name": "invalidHubProposalMetadataContract",
+      "msg": "Invalid hub proposal metadata contract"
     },
     {
       "code": 6008,
-      "name": "invalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "invalidProposalId",
+      "msg": "Invalid proposal_id"
+    },
+    {
+      "code": 6009,
+      "name": "nonFinalizedBlock",
+      "msg": "Non-finalized block"
+    },
+    {
+      "code": 6010,
+      "name": "invalidChainSpecificQuery",
+      "msg": "Invalid ChainSpecificQuery"
+    },
+    {
+      "code": 6011,
+      "name": "invalidChainSpecificResponse",
+      "msg": "Invalid ChainSpecificResponse"
     }
   ],
   "types": [
