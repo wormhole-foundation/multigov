@@ -60,6 +60,7 @@ contract HubProposalExtender is Ownable, IVoteExtender {
   /// @param _voteExtenderAdmin Address of the trusted actor able to extend proposals.
   /// @param _extensionDuration Amount of time for which target proposals will be extended.
   /// @param _owner Owner of the contract.
+  /// @param _deployer The deployer of the contract.
   /// @param _minimumExtensionDuration Lower limit for extension duration.
   constructor(
     address _voteExtenderAdmin,
