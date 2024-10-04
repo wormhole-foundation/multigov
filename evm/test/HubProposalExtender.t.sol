@@ -111,21 +111,21 @@ contract Initialize is HubProposalExtenderTest {
     address _governor,
     uint48 _minimumExtensionDuration,
     uint32 _safeWindow,
-    uint48 _minimumDecisionWindow
+    uint48 _minimumDecisionWindow,
+    address _caller,
+    address _owner
   ) public {
+    vm.assume(_caller != _owner);
     hubExtender = new HubProposalExtenderHarness(
       _whitelistedVoteExtender,
       _extensionDuration,
-      initialOwner,
+      _owner,
       _minimumExtensionDuration,
       _safeWindow,
       _minimumDecisionWindow
     );
-    vm.prank(initialOwner);
-    hubExtender.initialize(payable(_governor));
-
-    vm.expectRevert(HubProposalExtender.AlreadyInitialized.selector);
-    vm.prank(initialOwner);
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _caller));
+    vm.prank(_caller);
     hubExtender.initialize(payable(_governor));
   }
 }
