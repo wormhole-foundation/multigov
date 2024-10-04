@@ -39,7 +39,7 @@ contract HubVotePool is QueryResponse, Ownable {
   event HubGovernorUpdated(address oldGovernor, address newGovernor);
 
   /// @notice Emitted when a new query type is registered.
-  event QueryTypeRegistered(uint16 indexed targetChain, address oldQueryTypeImpl, address newQueryTypeImpl);
+  event QueryTypeRegistered(uint8 indexed queryType, address oldQueryTypeImpl, address newQueryTypeImpl);
 
   /// @notice Emitted when a vote is recorded from a registered spoke vote aggregator.
   event SpokeVoteCast(
