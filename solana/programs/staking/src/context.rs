@@ -85,7 +85,9 @@ pub struct Delegate<'info> {
     #[account(
         mut,
         seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
-        bump = stake_account_metadata.metadata_bump
+        bump = stake_account_metadata.metadata_bump,
+        constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
+            @ ErrorCode::InvalidCurrentDelegate
     )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA

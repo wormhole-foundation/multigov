@@ -367,6 +367,43 @@ describe("api", async () => {
     assert.equal(delegate.toBase58(), user2stakeAccountCheckpointsAddress.toBase58());
   });
 
+  it("should fail when delegating to an invalid current delegate", async () => {
+    await user2StakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("10"),
+    );
+
+    let stakeAccountAddress = await stakeConnection.delegate(
+      user2,
+      WHTokenBalance.fromString("10"),
+    );
+
+    const user3StakeAccountAddress = await user3StakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("10"),
+    );
+
+    try {
+      await stakeConnection.program.methods
+        .delegate(user3StakeAccountAddress)
+        .accounts({
+          currentDelegateStakeAccountCheckpoints: stakeAccountAddress, // Invalid delegate
+          delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
+          stakeAccountCheckpoints: stakeAccountAddress,
+          vestingBalance: null,
+          mint: stakeConnection.config.whTokenMint,
+        })
+        .rpc();
+
+      assert.fail("Expected an error but none was thrown");
+    } catch (e) {
+
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidCurrentDelegate",
+      );
+    }
+  });
+
   it("withdrawTokens", async () => {
     let stakeAccountCheckpointsAddress =
       await stakeConnection.getStakeAccountCheckpointsAddress(owner);
@@ -374,7 +411,7 @@ describe("api", async () => {
       await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "320000000", // 320 * 10**6
+      "330000000", // 330 * 10**6
     );
 
     await stakeConnection.delegate(
@@ -385,7 +422,7 @@ describe("api", async () => {
     stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "420000000", // 420 * 10**6
+      "430000000", // 430 * 10**6
     );
 
     await stakeConnection.withdrawTokens(
@@ -396,7 +433,7 @@ describe("api", async () => {
     stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
     assert.equal(
       stakeAccount.tokenBalance.toString(),
-      "370000000", // 370 * 10**6
+      "380000000", // 380 * 10**6
     );
   });
 
