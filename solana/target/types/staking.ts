@@ -2546,6 +2546,7 @@ export type Staking = {
         },
         {
           "name": "stakeAccountMetadata",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2902,48 +2903,33 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "failedToParseResponse",
-      "msg": "Failed to parse response"
+      "name": "notFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "writeAuthorityMismatch",
-      "msg": "Write authority mismatch"
+      "name": "notInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "guardianSetExpired",
-      "msg": "Guardian set expired"
+      "name": "vestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "invalidMessageHash",
-      "msg": "Invalid message hash"
+      "name": "vestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "noQuorum",
-      "msg": "No quorum"
+      "name": "overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "invalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
-    },
-    {
-      "code": 6006,
-      "name": "invalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
-    },
-    {
-      "code": 6007,
-      "name": "invalidSignature",
-      "msg": "Invalid signature"
-    },
-    {
-      "code": 6008,
-      "name": "invalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "underflow",
+      "msg": "Integer underflow"
     }
   ],
   "types": [

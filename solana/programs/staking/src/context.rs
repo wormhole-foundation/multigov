@@ -429,8 +429,14 @@ pub struct WithdrawTokens<'info> {
     pub destination: Account<'info, TokenAccount>,
     // Stake program accounts:
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-    #[account(seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump = stake_account_metadata.metadata_bump)]
-    pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
+    #[account(
+        mut,
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        bump = stake_account_metadata.metadata_bump,
+        constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
+            @ ErrorCode::InvalidCurrentDelegate
+    )]
+    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     #[account(
         mut,
         seeds = [CUSTODY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],

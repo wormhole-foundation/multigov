@@ -9,6 +9,9 @@ import {
   makeDefaultConfig,
   newUserStakeConnection,
 } from "./utils/before";
+import {
+  getAssociatedTokenAddress,
+} from "@solana/spl-token";
 import BN from "bn.js";
 import path from "path";
 import { expectFailApi } from "./utils/utils";
@@ -367,13 +370,13 @@ describe("api", async () => {
     assert.equal(delegate.toBase58(), user2stakeAccountCheckpointsAddress.toBase58());
   });
 
-  it("should fail when delegating to an invalid current delegate", async () => {
+  it("should fail when delegating with an invalid current delegate", async () => {
     await user2StakeConnection.delegate(
       undefined,
       WHTokenBalance.fromString("10"),
     );
 
-    let stakeAccountAddress = await stakeConnection.delegate(
+    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
       user2,
       WHTokenBalance.fromString("10"),
     );
@@ -387,9 +390,9 @@ describe("api", async () => {
       await stakeConnection.program.methods
         .delegate(user3StakeAccountAddress)
         .accounts({
-          currentDelegateStakeAccountCheckpoints: stakeAccountAddress, // Invalid delegate
+          currentDelegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress, // Invalid delegate
           delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
-          stakeAccountCheckpoints: stakeAccountAddress,
+          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
           vestingBalance: null,
           mint: stakeConnection.config.whTokenMint,
         })
@@ -397,7 +400,6 @@ describe("api", async () => {
 
       assert.fail("Expected an error but none was thrown");
     } catch (e) {
-
       assert(
         (e as AnchorError).error?.errorCode?.code === "InvalidCurrentDelegate",
       );
@@ -435,6 +437,41 @@ describe("api", async () => {
       stakeAccount.tokenBalance.toString(),
       "380000000", // 380 * 10**6
     );
+  });
+
+  it("should fail when withdrawal with an invalid current delegate", async () => {
+    await user2StakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("10"),
+    );
+
+    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
+      user2,
+      WHTokenBalance.fromString("10"),
+    );
+
+    const toAccount = await getAssociatedTokenAddress(
+      stakeConnection.config.whTokenMint,
+      owner,
+      true,
+    );
+
+    try {
+      await stakeConnection.program.methods
+        .withdrawTokens(WHTokenBalance.fromString("5").toBN())
+        .accounts({
+          currentDelegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress, // Invalid delegate
+          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          destination: toAccount,
+        })
+        .rpc();
+
+      assert.fail("Expected an error but none was thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidCurrentDelegate",
+      );
+    }
   });
 
   it("castVote", async () => {
