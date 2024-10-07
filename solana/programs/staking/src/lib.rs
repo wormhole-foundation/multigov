@@ -314,7 +314,7 @@ pub mod staking {
 
             // Initialize proposal_voters_weight_cast if it hasn't been initialized yet
             if proposal_voters_weight_cast.value == 0 {
-                proposal_voters_weight_cast.initialize(proposal_id, &ctx.accounts.payer.key());
+                proposal_voters_weight_cast.initialize(proposal_id, &ctx.accounts.owner.key());
             }
 
             require!(

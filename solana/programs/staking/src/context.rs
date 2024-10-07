@@ -120,7 +120,7 @@ pub struct Delegate<'info> {
 #[instruction(proposal_id: [u8; 32])]
 pub struct CastVote<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub owner: Signer<'info>,
 
     #[account(
         mut,
@@ -129,12 +129,12 @@ pub struct CastVote<'info> {
     )]
     pub proposal: Account<'info, proposal::ProposalData>,
 
-    #[account(mut)]
+    #[account(mut, has_one = owner)]
     pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
 
     #[account(
         init_if_needed,
-        payer = payer,
+        payer = owner,
         space = proposal_voters_weight_cast::ProposalVotersWeightCast::LEN,
         seeds = [b"proposal_voters_weight_cast", proposal.key().as_ref(), voter_checkpoints.key().as_ref()],
         bump

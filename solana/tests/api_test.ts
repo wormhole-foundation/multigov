@@ -541,4 +541,65 @@ describe("api", async () => {
     assert.equal(forVotes.toString(), "37");
     assert.equal(abstainVotes.toString(), "22");
   });
+
+  it("should fail when castVote with an invalid voter checkpoints", async () => {
+    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("150"),
+    );
+
+    let user2StakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("150"),
+    );
+
+    const proposalIdInput = crypto
+      .createHash("sha256")
+      .update("proposalId5")
+      .digest();
+    const voteStart = Math.floor(Date.now() / 1000);
+
+    const ethProposalResponseBytes = createProposalQueryResponseBytes(
+      proposalIdInput,
+      voteStart,
+    );
+    const signaturesKeypair = Keypair.generate();
+    const mock = new QueryProxyMock({});
+    const mockSignatures = mock.sign(ethProposalResponseBytes);
+    await user2StakeConnection.postSignatures(
+      mockSignatures,
+      signaturesKeypair,
+    );
+    const mockGuardianSetIndex = 5;
+
+    await user2StakeConnection.addProposal(
+      proposalIdInput,
+      ethProposalResponseBytes,
+      signaturesKeypair.publicKey,
+      mockGuardianSetIndex,
+    );
+
+    await user2StakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("200"),
+    );
+
+    const { proposalAccount } = await user2StakeConnection.fetchProposalAccount(proposalIdInput);
+
+    try {
+      await user2StakeConnection.program.methods
+        .castVote(Array.from(proposalIdInput), new BN(10), new BN(20), new BN(12))
+        .accountsPartial({
+          proposal: proposalAccount,
+          voterCheckpoints: stakeAccountCheckpointsAddress,
+        })
+        .rpc();
+
+      assert.fail("Expected an error but none was thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "ConstraintHasOne",
+      );
+    }
+  });
 });
