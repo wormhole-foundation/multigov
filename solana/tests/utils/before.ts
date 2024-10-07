@@ -62,11 +62,7 @@ export function readAnchorConfig(pathToAnchorToml: string): AnchorConfig {
 }
 
 export function getDummyAgreementHash(): number[] {
-  return Array.from({ length: 32 }, (_, i) => i);
-}
-
-export function getDummyAgreementHash2(): number[] {
-  return Array.from({ length: 32 }, (_, i) => 2);
+  return Array(32).fill(0);
 }
 
 function sleep(ms) {
@@ -281,13 +277,12 @@ export function makeDefaultConfig(
   pdaAuthority: PublicKey = PublicKey.unique(),
 ): GlobalConfig {
   return {
+    bump: 0,
     governanceAuthority: null,
     whTokenMint: whMint,
     freeze: true,
+    pdaAuthority: pdaAuthority,
     mockClockTime: new BN(10),
-    bump: 0,
-    pdaAuthority,
-    agreementHash: getDummyAgreementHash(),
   };
 }
 
