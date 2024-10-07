@@ -404,18 +404,21 @@ describe("vesting", () => {
   });
 
   it("should successfully stake vest", async () => {
-    let stakeAccountCheckpointsAddress = await vesterStakeConnection.delegate_with_vest(
-      vesterStakeConnection.userPublicKey(),
-      WHTokenBalance.fromString("0"),
-      true,
-    );
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.delegate_with_vest(
+        vesterStakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("0"),
+        true,
+      );
     let vesterStakeMetadata: StakeAccountMetadata =
       await vesterStakeConnection.fetchStakeAccountMetadata(
         stakeAccountCheckpointsAddress,
       );
 
     let vesterStakeCheckpoints: CheckpointAccount =
-      await vesterStakeConnection.fetchCheckpointAccount(stakeAccountCheckpointsAddress);
+      await vesterStakeConnection.fetchCheckpointAccount(
+        stakeAccountCheckpointsAddress,
+      );
     assert.equal(
       vesterStakeMetadata.recordedVestingBalance.toString(),
       "2674000000",
@@ -447,11 +450,14 @@ describe("vesting", () => {
   });
 
   it("should fail to claim without stakeAccountCheckpoints", async () => {
-    let stakeAccountCheckpointsAddress = await vesterStakeConnection.getStakeAccountCheckpointsAddress(
-      vesterStakeConnection.userPublicKey(),
-    );
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
     let stakeAccountMetadataAddress =
-      await vesterStakeConnection.getStakeMetadataAddress(stakeAccountCheckpointsAddress);
+      await vesterStakeConnection.getStakeMetadataAddress(
+        stakeAccountCheckpointsAddress,
+      );
     try {
       await stakeConnection.program.methods
         .claimVesting()
@@ -472,11 +478,14 @@ describe("vesting", () => {
   });
 
   it("should fail to claim with incorrect stakeAccountMetadata", async () => {
-    let incorrectStakeAccountCheckpointsAddress = await stakeConnection.getStakeAccountCheckpointsAddress(
-      stakeConnection.userPublicKey(),
-    );
+    let incorrectStakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(
+        stakeConnection.userPublicKey(),
+      );
     let incorrectStakeAccountMetadataAddress =
-      await stakeConnection.getStakeMetadataAddress(incorrectStakeAccountCheckpointsAddress);
+      await stakeConnection.getStakeMetadataAddress(
+        incorrectStakeAccountCheckpointsAddress,
+      );
     try {
       await stakeConnection.program.methods
         .claimVesting()
@@ -497,15 +506,19 @@ describe("vesting", () => {
   });
 
   it("should fail to claim with incorrect stakeAccountCheckpoints ", async () => {
-    let stakeAccountCheckpointsAddress = await vesterStakeConnection.getStakeAccountCheckpointsAddress(
-      vesterStakeConnection.userPublicKey(),
-    );
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
     let stakeAccountMetadataAddress =
-      await vesterStakeConnection.getStakeMetadataAddress(stakeAccountCheckpointsAddress);
+      await vesterStakeConnection.getStakeMetadataAddress(
+        stakeAccountCheckpointsAddress,
+      );
 
-    let incorrectStakeAccountCheckpointsAddress = await stakeConnection.getStakeAccountCheckpointsAddress(
-      stakeConnection.userPublicKey(),
-    );
+    let incorrectStakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(
+        stakeConnection.userPublicKey(),
+      );
     try {
       await stakeConnection.program.methods
         .claimVesting()
@@ -526,11 +539,14 @@ describe("vesting", () => {
   });
 
   it("should successfully claim staked vest", async () => {
-    let stakeAccountCheckpointsAddress = await vesterStakeConnection.getStakeAccountCheckpointsAddress(
-      vesterStakeConnection.userPublicKey(),
-    );
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
     let stakeAccountMetadataAddress =
-      await vesterStakeConnection.getStakeMetadataAddress(stakeAccountCheckpointsAddress);
+      await vesterStakeConnection.getStakeMetadataAddress(
+        stakeAccountCheckpointsAddress,
+      );
 
     await stakeConnection.program.methods
       .claimVesting()
@@ -550,7 +566,9 @@ describe("vesting", () => {
       );
 
     let vesterStakeCheckpoints: CheckpointAccount =
-      await vesterStakeConnection.fetchCheckpointAccount(stakeAccountCheckpointsAddress);
+      await vesterStakeConnection.fetchCheckpointAccount(
+        stakeAccountCheckpointsAddress,
+      );
 
     assert.equal(
       vesterStakeMetadata.recordedVestingBalance.toString(),

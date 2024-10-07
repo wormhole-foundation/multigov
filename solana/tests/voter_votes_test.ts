@@ -43,19 +43,19 @@ describe("voter_votes_test", async () => {
       WHTokenBalance.fromString("50"),
     );
 
-    let stakeAccount =
-      await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
+    let stakeAccount = await stakeConnection.loadStakeAccount(
+      stakeAccountCheckpointsAddress,
+    );
     assert.equal(
       stakeAccount.checkpointAccount.getLastCheckpoint().value.toString(),
       "50000000",
     );
 
-    await stakeConnection.delegate(
-      owner,
-      WHTokenBalance.fromString("15"),
-    );
+    await stakeConnection.delegate(owner, WHTokenBalance.fromString("15"));
 
-    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
+    stakeAccount = await stakeConnection.loadStakeAccount(
+      stakeAccountCheckpointsAddress,
+    );
     assert.equal(
       stakeAccount.checkpointAccount.getLastCheckpoint().value.toString(),
       "65000000",

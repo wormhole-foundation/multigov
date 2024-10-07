@@ -26,8 +26,9 @@ export async function assertBalanceMatches(
 ) {
   const stakeAccountCheckpointsAddress =
     await stakeConnection.getStakeAccountCheckpointsAddress(owner);
-  let stakeAccount =
-    await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
+  let stakeAccount = await stakeConnection.loadStakeAccount(
+    stakeAccountCheckpointsAddress,
+  );
   const balanceSummary = stakeAccount.getBalanceSummary();
   assert.equal(balanceSummary.balance.toString(), expected.toString());
 }

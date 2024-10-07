@@ -9,9 +9,7 @@ import {
   makeDefaultConfig,
   newUserStakeConnection,
 } from "./utils/before";
-import {
-  getAssociatedTokenAddress,
-} from "@solana/spl-token";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
 import BN from "bn.js";
 import path from "path";
 import { expectFailApi } from "./utils/utils";
@@ -168,108 +166,113 @@ describe("api", async () => {
     });
 
     it("should revert if query block is not finalized", async () => {
-        const proposalIdInput = crypto
-          .createHash("sha256")
-          .update("proposalId12")
-          .digest();
-        const voteStart = Math.floor(Date.now() / 1000);
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId12")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
 
-        // Create a correct query, but with an incorrect finality (not “finalized”)
-        const nonFinalizedEthProposalResponseBytes = createNonFinalizedProposalQueryResponseBytes(
+      // Create a correct query, but with an incorrect finality (not “finalized”)
+      const nonFinalizedEthProposalResponseBytes =
+        createNonFinalizedProposalQueryResponseBytes(
           proposalIdInput,
           voteStart,
         );
 
-        const signaturesKeypair = Keypair.generate();
-        const mock = new QueryProxyMock({});
-        const mockSignatures = mock.sign(nonFinalizedEthProposalResponseBytes);
-        await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
-        const mockGuardianSetIndex = 5;
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(nonFinalizedEthProposalResponseBytes);
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
 
-        try {
-          await stakeConnection.addProposal(
-            proposalIdInput,
-            nonFinalizedEthProposalResponseBytes,
-            signaturesKeypair.publicKey,
-            mockGuardianSetIndex,
-            true,
-          );
-          assert.fail("Expected error was not thrown");
-        } catch (e) {
-          assert(
-            (e as AnchorError).error?.errorCode?.code === "NonFinalizedBlock",
-          );
-        }
+      try {
+        await stakeConnection.addProposal(
+          proposalIdInput,
+          nonFinalizedEthProposalResponseBytes,
+          signaturesKeypair.publicKey,
+          mockGuardianSetIndex,
+          true,
+        );
+        assert.fail("Expected error was not thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code === "NonFinalizedBlock",
+        );
+      }
     });
 
     it("should revert if chain-specific query is invalid", async () => {
-        const proposalIdInput = crypto
-          .createHash("sha256")
-          .update("proposalId13")
-          .digest();
-        const voteStart = Math.floor(Date.now() / 1000);
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId13")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
 
-        // Create an invalid chain-specific query that does not match EthCallWithFinalityQueryRequest
-        const invalidQueryEthProposalResponseBytes = createProposalQueryResponseBytesWithInvalidChainSpecificQuery(
+      // Create an invalid chain-specific query that does not match EthCallWithFinalityQueryRequest
+      const invalidQueryEthProposalResponseBytes =
+        createProposalQueryResponseBytesWithInvalidChainSpecificQuery(
           proposalIdInput,
           voteStart,
         );
 
-        const signaturesKeypair = Keypair.generate();
-        const mock = new QueryProxyMock({});
-        const mockSignatures = mock.sign(invalidQueryEthProposalResponseBytes);
-        await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
-        const mockGuardianSetIndex = 5;
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(invalidQueryEthProposalResponseBytes);
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
 
-        try {
-          await stakeConnection.addProposal(
-            proposalIdInput,
-            invalidQueryEthProposalResponseBytes,
-            signaturesKeypair.publicKey,
-            mockGuardianSetIndex,
-            true,
-          );
-          assert.fail("Expected error was not thrown");
-        } catch (e) {
-          assert(
-            (e as AnchorError).error?.errorCode?.code === "InvalidChainSpecificQuery",
-          );
-        }
+      try {
+        await stakeConnection.addProposal(
+          proposalIdInput,
+          invalidQueryEthProposalResponseBytes,
+          signaturesKeypair.publicKey,
+          mockGuardianSetIndex,
+          true,
+        );
+        assert.fail("Expected error was not thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidChainSpecificQuery",
+        );
+      }
     });
 
     it("should revert if chain-specific response is invalid", async () => {
-        const proposalIdInput = crypto
-          .createHash("sha256")
-          .update("proposalId1")
-          .digest();
-        const voteStart = Math.floor(Date.now() / 1000);
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId1")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
 
-        // Create an invalid response that does not match EthCallWithFinalityQueryResponse
-        const invalidResponseEthProposalResponseBytes = createProposalQueryResponseBytesWithInvalidChainSpecificResponse(
+      // Create an invalid response that does not match EthCallWithFinalityQueryResponse
+      const invalidResponseEthProposalResponseBytes =
+        createProposalQueryResponseBytesWithInvalidChainSpecificResponse(
           proposalIdInput,
           voteStart,
         );
 
-        const signaturesKeypair = Keypair.generate();
-        const mock = new QueryProxyMock({});
-        const mockSignatures = mock.sign(invalidResponseEthProposalResponseBytes);
-        await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
-        const mockGuardianSetIndex = 5;
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(invalidResponseEthProposalResponseBytes);
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
 
-        try {
-          await stakeConnection.addProposal(
-            proposalIdInput,
-            invalidResponseEthProposalResponseBytes,
-            signaturesKeypair.publicKey,
-            mockGuardianSetIndex,
-            true,
-          );
-          assert.fail("Expected error was not thrown");
-        } catch (e) {
-          assert(
-            (e as AnchorError).error?.errorCode?.code === "InvalidChainSpecificResponse",
-          );
-        }
+      try {
+        await stakeConnection.addProposal(
+          proposalIdInput,
+          invalidResponseEthProposalResponseBytes,
+          signaturesKeypair.publicKey,
+          mockGuardianSetIndex,
+          true,
+        );
+        assert.fail("Expected error was not thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidChainSpecificResponse",
+        );
+      }
     });
   });
 
@@ -334,20 +337,11 @@ describe("api", async () => {
   });
 
   it("delegate2", async () => {
-    await stakeConnection.delegate(
-      owner,
-      WHTokenBalance.fromString("100"),
-    );
+    await stakeConnection.delegate(owner, WHTokenBalance.fromString("100"));
 
-    await stakeConnection.delegate(
-      owner,
-      WHTokenBalance.fromString("100"),
-    );
+    await stakeConnection.delegate(owner, WHTokenBalance.fromString("100"));
 
-    await stakeConnection.delegate(
-      owner,
-      WHTokenBalance.fromString("100"),
-    );
+    await stakeConnection.delegate(owner, WHTokenBalance.fromString("100"));
   });
 
   it("should change delegate account correctly", async () => {
@@ -356,18 +350,19 @@ describe("api", async () => {
       WHTokenBalance.fromString("10"),
     );
 
-    let user2stakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
-      undefined,
-      WHTokenBalance.fromString("10"),
-    );
+    let user2stakeAccountCheckpointsAddress =
+      await user2StakeConnection.delegate(
+        undefined,
+        WHTokenBalance.fromString("10"),
+      );
 
-    await stakeConnection.delegate(
-      user2,
-      WHTokenBalance.fromString("10"),
-    );
+    await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
 
     delegate = await stakeConnection.delegates(stakeAccountCheckpointsAddress);
-    assert.equal(delegate.toBase58(), user2stakeAccountCheckpointsAddress.toBase58());
+    assert.equal(
+      delegate.toBase58(),
+      user2stakeAccountCheckpointsAddress.toBase58(),
+    );
   });
 
   it("should fail when delegating with an invalid current delegate", async () => {
@@ -390,7 +385,8 @@ describe("api", async () => {
       await stakeConnection.program.methods
         .delegate(user3StakeAccountAddress)
         .accounts({
-          currentDelegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress, // Invalid delegate
+          currentDelegateStakeAccountCheckpoints:
+            stakeAccountCheckpointsAddress, // Invalid delegate
           delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
           stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
           vestingBalance: null,
@@ -409,19 +405,19 @@ describe("api", async () => {
   it("withdrawTokens", async () => {
     let stakeAccountCheckpointsAddress =
       await stakeConnection.getStakeAccountCheckpointsAddress(owner);
-    let stakeAccount =
-      await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
+    let stakeAccount = await stakeConnection.loadStakeAccount(
+      stakeAccountCheckpointsAddress,
+    );
     assert.equal(
       stakeAccount.tokenBalance.toString(),
       "330000000", // 330 * 10**6
     );
 
-    await stakeConnection.delegate(
-      undefined,
-      WHTokenBalance.fromString("100"),
-    );
+    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("100"));
 
-    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
+    stakeAccount = await stakeConnection.loadStakeAccount(
+      stakeAccountCheckpointsAddress,
+    );
     assert.equal(
       stakeAccount.tokenBalance.toString(),
       "430000000", // 430 * 10**6
@@ -432,7 +428,9 @@ describe("api", async () => {
       WHTokenBalance.fromString("50"),
     );
 
-    stakeAccount = await stakeConnection.loadStakeAccount(stakeAccountCheckpointsAddress);
+    stakeAccount = await stakeConnection.loadStakeAccount(
+      stakeAccountCheckpointsAddress,
+    );
     assert.equal(
       stakeAccount.tokenBalance.toString(),
       "380000000", // 380 * 10**6
@@ -460,7 +458,8 @@ describe("api", async () => {
       await stakeConnection.program.methods
         .withdrawTokens(WHTokenBalance.fromString("5").toBN())
         .accounts({
-          currentDelegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress, // Invalid delegate
+          currentDelegateStakeAccountCheckpoints:
+            stakeAccountCheckpointsAddress, // Invalid delegate
           stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
           destination: toAccount,
         })
@@ -475,10 +474,11 @@ describe("api", async () => {
   });
 
   it("castVote", async () => {
-    let user2StakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
-      undefined,
-      WHTokenBalance.fromString("150"),
-    );
+    let user2StakeAccountCheckpointsAddress =
+      await user2StakeConnection.delegate(
+        undefined,
+        WHTokenBalance.fromString("150"),
+      );
 
     const proposalIdInput = crypto
       .createHash("sha256")
@@ -548,10 +548,11 @@ describe("api", async () => {
       WHTokenBalance.fromString("150"),
     );
 
-    let user2StakeAccountCheckpointsAddress = await user2StakeConnection.delegate(
-      undefined,
-      WHTokenBalance.fromString("150"),
-    );
+    let user2StakeAccountCheckpointsAddress =
+      await user2StakeConnection.delegate(
+        undefined,
+        WHTokenBalance.fromString("150"),
+      );
 
     const proposalIdInput = crypto
       .createHash("sha256")
@@ -584,11 +585,17 @@ describe("api", async () => {
       WHTokenBalance.fromString("200"),
     );
 
-    const { proposalAccount } = await user2StakeConnection.fetchProposalAccount(proposalIdInput);
+    const { proposalAccount } =
+      await user2StakeConnection.fetchProposalAccount(proposalIdInput);
 
     try {
       await user2StakeConnection.program.methods
-        .castVote(Array.from(proposalIdInput), new BN(10), new BN(20), new BN(12))
+        .castVote(
+          Array.from(proposalIdInput),
+          new BN(10),
+          new BN(20),
+          new BN(12),
+        )
         .accountsPartial({
           proposal: proposalAccount,
           voterCheckpoints: stakeAccountCheckpointsAddress,
@@ -597,9 +604,7 @@ describe("api", async () => {
 
       assert.fail("Expected an error but none was thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ConstraintHasOne",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintHasOne");
     }
   });
 });

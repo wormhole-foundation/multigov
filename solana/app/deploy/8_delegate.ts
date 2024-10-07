@@ -4,7 +4,11 @@ import { PublicKey, Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { WHTokenBalance } from "../whTokenBalance";
 import { STAKING_ADDRESS } from "../constants";
-import { USER_AUTHORITY_KEYPAIR, USER2_AUTHORITY_PATH, RPC_NODE } from "./devnet";
+import {
+  USER_AUTHORITY_KEYPAIR,
+  USER2_AUTHORITY_PATH,
+  RPC_NODE,
+} from "./devnet";
 
 async function main() {
   try {
@@ -22,10 +26,7 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    await stakeConnection.delegate(
-      undefined,
-      WHTokenBalance.fromString("100"),
-    );
+    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("100"));
 
     const user2Provider = new AnchorProvider(
       connection,

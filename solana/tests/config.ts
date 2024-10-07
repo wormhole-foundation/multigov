@@ -135,13 +135,13 @@ describe("config", async () => {
       assert.fail("Re-initialization should fail");
     } catch (e) {
       assert(
-        e.transactionMessage.includes("Error processing Instruction 0: custom program error: 0x0"),
+        e.transactionMessage.includes(
+          "Error processing Instruction 0: custom program error: 0x0",
+        ),
       );
 
       const expectedLogMessage = `Allocate: account Address { address: ${configAccount.toString()}, base: None } already in use`;
-      assert(
-        e.transactionLogs.find(log => log.includes(expectedLogMessage)),
-      );
+      assert(e.transactionLogs.find((log) => log.includes(expectedLogMessage)));
     }
   });
 
