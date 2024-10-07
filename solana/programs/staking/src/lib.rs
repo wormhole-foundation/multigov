@@ -122,7 +122,7 @@ pub mod staking {
             ctx.bumps.stake_account_custody,
             ctx.bumps.custody_authority,
             &owner,
-            &ctx.accounts.stake_account_checkpoints.key()
+            &ctx.accounts.stake_account_checkpoints.key(),
         );
 
         let stake_account_checkpoints = &mut ctx.accounts.stake_account_checkpoints.load_init()?;
@@ -134,7 +134,8 @@ pub mod staking {
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
 
-        let prev_recorded_total_balance = stake_account_metadata.recorded_balance
+        let prev_recorded_total_balance = stake_account_metadata
+            .recorded_balance
             .checked_add(stake_account_metadata.recorded_vesting_balance)
             .unwrap();
 
@@ -209,12 +210,16 @@ pub mod staking {
 
             let (amount_delta, operation) = if total_delegated_votes > prev_recorded_total_balance {
                 (
-                    total_delegated_votes.checked_sub(prev_recorded_total_balance).unwrap(),
+                    total_delegated_votes
+                        .checked_sub(prev_recorded_total_balance)
+                        .unwrap(),
                     Operation::Add,
                 )
             } else {
                 (
-                    prev_recorded_total_balance.checked_sub(total_delegated_votes).unwrap(),
+                    prev_recorded_total_balance
+                        .checked_sub(total_delegated_votes)
+                        .unwrap(),
                     Operation::Subtract,
                 )
             };
@@ -547,7 +552,9 @@ pub mod staking {
             ProposalWormholeMessageError::TooManyQueryResponses
         );
 
-        if let ChainSpecificQuery::EthCallWithFinalityQueryRequest(eth_request) = &response.request.requests[0].query {
+        if let ChainSpecificQuery::EthCallWithFinalityQueryRequest(eth_request) =
+            &response.request.requests[0].query
+        {
             require!(
                 eth_request.finality == "finalized",
                 ProposalWormholeMessageError::NonFinalizedBlock
@@ -565,7 +572,9 @@ pub mod staking {
             ProposalWormholeMessageError::SenderChainMismatch
         );
 
-        if let ChainSpecificResponse::EthCallWithFinalityQueryResponse(eth_response) = &response.response {
+        if let ChainSpecificResponse::EthCallWithFinalityQueryResponse(eth_response) =
+            &response.response
+        {
             require!(
                 eth_response.results.len() == 1,
                 ProposalWormholeMessageError::TooManyEthCallResults

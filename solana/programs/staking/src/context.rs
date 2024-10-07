@@ -10,8 +10,8 @@ use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 
 use crate::{
-    error::QueriesSolanaVerifyError,
     error::ErrorCode,
+    error::QueriesSolanaVerifyError,
     state::{GuardianSignatures, WormholeGuardianSet},
 };
 
