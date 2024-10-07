@@ -23,7 +23,6 @@ import {
   getPortNumber,
   makeDefaultConfig,
   CustomAbortController,
-  getDummyAgreementHash,
 } from "./utils/before";
 import { StakeConnection, WHTokenBalance } from "../app";
 
@@ -131,11 +130,10 @@ describe("staking", async () => {
         metadataBump,
         custodyBump,
         authorityBump,
-        owner,
-        delegate: zeroPubkey,
         recordedBalance: expectedRecordedBalance,
         recordedVestingBalance: expectedRecordedBalance,
-        signedAgreementHash: null,
+        owner,
+        delegate: zeroPubkey,
       }),
     );
   });
