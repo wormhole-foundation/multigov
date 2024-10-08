@@ -527,7 +527,6 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
   }
 
   function testFuzz_CorrectlyCheckAndProposeIfEligibleWithAtLeastTwoTokenCheckpoints(
-    uint128 _voteWeight,
     uint16 _chainId,
     address _spokeAddress,
     string memory _description,
@@ -639,7 +638,6 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
   }
 
   function testFuzz_RevertIf_QueryDoesNotHaveEnoughWeightAndCheckpointMinimumIsTooLow(
-    uint128 _voteWeight,
     uint16 _chainId,
     address _spokeAddress,
     string memory _description,

@@ -170,7 +170,6 @@ contract Constructor is HubGovernorTest {
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _voteExtender,
     address _extenderOwner
   ) public {
     vm.assume(_initialVotingPeriod != 0);
@@ -677,7 +676,7 @@ contract _CountVote is HubGovernorTest {
     _support = uint8(bound(_support, 0, 2));
 
     (, delegates) = _setGovernorAndDelegates();
-    (ProposalBuilder builder) = _createArbitraryProposal();
+    ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(delegates[0]);
     uint256 _proposalId =
@@ -712,7 +711,7 @@ contract _CountVote is HubGovernorTest {
 
     _mintAndDelegate(address(governor.hubVotePool(uint96(block.timestamp))), _totalWeight);
     (, delegates) = _setGovernorAndDelegates();
-    (ProposalBuilder builder) = _createArbitraryProposal();
+    ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(delegates[0]);
     uint256 _proposalId =
@@ -749,7 +748,7 @@ contract _CountVote is HubGovernorTest {
     _support = uint8(bound(_support, 0, 2));
 
     (, delegates) = _setGovernorAndDelegates();
-    (ProposalBuilder builder) = _createArbitraryProposal();
+    ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(delegates[0]);
     uint256 _proposalId =
@@ -820,7 +819,7 @@ contract _CountVote is HubGovernorTest {
     token.delegate(_nonWhitelistedAddress);
 
     _setGovernor(governor);
-    (ProposalBuilder builder) = _createArbitraryProposal();
+    ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(_nonWhitelistedAddress);
     uint256 _proposalId =
