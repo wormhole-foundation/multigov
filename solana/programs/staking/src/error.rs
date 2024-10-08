@@ -36,7 +36,9 @@ pub enum ErrorCode {
     InvalidSpokeAirlock,
     #[msg("Invalid vesting balance owner")] //6017
     InvalidVestingBalance,
-    #[msg("Other")] //6018
+    #[msg("Invalid current delegate")]
+    InvalidCurrentDelegate,
+    #[msg("Other")]
     Other,
 }
 

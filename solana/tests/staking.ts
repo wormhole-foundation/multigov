@@ -41,7 +41,6 @@ describe("staking", async () => {
 
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
-  const zeroPubkey = new PublicKey(0);
 
   let userAta: PublicKey;
   const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
@@ -130,10 +129,10 @@ describe("staking", async () => {
         metadataBump,
         custodyBump,
         authorityBump,
+        owner,
+        delegate: checkpointDataAddress,
         recordedBalance: expectedRecordedBalance,
         recordedVestingBalance: expectedRecordedBalance,
-        owner,
-        delegate: zeroPubkey,
       }),
     );
   });

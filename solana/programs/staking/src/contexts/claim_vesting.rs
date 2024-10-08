@@ -70,7 +70,6 @@ pub struct ClaimVesting<'info> {
 
 impl<'info> ClaimVesting<'info> {
     pub fn close_vesting(&mut self) -> Result<()> {
-
         // If vesting_balance.stake_account_metadata is not set it means that vester has not delegated his vests
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
             if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
