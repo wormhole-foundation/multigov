@@ -8,6 +8,7 @@ import {SpokeMetadataCollector} from "src/SpokeMetadataCollector.sol";
 import {SpokeMessageExecutor} from "src/SpokeMessageExecutor.sol";
 import {SpokeAirlock} from "src/SpokeAirlock.sol";
 import {DeploySpokeContractsOptimismSepolia} from "script/DeploySpokeContractsOptimismSepolia.sol";
+import {DeploySpokeContractsBaseImpl} from "script/DeploySpokeContractsBaseImpl.sol";
 
 contract DeploySpokeContractsBase is Test, TestConstants {
   address deployer;
@@ -24,12 +25,12 @@ contract DeploySpokeContractsTest is DeploySpokeContractsBase {
     vm.createSelectFork(vm.rpcUrl("optimism_sepolia"), 11_298_960);
 
     DeploySpokeContractsOptimismSepolia script = new DeploySpokeContractsOptimismSepolia();
-    (
-      SpokeVoteAggregator aggregator,
-      SpokeMetadataCollector spokeMetadataCollector,
-      SpokeMessageExecutor messageExecutor,
-      SpokeAirlock airlock
-    ) = script.run();
+    DeploySpokeContractsBaseImpl.DeployedContracts memory contracts = script.run();
+
+    SpokeVoteAggregator aggregator = SpokeVoteAggregator(address(contracts.aggregator));
+    SpokeMetadataCollector spokeMetadataCollector = SpokeMetadataCollector(address(contracts.metadataCollector));
+    SpokeMessageExecutor messageExecutor = SpokeMessageExecutor(address(contracts.executor));
+    SpokeAirlock airlock = SpokeAirlock(messageExecutor.airlock());
 
     assertEq(spokeMetadataCollector.HUB_CHAIN_ID(), 10_002);
     assertEq(spokeMetadataCollector.HUB_PROPOSAL_METADATA(), 0x336Ac4C729F5E3696508460B40c12B065D86E612);
