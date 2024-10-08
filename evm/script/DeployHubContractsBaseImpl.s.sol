@@ -22,6 +22,8 @@ abstract contract DeployHubContractsBaseImpl is Script {
   uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
     uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
 
+  string constant DEFAULT_DEPLOY_VERSION = "v1";
+
   struct DeploymentConfiguration {
     uint256 minDelay;
     string name;
@@ -77,7 +79,8 @@ abstract contract DeployHubContractsBaseImpl is Script {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
     vm.startBroadcast(wallet.privateKey);
-    bytes32 salt = keccak256(abi.encodePacked(config.name, block.chainid));
+    string memory version = vm.envOr("DEPLOY_VERSION", DEFAULT_DEPLOY_VERSION);
+    bytes32 salt = keccak256(abi.encodePacked("WormholeGovernanceHubContracts", version, block.chainid));
 
     DeployedContracts memory contracts = _deployAllContracts(config, wallet, salt);
 

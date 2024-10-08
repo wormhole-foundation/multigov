@@ -16,6 +16,8 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
   uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
     uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
 
+  string constant DEFAULT_DEPLOY_VERSION = "v1";
+
   struct DeploymentConfiguration {
     address wormholeCore;
     uint16 hubChainId;
@@ -49,7 +51,8 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
   function run() public returns (DeployedContracts memory) {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
-    bytes32 salt = keccak256(abi.encodePacked("WormholeGovernanceSpokeContracts", "v1", config.hubChainId));
+    string memory version = vm.envOr("DEPLOY_VERSION", DEFAULT_DEPLOY_VERSION);
+    bytes32 salt = keccak256(abi.encodePacked("WormholeGovernanceSpokeContracts", version, config.hubChainId));
 
     vm.startBroadcast(wallet.privateKey);
 
