@@ -5,6 +5,7 @@ import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {QueryResponse} from "wormhole-sdk/QueryResponse.sol";
 
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
@@ -17,162 +18,134 @@ import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
 import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
 
 abstract contract DeployHubContractsBaseImpl is Script {
-    // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
-    // should be set.
-    uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
-        uint256(
-            0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-        );
+  // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
+  // should be set.
+  uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
+    uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
 
-    struct DeploymentConfiguration {
-        uint256 minDelay;
-        string name;
-        address token;
-        uint48 initialVotingDelay;
-        uint32 initialVotingPeriod;
-        uint256 initialProposalThreshold;
-        uint208 initialQuorum;
-        address wormholeCore;
-        uint48 voteWeightWindow;
-        address voteExtenderAdmin;
-        uint48 voteTimeExtension;
-        uint48 minimumExtensionTime;
-        uint8 consistencyLevel;
-        uint48 initialMaxQueryTimestampOffset;
-        bytes32 expectedProgramId;
-        uint8 solanaTokenDecimals;
-    }
+  struct DeploymentConfiguration {
+    uint256 minDelay;
+    string name;
+    address token;
+    uint48 initialVotingDelay;
+    uint32 initialVotingPeriod;
+    uint256 initialProposalThreshold;
+    uint208 initialQuorum;
+    address wormholeCore;
+    uint48 voteWeightWindow;
+    address voteExtenderAdmin;
+    uint48 voteTimeExtension;
+    uint48 minimumExtensionTime;
+    uint8 consistencyLevel;
+    uint48 initialMaxQueryTimestampOffset;
+    bytes32 expectedProgramId;
+    uint8 solanaTokenDecimals;
+  }
 
-    error InvalidAddressConfiguration();
+  struct DeployedContracts {
+    TimelockController timelock;
+    HubVotePool hubVotePool;
+    HubGovernor gov;
+    HubProposalMetadata hubProposalMetadata;
+    HubMessageDispatcher hubMessageDispatcher;
+    HubProposalExtender extender;
+    HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer;
+    HubSolanaMessageDispatcher hubSolanaMessageDispatcher;
+    HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder;
+  }
 
-    function _getDeploymentConfiguration()
-        internal
-        virtual
-        returns (DeploymentConfiguration memory);
+  error InvalidAddressConfiguration();
 
-    function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
-        uint256 deployerPrivateKey = vm.envOr(
-            "DEPLOYER_PRIVATE_KEY",
-            DEFAULT_DEPLOYER_PRIVATE_KEY
-        );
+  function _getDeploymentConfiguration() internal virtual returns (DeploymentConfiguration memory);
 
-        Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
-        if (deployerPrivateKey == DEFAULT_DEPLOYER_PRIVATE_KEY)
-            revert InvalidAddressConfiguration();
-        return wallet;
-    }
+  function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
+    uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
 
-    function run()
-        public
-        returns (
-            TimelockController,
-            HubVotePool,
-            HubGovernor,
-            HubProposalMetadata,
-            HubMessageDispatcher,
-            HubProposalExtender
-        )
-    {
-        DeploymentConfiguration memory config = _getDeploymentConfiguration();
-        Vm.Wallet memory wallet = _deploymentWallet();
-        vm.startBroadcast(wallet.privateKey);
-        TimelockController timelock = new TimelockController(
-            config.minDelay,
-            new address[](0),
-            new address[](0),
-            wallet.addr
-        );
+    Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
+    if (deployerPrivateKey == DEFAULT_DEPLOYER_PRIVATE_KEY) revert InvalidAddressConfiguration();
+    return wallet;
+  }
 
+  function run() public virtual returns (DeployedContracts memory) {
+    DeploymentConfiguration memory config = _getDeploymentConfiguration();
+    Vm.Wallet memory wallet = _deploymentWallet();
+    vm.startBroadcast(wallet.privateKey);
+
+    // Deploy timelock for governor.
+    TimelockController timelock =
+      new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
+
+    // Deploy proposal extender to be used in the HubGovernor.
     HubProposalExtender extender = new HubProposalExtender(
       config.voteExtenderAdmin, config.voteTimeExtension, address(timelock), wallet.addr, config.minimumExtensionTime
     );
 
-        HubGovernor.ConstructorParams memory params = HubGovernor
-            .ConstructorParams({
-                name: config.name,
-                token: ERC20Votes(config.token),
-                timelock: timelock,
-                initialVotingDelay: config.initialVotingDelay,
-                initialVotingPeriod: config.initialVotingPeriod,
-                initialProposalThreshold: config.initialProposalThreshold,
-                initialQuorum: config.initialQuorum,
-                hubVotePoolOwner: wallet.addr,
-                wormholeCore: config.wormholeCore,
-                governorProposalExtender: address(extender),
-                initialVoteWeightWindow: config.voteWeightWindow
-            });
+    // Deploy `HubVotePool` which will revceive cross-chain votes.
+    HubVotePool hubVotePool = new HubVotePool(config.wormholeCore, address(0), wallet.addr);
 
-        // Deploy Hub Governor
-        HubGovernor gov = new HubGovernor(params);
+    HubGovernor.ConstructorParams memory hubGovernorParams = HubGovernor.ConstructorParams({
+      name: config.name,
+      token: ERC20Votes(config.token),
+      timelock: timelock,
+      initialVotingDelay: config.initialVotingDelay,
+      initialVotingPeriod: config.initialVotingPeriod,
+      initialProposalThreshold: config.initialProposalThreshold,
+      initialQuorum: config.initialQuorum,
+      hubVotePool: address(hubVotePool),
+      wormholeCore: config.wormholeCore,
+      governorProposalExtender: address(extender),
+      initialVoteWeightWindow: config.voteWeightWindow
+    });
 
-        // Deploy HubProposalMetadata
-        HubProposalMetadata hubProposalMetadata = new HubProposalMetadata(
-            address(gov)
-        );
+    // Deploy Wormhole governor
+    HubGovernor gov = new HubGovernor(hubGovernorParams);
 
-        // Deploy Hub Discptacher
-        HubMessageDispatcher hubMessageDispatcher = new HubMessageDispatcher(
-            address(timelock),
-            config.wormholeCore,
-            config.consistencyLevel
-        );
+    // Set the governor on the `HubVotePool`
+    hubVotePool.setGovernor(address(gov));
 
-        HubVotePool hubVotePool = gov.hubVotePool(uint96(block.timestamp));
+    // Deploy the vote decoder for Solana queries
+    HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder = new HubSolanaSpokeVoteDecoder(
+      config.wormholeCore, address(hubVotePool),  config.solanaTokenDecimals
+    );
 
-        // The timelock should be the owner of the hub vote pool
-        hubVotePool.transferOwnership(address(timelock));
+    // Register Solana vote decoder, 5 is the constant for QT_SOL_PDA.
+    hubVotePool.registerQueryType(5, address(hubSolanaSpokeVoteDecoder));
 
-        // Set governor on extender
-        extender.initialize(payable(gov));
+    // Deploy hub metadata contract
+    HubProposalMetadata hubProposalMetadata = new HubProposalMetadata(address(gov));
 
-        // Grant roles
-        timelock.grantRole(timelock.PROPOSER_ROLE(), address(gov));
-        timelock.grantRole(timelock.EXECUTOR_ROLE(), address(gov));
-        timelock.grantRole(timelock.CANCELLER_ROLE(), address(gov));
-        timelock.grantRole(timelock.DEFAULT_ADMIN_ROLE(), address(timelock));
-        timelock.renounceRole(timelock.DEFAULT_ADMIN_ROLE(), wallet.addr);
+    // Deploy the Evm hub dispatcher
+    HubMessageDispatcher hubMessageDispatcher =
+      new HubMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
 
-        // Deploy HubEvmSpokeAggregateProposer
-        HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer = new HubEvmSpokeAggregateProposer(
-                config.wormholeCore,
-                address(gov),
-                config.initialMaxQueryTimestampOffset
-            );
+    // Deploy the Solana hub dispatcher
+    HubSolanaMessageDispatcher hubSolanaMessageDispatcher =
+      new HubSolanaMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
 
-        // Deploy HubEvmSpokeVoteDecoder
-        HubEvmSpokeVoteDecoder hubEvmSpokeVoteDecoder = new HubEvmSpokeVoteDecoder(
-                config.wormholeCore,
-                address(hubVotePool)
-            );
+    // Deploy the evm aggregate proposer
+    HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer =
+      new HubEvmSpokeAggregateProposer(config.wormholeCore, address(gov), config.initialMaxQueryTimestampOffset);
+    hubVotePool.transferOwnership(address(timelock));
+    extender.initialize(payable(gov));
 
-        // Deploy HubSolanaMessageDispatcher
-        HubSolanaMessageDispatcher hubSolanaMessageDispatcher = new HubSolanaMessageDispatcher(
-                address(timelock),
-                config.wormholeCore,
-                config.consistencyLevel
-            );
+    timelock.grantRole(timelock.PROPOSER_ROLE(), address(gov));
+    timelock.grantRole(timelock.EXECUTOR_ROLE(), address(gov));
+    timelock.grantRole(timelock.CANCELLER_ROLE(), address(gov));
+    timelock.grantRole(timelock.DEFAULT_ADMIN_ROLE(), address(timelock));
+    timelock.renounceRole(timelock.DEFAULT_ADMIN_ROLE(), wallet.addr);
 
-        // Deploy HubSolanaSpokeVoteDecoder
-        HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder = new HubSolanaSpokeVoteDecoder(
-                config.wormholeCore,
-                address(hubVotePool),
-                config.expectedProgramId,
-                config.solanaTokenDecimals
-            );
+    vm.stopBroadcast();
 
-        vm.stopBroadcast();
-
-        return (
-            timelock,
-            hubVotePool,
-            gov,
-            hubProposalMetadata,
-            hubMessageDispatcher,
-            extender,
-            hubEvmSpokeAggregateProposer,
-            hubEvmSpokeVoteDecoder,
-            hubSolanaMessageDispatcher,
-            hubSolanaSpokeVoteDecoder
-        );
-    }
+    return DeployedContracts({
+      timelock: timelock,
+      extender: extender,
+      gov: gov,
+      hubProposalMetadata: hubProposalMetadata,
+      hubMessageDispatcher: hubMessageDispatcher,
+      hubVotePool: hubVotePool,
+      hubEvmSpokeAggregateProposer: hubEvmSpokeAggregateProposer,
+      hubSolanaMessageDispatcher: hubSolanaMessageDispatcher,
+      hubSolanaSpokeVoteDecoder: hubSolanaSpokeVoteDecoder
+    });
+  }
 }

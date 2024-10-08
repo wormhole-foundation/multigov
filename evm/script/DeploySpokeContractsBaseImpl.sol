@@ -16,6 +16,8 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
   uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
     uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
 
+  string constant DEFAULT_DEPLOY_VERSION = "v1";
+
   struct DeploymentConfiguration {
     address wormholeCore;
     uint16 hubChainId;
@@ -24,6 +26,13 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     uint48 voteWeightWindow;
     bytes32 hubDispatcher;
     uint16 spokeChainId;
+  }
+
+  struct DeployedContracts {
+    SpokeVoteAggregator aggregator;
+    SpokeMetadataCollector metadataCollector;
+    SpokeMessageExecutor executor;
+    SpokeAirlock airlock;
   }
 
   error InvalidAddressConfiguration();
@@ -39,26 +48,64 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     return wallet;
   }
 
-  function run() public returns (SpokeVoteAggregator, SpokeMetadataCollector, SpokeMessageExecutor, SpokeAirlock) {
+  function run() public returns (DeployedContracts memory) {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
-    SpokeMessageExecutor impl = new SpokeMessageExecutor(wallet.addr);
+    string memory version = vm.envOr("DEPLOY_VERSION", DEFAULT_DEPLOY_VERSION);
+    bytes32 salt = keccak256(abi.encodePacked("WormholeGovernanceSpokeContracts", version, config.hubChainId));
+
     vm.startBroadcast(wallet.privateKey);
-    ERC1967Proxy proxy = new ERC1967Proxy(
-      address(impl),
-      abi.encodeCall(SpokeMessageExecutor.initialize, (config.hubDispatcher, config.hubChainId, config.wormholeCore))
-    );
 
-    SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
-    SpokeAirlock airlock = executor.airlock();
+    DeployedContracts memory contracts;
 
-    SpokeMetadataCollector spokeMetadataCollector =
-      new SpokeMetadataCollector(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
-    SpokeVoteAggregator aggregator = new SpokeVoteAggregator(
-      address(spokeMetadataCollector), config.votingToken, address(airlock), config.voteWeightWindow
-    );
+    contracts.executor = _deploySpokeMessageExecutor(config, wallet, salt);
+    contracts.airlock = contracts.executor.airlock();
+    contracts.metadataCollector = _deploySpokeMetadataCollector(config, salt);
+    contracts.aggregator = _deploySpokeVoteAggregator(config, contracts.metadataCollector, contracts.airlock, salt);
 
     vm.stopBroadcast();
-    return (aggregator, spokeMetadataCollector, executor, airlock);
+
+    return contracts;
+  }
+
+  function _deploySpokeMessageExecutor(DeploymentConfiguration memory config, Vm.Wallet memory wallet, bytes32 salt)
+    internal
+    returns (SpokeMessageExecutor)
+  {
+    SpokeMessageExecutor impl = new SpokeMessageExecutor{salt: salt}(wallet.addr);
+
+    ERC1967Proxy proxy = new ERC1967Proxy{salt: salt}(address(impl), "");
+
+    SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
+    executor.initialize(config.hubDispatcher, config.hubChainId, config.wormholeCore);
+    return SpokeMessageExecutor(address(proxy));
+  }
+
+  function _deploySpokeMetadataCollector(DeploymentConfiguration memory config, bytes32 salt)
+    internal
+    returns (SpokeMetadataCollector)
+  {
+    return new SpokeMetadataCollector{salt: salt}(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
+  }
+
+  function _deploySpokeVoteAggregator(
+    DeploymentConfiguration memory config,
+    SpokeMetadataCollector metadataCollector,
+    SpokeAirlock airlock,
+    bytes32 salt
+  ) internal returns (SpokeVoteAggregator) {
+    return new SpokeVoteAggregator{salt: salt}(
+      address(metadataCollector), config.votingToken, address(airlock), config.voteWeightWindow
+    );
+  }
+
+  function predictDeployedAddresses(address deployer, bytes32 salt) public pure returns (address[] memory) {
+    address[] memory addresses = new address[](4);
+    addresses[0] = computeCreate2Address(salt, keccak256(type(SpokeMessageExecutor).creationCode), deployer);
+    addresses[1] = computeCreate2Address(salt, keccak256(type(ERC1967Proxy).creationCode), deployer);
+    addresses[2] = computeCreate2Address(salt, keccak256(type(SpokeMetadataCollector).creationCode), deployer);
+    addresses[3] = computeCreate2Address(salt, keccak256(type(SpokeVoteAggregator).creationCode), deployer);
+
+    return addresses;
   }
 }
