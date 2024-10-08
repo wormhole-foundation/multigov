@@ -129,7 +129,9 @@ abstract contract DeployHubContractsBaseImpl is Script {
     timelock.grantRole(timelock.DEFAULT_ADMIN_ROLE(), address(timelock));
     timelock.renounceRole(timelock.DEFAULT_ADMIN_ROLE(), wallet.addr);
 
-    vm.stopBroadcast();
+    // Deploy HubEvmSpokeAggregateProposer
+    HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer =
+      new HubEvmSpokeAggregateProposer(config.wormholeCore, address(gov), config.initialMaxQueryTimestampOffset);
 
     return DeployedContracts({
       timelock: timelock,
