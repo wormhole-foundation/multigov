@@ -344,9 +344,12 @@
       ],
       "accounts": [
         {
-          "name": "payer",
+          "name": "owner",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "voter_checkpoints"
+          ]
         },
         {
           "name": "proposal",
@@ -2405,6 +2408,7 @@
         },
         {
           "name": "stake_account_metadata",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2853,6 +2857,51 @@
       "code": 6018,
       "name": "Other",
       "msg": "Other"
+    },
+    {
+      "code": 6019,
+      "name": "FailedToParseResponse",
+      "msg": "Failed to parse response"
+    },
+    {
+      "code": 6020,
+      "name": "WriteAuthorityMismatch",
+      "msg": "Write authority mismatch"
+    },
+    {
+      "code": 6021,
+      "name": "GuardianSetExpired",
+      "msg": "Guardian set expired"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidMessageHash",
+      "msg": "Invalid message hash"
+    },
+    {
+      "code": 6023,
+      "name": "NoQuorum",
+      "msg": "No quorum"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidGuardianIndexNonIncreasing",
+      "msg": "Invalid guardian index non increasing"
+    },
+    {
+      "code": 6025,
+      "name": "InvalidGuardianIndexOutOfRange",
+      "msg": "Invalid guardian index out of range"
+    },
+    {
+      "code": 6026,
+      "name": "InvalidSignature",
+      "msg": "Invalid signature"
+    },
+    {
+      "code": 6027,
+      "name": "InvalidGuardianKeyRecovery",
+      "msg": "Invalid guardian key recovery"
     }
   ],
   "types": [

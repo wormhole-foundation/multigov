@@ -350,9 +350,12 @@ export type Staking = {
       ],
       "accounts": [
         {
-          "name": "payer",
+          "name": "owner",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "voterCheckpoints"
+          ]
         },
         {
           "name": "proposal",
@@ -2411,6 +2414,7 @@ export type Staking = {
         },
         {
           "name": "stakeAccountMetadata",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2859,6 +2863,51 @@ export type Staking = {
       "code": 6018,
       "name": "other",
       "msg": "other"
+    },
+    {
+      "code": 6019,
+      "name": "failedToParseResponse",
+      "msg": "Failed to parse response"
+    },
+    {
+      "code": 6020,
+      "name": "writeAuthorityMismatch",
+      "msg": "Write authority mismatch"
+    },
+    {
+      "code": 6021,
+      "name": "guardianSetExpired",
+      "msg": "Guardian set expired"
+    },
+    {
+      "code": 6022,
+      "name": "invalidMessageHash",
+      "msg": "Invalid message hash"
+    },
+    {
+      "code": 6023,
+      "name": "noQuorum",
+      "msg": "No quorum"
+    },
+    {
+      "code": 6024,
+      "name": "invalidGuardianIndexNonIncreasing",
+      "msg": "Invalid guardian index non increasing"
+    },
+    {
+      "code": 6025,
+      "name": "invalidGuardianIndexOutOfRange",
+      "msg": "Invalid guardian index out of range"
+    },
+    {
+      "code": 6026,
+      "name": "invalidSignature",
+      "msg": "Invalid signature"
+    },
+    {
+      "code": 6027,
+      "name": "invalidGuardianKeyRecovery",
+      "msg": "Invalid guardian key recovery"
     }
   ],
   "types": [

@@ -27,11 +27,13 @@ impl StakeAccountMetadata {
         custody_bump: u8,
         authority_bump: u8,
         owner: &Pubkey,
+        delegate: &Pubkey,
     ) {
         self.metadata_bump = metadata_bump;
         self.custody_bump = custody_bump;
         self.authority_bump = authority_bump;
         self.owner = *owner;
+        self.delegate = *delegate;
     }
 }
 

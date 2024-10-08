@@ -101,6 +101,48 @@ describe("config", async () => {
     );
   });
 
+  it("fails on re-initialization of config", async () => {
+    [configAccount, bump] = PublicKey.findProgramAddressSync(
+      [utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
+      program.programId,
+    );
+
+    try {
+      await program.methods
+        .initConfig({
+          governanceAuthority: program.provider.wallet.publicKey,
+          whTokenMint: whMintAccount.publicKey,
+          freeze: false,
+          pdaAuthority: pdaAuthority,
+          agreementHash: getDummyAgreementHash(),
+          mockClockTime: new BN(0),
+        })
+        .rpc();
+
+      await program.methods
+        .initConfig({
+          governanceAuthority: program.provider.wallet.publicKey,
+          whTokenMint: whMintAccount.publicKey,
+          freeze: false,
+          pdaAuthority: pdaAuthority,
+          agreementHash: getDummyAgreementHash(),
+          mockClockTime: new BN(0),
+        })
+        .rpc();
+
+      assert.fail("Re-initialization should fail");
+    } catch (e) {
+      assert(
+        e.transactionMessage.includes(
+          "Error processing Instruction 0: custom program error: 0x0",
+        ),
+      );
+
+      const expectedLogMessage = `Allocate: account Address { address: ${configAccount.toString()}, base: None } already in use`;
+      assert(e.transactionLogs.find((log) => log.includes(expectedLogMessage)));
+    }
+  });
+
   it("create account", async () => {
     const configAccountData =
       await program.account.globalConfig.fetch(configAccount);
