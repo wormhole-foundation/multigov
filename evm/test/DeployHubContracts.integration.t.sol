@@ -9,6 +9,7 @@ import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
 import {DeployHubContractsSepolia} from "script/DeployHubContractsSepolia.sol";
+import {DeployHubContractsBaseImpl} from "script/DeployHubContractsBaseImpl.s.sol";
 import {TestConstants} from "test/TestConstants.sol";
 
 contract DeployHubContractsBase is Test, TestConstants {
@@ -26,14 +27,14 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     vm.createSelectFork(vm.rpcUrl("sepolia"), 5_718_968);
 
     DeployHubContractsSepolia script = new DeployHubContractsSepolia();
-    (
-      TimelockController timelock,
-      HubVotePool hubVotePool,
-      HubGovernor governor,
-      HubProposalMetadata proposalMetadata,
-      HubMessageDispatcher dispatcher,
-      HubProposalExtender extender
-    ) = script.run();
+    DeployHubContractsBaseImpl.DeployedContracts memory contracts = script.run();
+
+    TimelockController timelock = contracts.timelock;
+    HubGovernor governor = contracts.gov;
+    HubVotePool hubVotePool = contracts.hubVotePool;
+    HubProposalMetadata proposalMetadata = contracts.hubProposalMetadata;
+    HubMessageDispatcher dispatcher = contracts.hubMessageDispatcher;
+    HubProposalExtender extender = contracts.extender;
 
     assertEq(timelock.getMinDelay(), 300);
     assertEq(timelock.hasRole(timelock.EXECUTOR_ROLE(), address(governor)), true);
