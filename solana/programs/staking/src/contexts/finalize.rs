@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
-use crate::{error::VestingError, state::Config};
+use crate::{error::VestingError, state::VestingConfig};
 
 #[derive(Accounts)]
 pub struct Finalize<'info> {
@@ -20,10 +20,10 @@ pub struct Finalize<'info> {
     #[account(
         mut,
         constraint = !config.finalized @ VestingError::VestingFinalized,
-        seeds = [b"config", admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [b"vesting_config", admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
-    config: Account<'info, Config>,
+    config: Account<'info, VestingConfig>,
     token_program: Interface<'info, TokenInterface>,
 }
 

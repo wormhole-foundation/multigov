@@ -1,7 +1,7 @@
 pub mod checkpoints;
 
-pub mod config;
-pub use config::*;
+pub mod vesting_config;
+pub use vesting_config::*;
 
 pub mod global_config;
 pub mod proposal;

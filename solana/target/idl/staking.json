@@ -230,6 +230,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -249,7 +257,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           },
@@ -553,6 +561,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -564,7 +580,7 @@
               {
                 "kind": "account",
                 "path": "config.admin",
-                "account": "Config"
+                "account": "VestingConfig"
               },
               {
                 "kind": "account",
@@ -573,7 +589,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           },
@@ -906,6 +922,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -925,7 +949,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           }
@@ -1428,6 +1452,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -1447,7 +1479,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           }
@@ -1817,6 +1849,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -2308,6 +2348,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -2319,7 +2367,7 @@
               {
                 "kind": "account",
                 "path": "config.admin",
-                "account": "Config"
+                "account": "VestingConfig"
               },
               {
                 "kind": "account",
@@ -2328,7 +2376,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           }
@@ -2539,19 +2587,6 @@
       ]
     },
     {
-      "name": "Config",
-      "discriminator": [
-        155,
-        12,
-        170,
-        224,
-        30,
-        250,
-        204,
-        130
-      ]
-    },
-    {
       "name": "GlobalConfig",
       "discriminator": [
         149,
@@ -2695,6 +2730,19 @@
       ]
     },
     {
+      "name": "VestingConfig",
+      "discriminator": [
+        0,
+        138,
+        71,
+        135,
+        26,
+        29,
+        43,
+        125
+      ]
+    },
+    {
       "name": "WormholeGuardianSet",
       "discriminator": [
         0,
@@ -2765,143 +2813,33 @@
   "errors": [
     {
       "code": 6000,
-      "name": "TooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "NotFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "GenericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "NotInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "CheckpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "VestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "CheckpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "VestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "NotLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
+      "name": "Overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "RecoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
-    },
-    {
-      "code": 6006,
-      "name": "CheckpointNotFound",
-      "msg": "Checkpoint not found"
-    },
-    {
-      "code": 6007,
-      "name": "InvalidTimestamp",
-      "msg": "Invalid timestamp"
-    },
-    {
-      "code": 6008,
-      "name": "InvalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "NoWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "AllWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "VoteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "WithdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "InsufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "ProposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "InvalidMessageExecutor",
-      "msg": "Invalid message executor"
-    },
-    {
-      "code": 6016,
-      "name": "InvalidSpokeAirlock",
-      "msg": "Invalid spoke airlock"
-    },
-    {
-      "code": 6017,
-      "name": "InvalidVestingBalance",
-      "msg": "Invalid vesting balance owner"
-    },
-    {
-      "code": 6018,
-      "name": "Other",
-      "msg": "Other"
-    },
-    {
-      "code": 6019,
-      "name": "FailedToParseResponse",
-      "msg": "Failed to parse response"
-    },
-    {
-      "code": 6020,
-      "name": "WriteAuthorityMismatch",
-      "msg": "Write authority mismatch"
-    },
-    {
-      "code": 6021,
-      "name": "GuardianSetExpired",
-      "msg": "Guardian set expired"
-    },
-    {
-      "code": 6022,
-      "name": "InvalidMessageHash",
-      "msg": "Invalid message hash"
-    },
-    {
-      "code": 6023,
-      "name": "NoQuorum",
-      "msg": "No quorum"
-    },
-    {
-      "code": 6024,
-      "name": "InvalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
-    },
-    {
-      "code": 6025,
-      "name": "InvalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
-    },
-    {
-      "code": 6026,
-      "name": "InvalidSignature",
-      "msg": "Invalid signature"
-    },
-    {
-      "code": 6027,
-      "name": "InvalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "Underflow",
+      "msg": "Integer underflow"
     }
   ],
   "types": [
@@ -2927,42 +2865,6 @@
           {
             "name": "next_index",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Config",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "admin",
-            "type": "pubkey"
-          },
-          {
-            "name": "recovery",
-            "type": "pubkey"
-          },
-          {
-            "name": "seed",
-            "type": "u64"
-          },
-          {
-            "name": "vested",
-            "type": "u64"
-          },
-          {
-            "name": "finalized",
-            "type": "bool"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           }
         ]
       }
@@ -3353,6 +3255,42 @@
           {
             "name": "stake_account_metadata",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VestingConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "recovery",
+            "type": "pubkey"
+          },
+          {
+            "name": "seed",
+            "type": "u64"
+          },
+          {
+            "name": "vested",
+            "type": "u64"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

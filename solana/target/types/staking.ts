@@ -236,6 +236,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -255,7 +263,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           },
@@ -559,6 +567,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -570,7 +586,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.admin",
-                "account": "config"
+                "account": "vestingConfig"
               },
               {
                 "kind": "account",
@@ -579,7 +595,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           },
@@ -912,6 +928,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -931,7 +955,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           }
@@ -1434,6 +1458,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -1453,7 +1485,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           }
@@ -1823,6 +1855,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -2314,6 +2354,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -2325,7 +2373,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.admin",
-                "account": "config"
+                "account": "vestingConfig"
               },
               {
                 "kind": "account",
@@ -2334,7 +2382,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           }
@@ -2545,19 +2593,6 @@ export type Staking = {
       ]
     },
     {
-      "name": "config",
-      "discriminator": [
-        155,
-        12,
-        170,
-        224,
-        30,
-        250,
-        204,
-        130
-      ]
-    },
-    {
       "name": "globalConfig",
       "discriminator": [
         149,
@@ -2701,6 +2736,19 @@ export type Staking = {
       ]
     },
     {
+      "name": "vestingConfig",
+      "discriminator": [
+        0,
+        138,
+        71,
+        135,
+        26,
+        29,
+        43,
+        125
+      ]
+    },
+    {
       "name": "wormholeGuardianSet",
       "discriminator": [
         0,
@@ -2771,143 +2819,33 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "tooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "notFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "genericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "notInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "checkpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "vestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "checkpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "vestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "notLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
+      "name": "overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "recoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
-    },
-    {
-      "code": 6006,
-      "name": "checkpointNotFound",
-      "msg": "Checkpoint not found"
-    },
-    {
-      "code": 6007,
-      "name": "invalidTimestamp",
-      "msg": "Invalid timestamp"
-    },
-    {
-      "code": 6008,
-      "name": "invalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "noWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "allWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "voteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "withdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "insufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "proposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "invalidMessageExecutor",
-      "msg": "Invalid message executor"
-    },
-    {
-      "code": 6016,
-      "name": "invalidSpokeAirlock",
-      "msg": "Invalid spoke airlock"
-    },
-    {
-      "code": 6017,
-      "name": "invalidVestingBalance",
-      "msg": "Invalid vesting balance owner"
-    },
-    {
-      "code": 6018,
-      "name": "other",
-      "msg": "other"
-    },
-    {
-      "code": 6019,
-      "name": "failedToParseResponse",
-      "msg": "Failed to parse response"
-    },
-    {
-      "code": 6020,
-      "name": "writeAuthorityMismatch",
-      "msg": "Write authority mismatch"
-    },
-    {
-      "code": 6021,
-      "name": "guardianSetExpired",
-      "msg": "Guardian set expired"
-    },
-    {
-      "code": 6022,
-      "name": "invalidMessageHash",
-      "msg": "Invalid message hash"
-    },
-    {
-      "code": 6023,
-      "name": "noQuorum",
-      "msg": "No quorum"
-    },
-    {
-      "code": 6024,
-      "name": "invalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
-    },
-    {
-      "code": 6025,
-      "name": "invalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
-    },
-    {
-      "code": 6026,
-      "name": "invalidSignature",
-      "msg": "Invalid signature"
-    },
-    {
-      "code": 6027,
-      "name": "invalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "underflow",
+      "msg": "Integer underflow"
     }
   ],
   "types": [
@@ -2933,42 +2871,6 @@ export type Staking = {
           {
             "name": "nextIndex",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "config",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "admin",
-            "type": "pubkey"
-          },
-          {
-            "name": "recovery",
-            "type": "pubkey"
-          },
-          {
-            "name": "seed",
-            "type": "u64"
-          },
-          {
-            "name": "vested",
-            "type": "u64"
-          },
-          {
-            "name": "finalized",
-            "type": "bool"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           }
         ]
       }
@@ -3359,6 +3261,42 @@ export type Staking = {
           {
             "name": "stakeAccountMetadata",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "vestingConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "recovery",
+            "type": "pubkey"
+          },
+          {
+            "name": "seed",
+            "type": "u64"
+          },
+          {
+            "name": "vested",
+            "type": "u64"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

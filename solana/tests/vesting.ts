@@ -91,7 +91,7 @@ describe("vesting", () => {
 
     config = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("config"),
+        Buffer.from("vesting_config"),
         admin.publicKey.toBuffer(),
         mint.publicKey.toBuffer(),
         seed.toBuffer("le", 8),

@@ -5,7 +5,7 @@ use crate::context::VESTING_BALANCE_SEED;
 use crate::state::VestingBalance;
 use crate::{
     error::VestingError,
-    state::{Config, Vesting},
+    state::{VestingConfig, Vesting},
 };
 
 #[derive(Accounts)]
@@ -23,10 +23,10 @@ pub struct CancelVesting<'info> {
         constraint = !config.finalized @ VestingError::VestingFinalized, // Vesting cannot be cancelled after vest is finalized
         has_one = admin, // Arbitrary check as admin is baked into the PDA
         has_one = mint, // Arbitrary check as mint is baked into the PDA
-        seeds = [b"config", admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [b"vesting_config", admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
-    config: Account<'info, Config>,
+    config: Account<'info, VestingConfig>,
     #[account(
         mut,
         close = admin,

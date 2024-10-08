@@ -12,7 +12,7 @@ use crate::state::stake_account::StakeAccountMetadata;
 use crate::state::VestingBalance;
 use crate::{
     error::VestingError,
-    state::{Config, Vesting},
+    state::{VestingConfig, Vesting},
 };
 
 #[derive(Accounts)]
@@ -35,10 +35,10 @@ pub struct ClaimVesting<'info> {
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
-        seeds = [b"config", config.admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [b"vesting_config", config.admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
-    config: Account<'info, Config>,
+    config: Account<'info, VestingConfig>,
     #[account(
         mut,
         close = vester,
@@ -130,7 +130,7 @@ impl<'info> ClaimVesting<'info> {
         let bump = [self.config.bump];
 
         let signer_seeds = [&[
-            b"config",
+            b"vesting_config",
             self.config.admin.as_ref(),
             self.config.mint.as_ref(),
             &seed,

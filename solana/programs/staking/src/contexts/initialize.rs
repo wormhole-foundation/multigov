@@ -4,7 +4,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
-use crate::state::Config;
+use crate::state::VestingConfig;
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
@@ -31,11 +31,11 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = admin,
-        space = Config::INIT_SPACE,
-        seeds = [b"config", admin.key().as_ref(), mint.key().as_ref(), seed.to_le_bytes().as_ref()],
+        space = VestingConfig::INIT_SPACE,
+        seeds = [b"vesting_config", admin.key().as_ref(), mint.key().as_ref(), seed.to_le_bytes().as_ref()],
         bump
     )]
-    config: Account<'info, Config>,
+    config: Account<'info, VestingConfig>,
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
     system_program: Program<'info, System>,
@@ -43,7 +43,7 @@ pub struct Initialize<'info> {
 
 impl<'info> Initialize<'info> {
     pub fn initialize(&mut self, seed: u64, bump: u8) -> Result<()> {
-        self.config.set_inner(Config {
+        self.config.set_inner(VestingConfig {
             mint: self.mint.key(),
             admin: self.admin.key(),
             recovery: self.recovery.key(),
