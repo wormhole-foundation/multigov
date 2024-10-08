@@ -45,7 +45,7 @@ This is the contract used to relay proposal execution to a spoke or spokes. A pr
 
 #### HubEvmSpokeAggregateProposer
 
-A contract that allows an address with voting weight across multiple chains to aggregate their weight in order to create a proposal. If the aggregated weight is greater than the proposal threshold then the proposal will be created. This contract can be changed through a governance proposal and currently does not rely on outside state.
+A contract that allows an address with voting weight across multiple chains to aggregate their weight in order to create a proposal. If the aggregated weight is greater than the proposal threshold then the proposal will be created. This contract can be changed through a governance proposal and currently does not rely on outside state. If a smart contract wallet wants to aggregate their voting weight they must have the same address across all spokes for which they want to aggregate voting power.
 
 ### Component summary: Spoke
 
@@ -73,7 +73,7 @@ This contract can be thought of as governance's "admin" on the spoke, with impor
   3. Multi gov will need to be redeployed for the new governor.
 - `HubVotePool`: A new contract must be deployed that reads the state from the old `HubVotePool` vote state at a given timestamp and then all of the spoke vote aggregators must be registered on the new hub vote pool.
 - `SpokeVoteAggregator`: A new spoke vote aggregator will need to be deployed which must be able to read the vote totals for any active proposals at the timestamp of the new deploy. The new spoke vote aggregator must be registered on the `HubVotePool`.
-- `SpokeMessageExecutor`: Deploy a new contract and then update the hub dispatcher to call the new spoke message executor.
+- `SpokeMessageExecutor`: This contract can be upgraded via a UUPS proxy via the airlock.
 
 ### Diagram
 

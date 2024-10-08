@@ -11,8 +11,6 @@ pub enum ErrorCode {
     CheckpointSerDe,
     #[msg("Checkpoint out of bounds")] //6003
     CheckpointOutOfBounds,
-    #[msg("You need to be an LLC member to perform this action")] //6004
-    NotLlcMember,
     #[msg("Can't recover account with a non-zero staking balance. Unstake your tokens first.")]
     // 6005
     RecoverWithStake,
@@ -20,8 +18,6 @@ pub enum ErrorCode {
     CheckpointNotFound,
     #[msg("Invalid timestamp")] //6007
     InvalidTimestamp,
-    #[msg("Invalid LLC agreement")] // 6008
-    InvalidLlcAgreement,
     #[msg("No Weight")] // 6009
     NoWeight,
     #[msg("All weight cast")] // 6010

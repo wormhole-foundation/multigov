@@ -356,14 +356,6 @@ pub struct UpdatePdaAuthority<'info> {
 }
 
 #[derive(Accounts)]
-pub struct UpdateAgreementHash<'info> {
-    #[account(address = config.governance_authority)]
-    pub governance_signer: Signer<'info>,
-    #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
-}
-
-#[derive(Accounts)]
 pub struct CreateStakeAccount<'info> {
     // Native payer:
     #[account(mut)]
@@ -465,31 +457,6 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
         let cpi_program = accounts.token_program.to_account_info();
         CpiContext::new(cpi_program, cpi_accounts)
     }
-}
-
-#[derive(Accounts)]
-#[instruction(agreement_hash : [u8; 32])]
-pub struct JoinDaoLlc<'info> {
-    // Native payer:
-    #[account(mut, address = stake_account_metadata.owner)]
-    pub payer: Signer<'info>,
-
-    // Stake program accounts:
-    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-    #[account(mut,
-        seeds = [
-            STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
-        ],
-        bump = stake_account_metadata.metadata_bump
-    )]
-    pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
-    #[account(
-        seeds = [CONFIG_SEED.as_bytes()],
-        bump = config.bump,
-        constraint = config.agreement_hash == agreement_hash @ ErrorCode::InvalidLlcAgreement
-    )]
-    pub config: Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]

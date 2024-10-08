@@ -23,7 +23,6 @@ import {
   getPortNumber,
   makeDefaultConfig,
   CustomAbortController,
-  getDummyAgreementHash,
 } from "./utils/before";
 import { StakeConnection, WHTokenBalance } from "../app";
 
@@ -134,7 +133,6 @@ describe("staking", async () => {
         delegate: checkpointDataAddress,
         recordedBalance: expectedRecordedBalance,
         recordedVestingBalance: expectedRecordedBalance,
-        signedAgreementHash: null,
       }),
     );
   });

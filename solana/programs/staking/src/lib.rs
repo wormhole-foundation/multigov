@@ -76,7 +76,6 @@ pub mod staking {
         config_account.wh_token_mint = global_config.wh_token_mint;
         config_account.freeze = global_config.freeze;
         config_account.pda_authority = global_config.pda_authority;
-        config_account.agreement_hash = global_config.agreement_hash;
 
         #[cfg(feature = "mock-clock")]
         {
@@ -101,15 +100,6 @@ pub mod staking {
     ) -> Result<()> {
         let config = &mut ctx.accounts.config;
         config.pda_authority = new_authority;
-        Ok(())
-    }
-
-    pub fn update_agreement_hash(
-        ctx: Context<UpdateAgreementHash>,
-        agreement_hash: [u8; 32],
-    ) -> Result<()> {
-        let config = &mut ctx.accounts.config;
-        config.agreement_hash = agreement_hash;
         Ok(())
     }
 
@@ -350,18 +340,6 @@ pub mod staking {
             return Err(error!(ErrorCode::CheckpointNotFound));
         }
 
-        Ok(())
-    }
-
-    /**
-     * Accept to join the DAO LLC
-     * This must happen before delegate
-     * The user signs a hash of the agreement and the program checks that the hash matches the
-     * agreement
-     */
-    pub fn join_dao_llc(ctx: Context<JoinDaoLlc>, _agreement_hash: [u8; 32]) -> Result<()> {
-        ctx.accounts.stake_account_metadata.signed_agreement_hash =
-            Some(ctx.accounts.config.agreement_hash);
         Ok(())
     }
 

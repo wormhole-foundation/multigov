@@ -42,13 +42,8 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
   function run() public returns (SpokeVoteAggregator, SpokeMetadataCollector, SpokeMessageExecutor, SpokeAirlock) {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
-    vm.startBroadcast(wallet.privateKey);
-    SpokeMetadataCollector spokeMetadataCollector =
-      new SpokeMetadataCollector(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
-    SpokeVoteAggregator aggregator =
-      new SpokeVoteAggregator(address(spokeMetadataCollector), config.votingToken, wallet.addr, config.voteWeightWindow);
-
     SpokeMessageExecutor impl = new SpokeMessageExecutor(wallet.addr);
+    vm.startBroadcast(wallet.privateKey);
     ERC1967Proxy proxy = new ERC1967Proxy(
       address(impl),
       abi.encodeCall(SpokeMessageExecutor.initialize, (config.hubDispatcher, config.hubChainId, config.wormholeCore))
@@ -56,6 +51,12 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
 
     SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
     SpokeAirlock airlock = executor.airlock();
+
+    SpokeMetadataCollector spokeMetadataCollector =
+      new SpokeMetadataCollector(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
+    SpokeVoteAggregator aggregator = new SpokeVoteAggregator(
+      address(spokeMetadataCollector), config.votingToken, address(airlock), config.voteWeightWindow
+    );
 
     vm.stopBroadcast();
     return (aggregator, spokeMetadataCollector, executor, airlock);

@@ -1866,92 +1866,6 @@ export type Staking = {
       ]
     },
     {
-      "name": "joinDaoLlc",
-      "docs": [
-        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
-      ],
-      "discriminator": [
-        79,
-        241,
-        203,
-        177,
-        232,
-        143,
-        124,
-        14
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "stakeAccountCheckpoints"
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  101,
-                  95,
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "stakeAccountCheckpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "agreementHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
       "name": "postSignatures",
       "discriminator": [
         138,
@@ -2210,55 +2124,6 @@ export type Staking = {
       "args": [
         {
           "name": "messageHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "updateAgreementHash",
-      "discriminator": [
-        86,
-        232,
-        181,
-        137,
-        158,
-        110,
-        129,
-        238
-      ],
-      "accounts": [
-        {
-          "name": "governanceSigner",
-          "signer": true
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "agreementHash",
           "type": {
             "array": [
               "u8",
@@ -2906,46 +2771,141 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
+      "name": "tooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
+    },
+    {
+      "code": 6001,
+      "name": "genericOverflow",
+      "msg": "An arithmetic operation unexpectedly overflowed"
+    },
+    {
+      "code": 6002,
+      "name": "checkpointSerDe",
+      "msg": "Error deserializing checkpoint"
+    },
+    {
+      "code": 6003,
+      "name": "checkpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
+    },
+    {
+      "code": 6004,
+      "name": "notLlcMember",
+      "msg": "You need to be an LLC member to perform this action"
+    },
+    {
+      "code": 6005,
+      "name": "recoverWithStake",
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+    },
+    {
+      "code": 6006,
+      "name": "checkpointNotFound",
+      "msg": "Checkpoint not found"
+    },
+    {
+      "code": 6007,
+      "name": "invalidTimestamp",
+      "msg": "Invalid timestamp"
+    },
+    {
+      "code": 6008,
+      "name": "invalidLlcAgreement",
+      "msg": "Invalid LLC agreement"
+    },
+    {
+      "code": 6009,
+      "name": "noWeight",
+      "msg": "No Weight"
+    },
+    {
+      "code": 6010,
+      "name": "allWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6011,
+      "name": "voteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6012,
+      "name": "withdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
+    },
+    {
+      "code": 6013,
+      "name": "insufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
+    },
+    {
+      "code": 6014,
+      "name": "proposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6015,
+      "name": "invalidMessageExecutor",
+      "msg": "Invalid message executor"
+    },
+    {
+      "code": 6016,
+      "name": "invalidSpokeAirlock",
+      "msg": "Invalid spoke airlock"
+    },
+    {
+      "code": 6017,
+      "name": "invalidVestingBalance",
+      "msg": "Invalid vesting balance owner"
+    },
+    {
+      "code": 6018,
+      "name": "other",
+      "msg": "other"
+    },
+    {
+      "code": 6019,
       "name": "failedToParseResponse",
       "msg": "Failed to parse response"
     },
     {
-      "code": 6001,
+      "code": 6020,
       "name": "writeAuthorityMismatch",
       "msg": "Write authority mismatch"
     },
     {
-      "code": 6002,
+      "code": 6021,
       "name": "guardianSetExpired",
       "msg": "Guardian set expired"
     },
     {
-      "code": 6003,
+      "code": 6022,
       "name": "invalidMessageHash",
       "msg": "Invalid message hash"
     },
     {
-      "code": 6004,
+      "code": 6023,
       "name": "noQuorum",
       "msg": "No quorum"
     },
     {
-      "code": 6005,
+      "code": 6024,
       "name": "invalidGuardianIndexNonIncreasing",
       "msg": "Invalid guardian index non increasing"
     },
     {
-      "code": 6006,
+      "code": 6025,
       "name": "invalidGuardianIndexOutOfRange",
       "msg": "Invalid guardian index out of range"
     },
     {
-      "code": 6007,
+      "code": 6026,
       "name": "invalidSignature",
       "msg": "Invalid signature"
     },
     {
-      "code": 6008,
+      "code": 6027,
       "name": "invalidGuardianKeyRecovery",
       "msg": "Invalid guardian key recovery"
     }
@@ -3067,16 +3027,20 @@ export type Staking = {
             "type": "u8"
           },
           {
+            "name": "freeze",
+            "type": "bool"
+          },
+          {
+            "name": "mockClockTime",
+            "type": "i64"
+          },
+          {
             "name": "governanceAuthority",
             "type": "pubkey"
           },
           {
             "name": "whTokenMint",
             "type": "pubkey"
-          },
-          {
-            "name": "freeze",
-            "type": "bool"
           },
           {
             "name": "pdaAuthority",
@@ -3090,10 +3054,6 @@ export type Staking = {
                 32
               ]
             }
-          },
-          {
-            "name": "mockClockTime",
-            "type": "i64"
           }
         ]
       }
@@ -3329,14 +3289,6 @@ export type Staking = {
             "type": "u8"
           },
           {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "delegate",
-            "type": "pubkey"
-          },
-          {
             "name": "recordedBalance",
             "type": "u64"
           },
@@ -3345,15 +3297,12 @@ export type Staking = {
             "type": "u64"
           },
           {
-            "name": "signedAgreementHash",
-            "type": {
-              "option": {
-                "array": [
-                  "u8",
-                  32
-                ]
-              }
-            }
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "delegate",
+            "type": "pubkey"
           }
         ]
       }

@@ -1860,92 +1860,6 @@
       ]
     },
     {
-      "name": "join_dao_llc",
-      "docs": [
-        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
-      ],
-      "discriminator": [
-        79,
-        241,
-        203,
-        177,
-        232,
-        143,
-        124,
-        14
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "stake_account_checkpoints"
-        },
-        {
-          "name": "stake_account_metadata",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  101,
-                  95,
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "stake_account_checkpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "_agreement_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
       "name": "post_signatures",
       "discriminator": [
         138,
@@ -2204,55 +2118,6 @@
       "args": [
         {
           "name": "_message_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "update_agreement_hash",
-      "discriminator": [
-        86,
-        232,
-        181,
-        137,
-        158,
-        110,
-        129,
-        238
-      ],
-      "accounts": [
-        {
-          "name": "governance_signer",
-          "signer": true
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "agreement_hash",
           "type": {
             "array": [
               "u8",
@@ -2900,46 +2765,141 @@
   "errors": [
     {
       "code": 6000,
+      "name": "TooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
+    },
+    {
+      "code": 6001,
+      "name": "GenericOverflow",
+      "msg": "An arithmetic operation unexpectedly overflowed"
+    },
+    {
+      "code": 6002,
+      "name": "CheckpointSerDe",
+      "msg": "Error deserializing checkpoint"
+    },
+    {
+      "code": 6003,
+      "name": "CheckpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
+    },
+    {
+      "code": 6004,
+      "name": "NotLlcMember",
+      "msg": "You need to be an LLC member to perform this action"
+    },
+    {
+      "code": 6005,
+      "name": "RecoverWithStake",
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+    },
+    {
+      "code": 6006,
+      "name": "CheckpointNotFound",
+      "msg": "Checkpoint not found"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidTimestamp",
+      "msg": "Invalid timestamp"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidLlcAgreement",
+      "msg": "Invalid LLC agreement"
+    },
+    {
+      "code": 6009,
+      "name": "NoWeight",
+      "msg": "No Weight"
+    },
+    {
+      "code": 6010,
+      "name": "AllWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6011,
+      "name": "VoteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6012,
+      "name": "WithdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
+    },
+    {
+      "code": 6013,
+      "name": "InsufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
+    },
+    {
+      "code": 6014,
+      "name": "ProposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidMessageExecutor",
+      "msg": "Invalid message executor"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidSpokeAirlock",
+      "msg": "Invalid spoke airlock"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidVestingBalance",
+      "msg": "Invalid vesting balance owner"
+    },
+    {
+      "code": 6018,
+      "name": "Other",
+      "msg": "Other"
+    },
+    {
+      "code": 6019,
       "name": "FailedToParseResponse",
       "msg": "Failed to parse response"
     },
     {
-      "code": 6001,
+      "code": 6020,
       "name": "WriteAuthorityMismatch",
       "msg": "Write authority mismatch"
     },
     {
-      "code": 6002,
+      "code": 6021,
       "name": "GuardianSetExpired",
       "msg": "Guardian set expired"
     },
     {
-      "code": 6003,
+      "code": 6022,
       "name": "InvalidMessageHash",
       "msg": "Invalid message hash"
     },
     {
-      "code": 6004,
+      "code": 6023,
       "name": "NoQuorum",
       "msg": "No quorum"
     },
     {
-      "code": 6005,
+      "code": 6024,
       "name": "InvalidGuardianIndexNonIncreasing",
       "msg": "Invalid guardian index non increasing"
     },
     {
-      "code": 6006,
+      "code": 6025,
       "name": "InvalidGuardianIndexOutOfRange",
       "msg": "Invalid guardian index out of range"
     },
     {
-      "code": 6007,
+      "code": 6026,
       "name": "InvalidSignature",
       "msg": "Invalid signature"
     },
     {
-      "code": 6008,
+      "code": 6027,
       "name": "InvalidGuardianKeyRecovery",
       "msg": "Invalid guardian key recovery"
     }
@@ -3061,16 +3021,20 @@
             "type": "u8"
           },
           {
+            "name": "freeze",
+            "type": "bool"
+          },
+          {
+            "name": "mock_clock_time",
+            "type": "i64"
+          },
+          {
             "name": "governance_authority",
             "type": "pubkey"
           },
           {
             "name": "wh_token_mint",
             "type": "pubkey"
-          },
-          {
-            "name": "freeze",
-            "type": "bool"
           },
           {
             "name": "pda_authority",
@@ -3084,10 +3048,6 @@
                 32
               ]
             }
-          },
-          {
-            "name": "mock_clock_time",
-            "type": "i64"
           }
         ]
       }
@@ -3323,14 +3283,6 @@
             "type": "u8"
           },
           {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "delegate",
-            "type": "pubkey"
-          },
-          {
             "name": "recorded_balance",
             "type": "u64"
           },
@@ -3339,15 +3291,12 @@
             "type": "u64"
           },
           {
-            "name": "signed_agreement_hash",
-            "type": {
-              "option": {
-                "array": [
-                  "u8",
-                  32
-                ]
-              }
-            }
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "delegate",
+            "type": "pubkey"
           }
         ]
       }
