@@ -67,6 +67,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
     vm.startBroadcast(wallet.privateKey);
+    bytes32 salt = keccak256(abi.encodePacked(config.name, block.chainid));
 
     // Deploy timelock for governor.
     TimelockController timelock =
@@ -76,6 +77,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     HubProposalExtender extender = new HubProposalExtender(
       config.voteExtenderAdmin, config.voteTimeExtension, address(timelock), wallet.addr, config.minimumExtensionTime
     );
+  }
 
     // Deploy `HubVotePool` which will revceive cross-chain votes.
     HubVotePool hubVotePool = new HubVotePool(config.wormholeCore, address(0), wallet.addr);
