@@ -2881,63 +2881,63 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "notFullyVested",
-      "msg": "Not fully vested yet"
+      "name": "tooManyQueryResponses",
+      "msg": "Too many query responses"
     },
     {
       "code": 6001,
-      "name": "notInSurplus",
-      "msg": "Vault is not in surplus"
+      "name": "senderChainMismatch",
+      "msg": "Sender chain mismatch"
     },
     {
       "code": 6002,
-      "name": "vestingFinalized",
-      "msg": "Vesting finalized"
+      "name": "tooManyEthCallResults",
+      "msg": "Too many eth call results"
     },
     {
       "code": 6003,
-      "name": "vestingUnfinalized",
-      "msg": "Vesting unfinalized"
+      "name": "invalidDataLength",
+      "msg": "Invalid data length"
     },
     {
       "code": 6004,
-      "name": "overflow",
-      "msg": "Integer overflow"
+      "name": "errorOfContractAddressParsing",
+      "msg": "Error of contract_address parsing"
     },
     {
       "code": 6005,
-      "name": "underflow",
-      "msg": "Integer underflow"
+      "name": "errorOfProposalIdParsing",
+      "msg": "Error of proposal_id parsing"
     },
     {
       "code": 6006,
-      "name": "invalidStakeAccountCheckpoints",
-      "msg": "Invalid stake account delegate"
+      "name": "errorOfVoteStartParsing",
+      "msg": "Error of vote_start parsing"
     },
     {
       "code": 6007,
-      "name": "errorOfStakeAccountParsing",
-      "msg": "Error parsing stake_account_metadata and stake_account_checkpoints"
+      "name": "invalidHubProposalMetadataContract",
+      "msg": "Invalid hub proposal metadata contract"
     },
     {
       "code": 6008,
-      "name": "invalidVestingConfigPda",
-      "msg": "Invalid vesting config PDA"
+      "name": "invalidProposalId",
+      "msg": "Invalid proposal_id"
     },
     {
       "code": 6009,
-      "name": "invalidVestingBalancePda",
-      "msg": "Invalid vesting balance PDA"
+      "name": "nonFinalizedBlock",
+      "msg": "Non-finalized block"
     },
     {
       "code": 6010,
-      "name": "invalidVestingMint",
-      "msg": "Invalid vesting mint"
+      "name": "invalidChainSpecificQuery",
+      "msg": "Invalid ChainSpecificQuery"
     },
     {
       "code": 6011,
-      "name": "invalidStakeAccountOwner",
-      "msg": "Invalid stake account owner"
+      "name": "invalidChainSpecificResponse",
+      "msg": "Invalid ChainSpecificResponse"
     }
   ],
   "types": [

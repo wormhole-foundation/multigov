@@ -394,7 +394,7 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("should successfully stake vest", async () => {
+  it("should successfully delegate with vest", async () => {
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.delegate_with_vest(
         vesterStakeConnection.userPublicKey(),
@@ -421,6 +421,91 @@ describe("vesting", () => {
       vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
       "2674000000",
     );
+  });
+
+  it("should fail to delegate with uninitialized vestingBalance account", async () => {
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.delegate_with_vest(
+        vesterStakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("0"),
+        true,
+        config
+      );
+
+    let delegateeStakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(vesterStakeConnection.userPublicKey());
+
+    let currentDelegateStakeAccountCheckpointsAddress = await stakeConnection.delegates(
+      stakeAccountCheckpointsAddress,
+    );
+
+    let uninitializedVestingBalanceAccount = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("uninitialized_vesting_config"),
+        config.toBuffer(),
+        stakeConnection.userPublicKey().toBuffer(),
+      ],
+      stakeConnection.program.programId,
+    )[0];
+
+    try {
+      await stakeConnection.program.methods
+        .delegate(delegateeStakeAccountCheckpointsAddress)
+        .accounts({
+          currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
+          delegateeStakeAccountCheckpoints:
+            delegateeStakeAccountCheckpointsAddress,
+          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: config,
+          vestingBalance: uninitializedVestingBalanceAccount,
+          mint: whMintAccount.publicKey,
+        })
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "AccountNotInitialized",
+      );
+    }
+  });
+
+  it("should fail to delegate with vestingBalance account discriminator mismatch", async () => {
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.delegate_with_vest(
+        vesterStakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("0"),
+        true,
+        config
+      );
+
+    let delegateeStakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(vesterStakeConnection.userPublicKey());
+
+    let currentDelegateStakeAccountCheckpointsAddress = await stakeConnection.delegates(
+      stakeAccountCheckpointsAddress,
+    );
+
+    try {
+      await stakeConnection.program.methods
+        .delegate(delegateeStakeAccountCheckpointsAddress)
+        .accounts({
+          currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
+          delegateeStakeAccountCheckpoints:
+            delegateeStakeAccountCheckpointsAddress,
+          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: config,
+          vestingBalance: config,
+          mint: whMintAccount.publicKey,
+        })
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "AccountDiscriminatorMismatch",
+      );
+    }
   });
 
   it("should fail to claim without stakeAccountMetadata", async () => {
