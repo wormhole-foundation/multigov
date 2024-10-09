@@ -73,10 +73,11 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     returns (SpokeMessageExecutor)
   {
     SpokeMessageExecutor impl = new SpokeMessageExecutor{salt: salt}(wallet.addr);
-    ERC1967Proxy proxy = new ERC1967Proxy{salt: salt}(
-      address(impl),
-      abi.encodeCall(SpokeMessageExecutor.initialize, (config.hubDispatcher, config.hubChainId, config.wormholeCore))
-    );
+
+    ERC1967Proxy proxy = new ERC1967Proxy{salt: salt}(address(impl), "");
+
+    SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
+    executor.initialize(config.hubDispatcher, config.hubChainId, config.wormholeCore);
     return SpokeMessageExecutor(address(proxy));
   }
 
@@ -101,8 +102,7 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
   function predictDeployedAddresses(address deployer, bytes32 salt) public pure returns (address[] memory) {
     address[] memory addresses = new address[](4);
     addresses[0] = computeCreate2Address(salt, keccak256(type(SpokeMessageExecutor).creationCode), deployer);
-    addresses[1] = computeCreate2Address(salt, keccak256(type(ERC1967Proxy).creationCode), deployer); // For
-      // SpokeMessageExecutor proxy
+    addresses[1] = computeCreate2Address(salt, keccak256(type(ERC1967Proxy).creationCode), deployer);
     addresses[2] = computeCreate2Address(salt, keccak256(type(SpokeMetadataCollector).creationCode), deployer);
     addresses[3] = computeCreate2Address(salt, keccak256(type(SpokeVoteAggregator).creationCode), deployer);
 
