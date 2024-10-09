@@ -323,6 +323,10 @@
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -651,6 +655,10 @@
                   99,
                   101
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
               },
               {
                 "kind": "account",
@@ -1010,6 +1018,10 @@
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -1056,6 +1068,47 @@
           "name": "mint"
         },
         {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.admin",
+                "account": "VestingConfig"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "config.seed",
+                "account": "VestingConfig"
+              }
+            ]
+          }
+        },
+        {
           "name": "vesting_balance",
           "writable": true,
           "pda": {
@@ -1079,6 +1132,10 @@
                   99,
                   101
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
               },
               {
                 "kind": "account",
@@ -1275,6 +1332,16 @@
           }
         },
         {
+          "name": "vesting_config",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "vesting_balance",
+          "writable": true,
+          "optional": true
+        },
+        {
           "name": "config",
           "pda": {
             "seeds": [
@@ -1291,11 +1358,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "vesting_balance",
-          "writable": true,
-          "optional": true
         },
         {
           "name": "mint"
@@ -2840,6 +2902,36 @@
       "code": 6005,
       "name": "Underflow",
       "msg": "Integer underflow"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidStakeAccountCheckpoints",
+      "msg": "Invalid stake account delegate"
+    },
+    {
+      "code": 6007,
+      "name": "ErrorOfStakeAccountParsing",
+      "msg": "Error parsing stake_account_metadata and stake_account_checkpoints"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidVestingConfigPDA",
+      "msg": "Invalid vesting config PDA"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidVestingBalancePDA",
+      "msg": "Invalid vesting balance PDA"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidVestingMint",
+      "msg": "Invalid vesting mint"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidStakeAccountOwner",
+      "msg": "Invalid stake account owner"
     }
   ],
   "types": [

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
-use crate::context::VESTING_BALANCE_SEED;
+use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED};
 use crate::state::VestingBalance;
 use crate::{
     error::VestingError,
@@ -23,7 +23,7 @@ pub struct CancelVesting<'info> {
         constraint = !config.finalized @ VestingError::VestingFinalized, // Vesting cannot be cancelled after vest is finalized
         has_one = admin, // Arbitrary check as admin is baked into the PDA
         has_one = mint, // Arbitrary check as mint is baked into the PDA
-        seeds = [b"vesting_config", admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [VESTING_CONFIG_SEED.as_bytes(), admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
     config: Account<'info, VestingConfig>,
@@ -37,7 +37,7 @@ pub struct CancelVesting<'info> {
     vest: Account<'info, Vesting>,
     #[account(
         mut,
-        seeds = [VESTING_BALANCE_SEED.as_bytes(), vester_ta.owner.key().as_ref()],
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref()],
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,

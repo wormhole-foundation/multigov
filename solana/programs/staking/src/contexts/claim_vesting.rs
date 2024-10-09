@@ -1,5 +1,4 @@
-use crate::context::VESTING_BALANCE_SEED;
-use crate::error::ErrorCode;
+use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -9,10 +8,9 @@ use std::convert::TryInto;
 
 use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
 use crate::state::stake_account::StakeAccountMetadata;
-use crate::state::VestingBalance;
 use crate::{
     error::VestingError,
-    state::{VestingConfig, Vesting},
+    state::{VestingBalance, VestingConfig, Vesting},
 };
 
 #[derive(Accounts)]
@@ -35,7 +33,7 @@ pub struct ClaimVesting<'info> {
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
-        seeds = [b"vesting_config", config.admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [VESTING_CONFIG_SEED.as_bytes(), config.admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
     config: Account<'info, VestingConfig>,
@@ -52,7 +50,7 @@ pub struct ClaimVesting<'info> {
     #[account(
         mut,
         has_one = vester,
-        seeds = [VESTING_BALANCE_SEED.as_bytes(), vester_ta.owner.key().as_ref()],
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref()],
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,
@@ -79,13 +77,13 @@ impl<'info> ClaimVesting<'info> {
                 // Verify that the actual address matches the expected one
                 require!(
                     stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
-                    ErrorCode::InvalidVestingBalance
+                    VestingError::InvalidStakeAccountCheckpoints
                 );
 
                 // Additional checks to ensure the owner matches
                 require!(
                     stake_account_metadata.owner == self.vesting_balance.vester,
-                    ErrorCode::InvalidVestingBalance
+                    VestingError::InvalidStakeAccountOwner
                 );
 
                 // Update the recorded vesting balance
@@ -110,7 +108,7 @@ impl<'info> ClaimVesting<'info> {
                     &self.system_program.to_account_info(),
                 )?;
             } else {
-                return err!(ErrorCode::InvalidVestingBalance);
+                return err!(VestingError::ErrorOfStakeAccountParsing);
             }
         }
         self.config.vested = self
@@ -130,7 +128,7 @@ impl<'info> ClaimVesting<'info> {
         let bump = [self.config.bump];
 
         let signer_seeds = [&[
-            b"vesting_config",
+            VESTING_CONFIG_SEED.as_bytes(),
             self.config.admin.as_ref(),
             self.config.mint.as_ref(),
             &seed,

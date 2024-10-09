@@ -25,6 +25,7 @@ pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
 pub const CHECKPOINT_DATA_SEED: &str = "owner";
 pub const CONFIG_SEED: &str = "config";
 pub const PROPOSAL_SEED: &str = "proposal";
+pub const VESTING_CONFIG_SEED: &str = "vesting_config";
 pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
@@ -105,11 +106,13 @@ pub struct Delegate<'info> {
     )]
     pub stake_account_custody: Box<Account<'info, TokenAccount>>,
 
-    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+    #[account(mut)]
+    pub vesting_config: Option<Account<'info, VestingConfig>>,
     #[account(mut)]
     pub vesting_balance: Option<Account<'info, VestingBalance>>,
 
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
     pub mint: Account<'info, Mint>,

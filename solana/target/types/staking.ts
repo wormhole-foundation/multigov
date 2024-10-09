@@ -329,6 +329,10 @@ export type Staking = {
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -657,6 +661,10 @@ export type Staking = {
                   99,
                   101
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
               },
               {
                 "kind": "account",
@@ -1016,6 +1024,10 @@ export type Staking = {
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -1062,6 +1074,47 @@ export type Staking = {
           "name": "mint"
         },
         {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.admin",
+                "account": "vestingConfig"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "config.seed",
+                "account": "vestingConfig"
+              }
+            ]
+          }
+        },
+        {
           "name": "vestingBalance",
           "writable": true,
           "pda": {
@@ -1085,6 +1138,10 @@ export type Staking = {
                   99,
                   101
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
               },
               {
                 "kind": "account",
@@ -1281,6 +1338,16 @@ export type Staking = {
           }
         },
         {
+          "name": "vestingConfig",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "vestingBalance",
+          "writable": true,
+          "optional": true
+        },
+        {
           "name": "config",
           "pda": {
             "seeds": [
@@ -1297,11 +1364,6 @@ export type Staking = {
               }
             ]
           }
-        },
-        {
-          "name": "vestingBalance",
-          "writable": true,
-          "optional": true
         },
         {
           "name": "mint"
@@ -2846,6 +2908,36 @@ export type Staking = {
       "code": 6005,
       "name": "underflow",
       "msg": "Integer underflow"
+    },
+    {
+      "code": 6006,
+      "name": "invalidStakeAccountCheckpoints",
+      "msg": "Invalid stake account delegate"
+    },
+    {
+      "code": 6007,
+      "name": "errorOfStakeAccountParsing",
+      "msg": "Error parsing stake_account_metadata and stake_account_checkpoints"
+    },
+    {
+      "code": 6008,
+      "name": "invalidVestingConfigPda",
+      "msg": "Invalid vesting config PDA"
+    },
+    {
+      "code": 6009,
+      "name": "invalidVestingBalancePda",
+      "msg": "Invalid vesting balance PDA"
+    },
+    {
+      "code": 6010,
+      "name": "invalidVestingMint",
+      "msg": "Invalid vesting mint"
+    },
+    {
+      "code": 6011,
+      "name": "invalidStakeAccountOwner",
+      "msg": "Invalid stake account owner"
     }
   ],
   "types": [

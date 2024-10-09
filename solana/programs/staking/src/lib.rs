@@ -6,7 +6,6 @@
 // Objects of type Result must be used, otherwise we might
 // call a function that returns a Result and not handle the error
 
-use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
@@ -24,7 +23,7 @@ use anchor_lang::solana_program::{
 use wormhole_query_sdk::structs::{ChainSpecificQuery, ChainSpecificResponse, QueryResponse};
 
 use crate::{
-    error::{ProposalWormholeMessageError, QueriesSolanaVerifyError},
+    error::{ErrorCode, VestingError, ProposalWormholeMessageError, QueriesSolanaVerifyError},
     state::GuardianSignatures,
 };
 
@@ -123,6 +122,7 @@ pub mod staking {
 
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+        let config = &ctx.accounts.config;
 
         let prev_recorded_total_balance = stake_account_metadata
             .recorded_balance
@@ -131,14 +131,47 @@ pub mod staking {
 
         let current_stake_balance = ctx.accounts.stake_account_custody.amount;
 
-        if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
-            require!(
-                vesting_balance.vester.key() == stake_account_metadata.owner.key(),
-                ErrorCode::InvalidVestingBalance
+        if let Some(vesting_config) = &mut ctx.accounts.vesting_config {
+            let (expected_vesting_config_pda, _) = Pubkey::find_program_address(
+                &[
+                    VESTING_CONFIG_SEED.as_bytes(),
+                    vesting_config.admin.as_ref(),
+                    vesting_config.mint.as_ref(),
+                    vesting_config.seed.to_le_bytes().as_ref(),
+                ],
+                &crate::ID,
             );
-            vesting_balance.stake_account_metadata = stake_account_metadata.key();
+            require!(
+                vesting_config.key() == expected_vesting_config_pda,
+                VestingError::InvalidVestingConfigPDA
+            );
 
-            stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
+            if vesting_config.finalized {
+                if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
+                    let (expected_vesting_balance_pda, _) = Pubkey::find_program_address(
+                        &[
+                            VESTING_BALANCE_SEED.as_bytes(),
+                            expected_vesting_config_pda.as_ref(),
+                            vesting_balance.vester.as_ref(),
+                        ],
+                        &crate::ID,
+                    );
+                    require!(
+                        vesting_balance.key() == expected_vesting_balance_pda,
+                        VestingError::InvalidVestingBalancePDA
+                    );
+                    require!(
+                        vesting_balance.vester == stake_account_metadata.owner,
+                        VestingError::InvalidStakeAccountOwner
+                    );
+                    require!(
+                        vesting_config.mint == config.wh_token_mint,
+                        VestingError::InvalidVestingMint
+                    );
+                    vesting_balance.stake_account_metadata = stake_account_metadata.key();
+                    stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
+                }
+            }
         }
 
         let current_delegate = stake_account_metadata.delegate;
@@ -155,7 +188,6 @@ pub mod staking {
             total_delegated_votes: total_delegated_votes
         });
 
-        let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
 
         if current_delegate != delegatee {

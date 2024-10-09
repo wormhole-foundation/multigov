@@ -179,6 +179,7 @@ reexport_seed_const!(STAKE_ACCOUNT_METADATA_SEED);
 reexport_seed_const!(CHECKPOINT_DATA_SEED);
 reexport_seed_const!(CONFIG_SEED);
 reexport_seed_const!(PROPOSAL_SEED);
+reexport_seed_const!(VESTING_CONFIG_SEED);
 reexport_seed_const!(VESTING_BALANCE_SEED);
 
 #[wasm_bindgen]

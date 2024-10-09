@@ -395,6 +395,7 @@ export class StakeConnection {
     delegatee: PublicKey,
     amount: WHTokenBalance,
     include_vest: boolean,
+    vestingConfigAccount: PublicKey | null
   ): Promise<PublicKey> {
     let stakeAccountCheckpointsAddress =
       await this.getStakeAccountCheckpointsAddress(this.userPublicKey());
@@ -440,6 +441,7 @@ export class StakeConnection {
       vestingBalanceAccount = PublicKey.findProgramAddressSync(
         [
           utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
+          vestingConfigAccount.toBuffer(),
           this.userPublicKey().toBuffer(),
         ],
         this.program.programId,
@@ -455,6 +457,7 @@ export class StakeConnection {
           delegateeStakeAccountCheckpoints:
             delegateeStakeAccountCheckpointsAddress,
           stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: vestingConfigAccount,
           vestingBalance: vestingBalanceAccount,
           mint: this.config.whTokenMint,
         })
@@ -517,6 +520,7 @@ export class StakeConnection {
           delegateeStakeAccountCheckpoints:
             delegateeStakeAccountCheckpointsAddress,
           stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: null,
           vestingBalance: null,
           mint: this.config.whTokenMint,
         })

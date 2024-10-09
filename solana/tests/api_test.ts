@@ -389,6 +389,7 @@ describe("api", async () => {
             stakeAccountCheckpointsAddress, // Invalid delegate
           delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
           stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: null,
           vestingBalance: null,
           mint: stakeConnection.config.whTokenMint,
         })

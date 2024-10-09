@@ -34,8 +34,6 @@ pub enum ErrorCode {
     InvalidMessageExecutor,
     #[msg("Invalid spoke airlock")] //6016
     InvalidSpokeAirlock,
-    #[msg("Invalid vesting balance owner")] //6017
-    InvalidVestingBalance,
     #[msg("Invalid current delegate")]
     InvalidCurrentDelegate,
     #[msg("Other")]
@@ -56,6 +54,18 @@ pub enum VestingError {
     Overflow,
     #[msg("Integer underflow")]
     Underflow,
+    #[msg("Invalid stake account delegate")]
+    InvalidStakeAccountCheckpoints,
+    #[msg("Error parsing stake_account_metadata and stake_account_checkpoints")]
+    ErrorOfStakeAccountParsing,
+    #[msg("Invalid vesting config PDA")]
+    InvalidVestingConfigPDA,
+    #[msg("Invalid vesting balance PDA")]
+    InvalidVestingBalancePDA,
+    #[msg("Invalid vesting mint")]
+    InvalidVestingMint,
+    #[msg("Invalid stake account owner")]
+    InvalidStakeAccountOwner,
 }
 
 #[error_code]

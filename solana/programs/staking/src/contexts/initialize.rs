@@ -3,7 +3,7 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
-
+use crate::context::VESTING_CONFIG_SEED;
 use crate::state::VestingConfig;
 
 #[derive(Accounts)]
@@ -32,7 +32,7 @@ pub struct Initialize<'info> {
         init,
         payer = admin,
         space = VestingConfig::INIT_SPACE,
-        seeds = [b"vesting_config", admin.key().as_ref(), mint.key().as_ref(), seed.to_le_bytes().as_ref()],
+        seeds = [VESTING_CONFIG_SEED.as_bytes(), admin.key().as_ref(), mint.key().as_ref(), seed.to_le_bytes().as_ref()],
         bump
     )]
     config: Account<'info, VestingConfig>,

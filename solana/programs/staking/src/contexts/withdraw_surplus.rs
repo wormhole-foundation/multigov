@@ -3,7 +3,7 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
-
+use crate::context::VESTING_CONFIG_SEED;
 use crate::{error::VestingError, state::VestingConfig};
 
 #[derive(Accounts)]
@@ -28,7 +28,7 @@ pub struct WithdrawSurplus<'info> {
         mut,
         constraint = vault.amount > config.vested @ VestingError::NotInSurplus,
         has_one = recovery,
-        seeds = [b"vesting_config", config.admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [VESTING_CONFIG_SEED.as_bytes(), config.admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
     config: Account<'info, VestingConfig>,
@@ -44,7 +44,7 @@ impl<'info> WithdrawSurplus<'info> {
         let bump = [self.config.bump];
 
         let signer_seeds = [&[
-            b"vesting_config",
+            VESTING_CONFIG_SEED.as_bytes(),
             self.config.admin.as_ref(),
             self.config.mint.as_ref(),
             &seed,

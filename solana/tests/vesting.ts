@@ -11,9 +11,8 @@ import {
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   MINT_SIZE,
-  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
-  createInitializeMint2Instruction,
   createMintToInstruction,
   createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
@@ -28,13 +27,15 @@ import {
   readAnchorConfig,
   standardSetup,
   startValidator,
+  transferSolFromValidatorWallet,
 } from "./utils/before";
 import path from "path";
-import { AnchorError, AnchorProvider, Program } from "@coral-xyz/anchor";
+import { AnchorError, AnchorProvider, Program, utils } from "@coral-xyz/anchor";
 import * as console from "node:console";
 import { StakeConnection, WHTokenBalance } from "../app";
 import { StakeAccountMetadata } from "../app/StakeConnection";
 import { CheckpointAccount } from "../app/checkpoints";
+import * as wasm from "@wormhole/staking-wasm";
 
 const portNumber = getPortNumber(path.basename(__filename));
 
@@ -61,9 +62,7 @@ describe("vesting", () => {
   const EVEN_LATER = LATER.add(new BN(1000));
   const EVEN_LATER_AGAIN = EVEN_LATER.add(new BN(1000));
 
-  const admin = Keypair.generate();
   const vester = Keypair.generate();
-  const mint = Keypair.generate();
   const seed = new BN(randomBytes(8));
 
   let accounts,
@@ -78,6 +77,10 @@ describe("vesting", () => {
     vestingBalance,
     vesterStakeConnection;
 
+  after(async () => {
+    controller.abort();
+  });
+
   before(async () => {
     const anchorConfig = readAnchorConfig(ANCHOR_CONFIG_PATH);
     ({ controller, stakeConnection } = await standardSetup(
@@ -91,30 +94,30 @@ describe("vesting", () => {
 
     config = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vesting_config"),
-        admin.publicKey.toBuffer(),
-        mint.publicKey.toBuffer(),
+        utils.bytes.utf8.encode(wasm.Constants.VESTING_CONFIG_SEED()),
+        whMintAuthority.publicKey.toBuffer(),
+        whMintAccount.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
     )[0];
     vault = getAssociatedTokenAddressSync(
-      mint.publicKey,
+      whMintAccount.publicKey,
       config,
       true,
-      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
     );
     vesterTa = getAssociatedTokenAddressSync(
-      mint.publicKey,
+      whMintAccount.publicKey,
       vester.publicKey,
       false,
-      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
     );
     adminAta = getAssociatedTokenAddressSync(
-      mint.publicKey,
-      admin.publicKey,
+      whMintAccount.publicKey,
+      whMintAuthority.publicKey,
       false,
-      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
     );
     vestNow = PublicKey.findProgramAddressSync(
       [
@@ -157,7 +160,11 @@ describe("vesting", () => {
     )[0];
 
     vestingBalance = PublicKey.findProgramAddressSync(
-      [Buffer.from("vesting_balance"), vester.publicKey.toBuffer()],
+      [
+        utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
+        config.toBuffer(),
+        vester.publicKey.toBuffer()
+      ],
       stakeConnection.program.programId,
     )[0];
 
@@ -174,9 +181,9 @@ describe("vesting", () => {
     await vesterStakeConnection.createStakeAccount();
 
     accounts = {
-      admin: admin.publicKey,
-      payer: admin.publicKey,
-      mint: mint.publicKey,
+      admin: whMintAuthority.publicKey,
+      payer: whMintAuthority.publicKey,
+      mint: whMintAccount.publicKey,
       config,
       vault,
       vester: vester.publicKey,
@@ -184,70 +191,54 @@ describe("vesting", () => {
       adminAta,
       recovery: adminAta,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      tokenProgram: TOKEN_2022_PROGRAM_ID,
+      tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
       vestingBalance: vestingBalance,
     };
   });
 
   it("Airdrop", async () => {
-    let lamports = await getMinimumBalanceForRentExemptMint(
-      stakeConnection.provider.connection,
-    );
     let tx = new Transaction();
     tx.instructions = [
-      ...[admin, vester].map((k) =>
+      ...[whMintAuthority, vester].map((k) =>
         SystemProgram.transfer({
           fromPubkey: stakeConnection.provider.publicKey,
           toPubkey: k.publicKey,
           lamports: 10 * LAMPORTS_PER_SOL,
         }),
       ),
-      SystemProgram.createAccount({
-        fromPubkey: stakeConnection.provider.publicKey,
-        newAccountPubkey: mint.publicKey,
-        lamports,
-        space: MINT_SIZE,
-        programId: TOKEN_2022_PROGRAM_ID,
-      }),
-      createInitializeMint2Instruction(
-        mint.publicKey,
-        6,
-        admin.publicKey,
-        undefined,
-        TOKEN_2022_PROGRAM_ID,
-      ),
+    ];
+    await stakeConnection.provider.sendAndConfirm(tx, [stakeConnection.provider.wallet.payer]);
+
+    tx = new Transaction();
+    tx.instructions = [
       createAssociatedTokenAccountIdempotentInstruction(
-        stakeConnection.provider.publicKey,
+        whMintAuthority.publicKey,
         adminAta,
-        admin.publicKey,
-        mint.publicKey,
-        TOKEN_2022_PROGRAM_ID,
+        whMintAuthority.publicKey,
+        whMintAccount.publicKey,
       ),
       createAssociatedTokenAccountIdempotentInstruction(
-        stakeConnection.provider.publicKey,
+        whMintAuthority.publicKey,
         vesterTa,
         vester.publicKey,
-        mint.publicKey,
-        TOKEN_2022_PROGRAM_ID,
+        whMintAccount.publicKey,
       ),
       createMintToInstruction(
-        mint.publicKey,
+        whMintAccount.publicKey,
         adminAta,
-        admin.publicKey,
+        whMintAuthority.publicKey,
         1e11,
-        undefined,
-        TOKEN_2022_PROGRAM_ID,
       ),
     ];
-    await stakeConnection.provider.sendAndConfirm(tx, [admin, mint]);
+    await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority]);
   });
 
   it("Initialize config", async () => {
     await stakeConnection.program.methods
       .initializeVestingConfig(seed)
       .accounts({ ...accounts })
-      .signers([admin])
+      .signers([whMintAuthority])
       .rpc()
       .then(confirm);
   });
@@ -256,7 +247,7 @@ describe("vesting", () => {
     await stakeConnection.program.methods
       .createVestingBalance()
       .accounts({ ...accounts, vestingBalance: vestingBalance })
-      .signers([admin])
+      .signers([whMintAuthority])
       .rpc()
       .then(confirm);
   });
@@ -265,7 +256,7 @@ describe("vesting", () => {
     await stakeConnection.program.methods
       .createVesting(NOW, new BN(1337e6))
       .accounts({ ...accounts, vest: vestNow })
-      .signers([admin])
+      .signers([whMintAuthority])
       .rpc({
         skipPreflight: true,
       })
@@ -276,7 +267,7 @@ describe("vesting", () => {
     await stakeConnection.program.methods
       .createVesting(LATER, new BN(1337e6))
       .accounts({ ...accounts, vest: vestLater })
-      .signers([admin])
+      .signers([whMintAuthority])
       .rpc()
       .then(confirm);
   });
@@ -290,7 +281,7 @@ describe("vesting", () => {
         stakeAccountCheckpoints: null,
         stakeAccountMetadata: null,
       })
-      .signers([admin])
+      .signers([whMintAuthority])
       .rpc()
       .then(confirm);
   });
@@ -320,7 +311,7 @@ describe("vesting", () => {
     await stakeConnection.program.methods
       .cancelVesting()
       .accounts({ ...accounts, vest: vestLater })
-      .signers([admin])
+      .signers([whMintAuthority])
       .rpc()
       .then(confirm);
   });
@@ -329,7 +320,7 @@ describe("vesting", () => {
     await stakeConnection.program.methods
       .finalizeVestingConfig()
       .accounts({ ...accounts })
-      .signers([admin])
+      .signers([whMintAuthority])
       .rpc()
       .then(confirm);
   });
@@ -339,16 +330,16 @@ describe("vesting", () => {
     tx.add(
       createTransferCheckedInstruction(
         adminAta,
-        mint.publicKey,
+        whMintAccount.publicKey,
         vault,
-        admin.publicKey,
+        whMintAuthority.publicKey,
         1339e7,
         6,
         undefined,
-        TOKEN_2022_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
       ),
     );
-    await stakeConnection.provider.sendAndConfirm(tx, [admin]);
+    await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority]);
   });
 
   it("Fail to cancel a vest after finalization", async () => {
@@ -356,7 +347,7 @@ describe("vesting", () => {
       await stakeConnection.program.methods
         .cancelVesting()
         .accounts({ ...accounts, vest: vestEvenLater })
-        .signers([admin])
+        .signers([whMintAuthority])
         .rpc();
     } catch (e) {
       assert((e as AnchorError).error?.errorCode?.code === "VestingFinalized");
@@ -368,7 +359,7 @@ describe("vesting", () => {
       await stakeConnection.program.methods
         .createVesting(EVEN_LATER_AGAIN, new BN(1337e6))
         .accounts({ ...accounts, vest: vestEvenLaterAgain })
-        .signers([admin])
+        .signers([whMintAuthority])
         .rpc()
         .then(confirm);
     } catch (e) {
@@ -398,7 +389,7 @@ describe("vesting", () => {
     await stakeConnection.program.methods
       .withdrawSurplus()
       .accounts({ ...accounts })
-      .signers([admin])
+      .signers([whMintAuthority])
       .rpc()
       .then(confirm);
   });
@@ -409,7 +400,9 @@ describe("vesting", () => {
         vesterStakeConnection.userPublicKey(),
         WHTokenBalance.fromString("0"),
         true,
+        config
       );
+
     let vesterStakeMetadata: StakeAccountMetadata =
       await vesterStakeConnection.fetchStakeAccountMetadata(
         stakeAccountCheckpointsAddress,
@@ -419,6 +412,7 @@ describe("vesting", () => {
       await vesterStakeConnection.fetchCheckpointAccount(
         stakeAccountCheckpointsAddress,
       );
+
     assert.equal(
       vesterStakeMetadata.recordedVestingBalance.toString(),
       "2674000000",
@@ -444,7 +438,7 @@ describe("vesting", () => {
         .then(confirm);
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalance",
+        (e as AnchorError).error?.errorCode?.code === "ErrorOfStakeAccountParsing",
       );
     }
   });
@@ -472,12 +466,12 @@ describe("vesting", () => {
         .then(confirm);
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalance",
+        (e as AnchorError).error?.errorCode?.code === "ErrorOfStakeAccountParsing",
       );
     }
   });
 
-  it("should fail to claim with incorrect stakeAccountMetadata", async () => {
+  it("should fail to claim with incorrect stakeAccountMetadata owner", async () => {
     let incorrectStakeAccountCheckpointsAddress =
       await stakeConnection.getStakeAccountCheckpointsAddress(
         stakeConnection.userPublicKey(),
@@ -500,7 +494,7 @@ describe("vesting", () => {
         .then(confirm);
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalance",
+        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountOwner",
       );
     }
   });
@@ -533,7 +527,7 @@ describe("vesting", () => {
         .then(confirm);
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalance",
+        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountCheckpoints",
       );
     }
   });
