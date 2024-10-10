@@ -30,6 +30,9 @@ contract HubProposalExtender is Ownable, IVoteExtender {
   /// @notice Emitted when the extension duration is updated.
   event ExtensionDurationUpdated(uint48 oldExtension, uint48 newExtension);
 
+  /// @notice Emitted when the proposal deadline has been extended.
+  event ProposalExtended(uint256 proposalId, uint48 newDeadline);
+
   /// @notice Emitted when the vote extender admin is updated.
   event VoteExtenderAdminUpdated(address oldAdmin, address newAdmin);
 
@@ -81,7 +84,9 @@ contract HubProposalExtender is Ownable, IVoteExtender {
     IGovernor.ProposalState state = governor.state(_proposalId);
     if (state != IGovernor.ProposalState.Active) revert ProposalCannotBeExtended();
 
-    extendedDeadlines[_proposalId] = uint48(governor.proposalDeadline(_proposalId)) + extensionDuration;
+    uint48 extendedDeadline = uint48(governor.proposalDeadline(_proposalId)) + extensionDuration;
+    emit ProposalExtended(_proposalId, extendedDeadline);
+    extendedDeadlines[_proposalId] = extendedDeadline;
   }
 
   /// @notice Sets the proposal extension duration.

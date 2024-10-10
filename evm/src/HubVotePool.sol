@@ -35,8 +35,11 @@ contract HubVotePool is QueryResponse, Ownable {
   /// @notice Thrown if a vote query is submitted with an unsupported query type.
   error UnsupportedQueryType();
 
+  /// @notice Emitted when the Governor is updated.
+  event HubGovernorUpdated(address oldGovernor, address newGovernor);
+
   /// @notice Emitted when a new query type is registered.
-  event QueryTypeRegistered(uint16 indexed targetChain, address oldQueryTypeImpl, address newQueryTypeImpl);
+  event QueryTypeRegistered(uint8 indexed queryType, address oldQueryTypeImpl, address newQueryTypeImpl);
 
   /// @notice Emitted when a vote is recorded from a registered spoke vote aggregator.
   event SpokeVoteCast(
@@ -68,9 +71,9 @@ contract HubVotePool is QueryResponse, Ownable {
   mapping(uint8 queryType => ISpokeVoteDecoder voteImpl) public voteTypeDecoder;
 
   constructor(address _core, address _hubGovernor, address _owner) QueryResponse(_core) Ownable(_owner) {
-    hubGovernor = IGovernor(_hubGovernor);
     HubEvmSpokeVoteDecoder evmDecoder = new HubEvmSpokeVoteDecoder(_core, address(this));
     _registerQueryType(address(evmDecoder), QueryResponse.QT_ETH_CALL_WITH_FINALITY);
+    _setGovernor(_hubGovernor);
   }
 
   function getSpoke(uint16 _emitterChainId, uint256 _timepoint) external view returns (bytes32) {
@@ -110,7 +113,7 @@ contract HubVotePool is QueryResponse, Ownable {
   /// @param _newGovernor The address of the new hub governor.
   function setGovernor(address _newGovernor) external {
     _checkOwner();
-    hubGovernor = IGovernor(_newGovernor);
+    _setGovernor(_newGovernor);
   }
 
   /// @notice Processes cross chain votes from the spokes. Parses and verifies the Wormhole query response, then casts
@@ -168,13 +171,19 @@ contract HubVotePool is QueryResponse, Ownable {
   }
 
   function _registerQueryType(address _implementation, uint8 _queryType) internal {
+    emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
+
     if (_implementation == address(0)) {
       delete voteTypeDecoder[_queryType];
       return;
     }
     bool _isValid = _implementation.supportsInterface(type(ISpokeVoteDecoder).interfaceId);
     if (!_isValid) revert InvalidQueryVoteImpl();
-    emit QueryTypeRegistered(_queryType, address(voteTypeDecoder[_queryType]), _implementation);
     voteTypeDecoder[_queryType] = ISpokeVoteDecoder(_implementation);
+  }
+
+  function _setGovernor(address _newGovernor) internal {
+    emit HubGovernorUpdated(address(hubGovernor), _newGovernor);
+    hubGovernor = IGovernor(_newGovernor);
   }
 }

@@ -120,6 +120,24 @@ contract ExtendProposal is HubProposalExtenderTest {
     assertEq(hubExtender.extendedDeadlines(_proposalId), voteEnd + hubExtender.extensionDuration());
   }
 
+  function testFuzz_EmitsProposalExtendedEvent(address _proposer) public {
+    (, address[] memory delegates) = _setGovernorAndDelegates();
+    vm.startPrank(delegates[0]);
+    ProposalBuilder builder = _createProposal(abi.encodeWithSignature("setHubVotePool(address)", _proposer));
+
+    uint256 _proposalId = governor.propose(builder.targets(), builder.values(), builder.calldatas(), "Hi");
+    vm.stopPrank();
+
+    uint256 voteEnd = governor.proposalDeadline(_proposalId);
+    vm.warp(voteEnd - 1);
+    vm.expectEmit();
+    emit HubProposalExtender.ProposalExtended(_proposalId, uint48(voteEnd) + hubExtender.extensionDuration());
+    vm.prank(whitelistedExtender);
+    hubExtender.extendProposal(_proposalId);
+
+    assertEq(hubExtender.extendedDeadlines(_proposalId), voteEnd + hubExtender.extensionDuration());
+  }
+
   function testFuzz_RevertIf_CallerIsNotTheVoteExtenderAddress(address _caller, uint256 _proposalId) public {
     vm.assume(_caller != whitelistedExtender);
     vm.prank(_caller);
