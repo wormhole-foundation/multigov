@@ -12,6 +12,7 @@ import {HubGovernorTest} from "test/HubGovernor.t.sol";
 contract HubProposalExtenderTest is Test, HubGovernorTest {
   HubProposalExtenderHarness hubExtender;
   address whitelistedExtender = makeAddr("Whitelisted Extender");
+  address initialExtenderOwner = makeAddr("Proposal extender");
   uint48 extensionDuration = 3 hours;
   uint48 minimumTime = 1 hours;
   uint32 voteWeightWindow = 1 days;
@@ -26,10 +27,16 @@ contract HubProposalExtenderTest is Test, HubGovernorTest {
   function setUp() public virtual override {
     HubGovernorTest.setUp();
     hubExtender = new HubProposalExtenderHarness(
-      whitelistedExtender, extensionDuration, address(timelock), minimumTime, voteWeightWindow, minimumTime
+      whitelistedExtender,
+      extensionDuration,
+      address(timelock),
+      initialExtenderOwner,
+      minimumTime,
+      voteWeightWindow,
+      minimumTime
     );
 
-    vm.prank(address(timelock));
+    vm.prank(initialExtenderOwner);
     hubExtender.initialize(payable(address(governor)));
   }
 }
@@ -48,6 +55,7 @@ contract Constructor is HubProposalExtenderTest {
       _whitelistedVoteExtender,
       _extensionDuration,
       _owner,
+      initialExtenderOwner,
       _minimumExtensionDuration,
       _safeWindow,
       _minimumDecisionWindow
@@ -72,10 +80,12 @@ contract Initialize is HubProposalExtenderTest {
       _whitelistedVoteExtender,
       _extensionDuration,
       initialOwner,
+      initialExtenderOwner,
       _minimumExtensionDuration,
       _safeWindow,
       _minimumDecisionWindow
     );
+    vm.prank(initialExtenderOwner);
     hubExtender.initialize(payable(_governor));
     assertEq(address(hubExtender.governor()), _governor);
   }
@@ -92,13 +102,41 @@ contract Initialize is HubProposalExtenderTest {
       _whitelistedVoteExtender,
       _extensionDuration,
       initialOwner,
+      initialExtenderOwner,
       _minimumExtensionDuration,
       _safeWindow,
       _minimumDecisionWindow
     );
+    vm.prank(initialExtenderOwner);
     hubExtender.initialize(payable(_governor));
 
     vm.expectRevert(HubProposalExtender.AlreadyInitialized.selector);
+    vm.prank(initialExtenderOwner);
+    hubExtender.initialize(payable(_governor));
+  }
+
+  function testFuzz_RevertIf_CallerIsNotTheOwner(
+    address _whitelistedVoteExtender,
+    uint48 _extensionDuration,
+    address _governor,
+    uint48 _minimumExtensionDuration,
+    uint32 _safeWindow,
+    uint48 _minimumDecisionWindow,
+    address _caller,
+    address _owner
+  ) public {
+    vm.assume(_caller != initialExtenderOwner && _owner != address(0));
+    hubExtender = new HubProposalExtenderHarness(
+      _whitelistedVoteExtender,
+      _extensionDuration,
+      _owner,
+      initialExtenderOwner,
+      _minimumExtensionDuration,
+      _safeWindow,
+      _minimumDecisionWindow
+    );
+    vm.expectRevert(abi.encodeWithSelector(HubProposalExtender.UnauthorizedInitialize.selector, _caller));
+    vm.prank(_caller);
     hubExtender.initialize(payable(_governor));
   }
 }
