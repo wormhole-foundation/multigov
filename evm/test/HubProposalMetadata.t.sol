@@ -6,7 +6,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {WormholeMock} from "wormhole-solidity-sdk/testing/helpers/WormholeMock.sol";
 
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
-import {HubGovernorProposalExtender} from "src/HubGovernorProposalExtender.sol";
+import {HubProposalExtender} from "src/HubProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
@@ -19,7 +19,7 @@ contract HubProposalMetadataTest is Test, ProposalTest {
   HubProposalMetadata public hubProposalMetadata;
   HubGovernorHarness public governor;
   ERC20VotesFake public token;
-  HubGovernorProposalExtender public extender;
+  HubProposalExtender public extender;
 
   uint48 public constant INITIAL_VOTING_DELAY = 1 days;
   uint32 public constant INITIAL_VOTING_PERIOD = 3 days;
@@ -36,9 +36,8 @@ contract HubProposalMetadataTest is Test, ProposalTest {
     TimelockControllerFake timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
     WormholeMock wormhole = new WormholeMock();
-    HubVotePool hubVotePool = new HubVotePool(address(wormhole), initialOwner, new HubVotePool.SpokeVoteAggregator[](1));
-    extender = new HubGovernorProposalExtender(
-      initialOwner, VOTE_TIME_EXTENSION, initialOwner, MINIMUM_VOTE_EXTENSION, SAFE_WINDOW, MINIMUM_DESCISION_WINDOW
+    extender = new HubProposalExtender(
+      initialOwner, VOTE_TIME_EXTENSION, address(timelock), initialOwner, MINIMUM_VOTE_EXTENSION
     );
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",
@@ -48,12 +47,14 @@ contract HubProposalMetadataTest is Test, ProposalTest {
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePool: address(hubVotePool),
+      hubVotePoolOwner: initialOwner,
+      wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
-      initialVoteWindow: VOTE_WINDOW
+      initialVoteWeightWindow: VOTE_WINDOW
     });
 
     governor = new HubGovernorHarness(params);
+    HubVotePool hubVotePool = governor.hubVotePool(uint96(block.timestamp));
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("PROPOSER_ROLE"), address(governor));
