@@ -69,7 +69,7 @@ abstract contract ProposalTest is Test {
     uint256[] memory _values,
     bytes[] memory _calldatas,
     string memory _description
-  ) internal {
+  ) internal returns (uint256) {
     vm.prank(delegates[0]);
     uint256 _proposalId = governor.propose(_targets, _values, _calldatas, _description);
 
@@ -85,5 +85,6 @@ abstract contract ProposalTest is Test {
 
     _jumpPastProposalEta(_proposalId);
     governor.execute(_targets, _values, _calldatas, keccak256(bytes(_description)));
+    return _proposalId;
   }
 }
