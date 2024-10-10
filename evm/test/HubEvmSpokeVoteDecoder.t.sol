@@ -243,7 +243,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
     string memory blockId,
     bytes32 _finality
   ) public {
-	vm.assume(_finality.length != 9);
+    vm.assume(_finality.length != 9);
     vm.prank(address(timelock));
     hubVotePool.registerSpoke(MAINNET_CHAIN_ID, toWormholeFormat(GOVERNANCE_CONTRACT));
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
