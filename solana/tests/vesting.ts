@@ -12,6 +12,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   MINT_SIZE,
   TOKEN_PROGRAM_ID,
+  createInitializeMintInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
   createMintToInstruction,
   createTransferCheckedInstruction,
@@ -441,7 +442,7 @@ describe("vesting", () => {
 
     let uninitializedVestingBalanceAccount = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("uninitialized_vesting_config"),
+        Buffer.from("uninitialized_vesting_balance"),
         config.toBuffer(),
         stakeConnection.userPublicKey().toBuffer(),
       ],
@@ -504,6 +505,144 @@ describe("vesting", () => {
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "AccountDiscriminatorMismatch",
+      );
+    }
+  });
+
+  it("should fail to delegate with invalid vesting token", async () => {
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.delegate_with_vest(
+        vesterStakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("0"),
+        true,
+        config
+      );
+    let delegateeStakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddress(vesterStakeConnection.userPublicKey());
+    let currentDelegateStakeAccountCheckpointsAddress = await stakeConnection.delegates(
+      stakeAccountCheckpointsAddress,
+    );
+
+    // Create fake token, fake configuration and fake vestingBalance account
+    const fakeMintAccount = Keypair.generate();
+    const fakeConfig = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.VESTING_CONFIG_SEED()),
+        whMintAuthority.publicKey.toBuffer(),
+        fakeMintAccount.publicKey.toBuffer(),
+        seed.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId,
+    )[0];
+    const fakeAdminAta = getAssociatedTokenAddressSync(
+      fakeMintAccount.publicKey,
+      whMintAuthority.publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+    );
+    const fakeVault = getAssociatedTokenAddressSync(
+      fakeMintAccount.publicKey,
+      fakeConfig,
+      true,
+      TOKEN_PROGRAM_ID,
+    );
+    const fakeVesterTa = getAssociatedTokenAddressSync(
+      fakeMintAccount.publicKey,
+      vester.publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+    );
+
+    const lamports = await getMinimumBalanceForRentExemptMint(
+      stakeConnection.provider.connection,
+    );
+    let tx = new Transaction();
+    tx.instructions = [
+      SystemProgram.createAccount({
+        fromPubkey: stakeConnection.provider.publicKey,
+        newAccountPubkey: fakeMintAccount.publicKey,
+        lamports,
+        space: MINT_SIZE,
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      createInitializeMintInstruction(
+        fakeMintAccount.publicKey,
+        6,
+        whMintAuthority.publicKey,
+        undefined,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        stakeConnection.provider.publicKey,
+        fakeAdminAta,
+        whMintAuthority.publicKey,
+        fakeMintAccount.publicKey,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        whMintAuthority.publicKey,
+        fakeVesterTa,
+        vester.publicKey,
+        fakeMintAccount.publicKey,
+      ),
+      createMintToInstruction(
+        fakeMintAccount.publicKey,
+        fakeAdminAta,
+        whMintAuthority.publicKey,
+        1e11,
+      ),
+    ];
+    await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority, fakeMintAccount]);
+
+    const fakeAccounts = {
+      ...accounts,
+      mint: fakeMintAccount.publicKey,
+      config: fakeConfig,
+      vault: fakeVault,
+      vesterTa: fakeVesterTa,
+      adminAta: fakeAdminAta,
+      recovery: fakeAdminAta,
+    };
+
+    await stakeConnection.program.methods
+      .initializeVestingConfig(seed)
+      .accounts({ ...fakeAccounts })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    const fakeVestingBalanceAccount = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
+        fakeConfig.toBuffer(),
+        vester.publicKey.toBuffer(),
+      ],
+      stakeConnection.program.programId,
+    )[0];
+
+    await stakeConnection.program.methods
+      .createVestingBalance()
+      .accounts({ ...fakeAccounts, vestingBalance: fakeVestingBalanceAccount })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    try {
+      await vesterStakeConnection.program.methods
+        .delegate(delegateeStakeAccountCheckpointsAddress)
+        .accounts({
+          currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
+          delegateeStakeAccountCheckpoints:
+            delegateeStakeAccountCheckpointsAddress,
+          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: fakeConfig,
+          vestingBalance: fakeVestingBalanceAccount,
+          mint: whMintAccount.publicKey,
+        })
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidVestingMint",
       );
     }
   });
