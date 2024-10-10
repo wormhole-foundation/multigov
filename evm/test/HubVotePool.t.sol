@@ -145,6 +145,15 @@ contract Constructor is Test, AddressUtils {
     assertNotEq(address(hubVotePool.voteTypeDecoder(hubVotePool.QT_ETH_CALL_WITH_FINALITY())), address(0));
   }
 
+  function testFuzz_EmitsHubGovernorUpdatedEvent(address _core, address _hubGovernor, address _timelock) public {
+    vm.assume(_core != address(0));
+    vm.assume(_timelock != address(0));
+
+    vm.expectEmit();
+    emit HubVotePool.HubGovernorUpdated(address(0), _hubGovernor);
+    new HubVotePool(_core, _hubGovernor, _timelock);
+  }
+
   function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, address _timelock) public {
     vm.expectRevert(EmptyWormholeAddress.selector);
     new HubVotePool(address(0), _hubGovernor, _timelock);
@@ -179,6 +188,18 @@ contract RegisterQueryType is HubVotePoolTest {
     hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
     hubVotePool.registerQueryType(_queryType, address(0));
     vm.stopPrank();
+    assertEq(address(hubVotePool.voteTypeDecoder(_queryType)), address(0));
+  }
+
+  function testFuzz_EmitesQueryRegisteredEventWhenSetToZeroAddress(uint8 _queryType) public {
+    vm.startPrank(timelock);
+    hubVotePool.registerQueryType(_queryType, address(hubCrossChainEvmVote));
+
+    vm.expectEmit();
+    emit HubVotePool.QueryTypeRegistered(_queryType, address(hubCrossChainEvmVote), address(0));
+    hubVotePool.registerQueryType(_queryType, address(0));
+    vm.stopPrank();
+
     assertEq(address(hubVotePool.voteTypeDecoder(_queryType)), address(0));
   }
 
@@ -312,6 +333,13 @@ contract SetGovernor is HubVotePoolTest {
     vm.prank(timelock);
     hubVotePool.setGovernor(_newGovernor);
     assertEq(address(hubVotePool.hubGovernor()), _newGovernor);
+  }
+
+  function testFuzz_EmitsHubGovernorUpdatedEvent(address _newGovernor) public {
+    vm.expectEmit();
+    emit HubVotePool.HubGovernorUpdated(address(hubVotePool.hubGovernor()), _newGovernor);
+    vm.prank(timelock);
+    hubVotePool.setGovernor(_newGovernor);
   }
 
   function testFuzz_RevertIf_NotCalledByOwner(address _newGovernor, address _caller) public {
