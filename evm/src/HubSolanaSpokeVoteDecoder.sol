@@ -40,6 +40,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   error TooManySolanaPdaResults(uint256 resultsLength);
   error InvalidDataLength();
   error InvalidDataSlice();
+  error InvalidProgramId(bytes32 expectedProgramId);
   error InvalidQueryCommitment();
   error InvalidSeedsLength();
   error InvalidProposalSeed();
