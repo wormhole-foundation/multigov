@@ -32,9 +32,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @notice The hub vote pool used to validate message emitter.
   HubVotePool public immutable HUB_VOTE_POOL;
 
-  /// @notice The expected program id for the Solana program.
-  bytes32 public immutable EXPECTED_PROGRAM_ID;
-
   /// @notice The decimals of the token on the hub
   uint8 public HUB_TOKEN_DECIMALS;
 
@@ -42,7 +39,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   uint8 public SOLANA_TOKEN_DECIMALS;
 
   error TooManySolanaPdaResults(uint256 resultsLength);
-  error InvalidProgramId(bytes32 expectedProgramId);
   error InvalidDataSlice();
   error InvalidQueryCommitment();
   error InvalidSeedsLength();
@@ -52,15 +48,13 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubVotePool The address for the hub vote pool.
-  /// @param _expectedProgramId The expected Solana program ID.
   /// @param _solanaTokenDecimals The number of decimals for the Solana token.
-  constructor(address _core, address _hubVotePool, bytes32 _expectedProgramId, uint8 _solanaTokenDecimals)
-    QueryResponse(_core)
-  {
+  constructor(address _core, address _hubVotePool, uint8 _solanaTokenDecimals) QueryResponse(_core) {
     HUB_VOTE_POOL = HubVotePool(_hubVotePool);
-    EXPECTED_PROGRAM_ID = _expectedProgramId;
+    // Remove EXPECTED_PROGRAM_ID assignment
+    // We no longer hardcode the program ID, as it will be derived from the registered spoke address
+    // This allows for more flexibility and potential updates without redeploying the contract
     SOLANA_TOKEN_DECIMALS = _solanaTokenDecimals;
-
     HubGovernor governor = HubGovernor(payable(address(HUB_VOTE_POOL.hubGovernor())));
     HUB_TOKEN_DECIMALS = IERC20Metadata(address(governor.token())).decimals();
   }
