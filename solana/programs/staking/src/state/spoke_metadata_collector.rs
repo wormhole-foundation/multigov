@@ -8,7 +8,6 @@ use crate::error::ProposalWormholeMessageError;
 pub const DEFAULT_SAVE_WINDOW: u64 = 24 * 60 * 60;
 
 pub struct ProposalDataFromEthResponse {
-    pub contract_address: [u8; 20],
     pub proposal_id: [u8; 32],
     pub vote_start: u64,
 }
@@ -55,29 +54,23 @@ impl SpokeMetadataCollector {
         data: &[u8],
     ) -> Result<ProposalDataFromEthResponse> {
         require!(
-            data.len() == 60, // 20 + 32 + 8
+            data.len() == 40, // 32 + 8
             ProposalWormholeMessageError::InvalidDataLength
         );
 
-        // Parse contract_address (20 bytes)
-        let contract_address: [u8; 20] = data[0..20]
-            .try_into()
-            .map_err(|_| ProposalWormholeMessageError::ErrorOfContractAddressParsing)?;
-
         // Parse proposal_id (32 bytes)
-        let proposal_id: [u8; 32] = data[20..52]
+        let proposal_id: [u8; 32] = data[0..32]
             .try_into()
             .map_err(|_| ProposalWormholeMessageError::ErrorOfProposalIdParsing)?;
 
         // Parse vote_start (8 bytes)
         let vote_start = u64::from_le_bytes(
-            data[52..60]
+            data[32..40]
                 .try_into()
                 .map_err(|_| ProposalWormholeMessageError::ErrorOfVoteStartParsing)?,
         );
 
         Ok(ProposalDataFromEthResponse {
-            contract_address,
             proposal_id,
             vote_start,
         })

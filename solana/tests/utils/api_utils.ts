@@ -18,7 +18,7 @@ import {
 import { ethers } from "ethers";
 
 function encodeSignature(signature: string): string {
-  return ethers.id(signature).substring(0, 10);
+  return ethers.id(signature).substring(0, 10)
 }
 
 /**
@@ -44,23 +44,19 @@ function getQueryRequestCalldata(proposalIdInput: Uint8Array): EthCallData {
 
   const calldata: EthCallData = {
     to: contractAddress,
-    data: encodedSignature + Buffer.from(proposalIdInput).toString("hex"),
+    data: encodedSignature + Buffer.from(proposalIdInput).toString('hex'),
   };
 
   return calldata;
 }
 
-function getQueryRequestCalldataWithInvalidFunctionSignature(
-  proposalIdInput: Uint8Array,
-): EthCallData {
+function getQueryRequestCalldataWithInvalidFunctionSignature(proposalIdInput: Uint8Array): EthCallData {
   const contractAddress = "0x2574802Db8590ee5C9EFC5eBeBFef1E174b712FC"; // HubProposalMetadata address
-  const encodedSignature = encodeSignature(
-    "getInvalidProposalMetadata(uint256)",
-  );
+  const encodedSignature = encodeSignature("getInvalidProposalMetadata(uint256)");
 
   const calldata: EthCallData = {
     to: contractAddress,
-    data: encodedSignature + Buffer.from(proposalIdInput).toString("hex"),
+    data: encodedSignature + Buffer.from(proposalIdInput).toString('hex'),
   };
 
   return calldata;
@@ -85,17 +81,15 @@ export function createProposalQueryResponseBytes(
   );
 
   // first results fields
-  const contractAddress = hubProposalMetadata; // contract address (20 bytes)
   const proposalId = proposalIdInput; // proposal id (32 bytes)
   const voteStart = new Uint8Array(
     new BigUint64Array([BigInt(voteStartInput)]).buffer,
   ); // vote start (8 bytes)
 
   // one result as the 60-byte array
-  const result = new Uint8Array(60); // 20 + 32 + 8 = 60 bytes
-  result.set(contractAddress, 0); // contract address (20 bytes)
-  result.set(proposalId, 20); // proposal id (32 bytes)
-  result.set(voteStart, 52); // vote start (8 bytes)
+  const result = new Uint8Array(40); // 32 + 8 = 60 bytes
+  result.set(proposalId, 0); // proposal id (32 bytes)
+  result.set(voteStart, 32); // vote start (8 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id
@@ -136,17 +130,15 @@ export function createNonFinalizedProposalQueryResponseBytes(
   );
 
   // first results fields
-  const contractAddress = hubProposalMetadata; // contract address (20 bytes)
   const proposalId = proposalIdInput; // proposal id (32 bytes)
   const voteStart = new Uint8Array(
     new BigUint64Array([BigInt(voteStartInput)]).buffer,
   ); // vote start (8 bytes)
 
-  // one result as the 60-byte array
-  const result = new Uint8Array(60); // 20 + 32 + 8 = 60 bytes
-  result.set(contractAddress, 0); // contract address (20 bytes)
-  result.set(proposalId, 20); // proposal id (32 bytes)
-  result.set(voteStart, 52); // vote start (8 bytes)
+  // one result as the 40-byte array
+  const result = new Uint8Array(40); // 32 + 8 = 40 bytes
+  result.set(proposalId, 0); // proposal id (32 bytes)
+  result.set(voteStart, 32); // vote start (8 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id
@@ -186,17 +178,15 @@ export function createProposalQueryResponseBytesWithInvalidChainSpecificQuery(
   );
 
   // first results fields
-  const contractAddress = hubProposalMetadata; // contract address (20 bytes)
   const proposalId = proposalIdInput; // proposal id (32 bytes)
   const voteStart = new Uint8Array(
     new BigUint64Array([BigInt(voteStartInput)]).buffer,
   ); // vote start (8 bytes)
 
-  // one result as the 60-byte array
-  const result = new Uint8Array(60); // 20 + 32 + 8 = 60 bytes
-  result.set(contractAddress, 0); // contract address (20 bytes)
-  result.set(proposalId, 20); // proposal id (32 bytes)
-  result.set(voteStart, 52); // vote start (8 bytes)
+  // one result as the 40-byte array
+  const result = new Uint8Array(40); // 32 + 8 = 40 bytes
+  result.set(proposalId, 0); // proposal id (32 bytes)
+  result.set(voteStart, 32); // vote start (8 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id
@@ -237,17 +227,15 @@ export function createProposalQueryResponseBytesWithInvalidChainSpecificResponse
   );
 
   // first results fields
-  const contractAddress = hubProposalMetadata; // contract address (20 bytes)
   const proposalId = proposalIdInput; // proposal id (32 bytes)
   const voteStart = new Uint8Array(
     new BigUint64Array([BigInt(voteStartInput)]).buffer,
   ); // vote start (8 bytes)
 
-  // one result as the 60-byte array
-  const result = new Uint8Array(60); // 20 + 32 + 8 = 60 bytes
-  result.set(contractAddress, 0); // contract address (20 bytes)
-  result.set(proposalId, 20); // proposal id (32 bytes)
-  result.set(voteStart, 52); // vote start (8 bytes)
+  // one result as the 40-byte array
+  const result = new Uint8Array(40); // 32 + 8 = 60 bytes
+  result.set(proposalId, 0); // proposal id (32 bytes)
+  result.set(voteStart, 32); // vote start (8 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id
@@ -281,28 +269,22 @@ export function createProposalQueryResponseBytesWithInvalidFunctionSignature(
         new EthCallWithFinalityQueryRequest(
           987654, // block number
           "finalized",
-          [
-            getQueryRequestCalldataWithInvalidFunctionSignature(
-              proposalIdInput,
-            ),
-          ],
+          [getQueryRequestCalldataWithInvalidFunctionSignature(proposalIdInput)],
         ),
       ),
     ], // requests
   );
 
   // first results fields
-  const contractAddress = hubProposalMetadata; // contract address (20 bytes)
   const proposalId = proposalIdInput; // proposal id (32 bytes)
   const voteStart = new Uint8Array(
     new BigUint64Array([BigInt(voteStartInput)]).buffer,
   ); // vote start (8 bytes)
 
-  // one result as the 60-byte array
-  const result = new Uint8Array(60); // 20 + 32 + 8 = 60 bytes
-  result.set(contractAddress, 0); // contract address (20 bytes)
-  result.set(proposalId, 20); // proposal id (32 bytes)
-  result.set(voteStart, 52); // vote start (8 bytes)
+  // one result as the 40-byte array
+  const result = new Uint8Array(40); // 32 + 8 = 40 bytes
+  result.set(proposalId, 0); // proposal id (32 bytes)
+  result.set(voteStart, 32); // vote start (8 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id
@@ -323,3 +305,4 @@ export function createProposalQueryResponseBytesWithInvalidFunctionSignature(
 
   return serializedQueryResponse;
 }
+

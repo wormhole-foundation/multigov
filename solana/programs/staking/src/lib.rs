@@ -540,7 +540,13 @@ pub mod staking {
                 ProposalWormholeMessageError::NonFinalizedBlock
             );
 
-            let EthCallData { to: _to, data } = &eth_request.call_data[0];
+            let EthCallData { to, data } = &eth_request.call_data[0];
+
+            require!(
+                *to == spoke_metadata_collector.hub_proposal_metadata,
+                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
+            );
+
             let proposal_query_request_data = spoke_metadata_collector
                 .parse_proposal_query_request_data(&data)?;
 
@@ -570,11 +576,6 @@ pub mod staking {
 
             let proposal_data = spoke_metadata_collector
                 .parse_eth_response_proposal_data(&eth_response.results[0])?;
-
-            require!(
-                proposal_data.contract_address == spoke_metadata_collector.hub_proposal_metadata,
-                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
-            );
 
             require!(
                 proposal_data.proposal_id == proposal_id,
