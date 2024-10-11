@@ -2279,20 +2279,20 @@
       ]
     },
     {
-      "name": "update_pda_authority",
+      "name": "update_vesting_admin",
       "discriminator": [
-        178,
         112,
-        199,
-        196,
-        59,
-        40,
-        140,
-        61
+        159,
+        137,
+        54,
+        228,
+        39,
+        63,
+        230
       ],
       "accounts": [
         {
-          "name": "governance_signer",
+          "name": "vesting_admin",
           "signer": true
         },
         {
@@ -2317,7 +2317,7 @@
       ],
       "args": [
         {
-          "name": "new_authority",
+          "name": "new_vesting_admin",
           "type": "pubkey"
         }
       ]
@@ -3036,7 +3036,7 @@
             "type": "pubkey"
           },
           {
-            "name": "pda_authority",
+            "name": "vesting_admin",
             "type": "pubkey"
           },
           {

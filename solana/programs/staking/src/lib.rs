@@ -74,7 +74,7 @@ pub mod staking {
         config_account.governance_authority = global_config.governance_authority;
         config_account.wh_token_mint = global_config.wh_token_mint;
         config_account.freeze = global_config.freeze;
-        config_account.pda_authority = global_config.pda_authority;
+        config_account.vesting_admin = global_config.vesting_admin;
 
         #[cfg(feature = "mock-clock")]
         {
@@ -93,12 +93,12 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn update_pda_authority(
-        ctx: Context<UpdatePdaAuthority>,
-        new_authority: Pubkey,
+    pub fn update_vesting_admin(
+        ctx: Context<UpdateVestingAdmin>,
+        new_vesting_admin: Pubkey,
     ) -> Result<()> {
         let config = &mut ctx.accounts.config;
-        config.pda_authority = new_authority;
+        config.vesting_admin = new_vesting_admin;
         Ok(())
     }
 

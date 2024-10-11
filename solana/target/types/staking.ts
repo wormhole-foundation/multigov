@@ -2285,20 +2285,20 @@ export type Staking = {
       ]
     },
     {
-      "name": "updatePdaAuthority",
+      "name": "updateVestingAdmin",
       "discriminator": [
-        178,
         112,
-        199,
-        196,
-        59,
-        40,
-        140,
-        61
+        159,
+        137,
+        54,
+        228,
+        39,
+        63,
+        230
       ],
       "accounts": [
         {
-          "name": "governanceSigner",
+          "name": "vestingAdmin",
           "signer": true
         },
         {
@@ -2323,7 +2323,7 @@ export type Staking = {
       ],
       "args": [
         {
-          "name": "newAuthority",
+          "name": "newVestingAdmin",
           "type": "pubkey"
         }
       ]
@@ -3042,7 +3042,7 @@ export type Staking = {
             "type": "pubkey"
           },
           {
-            "name": "pdaAuthority",
+            "name": "vestingAdmin",
             "type": "pubkey"
           },
           {

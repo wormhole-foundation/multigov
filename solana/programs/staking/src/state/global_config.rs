@@ -10,7 +10,7 @@ pub struct GlobalConfig {
     pub mock_clock_time: i64,
     pub governance_authority: Pubkey,
     pub wh_token_mint: Pubkey,
-    pub pda_authority: Pubkey, // Authority that can authorize the transfer of locked tokens
+    pub vesting_admin: Pubkey,
     pub agreement_hash: [u8; 32],
 }
 
