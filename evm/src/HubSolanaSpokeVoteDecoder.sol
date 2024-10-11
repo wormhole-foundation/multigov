@@ -51,9 +51,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @param _solanaTokenDecimals The number of decimals for the Solana token.
   constructor(address _core, address _hubVotePool, uint8 _solanaTokenDecimals) QueryResponse(_core) {
     HUB_VOTE_POOL = HubVotePool(_hubVotePool);
-    // Remove EXPECTED_PROGRAM_ID assignment
-    // We no longer hardcode the program ID, as it will be derived from the registered spoke address
-    // This allows for more flexibility and potential updates without redeploying the contract
     SOLANA_TOKEN_DECIMALS = _solanaTokenDecimals;
     HubGovernor governor = HubGovernor(payable(address(HUB_VOTE_POOL.hubGovernor())));
     HUB_TOKEN_DECIMALS = IERC20Metadata(address(governor.token())).decimals();
