@@ -26,6 +26,9 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @notice The hub vote pool used to validate message emitter.
   HubVotePool public immutable HUB_VOTE_POOL;
 
+  /// @notice The expected finality for an EVM query.
+  bytes9 constant REQUEST_FINALITY = bytes9("finalized");
+
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubVotePool The address for the hub vote pool.
   constructor(address _core, address _hubVotePool) QueryResponse(_core) {
@@ -47,9 +50,8 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     if (_ethCalls.result.length != 1) revert TooManyEthCallResults(_ethCalls.result.length);
 
     _validateEthCallData(_ethCalls.result[0]);
-    if (keccak256(_ethCalls.requestFinality) != keccak256(bytes("finalized"))) {
-      revert InvalidQueryBlock(_ethCalls.requestBlockId);
-    }
+    _ethCalls.requestFinality.checkLength(9);
+    if (bytes9(_ethCalls.requestFinality) != REQUEST_FINALITY) revert InvalidQueryBlock(_ethCalls.requestBlockId);
 
     _ethCalls.result[0].result.checkLength(128);
     (uint256 _proposalId, uint256 _againstVotes, uint256 _forVotes, uint256 _abstainVotes) =
