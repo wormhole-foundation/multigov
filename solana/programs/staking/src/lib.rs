@@ -23,7 +23,7 @@ use anchor_lang::solana_program::{
 use wormhole_query_sdk::structs::{ChainSpecificQuery, ChainSpecificResponse, QueryResponse};
 
 use crate::{
-    error::{ErrorCode, VestingError, ProposalWormholeMessageError, QueriesSolanaVerifyError},
+    error::{ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError},
     state::GuardianSignatures,
 };
 
@@ -169,7 +169,8 @@ pub mod staking {
                         VestingError::InvalidVestingMint
                     );
                     vesting_balance.stake_account_metadata = stake_account_metadata.key();
-                    stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
+                    stake_account_metadata.recorded_vesting_balance =
+                        vesting_balance.total_vesting_balance;
                 }
             }
         }

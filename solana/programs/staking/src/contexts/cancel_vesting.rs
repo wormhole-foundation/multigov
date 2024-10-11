@@ -5,7 +5,7 @@ use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED};
 use crate::state::VestingBalance;
 use crate::{
     error::VestingError,
-    state::{VestingConfig, Vesting},
+    state::{Vesting, VestingConfig},
 };
 
 #[derive(Accounts)]

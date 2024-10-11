@@ -10,7 +10,7 @@ use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
 use crate::state::stake_account::StakeAccountMetadata;
 use crate::{
     error::VestingError,
-    state::{VestingBalance, VestingConfig, Vesting},
+    state::{Vesting, VestingBalance, VestingConfig},
 };
 
 #[derive(Accounts)]

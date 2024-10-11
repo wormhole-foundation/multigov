@@ -1,7 +1,5 @@
 use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED};
-use crate::{
-    state::{VestingBalance, VestingConfig},
-};
+use crate::state::{VestingBalance, VestingConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 

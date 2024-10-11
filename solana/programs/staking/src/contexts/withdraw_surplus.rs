@@ -1,10 +1,10 @@
+use crate::context::VESTING_CONFIG_SEED;
+use crate::{error::VestingError, state::VestingConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
-use crate::context::VESTING_CONFIG_SEED;
-use crate::{error::VestingError, state::VestingConfig};
 
 #[derive(Accounts)]
 pub struct WithdrawSurplus<'info> {

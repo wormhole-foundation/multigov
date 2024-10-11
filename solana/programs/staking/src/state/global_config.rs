@@ -26,9 +26,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            size_of::<GlobalConfig>()
-                + GlobalConfig::discriminator().len()
-                == GlobalConfig::LEN
+            size_of::<GlobalConfig>() + GlobalConfig::discriminator().len() == GlobalConfig::LEN
         );
     }
 }

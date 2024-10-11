@@ -164,7 +164,7 @@ describe("vesting", () => {
       [
         utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
         config.toBuffer(),
-        vester.publicKey.toBuffer()
+        vester.publicKey.toBuffer(),
       ],
       stakeConnection.program.programId,
     )[0];
@@ -209,7 +209,9 @@ describe("vesting", () => {
         }),
       ),
     ];
-    await stakeConnection.provider.sendAndConfirm(tx, [stakeConnection.provider.wallet.payer]);
+    await stakeConnection.provider.sendAndConfirm(tx, [
+      stakeConnection.provider.wallet.payer,
+    ]);
 
     tx = new Transaction();
     tx.instructions = [
@@ -401,7 +403,7 @@ describe("vesting", () => {
         vesterStakeConnection.userPublicKey(),
         WHTokenBalance.fromString("0"),
         true,
-        config
+        config,
       );
 
     let vesterStakeMetadata: StakeAccountMetadata =
@@ -430,15 +432,16 @@ describe("vesting", () => {
         vesterStakeConnection.userPublicKey(),
         WHTokenBalance.fromString("0"),
         true,
-        config
+        config,
       );
 
     let delegateeStakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(vesterStakeConnection.userPublicKey());
+      await stakeConnection.getStakeAccountCheckpointsAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
 
-    let currentDelegateStakeAccountCheckpointsAddress = await stakeConnection.delegates(
-      stakeAccountCheckpointsAddress,
-    );
+    let currentDelegateStakeAccountCheckpointsAddress =
+      await stakeConnection.delegates(stakeAccountCheckpointsAddress);
 
     let uninitializedVestingBalanceAccount = PublicKey.findProgramAddressSync(
       [
@@ -477,15 +480,16 @@ describe("vesting", () => {
         vesterStakeConnection.userPublicKey(),
         WHTokenBalance.fromString("0"),
         true,
-        config
+        config,
       );
 
     let delegateeStakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(vesterStakeConnection.userPublicKey());
+      await stakeConnection.getStakeAccountCheckpointsAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
 
-    let currentDelegateStakeAccountCheckpointsAddress = await stakeConnection.delegates(
-      stakeAccountCheckpointsAddress,
-    );
+    let currentDelegateStakeAccountCheckpointsAddress =
+      await stakeConnection.delegates(stakeAccountCheckpointsAddress);
 
     try {
       await stakeConnection.program.methods
@@ -504,7 +508,8 @@ describe("vesting", () => {
         .then(confirm);
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "AccountDiscriminatorMismatch",
+        (e as AnchorError).error?.errorCode?.code ===
+          "AccountDiscriminatorMismatch",
       );
     }
   });
@@ -515,13 +520,14 @@ describe("vesting", () => {
         vesterStakeConnection.userPublicKey(),
         WHTokenBalance.fromString("0"),
         true,
-        config
+        config,
       );
     let delegateeStakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(vesterStakeConnection.userPublicKey());
-    let currentDelegateStakeAccountCheckpointsAddress = await stakeConnection.delegates(
-      stakeAccountCheckpointsAddress,
-    );
+      await stakeConnection.getStakeAccountCheckpointsAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+    let currentDelegateStakeAccountCheckpointsAddress =
+      await stakeConnection.delegates(stakeAccountCheckpointsAddress);
 
     // Create fake token, fake configuration and fake vestingBalance account
     const fakeMintAccount = Keypair.generate();
@@ -590,7 +596,10 @@ describe("vesting", () => {
         1e11,
       ),
     ];
-    await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority, fakeMintAccount]);
+    await stakeConnection.provider.sendAndConfirm(tx, [
+      whMintAuthority,
+      fakeMintAccount,
+    ]);
 
     const fakeAccounts = {
       ...accounts,
@@ -662,7 +671,8 @@ describe("vesting", () => {
         .then(confirm);
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "ErrorOfStakeAccountParsing",
+        (e as AnchorError).error?.errorCode?.code ===
+          "ErrorOfStakeAccountParsing",
       );
     }
   });
@@ -690,7 +700,8 @@ describe("vesting", () => {
         .then(confirm);
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "ErrorOfStakeAccountParsing",
+        (e as AnchorError).error?.errorCode?.code ===
+          "ErrorOfStakeAccountParsing",
       );
     }
   });
@@ -718,7 +729,8 @@ describe("vesting", () => {
         .then(confirm);
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountOwner",
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidStakeAccountOwner",
       );
     }
   });
@@ -751,7 +763,8 @@ describe("vesting", () => {
         .then(confirm);
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountCheckpoints",
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidStakeAccountCheckpoints",
       );
     }
   });

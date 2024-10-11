@@ -395,7 +395,7 @@ export class StakeConnection {
     delegatee: PublicKey,
     amount: WHTokenBalance,
     include_vest: boolean,
-    vestingConfigAccount: PublicKey | null
+    vestingConfigAccount: PublicKey | null,
   ): Promise<PublicKey> {
     let stakeAccountCheckpointsAddress =
       await this.getStakeAccountCheckpointsAddress(this.userPublicKey());
