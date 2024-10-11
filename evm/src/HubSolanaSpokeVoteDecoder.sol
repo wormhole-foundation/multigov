@@ -76,11 +76,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     // verity results length
     if (_parsedPdaQueryRes.results.length != 1) revert TooManySolanaPdaResults(_parsedPdaQueryRes.results.length);
 
-    // verify program id
-    if (_parsedPdaQueryRes.results[0].programId != EXPECTED_PROGRAM_ID) {
-      revert InvalidProgramId(_parsedPdaQueryRes.results[0].programId);
-    }
-
     // verify seeds length
     if (_parsedPdaQueryRes.results[0].seeds.length != 2) revert InvalidSeedsLength();
 
@@ -112,6 +107,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
     if (_registeredAddress == bytes32(0)) revert NoRegisteredSpokeFound();
 
+    // Check program ID and owner based on the registered spoke address
     if (_parsedPdaQueryRes.results[0].programId != bytes32(_registeredAddress)) {
       revert InvalidProgramId(bytes32(_registeredAddress));
     }
