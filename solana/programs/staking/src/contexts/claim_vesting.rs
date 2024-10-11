@@ -8,6 +8,7 @@ use std::convert::TryInto;
 
 use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
 use crate::state::stake_account::StakeAccountMetadata;
+use crate::state::global_config::GlobalConfig;
 use crate::{
     error::VestingError,
     state::{Vesting, VestingBalance, VestingConfig},
@@ -60,6 +61,8 @@ pub struct ClaimVesting<'info> {
     pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
     #[account(mut)]
     pub stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
+    #[account(mut)]
+    pub global_config: Option<Box<Account<'info, GlobalConfig>>>,
 
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
@@ -70,10 +73,20 @@ impl<'info> ClaimVesting<'info> {
     pub fn close_vesting(&mut self) -> Result<()> {
         // If vesting_balance.stake_account_metadata is not set it means that vester has not delegated his vests
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
-            if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
+            if let (Some(stake_account_metadata), Some(stake_account_checkpoints), Some(global_config)) = (
                 &mut self.stake_account_metadata,
                 &mut self.stake_account_checkpoints,
+                &mut self.global_config,
             ) {
+                require!(
+                    stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
+                    VestingError::InvalidStakeAccountCheckpoints
+                );
+                require!(
+                    self.config.mint == global_config.wh_token_mint,
+                    VestingError::InvalidVestingMint
+                );
+
                 // Verify that the actual address matches the expected one
                 require!(
                     stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
