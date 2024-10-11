@@ -105,7 +105,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     ) revert InvalidProposalIdSeed();
 
     // verify expected data length
-    _parsedPdaQueryRes.results[0].data.checkLength(56);
+    if (_parsedPdaQueryRes.results[0].data.length < 80) revert InvalidDataLength();
 
     // Check owner
     if (_parsedPdaQueryRes.results[0].owner != EXPECTED_PROGRAM_ID) revert InvalidAccountOwner();
