@@ -98,7 +98,7 @@ describe("vesting", () => {
       anchorConfig,
       whMintAccount,
       whMintAuthority,
-      makeDefaultConfig(whMintAccount.publicKey),
+      makeDefaultConfig(whMintAccount.publicKey, whMintAuthority.publicKey),
       WHTokenBalance.fromString("1000"),
     ));
 

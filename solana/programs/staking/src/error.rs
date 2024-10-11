@@ -66,6 +66,8 @@ pub enum VestingError {
     InvalidVestingMint,
     #[msg("Invalid stake account owner")]
     InvalidStakeAccountOwner,
+    #[msg("Invalid vesting admin")]
+    InvalidVestingAdmin
 }
 
 #[error_code]
