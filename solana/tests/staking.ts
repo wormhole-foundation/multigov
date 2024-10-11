@@ -129,10 +129,10 @@ describe("staking", async () => {
         metadataBump,
         custodyBump,
         authorityBump,
-        owner,
-        delegate: checkpointDataAddress,
         recordedBalance: expectedRecordedBalance,
         recordedVestingBalance: expectedRecordedBalance,
+        owner,
+        delegate: checkpointDataAddress,
       }),
     );
   });

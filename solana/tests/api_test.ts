@@ -19,6 +19,7 @@ import {
   createNonFinalizedProposalQueryResponseBytes,
   createProposalQueryResponseBytesWithInvalidChainSpecificQuery,
   createProposalQueryResponseBytesWithInvalidChainSpecificResponse,
+  createProposalQueryResponseBytesWithInvalidFunctionSignature,
 } from "./utils/api_utils";
 import { WHTokenBalance } from "../app";
 import crypto from "crypto";
@@ -271,6 +272,45 @@ describe("api", async () => {
         assert(
           (e as AnchorError).error?.errorCode?.code ===
             "InvalidChainSpecificResponse",
+        );
+      }
+    });
+
+    it("should revert if function signature is invalid", async () => {
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId14")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
+
+      // Create a query with an invalid function signature
+      const invalidFunctionSignatureEthProposalResponseBytes =
+        createProposalQueryResponseBytesWithInvalidFunctionSignature(
+          proposalIdInput,
+          voteStart,
+        );
+
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(
+        invalidFunctionSignatureEthProposalResponseBytes,
+      );
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
+
+      try {
+        await stakeConnection.addProposal(
+          proposalIdInput,
+          invalidFunctionSignatureEthProposalResponseBytes,
+          signaturesKeypair.publicKey,
+          mockGuardianSetIndex,
+          true,
+        );
+        assert.fail("Expected error was not thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidFunctionSignature",
         );
       }
     });

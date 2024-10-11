@@ -13,6 +13,11 @@ pub struct ProposalDataFromEthResponse {
     pub vote_start: u64,
 }
 
+pub struct ProposalQueryRequestData {
+    pub signature: [u8; 4],
+    pub proposal_id: [u8; 32],
+}
+
 #[account]
 #[derive(Default, Debug, BorshSchema)]
 pub struct SpokeMetadataCollector {
@@ -75,6 +80,31 @@ impl SpokeMetadataCollector {
             contract_address,
             proposal_id,
             vote_start,
+        })
+    }
+
+    pub fn parse_proposal_query_request_data(
+        &mut self,
+        calldata: &[u8],
+    ) -> Result<ProposalQueryRequestData> {
+        require!(
+            calldata.len() == 36, // 4 + 32
+            ProposalWormholeMessageError::InvalidDataLength
+        );
+
+        // Parse signature (4 bytes)
+        let signature: [u8; 4] = calldata[0..4]
+            .try_into()
+            .map_err(|_| ProposalWormholeMessageError::ErrorOfSignatureParsing)?;
+
+        // Parse proposal_id (32 bytes)
+        let proposal_id: [u8; 32] = calldata[4..36]
+            .try_into()
+            .map_err(|_| ProposalWormholeMessageError::ErrorOfProposalIdParsing)?;
+
+        Ok(ProposalQueryRequestData {
+            signature,
+            proposal_id,
         })
     }
 }

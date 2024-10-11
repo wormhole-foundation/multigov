@@ -92,6 +92,8 @@ pub enum ProposalWormholeMessageError {
     InvalidDataLength,
     #[msg("Error of contract_address parsing")]
     ErrorOfContractAddressParsing,
+    #[msg("Error of signature parsing")]
+    ErrorOfSignatureParsing,
     #[msg("Error of proposal_id parsing")]
     ErrorOfProposalIdParsing,
     #[msg("Error of vote_start parsing")]
@@ -106,4 +108,6 @@ pub enum ProposalWormholeMessageError {
     InvalidChainSpecificQuery,
     #[msg("Invalid ChainSpecificResponse")]
     InvalidChainSpecificResponse,
+    #[msg("Invalid function signature")]
+    InvalidFunctionSignature,
 }
