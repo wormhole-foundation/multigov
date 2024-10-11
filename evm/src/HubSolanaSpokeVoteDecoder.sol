@@ -24,7 +24,6 @@ import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   using BytesParsing for bytes;
 
-  uint16 public constant SOLANA_CHAIN_ID = 1;
   bytes9 public constant SOLANA_COMMITMENT_LEVEL = "finalized";
   uint256 public constant DEFAULT_QUERY_VALUE = 0;
   bytes32 public constant PROPOSAL_SEED = bytes32("proposal");
@@ -66,9 +65,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     returns (QueryVote memory)
   {
     SolanaPdaQueryResponse memory _parsedPdaQueryRes = parseSolanaPdaQueryResponse(_perChainResp);
-
-    // verify chain id is Solana
-    if (_perChainResp.chainId != SOLANA_CHAIN_ID) revert InvalidChainId();
 
     // verify expected data offset and length
     if (
