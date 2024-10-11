@@ -150,7 +150,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   // @param _data The solana query result.
   // @return The proposals id and vote totals.
   function _parseData(bytes memory _data) internal pure returns (uint256, uint64, uint64, uint64) {
-    uint256 _offset = 0;
+    uint256 _offset = 8; // Skip the 8-byte discriminator
     bytes32 _proposalIdBytes;
     uint64 _againstVotes;
     uint64 _forVotes;
