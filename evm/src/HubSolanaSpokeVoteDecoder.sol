@@ -38,6 +38,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   uint8 public SOLANA_TOKEN_DECIMALS;
 
   error TooManySolanaPdaResults(uint256 resultsLength);
+  error InvalidDataLength();
   error InvalidDataSlice();
   error InvalidQueryCommitment();
   error InvalidSeedsLength();
@@ -98,9 +99,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
     // verify expected data length
     if (_parsedPdaQueryRes.results[0].data.length < 80) revert InvalidDataLength();
-
-    // Check owner
-    if (_parsedPdaQueryRes.results[0].owner != EXPECTED_PROGRAM_ID) revert InvalidAccountOwner();
 
     uint256 _voteStart = _governor.proposalSnapshot(_proposalId);
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);
