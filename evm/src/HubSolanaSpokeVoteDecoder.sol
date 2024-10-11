@@ -25,7 +25,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   using BytesParsing for bytes;
 
   uint16 public constant SOLANA_CHAIN_ID = 1;
-  bytes12 public constant SOLANA_COMMITMENT_LEVEL = "finalized";
+  bytes9 public constant SOLANA_COMMITMENT_LEVEL = "finalized";
   uint256 public constant DEFAULT_QUERY_VALUE = 0;
   bytes32 public constant PROPOSAL_SEED = bytes32("proposal");
 
@@ -96,7 +96,8 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
         || bytes32(_parsedPdaQueryRes.results[0].seeds[0]) != PROPOSAL_SEED
     ) revert InvalidProposalSeed();
 
-    if (bytes12(_parsedPdaQueryRes.requestCommitment) != SOLANA_COMMITMENT_LEVEL) revert InvalidQueryCommitment();
+    // Update the commitment level check
+    if (bytes9(_parsedPdaQueryRes.requestCommitment) != SOLANA_COMMITMENT_LEVEL) revert InvalidQueryCommitment();
 
     (uint256 _proposalId, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
       _parseData(_parsedPdaQueryRes.results[0].data);
