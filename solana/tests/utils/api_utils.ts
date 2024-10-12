@@ -21,6 +21,16 @@ function encodeSignature(signature: string): string {
   return ethers.id(signature).substring(0, 10)
 }
 
+function toUint256Bytes(value: number): Uint8Array {
+  const bigIntValue = BigInt(value);
+  const bytes = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    // Fill from the end, because the lowest bytes must be at the end (big-endian)
+    bytes[31 - i] = Number(bigIntValue >> BigInt(i * 8) & BigInt(0xff));
+  }
+  return bytes;
+}
+
 /**
  * Asserts that `owner` has 1 single stake account and its balance summary is equal to an `expected` value
  */
@@ -82,14 +92,12 @@ export function createProposalQueryResponseBytes(
 
   // first results fields
   const proposalId = proposalIdInput; // proposal id (32 bytes)
-  const voteStart = new Uint8Array(
-    new BigUint64Array([BigInt(voteStartInput)]).buffer,
-  ); // vote start (8 bytes)
+  const voteStart = toUint256Bytes(voteStartInput); // vote start (32 bytes)
 
-  // one result as the 60-byte array
-  const result = new Uint8Array(40); // 32 + 8 = 60 bytes
+  // one result as the 64-byte array
+  const result = new Uint8Array(64); // 32 + 32 = 64 bytes
   result.set(proposalId, 0); // proposal id (32 bytes)
-  result.set(voteStart, 32); // vote start (8 bytes)
+  result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id
@@ -131,14 +139,12 @@ export function createNonFinalizedProposalQueryResponseBytes(
 
   // first results fields
   const proposalId = proposalIdInput; // proposal id (32 bytes)
-  const voteStart = new Uint8Array(
-    new BigUint64Array([BigInt(voteStartInput)]).buffer,
-  ); // vote start (8 bytes)
+  const voteStart = toUint256Bytes(voteStartInput); // vote start (32 bytes)
 
-  // one result as the 40-byte array
-  const result = new Uint8Array(40); // 32 + 8 = 40 bytes
+  // one result as the 64-byte array
+  const result = new Uint8Array(64); // 32 + 32 = 64 bytes
   result.set(proposalId, 0); // proposal id (32 bytes)
-  result.set(voteStart, 32); // vote start (8 bytes)
+  result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id
@@ -179,14 +185,12 @@ export function createProposalQueryResponseBytesWithInvalidChainSpecificQuery(
 
   // first results fields
   const proposalId = proposalIdInput; // proposal id (32 bytes)
-  const voteStart = new Uint8Array(
-    new BigUint64Array([BigInt(voteStartInput)]).buffer,
-  ); // vote start (8 bytes)
+  const voteStart = toUint256Bytes(voteStartInput); // vote start (32 bytes)
 
-  // one result as the 40-byte array
-  const result = new Uint8Array(40); // 32 + 8 = 40 bytes
+  // one result as the 64-byte array
+  const result = new Uint8Array(64); // 32 + 32 = 64 bytes
   result.set(proposalId, 0); // proposal id (32 bytes)
-  result.set(voteStart, 32); // vote start (8 bytes)
+  result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id
@@ -228,14 +232,12 @@ export function createProposalQueryResponseBytesWithInvalidChainSpecificResponse
 
   // first results fields
   const proposalId = proposalIdInput; // proposal id (32 bytes)
-  const voteStart = new Uint8Array(
-    new BigUint64Array([BigInt(voteStartInput)]).buffer,
-  ); // vote start (8 bytes)
+  const voteStart = toUint256Bytes(voteStartInput); // vote start (32 bytes)
 
-  // one result as the 40-byte array
-  const result = new Uint8Array(40); // 32 + 8 = 60 bytes
+  // one result as the 64-byte array
+  const result = new Uint8Array(64); // 32 + 32 = 64 bytes
   result.set(proposalId, 0); // proposal id (32 bytes)
-  result.set(voteStart, 32); // vote start (8 bytes)
+  result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id
@@ -277,14 +279,12 @@ export function createProposalQueryResponseBytesWithInvalidFunctionSignature(
 
   // first results fields
   const proposalId = proposalIdInput; // proposal id (32 bytes)
-  const voteStart = new Uint8Array(
-    new BigUint64Array([BigInt(voteStartInput)]).buffer,
-  ); // vote start (8 bytes)
+  const voteStart = toUint256Bytes(voteStartInput); // vote start (32 bytes)
 
-  // one result as the 40-byte array
-  const result = new Uint8Array(40); // 32 + 8 = 40 bytes
+  // one result as the 64-byte array
+  const result = new Uint8Array(64); // 32 + 32 = 64 bytes
   result.set(proposalId, 0); // proposal id (32 bytes)
-  result.set(voteStart, 32); // vote start (8 bytes)
+  result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
     hubChainId, // chain id

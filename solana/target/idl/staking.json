@@ -2765,33 +2765,73 @@
   "errors": [
     {
       "code": 6000,
-      "name": "NotFullyVested",
-      "msg": "Not fully vested yet"
+      "name": "TooManyQueryResponses",
+      "msg": "Too many query responses"
     },
     {
       "code": 6001,
-      "name": "NotInSurplus",
-      "msg": "Vault is not in surplus"
+      "name": "SenderChainMismatch",
+      "msg": "Sender chain mismatch"
     },
     {
       "code": 6002,
-      "name": "VestingFinalized",
-      "msg": "Vesting finalized"
+      "name": "TooManyEthCallResults",
+      "msg": "Too many eth call results"
     },
     {
       "code": 6003,
-      "name": "VestingUnfinalized",
-      "msg": "Vesting unfinalized"
+      "name": "InvalidDataLength",
+      "msg": "Invalid data length"
     },
     {
       "code": 6004,
-      "name": "Overflow",
-      "msg": "Integer overflow"
+      "name": "ErrorOfContractAddressParsing",
+      "msg": "Error of contract_address parsing"
     },
     {
       "code": 6005,
-      "name": "Underflow",
-      "msg": "Integer underflow"
+      "name": "ErrorOfSignatureParsing",
+      "msg": "Error of signature parsing"
+    },
+    {
+      "code": 6006,
+      "name": "ErrorOfProposalIdParsing",
+      "msg": "Error of proposal_id parsing"
+    },
+    {
+      "code": 6007,
+      "name": "ErrorOfVoteStartParsing",
+      "msg": "Error of vote_start parsing"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidHubProposalMetadataContract",
+      "msg": "Invalid hub proposal metadata contract"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidProposalId",
+      "msg": "Invalid proposal_id"
+    },
+    {
+      "code": 6010,
+      "name": "NonFinalizedBlock",
+      "msg": "Non-finalized block"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidChainSpecificQuery",
+      "msg": "Invalid ChainSpecificQuery"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidChainSpecificResponse",
+      "msg": "Invalid ChainSpecificResponse"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidFunctionSignature",
+      "msg": "Invalid function signature"
     }
   ],
   "types": [

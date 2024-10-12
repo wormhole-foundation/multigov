@@ -48,7 +48,7 @@ impl SpokeMetadataCollector {
         data: &[u8],
     ) -> Result<ProposalDataFromEthResponse> {
         require!(
-            data.len() == 40, // 32 + 8
+            data.len() == 64, // 32 + 32
             ProposalWormholeMessageError::InvalidDataLength
         );
 
@@ -57,9 +57,10 @@ impl SpokeMetadataCollector {
             .try_into()
             .map_err(|_| ProposalWormholeMessageError::ErrorOfProposalIdParsing)?;
 
-        // Parse vote_start (8 bytes)
-        let vote_start = u64::from_le_bytes(
-            data[32..40]
+        // Parse vote_start (32 bytes)
+        // Convert u256 to u64 since vote_start is a timestamp and does not actually exceed u64
+        let vote_start = u64::from_be_bytes(
+            data[56..64] // the last 8 bytes where the low bytes of uint256 are located
                 .try_into()
                 .map_err(|_| ProposalWormholeMessageError::ErrorOfVoteStartParsing)?,
         );
