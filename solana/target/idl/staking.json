@@ -3035,10 +3035,6 @@
           {
             "name": "vote_start",
             "type": "u64"
-          },
-          {
-            "name": "safe_window",
-            "type": "u64"
           }
         ]
       }
@@ -3141,10 +3137,6 @@
           {
             "name": "wormhole_core",
             "type": "pubkey"
-          },
-          {
-            "name": "safe_window",
-            "type": "u64"
           }
         ]
       }
@@ -3326,16 +3318,6 @@
           }
         ]
       }
-    }
-  ],
-  "constants": [
-    {
-      "name": "DEFAULT_SAVE_WINDOW",
-      "docs": [
-        "Save window by default"
-      ],
-      "type": "u64",
-      "value": "86400"
     }
   ]
 }

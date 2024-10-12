@@ -156,11 +156,6 @@ describe("api", async () => {
         proposalAccountData.voteStart.toString(),
         voteStart.toString(),
       );
-      const safeWindow = new BN(24 * 60 * 60); // 24 hour
-      assert.equal(
-        proposalAccountData.safeWindow.toString(),
-        safeWindow.toString(),
-      );
       assert.equal(proposalAccountData.againstVotes.toString(), "0");
       assert.equal(proposalAccountData.forVotes.toString(), "0");
       assert.equal(proposalAccountData.abstainVotes.toString(), "0");
@@ -347,33 +342,6 @@ describe("api", async () => {
     assert.equal(againstVotes.toString(), "0");
     assert.equal(forVotes.toString(), "0");
     assert.equal(abstainVotes.toString(), "0");
-  });
-
-  it("isVotingSafe", async () => {
-    const proposalIdInput = crypto
-      .createHash("sha256")
-      .update("proposalId3")
-      .digest();
-    const voteStart = Math.floor(Date.now() / 1000);
-
-    const ethProposalResponseBytes = createProposalQueryResponseBytes(
-      proposalIdInput,
-      voteStart,
-    );
-    const signaturesKeypair = Keypair.generate();
-    const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(ethProposalResponseBytes);
-    await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
-    const mockGuardianSetIndex = 5;
-
-    await stakeConnection.addProposal(
-      proposalIdInput,
-      ethProposalResponseBytes,
-      signaturesKeypair.publicKey,
-      mockGuardianSetIndex,
-    );
-
-    assert.equal(await stakeConnection.isVotingSafe(proposalIdInput), true);
   });
 
   it("delegate2", async () => {

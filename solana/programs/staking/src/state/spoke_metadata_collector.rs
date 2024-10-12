@@ -3,10 +3,6 @@ use anchor_lang::prelude::*;
 
 use crate::error::ProposalWormholeMessageError;
 
-/// Save window by default
-#[constant]
-pub const DEFAULT_SAVE_WINDOW: u64 = 24 * 60 * 60;
-
 pub struct ProposalDataFromEthResponse {
     pub proposal_id: [u8; 32],
     pub vote_start: u64,
@@ -27,11 +23,10 @@ pub struct SpokeMetadataCollector {
     pub hub_proposal_metadata: [u8; 20],
     // Wormhole contract handling messages
     pub wormhole_core: Pubkey,
-    pub safe_window: u64,
 }
 
 impl SpokeMetadataCollector {
-    pub const LEN: usize = 8 + 2 + 2 + 20 + 32 + 8; // 72 bytes
+    pub const LEN: usize = 8 + 2 + 2 + 20 + 32; // 64 bytes
 
     pub fn initialize(
         &mut self,
@@ -44,7 +39,6 @@ impl SpokeMetadataCollector {
         self.hub_chain_id = hub_chain_id;
         self.hub_proposal_metadata = hub_proposal_metadata;
         self.wormhole_core = wormhole_core;
-        self.safe_window = DEFAULT_SAVE_WINDOW;
 
         Ok(())
     }

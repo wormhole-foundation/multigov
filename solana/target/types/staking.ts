@@ -3041,10 +3041,6 @@ export type Staking = {
           {
             "name": "voteStart",
             "type": "u64"
-          },
-          {
-            "name": "safeWindow",
-            "type": "u64"
           }
         ]
       }
@@ -3147,10 +3143,6 @@ export type Staking = {
           {
             "name": "wormholeCore",
             "type": "pubkey"
-          },
-          {
-            "name": "safeWindow",
-            "type": "u64"
           }
         ]
       }
@@ -3332,16 +3324,6 @@ export type Staking = {
           }
         ]
       }
-    }
-  ],
-  "constants": [
-    {
-      "name": "defaultSaveWindow",
-      "docs": [
-        "Save window by default"
-      ],
-      "type": "u64",
-      "value": "86400"
     }
   ]
 };

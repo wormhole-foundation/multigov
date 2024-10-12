@@ -570,14 +570,6 @@ export class StakeConnection {
     };
   }
 
-  public async isVotingSafe(proposalId: Buffer): Promise<boolean> {
-    const { proposalAccountWasm } =
-      await this.fetchProposalAccountWasm(proposalId);
-
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    return proposalAccountWasm.isVotingSafe(BigInt(currentTimestamp));
-  }
-
   /** Post signatures */
   public async postSignatures(
     querySignatures: string[],

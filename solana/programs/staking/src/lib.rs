@@ -587,7 +587,6 @@ pub mod staking {
             let _ = proposal.add_proposal(
                 proposal_data.proposal_id,
                 proposal_data.vote_start,
-                spoke_metadata_collector.safe_window,
             );
 
             emit!(ProposalCreated {
