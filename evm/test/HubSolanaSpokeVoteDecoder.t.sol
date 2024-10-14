@@ -172,7 +172,10 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     );
 
     bytes32 _programIdReset = _programId;
-    bytes memory _newVoteData = _voteData;
+
+    // Add an 8-byte discriminator
+    bytes8 discriminator = bytes8(keccak256("proposal"));
+    bytes memory _newVoteData = abi.encodePacked(discriminator, _voteData);
 
     bytes memory solanaPdaResult = abi.encodePacked(
       _programIdReset, // program id
@@ -182,7 +185,7 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       bool(false), // executable (1 byte)
       _programIdReset, // owner
       uint32(_newVoteData.length),
-      _newVoteData // data
+      _newVoteData
     );
 
     bytes memory resp = QueryTest.buildSolanaPdaResponseBytes(
