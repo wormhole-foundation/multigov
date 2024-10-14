@@ -236,9 +236,7 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
       * (10 ** (hubSolanaSpokeVoteDecoder.HUB_TOKEN_DECIMALS() - hubSolanaSpokeVoteDecoder.SOLANA_TOKEN_DECIMALS()));
   }
 
-  function testFuzz_CorrectlyParseChainResponseNice(uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes)
-    public
-  {
+  function testFuzz_CorrectlyParseChainResponse(uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) public {
     _setGovernor(hubGovernor);
 
     uint256 proposalId = _createEmptyProposal();
