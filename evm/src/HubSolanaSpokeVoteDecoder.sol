@@ -99,8 +99,13 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
         || bytes32(_parsedPdaQueryRes.results[0].seeds[1]) != _proposalIdBytes
     ) revert InvalidProposalIdSeed(_proposalIdBytes, bytes32(_parsedPdaQueryRes.results[0].seeds[1]));
 
-    // verify expected data length
-    if (_parsedPdaQueryRes.results[0].data.length < 80) revert InvalidDataLength();
+    // Verify expected data length
+    // 8 bytes: discriminator
+    // 32 bytes: proposal ID (bytes32)
+    // 8 bytes: against votes (uint64)
+    // 8 bytes: for votes (uint64)
+    // 8 bytes: abstain votes (uint64)
+    if (_parsedPdaQueryRes.results[0].data.length < 64) revert InvalidDataLength();
 
     uint256 _voteStart = _governor.proposalSnapshot(uint256(_proposalIdBytes));
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);
