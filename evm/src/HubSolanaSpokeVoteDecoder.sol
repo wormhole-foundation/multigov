@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {console} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {QueryResponse} from "wormhole-sdk/QueryResponse.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
@@ -44,7 +45,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   error InvalidQueryCommitment();
   error InvalidSeedsLength();
   error InvalidProposalSeed();
-  error InvalidProposalIdSeed();
+  error InvalidProposalIdSeed(bytes32 expected, bytes32 actual);
   error InvalidAccountOwner();
   error NoRegisteredSpokeFound();
 
@@ -90,18 +91,18 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     // Update the commitment level check
     if (bytes9(_parsedPdaQueryRes.requestCommitment) != SOLANA_COMMITMENT_LEVEL) revert InvalidQueryCommitment();
 
-    (uint256 _proposalId, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
+    (bytes32 _proposalIdBytes, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
       _parseData(_parsedPdaQueryRes.results[0].data);
 
     if (
       _parsedPdaQueryRes.results[0].seeds[1].length != 32
-        || bytes32(_parsedPdaQueryRes.results[0].seeds[1]) != bytes32(uint256(_proposalId))
-    ) revert InvalidProposalIdSeed();
+        || bytes32(_parsedPdaQueryRes.results[0].seeds[1]) != _proposalIdBytes
+    ) revert InvalidProposalIdSeed(_proposalIdBytes, bytes32(_parsedPdaQueryRes.results[0].seeds[1]));
 
     // verify expected data length
     if (_parsedPdaQueryRes.results[0].data.length < 80) revert InvalidDataLength();
 
-    uint256 _voteStart = _governor.proposalSnapshot(_proposalId);
+    uint256 _voteStart = _governor.proposalSnapshot(uint256(_proposalIdBytes));
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);
 
     if (_registeredAddress == bytes32(0)) revert NoRegisteredSpokeFound();
@@ -117,10 +118,10 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     uint256 _forVotesScaled = _scale(_forVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
     uint256 _abstainVotesScaled = _scale(_abstainVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
 
-    bytes32 _spokeProposalId = keccak256(abi.encode(_perChainResp.chainId, _proposalId));
+    bytes32 _spokeProposalId = keccak256(abi.encode(_perChainResp.chainId, uint256(_proposalIdBytes)));
     return (
       QueryVote({
-        proposalId: _proposalId,
+        proposalId: uint256(_proposalIdBytes),
         spokeProposalId: _spokeProposalId,
         proposalVote: ProposalVote(_againstVotesScaled, _forVotesScaled, _abstainVotesScaled),
         chainId: _perChainResp.chainId
@@ -138,7 +139,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   // @notice Parse the vote data from a solana pda query.
   // @param _data The solana query result.
   // @return The proposals id and vote totals.
-  function _parseData(bytes memory _data) internal pure returns (uint256, uint64, uint64, uint64) {
+  function _parseData(bytes memory _data) internal pure returns (bytes32, uint64, uint64, uint64) {
     uint256 _offset = 8; // Skip the 8-byte discriminator
     bytes32 _proposalIdBytes;
     uint64 _againstVotes;
@@ -148,7 +149,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     (_againstVotes, _offset) = _data.asUint64Unchecked(_offset);
     (_forVotes, _offset) = _data.asUint64Unchecked(_offset);
     (_abstainVotes,) = _data.asUint64Unchecked(_offset);
-    return (uint256(_proposalIdBytes), _againstVotes, _forVotes, _abstainVotes);
+    return (_proposalIdBytes, _againstVotes, _forVotes, _abstainVotes);
   }
 
   /// @notice Scales an amount from original decimals to target decimals
