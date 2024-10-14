@@ -176,7 +176,7 @@ contract Decode is HubEvmSpokeVoteDecoderTest {
     uint256 _proposalId,
     uint64 _abstainVotes,
     string memory blockId,
-    bytes9 _finality
+    bytes32 _finality
   ) public {
     vm.assume(_finality != bytes9("finalized"));
 
