@@ -156,7 +156,7 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
 
   function _buildSolanaVoteQueryResponse(
     bytes32 _programId,
-    bytes32 _proposalId,
+    bytes32,
     uint16 _queryChainId,
     bytes memory solanaQuery,
     bytes memory _voteData
