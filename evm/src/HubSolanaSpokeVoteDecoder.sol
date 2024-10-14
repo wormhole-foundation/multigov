@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {console} from "forge-std/Test.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {QueryResponse} from "wormhole-sdk/QueryResponse.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
