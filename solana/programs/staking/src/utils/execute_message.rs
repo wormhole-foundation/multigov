@@ -173,7 +173,6 @@ pub fn process_instruction<'info>(
     instruction: &SolanaInstruction,
     airlock_bump: u8,
 ) -> Result<()> {
-    // Готуємо AccountMetas
     let accounts = instruction
         .accounts
         .iter()
@@ -201,7 +200,6 @@ pub fn process_instruction<'info>(
         data: instruction.data.clone(),
     };
 
-    // Збираємо всі AccountInfo
     let mut all_account_infos = vec![payer, airlock];
     all_account_infos.append(&mut remaining_accounts);
 

@@ -436,17 +436,13 @@ pub mod staking {
             return Err(error!(ErrorCode::Other));
         }
 
-        // Десеріалізуємо повідомлення
         let message = deserialize_message(&encoded_message)?;
 
-        // Відмічаємо повідомлення як виконане
         message_received.executed = true;
 
-        // Обробляємо кожну інструкцію
         for instruction in message.instructions {
             let mut account_infos = vec![];
 
-            // Збираємо AccountInfo для кожного акаунта інструкції
             for meta in &instruction.accounts {
                 let pubkey = Pubkey::new_from_array(meta.pubkey);
                 let account_info = ctx.remaining_accounts
@@ -456,7 +452,6 @@ pub mod staking {
                 account_infos.push(account_info.clone());
             }
 
-            // Створюємо інструкцію
             let ix = Instruction {
                 program_id: Pubkey::new_from_array(instruction.program_id),
                 accounts: instruction.accounts.clone().into_iter().map(|meta| {
@@ -478,7 +473,6 @@ pub mod staking {
                 data: instruction.data.clone(),
             };
 
-            // Виконуємо інструкцію
             let signer_seeds: &[&[&[u8]]] = &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
 
             invoke_signed(&ix, &account_infos, signer_seeds)?;        }
