@@ -520,6 +520,32 @@ pub struct SetMessageReceived<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(message_hash: [u8; 32])]
+pub struct ExecuteMessage<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = payer,
+        space = MessageReceived::LEN,
+        seeds = [MESSAGE_RECEIVED.as_bytes(), &message_hash],
+        bump
+    )]
+    pub message_received: Account<'info, MessageReceived>,
+
+    #[account(
+        mut,
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        bump = airlock.bump
+    )]
+    pub airlock: Account<'info, SpokeAirlock>,
+
+    pub system_program: Program<'info, System>,
+}
+
+
+#[derive(Accounts)]
 pub struct SetAirlock<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,

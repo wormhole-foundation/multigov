@@ -29,6 +29,9 @@ use crate::{
     state::GuardianSignatures,
 };
 
+use crate::utils::execute_message::{deserialize_message, to_account_info_slice, process_instruction};
+
+
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
 
@@ -420,6 +423,66 @@ pub mod staking {
     ) -> Result<()> {
         let message_received = &mut ctx.accounts.message_received;
         message_received.executed = true;
+        Ok(())
+    }
+    pub fn receive_message(
+        ctx: Context<ExecuteMessage>,
+        encoded_message: Vec<u8>,
+        _message_hash: [u8; 32],
+    ) -> Result<()> {
+        let message_received = &mut ctx.accounts.message_received;
+
+        if message_received.executed {
+            return Err(error!(ErrorCode::Other));
+        }
+
+        // Десеріалізуємо повідомлення
+        let message = deserialize_message(&encoded_message)?;
+
+        // Відмічаємо повідомлення як виконане
+        message_received.executed = true;
+
+        // Обробляємо кожну інструкцію
+        for instruction in message.instructions {
+            let mut account_infos = vec![];
+
+            // Збираємо AccountInfo для кожного акаунта інструкції
+            for meta in &instruction.accounts {
+                let pubkey = Pubkey::new_from_array(meta.pubkey);
+                let account_info = ctx.remaining_accounts
+                    .iter()
+                    .find(|a| a.key == &pubkey)
+                    .ok_or_else(|| error!(ErrorCode::Other))?;
+                account_infos.push(account_info.clone());
+            }
+
+            // Створюємо інструкцію
+            let ix = Instruction {
+                program_id: Pubkey::new_from_array(instruction.program_id),
+                accounts: instruction.accounts.clone().into_iter().map(|meta| {
+                    let pubkey = Pubkey::new_from_array(meta.pubkey);
+                    if meta.is_signer {
+                        if meta.is_writable {
+                            AccountMeta::new(pubkey, true)
+                        } else {
+                            AccountMeta::new_readonly(pubkey, true)
+                        }
+                    } else {
+                        if meta.is_writable {
+                            AccountMeta::new(pubkey, false)
+                        } else {
+                            AccountMeta::new_readonly(pubkey, false)
+                        }
+                    }
+                }).collect(),
+                data: instruction.data.clone(),
+            };
+
+            // Виконуємо інструкцію
+            let signer_seeds: &[&[&[u8]]] = &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
+
+            invoke_signed(&ix, &account_infos, signer_seeds)?;        }
+
         Ok(())
     }
 

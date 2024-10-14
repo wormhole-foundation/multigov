@@ -2728,6 +2728,7 @@ dependencies = [
  "anchor-attribute-error",
  "anchor-lang",
  "anchor-spl",
+ "arrayref",
  "bincode",
  "bytemuck",
  "js-sys",
