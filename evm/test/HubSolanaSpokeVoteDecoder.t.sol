@@ -71,7 +71,7 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       new HubSolanaSpokeVoteDecoder(address(wormhole), address(hubVotePool), SOLANA_TOKEN_DECIMALS);
 
     vm.prank(address(timelock));
-    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, bytes32(uint256(uint160(address(this))))); // Use a dummy address for
+    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, bytes32(uint256(uint160(address(this))))); // Dummy programId/address for
       // testing
 
     token.mint(PROPOSER, PROPOSAL_THRESHOLD * 2);
@@ -99,7 +99,7 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     returns (bytes[] memory _pdaEntries, bytes memory _seeds, uint8 _numSeeds)
   {
     bytes[] memory seeds = new bytes[](2);
-    seeds[0] = bytes("proposal");
+    seeds[0] = "proposal";
     seeds[1] = abi.encodePacked(_proposalId);
     (_seeds, _numSeeds) = QueryTest.buildSolanaPdaSeedBytes(seeds);
     bytes memory _solanaPdaEntry = QueryTest.buildSolanaPdaEntry(_programId, _numSeeds, _seeds);
@@ -363,6 +363,22 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
       hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
 
     vm.expectRevert(HubSolanaSpokeVoteDecoder.NoRegisteredSpokeFound.selector);
+    hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
+  }
+
+  function testFuzz_RevertIf_InvalidDataLength(uint8 _dataLength) public {
+    _dataLength = uint8(bound(_dataLength, 1, 64));
+
+    uint256 proposalId = _createEmptyProposal();
+    bytes32 proposalIdBytes = bytes32(proposalId);
+    bytes memory voteData = abi.encodePacked(proposalIdBytes, _dataLength);
+
+    bytes memory voteQueryResponseRaw = _buildSolanaVoteQueryResponse(proposalIdBytes, SPOKE_CHAIN_ID, voteData);
+
+    ParsedQueryResponse memory parsedResp =
+      hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
+
+    vm.expectRevert(HubSolanaSpokeVoteDecoder.InvalidDataLength.selector);
     hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
   }
 }
