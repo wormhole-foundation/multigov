@@ -501,26 +501,9 @@ pub struct InitializeSpokeMessageExecutor<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[derive(Accounts)]
-#[instruction(message_hash: [u8; 32])]
-pub struct SetMessageReceived<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
-
-    #[account(
-        init_if_needed,
-        payer = payer,
-        space = MessageReceived::LEN,
-        seeds = [MESSAGE_RECEIVED.as_bytes(), &message_hash],
-        bump
-    )]
-    pub message_received: Account<'info, MessageReceived>,
-
-    pub system_program: Program<'info, System>,
-}
 
 #[derive(Accounts)]
-#[instruction(message_hash: [u8; 32])]
+#[instruction(_message_hash: [u8; 32])]
 pub struct ExecuteMessage<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -529,7 +512,7 @@ pub struct ExecuteMessage<'info> {
         init_if_needed,
         payer = payer,
         space = MessageReceived::LEN,
-        seeds = [MESSAGE_RECEIVED.as_bytes(), &message_hash],
+        seeds = [MESSAGE_RECEIVED.as_bytes(), &_message_hash],
         bump
     )]
     pub message_received: Account<'info, MessageReceived>,

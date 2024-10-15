@@ -29,7 +29,7 @@ use crate::{
     state::GuardianSignatures,
 };
 
-use crate::utils::execute_message::{deserialize_message, to_account_info_slice, process_instruction};
+use crate::utils::execute_message::{deserialize_message};
 
 
 // automatically generate module using program idl found in ./idls
@@ -417,18 +417,11 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn set_message_received(
-        ctx: Context<SetMessageReceived>,
-        _message_hash: [u8; 32],
-    ) -> Result<()> {
-        let message_received = &mut ctx.accounts.message_received;
-        message_received.executed = true;
-        Ok(())
-    }
+
     pub fn receive_message(
         ctx: Context<ExecuteMessage>,
-        encoded_message: Vec<u8>,
         _message_hash: [u8; 32],
+        encoded_message: Vec<u8>,
     ) -> Result<()> {
         let message_received = &mut ctx.accounts.message_received;
 
@@ -440,11 +433,18 @@ pub mod staking {
 
         message_received.executed = true;
 
+        msg!("Message: {}", message);
+
+
         for instruction in message.instructions {
             let mut account_infos = vec![];
 
             for meta in &instruction.accounts {
-                let pubkey = Pubkey::new_from_array(meta.pubkey);
+                let pubkey = meta.pubkey;
+                msg!("Instruction account : {}", pubkey);
+
+                msg!("remaining_accounts : {:?}", ctx.remaining_accounts);
+
                 let account_info = ctx.remaining_accounts
                     .iter()
                     .find(|a| a.key == &pubkey)
@@ -452,10 +452,15 @@ pub mod staking {
                 account_infos.push(account_info.clone());
             }
 
+            // If there are no accounts, skip execution
+            if account_infos.is_empty() {
+                continue;
+            }
+
             let ix = Instruction {
-                program_id: Pubkey::new_from_array(instruction.program_id),
-                accounts: instruction.accounts.clone().into_iter().map(|meta| {
-                    let pubkey = Pubkey::new_from_array(meta.pubkey);
+                program_id: instruction.program_id,
+                accounts: instruction.accounts.iter().map(|meta| {
+                    let pubkey = meta.pubkey;
                     if meta.is_signer {
                         if meta.is_writable {
                             AccountMeta::new(pubkey, true)
@@ -475,7 +480,9 @@ pub mod staking {
 
             let signer_seeds: &[&[&[u8]]] = &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
 
-            invoke_signed(&ix, &account_infos, signer_seeds)?;        }
+            invoke_signed(&ix, &account_infos, signer_seeds)?;
+        }
+
 
         Ok(())
     }
