@@ -69,7 +69,7 @@ const scripts: {
     const signatureData = signaturesToSolanaArray(result.signatures);
 
     const ethProposalResponseBytes = Buffer.from(result.bytes, "hex");
-    const proposalIdArray = Array.from(encodedParameters);
+    const proposalIdArray = Buffer.from(encodedParameters, "hex");
 
     const connection = new Connection(RPC_NODE);
 
@@ -96,7 +96,7 @@ In Solana:
     .rpc();
 2) call addProposal instruction:
   const ethProposalResponseBytes = Buffer.from(result.bytes, "hex");
-  const proposalIdArray = Array.from(encodedParameters);
+  const proposalIdArray = Buffer.from(encodedParameters, "hex");
   
   guardianSetIndex: ${guardianSetIndex}
   guardianSet: ${guardianSet}
