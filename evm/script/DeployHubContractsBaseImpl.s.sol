@@ -97,28 +97,28 @@ abstract contract DeployHubContractsBaseImpl is Script {
       initialVoteWeightWindow: config.voteWeightWindow
     });
 
-	// Deploy Wormhole governor
+    // Deploy Wormhole governor
     HubGovernor gov = new HubGovernor(hubGovernorParams);
 
-	// Set the governor on the `HubVotePool`
+    // Set the governor on the `HubVotePool`
     hubVotePool.setGovernor(address(gov));
 
-	// Deploy the vote decoder for Solana queries
+    // Deploy the vote decoder for Solana queries
     HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder = new HubSolanaSpokeVoteDecoder(
       config.wormholeCore, address(hubVotePool), config.expectedProgramId, config.solanaTokenDecimals
     );
 
-	// Register Solana vote decoder, 5 is the constant for QT_SOL_PDA.
-	hubVotePool.registerQueryType(5, address(hubSolanaSpokeVoteDecoder));
+    // Register Solana vote decoder, 5 is the constant for QT_SOL_PDA.
+    hubVotePool.registerQueryType(5, address(hubSolanaSpokeVoteDecoder));
 
-	// Deploy hub metadata contract
+    // Deploy hub metadata contract
     HubProposalMetadata hubProposalMetadata = new HubProposalMetadata(address(gov));
-	
-	// Deploy the Evm hub dispatcher
+
+    // Deploy the Evm hub dispatcher
     HubMessageDispatcher hubMessageDispatcher =
       new HubMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
 
-	// Deploy the Solana hub dispatcher
+    // Deploy the Solana hub dispatcher
     HubSolanaMessageDispatcher hubSolanaMessageDispatcher =
       new HubSolanaMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
 
