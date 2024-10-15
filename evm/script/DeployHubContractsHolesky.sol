@@ -9,8 +9,8 @@ contract DeployHubContractsHolesky is DeployHubContractsBaseImpl {
     Vm.Wallet memory wallet = _deploymentWallet();
     return DeploymentConfiguration({
       minDelay: 300,
-      name: "Wormhole Holesky Governor",
-      token: 0x4b56814a4A5b38De8406F3E04F5b39628658cD1B,
+      name: "",
+      token: 0xf11d8878B388b2456a9Fe9F6bB979e920F340a52,
       initialVotingDelay: 1.5 minutes,
       initialVotingPeriod: 30 minutes,
       initialProposalThreshold: 500_000e18,
