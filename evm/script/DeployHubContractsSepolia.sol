@@ -9,7 +9,7 @@ contract DeployHubContractsSepolia is DeployHubContractsBaseImpl {
     Vm.Wallet memory wallet = _deploymentWallet();
     return DeploymentConfiguration({
       minDelay: 300,
-      name: "",
+      name: "Wormhole Sepolia Governor",
       token: 0x4b56814a4A5b38De8406F3E04F5b39628658cD1B,
       initialVotingDelay: 1.5 minutes,
       initialVotingPeriod: 30 minutes,
