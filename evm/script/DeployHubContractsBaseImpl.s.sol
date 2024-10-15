@@ -5,6 +5,7 @@ import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {QueryResponse} from "wormhole-sdk/QueryResponse.sol";
 
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
@@ -70,12 +71,18 @@ abstract contract DeployHubContractsBaseImpl is Script {
     Vm.Wallet memory wallet = _deploymentWallet();
     vm.startBroadcast(wallet.privateKey);
 
+    // Deploy timelock for governor.
     TimelockController timelock =
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
+    // Deploy proposal extender to be used in the HubGovernor.
     HubProposalExtender extender = new HubProposalExtender(
       config.voteExtenderAdmin, config.voteTimeExtension, address(timelock), config.minimumExtensionTime
     );
+
+    // Deploy `HubVotePool` which will revceive cross-chain votes.
+    HubVotePool hubVotePool = new HubVotePool(config.wormholeCore, address(0), wallet.addr);
+
     HubGovernor.ConstructorParams memory hubGovernorParams = HubGovernor.ConstructorParams({
       name: config.name,
       token: ERC20Votes(config.token),
@@ -84,30 +91,40 @@ abstract contract DeployHubContractsBaseImpl is Script {
       initialVotingPeriod: config.initialVotingPeriod,
       initialProposalThreshold: config.initialProposalThreshold,
       initialQuorum: config.initialQuorum,
-      hubVotePoolOwner: wallet.addr,
+      hubVotePool: address(hubVotePool),
       wormholeCore: config.wormholeCore,
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: config.voteWeightWindow
     });
 
+	// Deploy Wormhole governor
     HubGovernor gov = new HubGovernor(hubGovernorParams);
 
-    HubProposalMetadata hubProposalMetadata = new HubProposalMetadata(address(gov));
-    HubMessageDispatcher hubMessageDispatcher =
-      new HubMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
+	// Set the governor on the `HubVotePool`
+    hubVotePool.setGovernor(address(gov));
 
-    HubVotePool hubVotePool = gov.hubVotePool(uint96(block.timestamp));
-
-    // Deploy HubEvmSpokeAggregateProposer using create2
-    HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer =
-      new HubEvmSpokeAggregateProposer(config.wormholeCore, address(gov), config.initialMaxQueryTimestampOffset);
-    HubSolanaMessageDispatcher hubSolanaMessageDispatcher =
-      new HubSolanaMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
-
+	// Deploy the vote decoder for Solana queries
     HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder = new HubSolanaSpokeVoteDecoder(
       config.wormholeCore, address(hubVotePool), config.expectedProgramId, config.solanaTokenDecimals
     );
 
+	// Register Solana vote decoder, 5 is the constant for QT_SOL_PDA.
+	hubVotePool.registerQueryType(5, address(hubSolanaSpokeVoteDecoder));
+
+	// Deploy hub metadata contract
+    HubProposalMetadata hubProposalMetadata = new HubProposalMetadata(address(gov));
+	
+	// Deploy the Evm hub dispatcher
+    HubMessageDispatcher hubMessageDispatcher =
+      new HubMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
+
+	// Deploy the Solana hub dispatcher
+    HubSolanaMessageDispatcher hubSolanaMessageDispatcher =
+      new HubSolanaMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
+
+    // Deploy the evm aggregate proposer
+    HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer =
+      new HubEvmSpokeAggregateProposer(config.wormholeCore, address(gov), config.initialMaxQueryTimestampOffset);
     hubVotePool.transferOwnership(address(timelock));
     extender.initialize(payable(gov));
 
