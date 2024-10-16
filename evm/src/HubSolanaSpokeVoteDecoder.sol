@@ -38,7 +38,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   uint8 public SOLANA_TOKEN_DECIMALS;
 
   error TooManySolanaPdaResults(uint256 resultsLength);
-  error InvalidDataLength();
   error InvalidDataSlice();
   error InvalidProgramId(bytes32 expectedProgramId);
   error InvalidQueryCommitment();
@@ -100,12 +99,11 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     ) revert InvalidProposalIdSeed(_proposalIdBytes, bytes32(_parsedPdaQueryRes.results[0].seeds[1]));
 
     // Verify expected data length
-    // 8 bytes: discriminator
-    // 32 bytes: proposal ID (bytes32)
-    // 8 bytes: against votes (uint64)
-    // 8 bytes: for votes (uint64)
-    // 8 bytes: abstain votes (uint64)
-    if (_parsedPdaQueryRes.results[0].data.length < 64) revert InvalidDataLength();
+    // 8 byte for the discriminator
+    // 32 bytes for the proposal id
+    // 24 bytes for the for, abstain, and against votes
+    // 8 bytes for the vote start
+    _parsedPdaQueryRes.results[0].data.checkLength(72);
 
     uint256 _voteStart = _governor.proposalSnapshot(uint256(_proposalIdBytes));
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);

@@ -7,6 +7,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
+import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 import {ParsedQueryResponse} from "wormhole-sdk/QueryResponse.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
@@ -236,13 +237,18 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
       * (10 ** (hubSolanaSpokeVoteDecoder.HUB_TOKEN_DECIMALS() - hubSolanaSpokeVoteDecoder.SOLANA_TOKEN_DECIMALS()));
   }
 
-  function testFuzz_CorrectlyParseChainResponse(uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) public {
+  function testFuzz_CorrectlyParseChainResponse(
+    uint64 _againstVotes,
+    uint64 _forVotes,
+    uint64 _abstainVotes,
+    uint64 _voteStart
+  ) public {
     _setGovernor(hubGovernor);
 
     uint256 proposalId = _createEmptyProposal();
     bytes32 proposalIdBytes = bytes32(proposalId);
     bytes memory voteData =
-      abi.encodePacked(proposalIdBytes, uint64(_againstVotes), uint64(_forVotes), uint64(_abstainVotes));
+      abi.encodePacked(proposalIdBytes, uint64(_againstVotes), uint64(_forVotes), uint64(_abstainVotes), _voteStart);
 
     bytes memory voteQueryResponseRaw = _buildSolanaVoteQueryResponse(proposalIdBytes, SPOKE_CHAIN_ID, voteData);
 
@@ -265,12 +271,13 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     uint64 _requestDataSliceLength,
     uint64 _againstVotes,
     uint64 _forVotes,
-    uint64 _abstainVotes
+    uint64 _abstainVotes,
+    uint64 _voteStart
   ) public {
     vm.assume(_requestDataSliceOffset != 0 && _requestDataSliceLength != 0);
     uint256 _proposalId = _createEmptyProposal();
     bytes32 _proposalIdBytes = bytes32(_proposalId);
-    bytes memory voteData = abi.encodePacked(_proposalIdBytes, _againstVotes, _forVotes, _abstainVotes);
+    bytes memory voteData = abi.encodePacked(_proposalIdBytes, _againstVotes, _forVotes, _abstainVotes, _voteStart);
     (bytes[] memory _pdaEntries,,) =
       _buildPdaEntries(_proposalIdBytes, bytes32(hubVotePool.getSpoke(SPOKE_CHAIN_ID, block.timestamp)));
     bytes memory solanaQuery = QueryTest.buildSolanaPdaRequestBytes(
@@ -296,13 +303,14 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     bytes9 _commitment,
     uint64 _againstVotes,
     uint64 _forVotes,
-    uint64 _abstainVotes
+    uint64 _abstainVotes,
+    uint64 _voteStart
   ) public {
     vm.assume(_commitment != bytes9("finalized"));
     uint256 _proposalId = _createEmptyProposal();
     bytes32 _proposalIdBytes = bytes32(_proposalId);
 
-    bytes memory voteData = abi.encodePacked(_proposalIdBytes, _againstVotes, _forVotes, _abstainVotes);
+    bytes memory voteData = abi.encodePacked(_proposalIdBytes, _againstVotes, _forVotes, _abstainVotes, _voteStart);
     (bytes[] memory _pdaEntries,,) =
       _buildPdaEntries(_proposalIdBytes, bytes32(hubVotePool.getSpoke(SPOKE_CHAIN_ID, block.timestamp)));
     bytes memory solanaQuery = QueryTest.buildSolanaPdaRequestBytes(
@@ -327,7 +335,8 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     bytes32 _invalidProgramId,
     uint64 _againstVotes,
     uint64 _forVotes,
-    uint64 _abstainVotes
+    uint64 _abstainVotes,
+    uint64 _voteStart
   ) public {
     bytes32 validProgramId = bytes32(hubVotePool.getSpoke(SPOKE_CHAIN_ID, vm.getBlockTimestamp()));
     vm.assume(_invalidProgramId != validProgramId);
@@ -335,7 +344,7 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     vm.warp(vm.getBlockTimestamp() + 7 days);
     uint256 proposalId = _createEmptyProposal();
     bytes32 proposalIdBytes = bytes32(proposalId);
-    bytes memory voteData = abi.encodePacked(proposalIdBytes, _againstVotes, _forVotes, _abstainVotes);
+    bytes memory voteData = abi.encodePacked(proposalIdBytes, _againstVotes, _forVotes, _abstainVotes, _voteStart);
     bytes memory voteQueryResponseRaw =
       _buildSolanaVoteQueryResponse(_invalidProgramId, proposalIdBytes, SPOKE_CHAIN_ID, voteData);
 
@@ -350,13 +359,14 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     uint16 _unregisteredChainId,
     uint64 _againstVotes,
     uint64 _forVotes,
-    uint64 _abstainVotes
+    uint64 _abstainVotes,
+    uint64 _voteStart
   ) public {
     vm.assume(_unregisteredChainId != SPOKE_CHAIN_ID);
     uint256 proposalId = _createEmptyProposal();
     bytes32 proposalIdBytes = bytes32(proposalId);
 
-    bytes memory voteData = abi.encodePacked(proposalIdBytes, _againstVotes, _forVotes, _abstainVotes);
+    bytes memory voteData = abi.encodePacked(proposalIdBytes, _againstVotes, _forVotes, _abstainVotes, _voteStart);
     bytes memory voteQueryResponseRaw = _buildSolanaVoteQueryResponse(proposalIdBytes, _unregisteredChainId, voteData);
 
     ParsedQueryResponse memory parsedResp =
@@ -378,7 +388,8 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     ParsedQueryResponse memory parsedResp =
       hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
 
-    vm.expectRevert(HubSolanaSpokeVoteDecoder.InvalidDataLength.selector);
+    vm.expectRevert(abi.encodeWithSelector(BytesParsing.LengthMismatch.selector, voteData.length + 8, 72)); // 8 is the
+      // length of the discriminator
     hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
   }
 }
