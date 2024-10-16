@@ -8,6 +8,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {QueryTest} from "wormhole-sdk/testing/helpers/QueryTest.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {toWormholeFormat} from "wormhole-sdk/Utils.sol";
 import {ParsedQueryResponse} from "wormhole-sdk/QueryResponse.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
@@ -72,7 +73,7 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       new HubSolanaSpokeVoteDecoder(address(wormhole), address(hubVotePool), SOLANA_TOKEN_DECIMALS);
 
     vm.prank(address(timelock));
-    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, bytes32(uint256(uint160(address(this))))); // Dummy programId/address for
+    hubVotePool.registerSpoke(SPOKE_CHAIN_ID, toWormholeFormat(address(this))); // Dummy programId/address for
       // testing
 
     token.mint(PROPOSER, PROPOSAL_THRESHOLD * 2);
