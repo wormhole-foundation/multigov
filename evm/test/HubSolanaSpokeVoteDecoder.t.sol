@@ -134,7 +134,7 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     bytes memory _solanaQuery,
     bytes memory _voteData
   ) internal view returns (bytes memory) {
-    bytes32 programId = bytes32(hubVotePool.getSpoke(_queryChainId, vm.getBlockTimestamp()));
+    bytes32 programId = hubVotePool.getSpoke(_queryChainId, vm.getBlockTimestamp());
     return _buildSolanaVoteQueryResponse(programId, _proposalId, _queryChainId, _solanaQuery, _voteData);
   }
 
@@ -339,7 +339,7 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     uint64 _abstainVotes,
     uint64 _voteStart
   ) public {
-    bytes32 validProgramId = bytes32(hubVotePool.getSpoke(SPOKE_CHAIN_ID, vm.getBlockTimestamp()));
+    bytes32 validProgramId = hubVotePool.getSpoke(SPOKE_CHAIN_ID, vm.getBlockTimestamp());
     vm.assume(_invalidProgramId != validProgramId);
 
     vm.warp(vm.getBlockTimestamp() + 7 days);
