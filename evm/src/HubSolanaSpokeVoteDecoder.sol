@@ -81,13 +81,14 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     // verify seeds length
     if (_parsedPdaQueryRes.results[0].seeds.length != 2) revert InvalidSeedsLength();
 
-    // verify length of each seed and value if possible
+    // verify length of each seed and value
     if (
       _parsedPdaQueryRes.results[0].seeds[0].length != 8
         || bytes32(_parsedPdaQueryRes.results[0].seeds[0]) != PROPOSAL_SEED
     ) revert InvalidProposalSeed();
 
-    // Update the commitment level check
+    // verify commitment level length and value
+    _parsedPdaQueryRes.requestCommitment.checkLength(9);
     if (bytes9(_parsedPdaQueryRes.requestCommitment) != SOLANA_COMMITMENT_LEVEL) revert InvalidQueryCommitment();
 
     (bytes32 _proposalIdBytes, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
