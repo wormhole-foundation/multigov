@@ -45,7 +45,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   error InvalidProposalSeed();
   error InvalidProposalIdSeed(bytes32 expected, bytes32 actual);
   error InvalidAccountOwner();
-  error NoRegisteredSpokeFound();
+  error SpokeNotRegistered();
 
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubVotePool The address for the hub vote pool.
