@@ -356,7 +356,7 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
   }
 
-  function testFuzz_RevertIf_NoRegisteredSpokeFound(
+  function testFuzz_RevertIf_SpokeNotRegistered(
     uint16 _unregisteredChainId,
     uint64 _againstVotes,
     uint64 _forVotes,
@@ -373,7 +373,7 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     ParsedQueryResponse memory parsedResp =
       hubSolanaSpokeVoteDecoder.parseAndVerifyQueryResponse(voteQueryResponseRaw, _getSignatures(voteQueryResponseRaw));
 
-    vm.expectRevert(HubSolanaSpokeVoteDecoder.NoRegisteredSpokeFound.selector);
+    vm.expectRevert(HubSolanaSpokeVoteDecoder.SpokeNotRegistered.selector);
     hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
   }
 

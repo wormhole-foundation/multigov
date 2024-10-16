@@ -108,7 +108,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     uint256 _voteStart = _governor.proposalSnapshot(uint256(_proposalIdBytes));
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);
 
-    if (_registeredAddress == bytes32(0)) revert NoRegisteredSpokeFound();
+    if (_registeredAddress == bytes32(0)) revert SpokeNotRegistered();
 
     // Check program ID and owner based on the registered spoke address
     if (_parsedPdaQueryRes.results[0].programId != bytes32(_registeredAddress)) {
