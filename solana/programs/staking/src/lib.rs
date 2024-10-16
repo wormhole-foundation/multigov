@@ -423,6 +423,7 @@ pub mod staking {
         _message_hash: [u8; 32],
         encoded_message: Vec<u8>,
     ) -> Result<()> {
+
         let message_received = &mut ctx.accounts.message_received;
 
         if message_received.executed {

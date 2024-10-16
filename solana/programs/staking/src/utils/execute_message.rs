@@ -38,9 +38,16 @@ pub struct InstructionData {
 
 impl fmt::Display for InstructionData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Program ID:  {}, Accounts: {:?}, Data: {:?}", self.program_id, self.accounts, self.data)
+        write!(
+            f,
+            "Program ID:  {}, Accounts: {:?}, Data: {:?}",
+            self.program_id.to_string(),
+            self.accounts,
+            self.data
+        )
     }
 }
+
 
 
 pub struct Message {
@@ -66,14 +73,6 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> Result<Message, ProgramError> {
     // Now set offset to root_offset
     let mut offset = root_offset;
     // Helper function to read 32-byte words
-    fn read_word<'a>(data: &'a [u8], offset: &mut usize) -> Result<&'a [u8], ProgramError> {
-        if *offset + 32 > data.len() {
-            return Err(ParserError::UnexpectedEndOfData.into());
-        }
-        let word = &data[*offset..*offset + 32];
-        *offset += 32;
-        Ok(word)
-    }
 
     // Read messageId (uint256)
     let message_id_bytes = &data[offset..offset + 32];
@@ -109,8 +108,8 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> Result<Message, ProgramError> {
 
 
 /// Parses the instructions array
-fn parse_instructions(data: &[u8], base_offset: usize) -> Result<Vec<InstructionData>, ProgramError> {
-    let mut offset = base_offset;
+fn parse_instructions(data: &[u8], instructions_offset: usize) -> Result<Vec<InstructionData>, ProgramError> {
+    let mut offset = instructions_offset;
 
     msg!("Parsing instructions at offset: {}", offset);
 
@@ -140,15 +139,15 @@ fn parse_instructions(data: &[u8], base_offset: usize) -> Result<Vec<Instruction
         let data_offset_relative = u64::from_be_bytes(data_offset_relative_bytes[24..32].try_into().unwrap()) as usize;
         offset += 32;
 
-        // Adjust offsets relative to base_offset
+        // Adjust offsets relative to `instructions_offset`
         let accounts_offset = if accounts_offset_relative != 0 {
-            accounts_offset_relative + base_offset
+            instructions_offset + accounts_offset_relative
         } else {
             0
         };
 
         let data_offset = if data_offset_relative != 0 {
-            data_offset_relative + base_offset
+            instructions_offset + data_offset_relative
         } else {
             0
         };
@@ -182,14 +181,15 @@ fn parse_instructions(data: &[u8], base_offset: usize) -> Result<Vec<Instruction
 
 
 
+
 /// Parses the accounts array
-fn parse_accounts(data: &[u8], base_offset: usize) -> Result<Vec<AccountMeta>, ProgramError> {
-    if base_offset == 0 {
+fn parse_accounts(data: &[u8], accounts_offset: usize) -> Result<Vec<AccountMeta>, ProgramError> {
+    if accounts_offset == 0 {
         // No accounts to parse
         return Ok(vec![]);
     }
 
-    let mut offset = base_offset;
+    let mut offset = accounts_offset;
 
     msg!("Parsing accounts at offset: {}", offset);
 
@@ -234,13 +234,13 @@ fn parse_accounts(data: &[u8], base_offset: usize) -> Result<Vec<AccountMeta>, P
 
 
 /// Parses the instruction data
-fn parse_instruction_data(data: &[u8], base_offset: usize) -> Result<Vec<u8>, ProgramError> {
-    if base_offset == 0 {
+fn parse_instruction_data(data: &[u8], data_offset: usize) -> Result<Vec<u8>, ProgramError> {
+    if data_offset == 0 {
         // No instruction data
         return Ok(vec![]);
     }
 
-    let mut offset = base_offset;
+    let mut offset = data_offset;
 
     msg!("Parsing instruction data at offset: {}", offset);
 
@@ -263,6 +263,7 @@ fn parse_instruction_data(data: &[u8], base_offset: usize) -> Result<Vec<u8>, Pr
 
     Ok(instruction_data)
 }
+
 
 
 

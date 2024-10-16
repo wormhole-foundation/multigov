@@ -94,16 +94,17 @@ describe("receive_message test", () => {
     it("should process the message in receive_message", async () => {
         const recipient = Keypair.generate(); // Generate a recipient account
 
+        // Ensure correct instruction data
         const transferInstruction: SolanaInstruction = {
             programId: SystemProgram.programId.toBuffer(),
             accounts: [
                 {
-                    pubkey: payer.publicKey.toBuffer(), // Source account
+                    pubkey: payer.publicKey.toBuffer(),
                     isSigner: true,
                     isWritable: true,
                 },
                 {
-                    pubkey: recipient.publicKey.toBuffer(), // Destination account
+                    pubkey: recipient.publicKey.toBuffer(),
                     isSigner: false,
                     isWritable: true,
                 },
@@ -112,8 +113,9 @@ describe("receive_message test", () => {
                 fromPubkey: payer.publicKey,
                 toPubkey: recipient.publicKey,
                 lamports: 1000, // Amount to transfer
-            }).data, // Instruction data for transferring lamports
+            }).data, // Ensure this contains the correct instruction data
         };
+
 
 
         // Prepare the message parameters
@@ -189,33 +191,33 @@ function encodeMessage(
 ): Buffer {
     const abi = new AbiCoder();
 
-    // Define types with field names
-    const accountMetaType = "tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
+    // Define types without field names
+    const accountMetaType = "tuple(bytes32,bool,bool)";
     const instructionType = `tuple(
-        bytes32 programId,
-        ${accountMetaType}[] accounts,
-        bytes data
+        bytes32,
+        ${accountMetaType}[],
+        bytes
     )`;
     const messageType = `tuple(
-        uint256 messageId,
-        uint256 wormholeChainId,
-        ${instructionType}[] instructions
+        uint256,
+        uint256,
+        ${instructionType}[]
     )`;
 
-    // Prepare data as an object matching the types
-    const messageValue = {
-        messageId: messageId,
-        wormholeChainId: BigInt(wormholeChainId),
-        instructions: instructions.map(instr => ({
-            programId: '0x' + instr.programId.toString('hex'),
-            accounts: instr.accounts.map(acc => ({
-                pubkey: '0x' + acc.pubkey.toString('hex'),
-                isSigner: acc.isSigner,
-                isWritable: acc.isWritable,
-            })),
-            data: '0x' + instr.data.toString('hex'),
-        })),
-    };
+    // Prepare data without field names
+    const messageValue = [
+        messageId,
+        BigInt(wormholeChainId),
+        instructions.map(instr => [
+            '0x' + instr.programId.toString('hex'),
+            instr.accounts.map(acc => [
+                '0x' + acc.pubkey.toString('hex'),
+                acc.isSigner,
+                acc.isWritable,
+            ]),
+            '0x' + instr.data.toString('hex'),
+        ]),
+    ];
 
     // Encode the message
     const encoded = abi.encode([messageType], [messageValue]);
@@ -223,4 +225,5 @@ function encodeMessage(
     console.log("Encoded Message:", encoded);
     return Buffer.from(encoded.slice(2), "hex");
 }
+
 
