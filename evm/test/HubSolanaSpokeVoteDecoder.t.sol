@@ -96,7 +96,7 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
 
   function _buildPdaEntries(bytes32 _proposalId, bytes32 _programId)
     internal
-    view
+    pure
     returns (bytes[] memory _pdaEntries, bytes memory _seeds, uint8 _numSeeds)
   {
     bytes[] memory seeds = new bytes[](2);
