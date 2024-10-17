@@ -51,7 +51,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialVotingPeriod: 3 days,
       initialProposalThreshold: 500_000e18,
       initialQuorum: 100e18,
-      hubVotePoolOwner: address(timelock),
+      hubVotePool: address(hubVotePool),
       wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
@@ -148,7 +148,7 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePoolOwner: _timelock,
+      hubVotePool: address(hubVotePool),
       wormholeCore: address(wormhole),
       governorProposalExtender: address(_voteExtender),
       initialVoteWeightWindow: 1 days
@@ -185,6 +185,7 @@ contract Constructor is HubGovernorTest {
     HubProposalExtender _voteExtender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, address(_extenderOwner), _deployer, MINIMUM_VOTE_EXTENSION
     );
+    HubVotePool hubVotePool = new HubVotePool(address(wormhole), address(0), address(timelock));
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,
@@ -194,7 +195,7 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePoolOwner: _timelock,
+      hubVotePool: address(hubVotePool),
       wormholeCore: address(wormhole),
       governorProposalExtender: address(_voteExtender),
       initialVoteWeightWindow: 1 days
@@ -226,7 +227,7 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePoolOwner: _timelock,
+      hubVotePool: address(hubVotePool),
       wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
@@ -253,7 +254,7 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: 0,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePoolOwner: _timelock,
+      hubVotePool: address(hubVotePool),
       wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
