@@ -77,7 +77,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
 
     // Deploy proposal extender to be used in the HubGovernor.
     HubProposalExtender extender = new HubProposalExtender(
-      config.voteExtenderAdmin, config.voteTimeExtension, address(timelock), config.minimumExtensionTime
+      config.voteExtenderAdmin, config.voteTimeExtension, address(timelock), wallet.addr, config.minimumExtensionTime
     );
 
     // Deploy `HubVotePool` which will revceive cross-chain votes.

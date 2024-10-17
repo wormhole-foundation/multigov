@@ -7,7 +7,6 @@ import {
   ANCHOR_CONFIG_PATH,
   requestWHTokenAirdrop,
   getDummyAgreementHash,
-  getDummyAgreementHash2,
 } from "./utils/before";
 import { expectFail, createMint } from "./utils/utils";
 import assert from "assert";
@@ -67,12 +66,11 @@ describe("config", async () => {
 
     await program.methods
       .initConfig({
+        freeze: false,
+        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        freeze: false,
         pdaAuthority: pdaAuthority,
-        agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(0),
       })
       .rpc({
         skipPreflight: DEBUG,
@@ -93,14 +91,56 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
+        freeze: false,
+        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        freeze: false,
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(0),
       }),
     );
+  });
+
+  it("fails on re-initialization of config", async () => {
+    [configAccount, bump] = PublicKey.findProgramAddressSync(
+      [utils.bytes.utf8.encode(wasm.Constants.CONFIG_SEED())],
+      program.programId,
+    );
+
+    try {
+      await program.methods
+        .initConfig({
+          governanceAuthority: program.provider.wallet.publicKey,
+          whTokenMint: whMintAccount.publicKey,
+          freeze: false,
+          pdaAuthority: pdaAuthority,
+          agreementHash: getDummyAgreementHash(),
+          mockClockTime: new BN(0),
+        })
+        .rpc();
+
+      await program.methods
+        .initConfig({
+          governanceAuthority: program.provider.wallet.publicKey,
+          whTokenMint: whMintAccount.publicKey,
+          freeze: false,
+          pdaAuthority: pdaAuthority,
+          agreementHash: getDummyAgreementHash(),
+          mockClockTime: new BN(0),
+        })
+        .rpc();
+
+      assert.fail("Re-initialization should fail");
+    } catch (e) {
+      assert(
+        e.transactionMessage.includes(
+          "Error processing Instruction 0: custom program error: 0x0",
+        ),
+      );
+
+      const expectedLogMessage = `Allocate: account Address { address: ${configAccount.toString()}, base: None } already in use`;
+      assert(e.transactionLogs.find((log) => log.includes(expectedLogMessage)));
+    }
   });
 
   it("create account", async () => {
@@ -111,12 +151,12 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
+        freeze: false,
+        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        freeze: false,
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(0),
       }),
     );
 
@@ -163,14 +203,6 @@ describe("config", async () => {
       "An address constraint was violated",
       errMap,
     );
-
-    await expectFail(
-      samConnection.program.methods.updateAgreementHash(
-        Array.from(Buffer.alloc(32)),
-      ),
-      "An address constraint was violated",
-      errMap,
-    );
   });
 
   it("updates pda authority", async () => {
@@ -207,12 +239,12 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
+        freeze: false,
+        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        freeze: false,
         pdaAuthority: program.provider.wallet.publicKey,
         agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(0),
       }),
     );
 
@@ -225,36 +257,12 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
+        freeze: false,
+        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        freeze: false,
         pdaAuthority: pdaAuthority,
         agreementHash: getDummyAgreementHash(),
-        mockClockTime: new BN(0),
-      }),
-    );
-  });
-
-  it("updates agreement hash", async () => {
-    assert.notEqual(
-      JSON.stringify(getDummyAgreementHash()),
-      JSON.stringify(getDummyAgreementHash2()),
-    );
-
-    await program.methods.updateAgreementHash(getDummyAgreementHash2()).rpc();
-
-    let configAccountData =
-      await program.account.globalConfig.fetch(configAccount);
-    assert.equal(
-      JSON.stringify(configAccountData),
-      JSON.stringify({
-        bump,
-        governanceAuthority: program.provider.wallet.publicKey,
-        whTokenMint: whMintAccount.publicKey,
-        freeze: false,
-        pdaAuthority: pdaAuthority,
-        agreementHash: getDummyAgreementHash2(),
-        mockClockTime: new BN(0),
       }),
     );
   });

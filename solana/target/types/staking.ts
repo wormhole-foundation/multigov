@@ -350,9 +350,12 @@ export type Staking = {
       ],
       "accounts": [
         {
-          "name": "payer",
+          "name": "owner",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "voterCheckpoints"
+          ]
         },
         {
           "name": "proposal",
@@ -1863,92 +1866,6 @@ export type Staking = {
       ]
     },
     {
-      "name": "joinDaoLlc",
-      "docs": [
-        "* Accept to join the DAO LLC\n     * This must happen before delegate\n     * The user signs a hash of the agreement and the program checks that the hash matches the\n     * agreement"
-      ],
-      "discriminator": [
-        79,
-        241,
-        203,
-        177,
-        232,
-        143,
-        124,
-        14
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "stakeAccountCheckpoints"
-        },
-        {
-          "name": "stakeAccountMetadata",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  101,
-                  95,
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "stakeAccountCheckpoints"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "agreementHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
       "name": "postSignatures",
       "discriminator": [
         138,
@@ -2207,55 +2124,6 @@ export type Staking = {
       "args": [
         {
           "name": "messageHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "updateAgreementHash",
-      "discriminator": [
-        86,
-        232,
-        181,
-        137,
-        158,
-        110,
-        129,
-        238
-      ],
-      "accounts": [
-        {
-          "name": "governanceSigner",
-          "signer": true
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "agreementHash",
           "type": {
             "array": [
               "u8",
@@ -2546,6 +2414,7 @@ export type Staking = {
         },
         {
           "name": "stakeAccountMetadata",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2994,6 +2863,51 @@ export type Staking = {
       "code": 6018,
       "name": "other",
       "msg": "other"
+    },
+    {
+      "code": 6019,
+      "name": "failedToParseResponse",
+      "msg": "Failed to parse response"
+    },
+    {
+      "code": 6020,
+      "name": "writeAuthorityMismatch",
+      "msg": "Write authority mismatch"
+    },
+    {
+      "code": 6021,
+      "name": "guardianSetExpired",
+      "msg": "Guardian set expired"
+    },
+    {
+      "code": 6022,
+      "name": "invalidMessageHash",
+      "msg": "Invalid message hash"
+    },
+    {
+      "code": 6023,
+      "name": "noQuorum",
+      "msg": "No quorum"
+    },
+    {
+      "code": 6024,
+      "name": "invalidGuardianIndexNonIncreasing",
+      "msg": "Invalid guardian index non increasing"
+    },
+    {
+      "code": 6025,
+      "name": "invalidGuardianIndexOutOfRange",
+      "msg": "Invalid guardian index out of range"
+    },
+    {
+      "code": 6026,
+      "name": "invalidSignature",
+      "msg": "Invalid signature"
+    },
+    {
+      "code": 6027,
+      "name": "invalidGuardianKeyRecovery",
+      "msg": "Invalid guardian key recovery"
     }
   ],
   "types": [
@@ -3113,16 +3027,20 @@ export type Staking = {
             "type": "u8"
           },
           {
+            "name": "freeze",
+            "type": "bool"
+          },
+          {
+            "name": "mockClockTime",
+            "type": "i64"
+          },
+          {
             "name": "governanceAuthority",
             "type": "pubkey"
           },
           {
             "name": "whTokenMint",
             "type": "pubkey"
-          },
-          {
-            "name": "freeze",
-            "type": "bool"
           },
           {
             "name": "pdaAuthority",
@@ -3136,10 +3054,6 @@ export type Staking = {
                 32
               ]
             }
-          },
-          {
-            "name": "mockClockTime",
-            "type": "i64"
           }
         ]
       }
@@ -3375,14 +3289,6 @@ export type Staking = {
             "type": "u8"
           },
           {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "delegate",
-            "type": "pubkey"
-          },
-          {
             "name": "recordedBalance",
             "type": "u64"
           },
@@ -3391,15 +3297,12 @@ export type Staking = {
             "type": "u64"
           },
           {
-            "name": "signedAgreementHash",
-            "type": {
-              "option": {
-                "array": [
-                  "u8",
-                  32
-                ]
-              }
-            }
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "delegate",
+            "type": "pubkey"
           }
         ]
       }

@@ -1,4 +1,3 @@
-use crate::error::ErrorCode;
 use crate::state::*;
 use anchor_lang::{
     prelude::*,
@@ -11,6 +10,7 @@ use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 
 use crate::{
+    error::ErrorCode,
     error::QueriesSolanaVerifyError,
     state::{GuardianSignatures, WormholeGuardianSet},
 };
@@ -38,7 +38,7 @@ pub struct InitConfig<'info> {
     pub payer: Signer<'info>,
 
     #[account(
-        init_if_needed,
+        init,
         payer = payer,
         space = global_config::GlobalConfig::LEN,
         seeds = [CONFIG_SEED.as_bytes()],
@@ -85,7 +85,9 @@ pub struct Delegate<'info> {
     #[account(
         mut,
         seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
-        bump = stake_account_metadata.metadata_bump
+        bump = stake_account_metadata.metadata_bump,
+        constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
+            @ ErrorCode::InvalidCurrentDelegate
     )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
@@ -118,7 +120,7 @@ pub struct Delegate<'info> {
 #[instruction(proposal_id: [u8; 32])]
 pub struct CastVote<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub owner: Signer<'info>,
 
     #[account(
         mut,
@@ -127,12 +129,12 @@ pub struct CastVote<'info> {
     )]
     pub proposal: Account<'info, proposal::ProposalData>,
 
-    #[account(mut)]
+    #[account(mut, has_one = owner)]
     pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
 
     #[account(
         init_if_needed,
-        payer = payer,
+        payer = owner,
         space = proposal_voters_weight_cast::ProposalVotersWeightCast::LEN,
         seeds = [b"proposal_voters_weight_cast", proposal.key().as_ref(), voter_checkpoints.key().as_ref()],
         bump
@@ -354,14 +356,6 @@ pub struct UpdatePdaAuthority<'info> {
 }
 
 #[derive(Accounts)]
-pub struct UpdateAgreementHash<'info> {
-    #[account(address = config.governance_authority)]
-    pub governance_signer: Signer<'info>,
-    #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
-}
-
-#[derive(Accounts)]
 pub struct CreateStakeAccount<'info> {
     // Native payer:
     #[account(mut)]
@@ -427,8 +421,14 @@ pub struct WithdrawTokens<'info> {
     pub destination: Account<'info, TokenAccount>,
     // Stake program accounts:
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-    #[account(seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump = stake_account_metadata.metadata_bump)]
-    pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
+    #[account(
+        mut,
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        bump = stake_account_metadata.metadata_bump,
+        constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
+            @ ErrorCode::InvalidCurrentDelegate
+    )]
+    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     #[account(
         mut,
         seeds = [CUSTODY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
@@ -457,31 +457,6 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
         let cpi_program = accounts.token_program.to_account_info();
         CpiContext::new(cpi_program, cpi_accounts)
     }
-}
-
-#[derive(Accounts)]
-#[instruction(agreement_hash : [u8; 32])]
-pub struct JoinDaoLlc<'info> {
-    // Native payer:
-    #[account(mut, address = stake_account_metadata.owner)]
-    pub payer: Signer<'info>,
-
-    // Stake program accounts:
-    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-    #[account(mut,
-        seeds = [
-            STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
-        ],
-        bump = stake_account_metadata.metadata_bump
-    )]
-    pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
-    #[account(
-        seeds = [CONFIG_SEED.as_bytes()],
-        bump = config.bump,
-        constraint = config.agreement_hash == agreement_hash @ ErrorCode::InvalidLlcAgreement
-    )]
-    pub config: Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]

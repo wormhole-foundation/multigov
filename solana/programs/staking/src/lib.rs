@@ -76,7 +76,6 @@ pub mod staking {
         config_account.wh_token_mint = global_config.wh_token_mint;
         config_account.freeze = global_config.freeze;
         config_account.pda_authority = global_config.pda_authority;
-        config_account.agreement_hash = global_config.agreement_hash;
 
         #[cfg(feature = "mock-clock")]
         {
@@ -104,15 +103,6 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn update_agreement_hash(
-        ctx: Context<UpdateAgreementHash>,
-        agreement_hash: [u8; 32],
-    ) -> Result<()> {
-        let config = &mut ctx.accounts.config;
-        config.agreement_hash = agreement_hash;
-        Ok(())
-    }
-
     /// Trustless instruction that creates a stake account for a user
     #[inline(never)]
     pub fn create_stake_account(ctx: Context<CreateStakeAccount>, owner: Pubkey) -> Result<()> {
@@ -122,6 +112,7 @@ pub mod staking {
             ctx.bumps.stake_account_custody,
             ctx.bumps.custody_authority,
             &owner,
+            &ctx.accounts.stake_account_checkpoints.key(),
         );
 
         let stake_account_checkpoints = &mut ctx.accounts.stake_account_checkpoints.load_init()?;
@@ -132,6 +123,13 @@ pub mod staking {
 
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+
+        let prev_recorded_total_balance = stake_account_metadata
+            .recorded_balance
+            .checked_add(stake_account_metadata.recorded_vesting_balance)
+            .unwrap();
+
+        let current_stake_balance = ctx.accounts.stake_account_custody.amount;
 
         if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
             require!(
@@ -146,24 +144,22 @@ pub mod staking {
         let current_delegate = stake_account_metadata.delegate;
         stake_account_metadata.delegate = delegatee;
 
-        let recorded_balance = stake_account_metadata.recorded_balance;
-        let recorded_vesting_balance = stake_account_metadata.recorded_vesting_balance;
-        let current_stake_balance = ctx.accounts.stake_account_custody.amount;
-
-        let total_balance = recorded_balance + recorded_vesting_balance;
+        let total_delegated_votes = current_stake_balance
+            .checked_add(stake_account_metadata.recorded_vesting_balance)
+            .unwrap();
 
         emit!(DelegateChanged {
             delegator: ctx.accounts.stake_account_checkpoints.key(),
             from_delegate: current_delegate,
             to_delegate: delegatee,
-            total_delegated_votes: total_balance
+            total_delegated_votes: total_delegated_votes
         });
 
         let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
 
         if current_delegate != delegatee {
-            if current_delegate != Pubkey::default() {
+            if prev_recorded_total_balance > 0 {
                 let current_delegate_checkpoints_account_info = ctx
                     .accounts
                     .current_delegate_stake_account_checkpoints
@@ -172,7 +168,7 @@ pub mod staking {
                 push_checkpoint(
                     &mut ctx.accounts.current_delegate_stake_account_checkpoints,
                     &current_delegate_checkpoints_account_info,
-                    total_balance,
+                    prev_recorded_total_balance,
                     Operation::Subtract,
                     current_timestamp,
                     &ctx.accounts.payer.to_account_info(),
@@ -180,7 +176,7 @@ pub mod staking {
                 )?;
             }
 
-            if delegatee != Pubkey::default() {
+            if total_delegated_votes > 0 {
                 let delegatee_checkpoints_account_info = ctx
                     .accounts
                     .delegatee_stake_account_checkpoints
@@ -189,33 +185,31 @@ pub mod staking {
                 push_checkpoint(
                     &mut ctx.accounts.delegatee_stake_account_checkpoints,
                     &delegatee_checkpoints_account_info,
-                    current_stake_balance
-                        .checked_add(recorded_vesting_balance)
-                        .unwrap(),
+                    total_delegated_votes,
                     Operation::Add,
                     current_timestamp,
                     &ctx.accounts.payer.to_account_info(),
                     &ctx.accounts.system_program.to_account_info(),
                 )?;
             }
-
-            if current_stake_balance != recorded_balance {
-                stake_account_metadata.recorded_balance = current_stake_balance;
-            }
-        } else if current_stake_balance != recorded_balance {
+        } else if total_delegated_votes != prev_recorded_total_balance {
             let delegatee_checkpoints_account_info = ctx
                 .accounts
                 .delegatee_stake_account_checkpoints
                 .to_account_info();
 
-            let (amount_delta, operation) = if current_stake_balance > recorded_balance {
+            let (amount_delta, operation) = if total_delegated_votes > prev_recorded_total_balance {
                 (
-                    current_stake_balance.checked_sub(recorded_balance).unwrap(),
+                    total_delegated_votes
+                        .checked_sub(prev_recorded_total_balance)
+                        .unwrap(),
                     Operation::Add,
                 )
             } else {
                 (
-                    recorded_balance.checked_sub(current_stake_balance).unwrap(),
+                    prev_recorded_total_balance
+                        .checked_sub(total_delegated_votes)
+                        .unwrap(),
                     Operation::Subtract,
                 )
             };
@@ -229,7 +223,9 @@ pub mod staking {
                 &ctx.accounts.payer.to_account_info(),
                 &ctx.accounts.system_program.to_account_info(),
             )?;
+        }
 
+        if current_stake_balance != stake_account_metadata.recorded_balance {
             stake_account_metadata.recorded_balance = current_stake_balance;
         }
 
@@ -313,7 +309,7 @@ pub mod staking {
 
             // Initialize proposal_voters_weight_cast if it hasn't been initialized yet
             if proposal_voters_weight_cast.value == 0 {
-                proposal_voters_weight_cast.initialize(proposal_id, &ctx.accounts.payer.key());
+                proposal_voters_weight_cast.initialize(proposal_id, &ctx.accounts.owner.key());
             }
 
             require!(
@@ -344,18 +340,6 @@ pub mod staking {
             return Err(error!(ErrorCode::CheckpointNotFound));
         }
 
-        Ok(())
-    }
-
-    /**
-     * Accept to join the DAO LLC
-     * This must happen before delegate
-     * The user signs a hash of the agreement and the program checks that the hash matches the
-     * agreement
-     */
-    pub fn join_dao_llc(ctx: Context<JoinDaoLlc>, _agreement_hash: [u8; 32]) -> Result<()> {
-        ctx.accounts.stake_account_metadata.signed_agreement_hash =
-            Some(ctx.accounts.config.agreement_hash);
         Ok(())
     }
 
@@ -546,7 +530,9 @@ pub mod staking {
             ProposalWormholeMessageError::TooManyQueryResponses
         );
 
-        if let ChainSpecificQuery::EthCallWithFinalityQueryRequest(eth_request) = &response.request.requests[0].query {
+        if let ChainSpecificQuery::EthCallWithFinalityQueryRequest(eth_request) =
+            &response.request.requests[0].query
+        {
             require!(
                 eth_request.finality == "finalized",
                 ProposalWormholeMessageError::NonFinalizedBlock
@@ -564,7 +550,9 @@ pub mod staking {
             ProposalWormholeMessageError::SenderChainMismatch
         );
 
-        if let ChainSpecificResponse::EthCallWithFinalityQueryResponse(eth_response) = &response.response {
+        if let ChainSpecificResponse::EthCallWithFinalityQueryResponse(eth_response) =
+            &response.response
+        {
             require!(
                 eth_response.results.len() == 1,
                 ProposalWormholeMessageError::TooManyEthCallResults

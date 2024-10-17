@@ -11,7 +11,7 @@ async function main() {
   try {
     const DEBUG = true;
 
-    const stakeAccountAddress = new PublicKey(
+    const stakeAccountCheckpointsAddress = new PublicKey(
       // stakeAccountSecret.publicKey generated in  3_create_stake_account.ts
       "EHbjaCjypw3HAZMWskLhX1KtmVUDmNFrijPcBtfqH8S3",
     );
@@ -37,8 +37,8 @@ async function main() {
     await program.methods
       .withdrawTokens(new BN(1))
       .accounts({
-        currentDelegateStakeAccountCheckpoints: stakeAccountAddress,
-        stakeAccountCheckpoints: stakeAccountAddress,
+        currentDelegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+        stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
         destination: toAccount,
       })
       .rpc({ skipPreflight: DEBUG });
