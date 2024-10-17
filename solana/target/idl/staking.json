@@ -2898,88 +2898,48 @@
   "errors": [
     {
       "code": 6000,
-      "name": "TooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "FailedToParseResponse",
+      "msg": "Failed to parse response"
     },
     {
       "code": 6001,
-      "name": "GenericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "WriteAuthorityMismatch",
+      "msg": "Write authority mismatch"
     },
     {
       "code": 6002,
-      "name": "CheckpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "GuardianSetExpired",
+      "msg": "Guardian set expired"
     },
     {
       "code": 6003,
-      "name": "CheckpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "InvalidMessageHash",
+      "msg": "Invalid message hash"
     },
     {
       "code": 6004,
-      "name": "RecoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+      "name": "NoQuorum",
+      "msg": "No quorum"
     },
     {
       "code": 6005,
-      "name": "CheckpointNotFound",
-      "msg": "Checkpoint not found"
+      "name": "InvalidGuardianIndexNonIncreasing",
+      "msg": "Invalid guardian index non increasing"
     },
     {
       "code": 6006,
-      "name": "InvalidTimestamp",
-      "msg": "Invalid timestamp"
+      "name": "InvalidGuardianIndexOutOfRange",
+      "msg": "Invalid guardian index out of range"
     },
     {
       "code": 6007,
-      "name": "NoWeight",
-      "msg": "No Weight"
+      "name": "InvalidSignature",
+      "msg": "Invalid signature"
     },
     {
       "code": 6008,
-      "name": "AllWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6009,
-      "name": "VoteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6010,
-      "name": "WithdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6011,
-      "name": "InsufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6012,
-      "name": "ProposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6013,
-      "name": "InvalidMessageExecutor",
-      "msg": "Invalid message executor"
-    },
-    {
-      "code": 6014,
-      "name": "InvalidSpokeAirlock",
-      "msg": "Invalid spoke airlock"
-    },
-    {
-      "code": 6015,
-      "name": "InvalidCurrentDelegate",
-      "msg": "Invalid current delegate"
-    },
-    {
-      "code": 6016,
-      "name": "Other",
-      "msg": "Other"
+      "name": "InvalidGuardianKeyRecovery",
+      "msg": "Invalid guardian key recovery"
     }
   ],
   "types": [

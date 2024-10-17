@@ -46,7 +46,7 @@ pub struct Initialize<'info> {
         constraint = global_config.vesting_admin == admin.key()
             @ VestingError::InvalidVestingAdmin
     )]
-    pub global_config: Box<Account<'info, GlobalConfig>>,
+    global_config: Box<Account<'info, GlobalConfig>>,
 
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,

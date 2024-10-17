@@ -43,6 +43,7 @@ const portNumber = getPortNumber(path.basename(__filename));
 describe("vesting", () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const fakeVestingAdmin = new Keypair();
 
   const confirm = async (signature: string): Promise<string> => {
     const block =
@@ -210,7 +211,7 @@ describe("vesting", () => {
   it("Airdrop", async () => {
     let tx = new Transaction();
     tx.instructions = [
-      ...[whMintAuthority, vester].map((k) =>
+      ...[whMintAuthority, vester, fakeVestingAdmin].map((k) =>
         SystemProgram.transfer({
           fromPubkey: stakeConnection.provider.publicKey,
           toPubkey: k.publicKey,
@@ -244,6 +245,45 @@ describe("vesting", () => {
       ),
     ];
     await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority]);
+  });
+
+  it("should fail to initialize vesting config with invalid admin", async () => {
+    try {
+      await stakeConnection.program.methods
+        .initializeVestingConfig(seed)
+        .accounts({
+          ...accounts,
+          admin: fakeVestingAdmin.publicKey,
+        })
+        .signers([fakeVestingAdmin])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
+      );
+    }
+
+    try {
+      await stakeConnection.program.methods
+        .initializeVestingConfig(seed)
+        .accounts({
+          admin: fakeVestingAdmin.publicKey,
+          mint: whMintAccount.publicKey,
+          recovery: adminAta,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          vestingBalance: vestingBalance,
+        })
+        .signers([fakeVestingAdmin])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidVestingAdmin",
+      );
+    }
   });
 
   it("Initialize config", async () => {
@@ -923,7 +963,6 @@ describe("vesting", () => {
           .rpc()
           .then(confirm);
       } catch (e) {
-        console.log("e:",e)
         assert(
           (e as AnchorError).error?.errorCode?.code === "InvalidVestingMint",
         );
