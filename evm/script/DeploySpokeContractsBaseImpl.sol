@@ -56,56 +56,25 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
 
     vm.startBroadcast(wallet.privateKey);
 
-    DeployedContracts memory contracts;
-
-    contracts.executor = _deploySpokeMessageExecutor(config, wallet, salt);
-    contracts.airlock = contracts.executor.airlock();
-    contracts.metadataCollector = _deploySpokeMetadataCollector(config, salt);
-    contracts.aggregator = _deploySpokeVoteAggregator(config, contracts.metadataCollector, contracts.airlock, salt);
-
-    vm.stopBroadcast();
-
-    return contracts;
-  }
-
-  function _deploySpokeMessageExecutor(DeploymentConfiguration memory config, Vm.Wallet memory wallet, bytes32 salt)
-    internal
-    returns (SpokeMessageExecutor)
-  {
     SpokeMessageExecutor impl = new SpokeMessageExecutor{salt: salt}(wallet.addr);
-
     ERC1967Proxy proxy = new ERC1967Proxy{salt: salt}(address(impl), "");
 
     SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
     executor.initialize(config.hubDispatcher, config.hubChainId, config.wormholeCore);
-    return SpokeMessageExecutor(address(proxy));
-  }
 
-  function _deploySpokeMetadataCollector(DeploymentConfiguration memory config, bytes32 salt)
-    internal
-    returns (SpokeMetadataCollector)
-  {
-    return new SpokeMetadataCollector{salt: salt}(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
-  }
-
-  function _deploySpokeVoteAggregator(
-    DeploymentConfiguration memory config,
-    SpokeMetadataCollector metadataCollector,
-    SpokeAirlock airlock,
-    bytes32 salt
-  ) internal returns (SpokeVoteAggregator) {
-    return new SpokeVoteAggregator{salt: salt}(
+    SpokeAirlock airlock = executor.airlock();
+    SpokeMetadataCollector metadataCollector = new SpokeMetadataCollector{salt: salt}(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
+    SpokeVoteAggregator aggregator = new SpokeVoteAggregator{salt: salt}(
       address(metadataCollector), config.votingToken, address(airlock), config.voteWeightWindow
     );
-  }
 
-  function predictDeployedAddresses(address deployer, bytes32 salt) public pure returns (address[] memory) {
-    address[] memory addresses = new address[](4);
-    addresses[0] = computeCreate2Address(salt, keccak256(type(SpokeMessageExecutor).creationCode), deployer);
-    addresses[1] = computeCreate2Address(salt, keccak256(type(ERC1967Proxy).creationCode), deployer);
-    addresses[2] = computeCreate2Address(salt, keccak256(type(SpokeMetadataCollector).creationCode), deployer);
-    addresses[3] = computeCreate2Address(salt, keccak256(type(SpokeVoteAggregator).creationCode), deployer);
+    vm.stopBroadcast();
 
-    return addresses;
+    return DeployedContracts({
+    aggregator: aggregator,
+    metadataCollector: metadataCollector,
+    executor: executor,
+    airlock: airlock
+	});
   }
 }
