@@ -27,6 +27,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   bytes9 public constant SOLANA_COMMITMENT_LEVEL = "finalized";
   uint256 public constant DEFAULT_QUERY_VALUE = 0;
   bytes32 public constant PROPOSAL_SEED = bytes32("proposal");
+  bytes8 public constant PROPOSAL_DISCRIMINATOR = bytes8(sha256("account:ProposalData"));
 
   /// @notice The hub vote pool used to validate message emitter.
   HubVotePool public immutable HUB_VOTE_POOL;
@@ -46,6 +47,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   error InvalidProposalIdSeed(bytes32 expected, bytes32 actual);
   error InvalidAccountOwner();
   error SpokeNotRegistered();
+  error InvalidDiscriminator();
 
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubVotePool The address for the hub vote pool.
@@ -143,11 +145,16 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   // @param _data The solana query result.
   // @return The proposals id and vote totals.
   function _parseData(bytes memory _data) internal pure returns (bytes32, uint64, uint64, uint64) {
-    uint256 _offset = 8; // Skip the 8-byte discriminator
+    uint256 _offset = 0;
+    bytes8 _discriminator;
     bytes32 _proposalIdBytes;
     uint64 _againstVotes;
     uint64 _forVotes;
     uint64 _abstainVotes;
+
+    (_discriminator, _offset) = _data.asBytes8Unchecked(_offset);
+    if (_discriminator != PROPOSAL_DISCRIMINATOR) revert InvalidDiscriminator();
+
     (_proposalIdBytes, _offset) = _data.asBytes32Unchecked(_offset);
     (_againstVotes, _offset) = _data.asUint64Unchecked(_offset);
     (_forVotes, _offset) = _data.asUint64Unchecked(_offset);

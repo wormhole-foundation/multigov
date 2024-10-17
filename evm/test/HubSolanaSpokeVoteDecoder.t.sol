@@ -176,7 +176,7 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     bytes32 _programIdReset = _programId;
 
     // Add an 8-byte discriminator
-    bytes8 discriminator = bytes8(keccak256("proposal"));
+    bytes8 discriminator = hubSolanaSpokeVoteDecoder.PROPOSAL_DISCRIMINATOR();
     bytes memory _newVoteData = abi.encodePacked(discriminator, _voteData);
 
     bytes memory solanaPdaResult = abi.encodePacked(
@@ -392,6 +392,11 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
     vm.expectRevert(abi.encodeWithSelector(BytesParsing.LengthMismatch.selector, voteData.length + 8, 72)); // 8 is the
       // length of the discriminator
     hubSolanaSpokeVoteDecoder.decode(parsedResp.responses[0], IGovernor(address(hubGovernor)));
+  }
+
+  function test_CorrectDiscriminator() public view {
+    bytes8 expectedDiscriminator = bytes8(sha256("account:ProposalData"));
+    assertEq(hubSolanaSpokeVoteDecoder.PROPOSAL_DISCRIMINATOR(), expectedDiscriminator, "Incorrect discriminator");
   }
 }
 
