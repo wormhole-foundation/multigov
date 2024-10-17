@@ -295,6 +295,53 @@ describe("vesting", () => {
       .then(confirm);
   });
 
+  it("should fail to create vesting balance with invalid admin", async () => {
+    try {
+      await stakeConnection.program.methods
+        .createVestingBalance()
+        .accounts({
+          ...accounts,
+          vestingBalance: vestingBalance,
+          admin: fakeVestingAdmin.publicKey,
+        })
+        .signers([fakeVestingAdmin])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
+      );
+    }
+
+    fakeConfig = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.VESTING_CONFIG_SEED()),
+        fakeVestingAdmin.publicKey.toBuffer(),
+        whMintAccount.publicKey.toBuffer(),
+        seed.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId,
+    )[0];
+
+    try {
+      await stakeConnection.program.methods
+        .createVestingBalance()
+        .accounts({
+          ...accounts,
+          vestingBalance: vestingBalance,
+          admin: fakeVestingAdmin.publicKey,
+          config: fakeConfig,
+        })
+        .signers([fakeVestingAdmin])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "AccountNotInitialized",
+      );
+    }
+  });
+
   it("Create vesting balance", async () => {
     await stakeConnection.program.methods
       .createVestingBalance()

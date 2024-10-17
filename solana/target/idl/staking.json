@@ -1098,8 +1098,7 @@
               },
               {
                 "kind": "account",
-                "path": "config.admin",
-                "account": "VestingConfig"
+                "path": "admin"
               },
               {
                 "kind": "account",
@@ -2898,48 +2897,68 @@
   "errors": [
     {
       "code": 6000,
-      "name": "FailedToParseResponse",
-      "msg": "Failed to parse response"
+      "name": "NotFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "WriteAuthorityMismatch",
-      "msg": "Write authority mismatch"
+      "name": "NotInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "GuardianSetExpired",
-      "msg": "Guardian set expired"
+      "name": "VestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "InvalidMessageHash",
-      "msg": "Invalid message hash"
+      "name": "VestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "NoQuorum",
-      "msg": "No quorum"
+      "name": "Overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "InvalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
+      "name": "Underflow",
+      "msg": "Integer underflow"
     },
     {
       "code": 6006,
-      "name": "InvalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
+      "name": "InvalidStakeAccountCheckpoints",
+      "msg": "Invalid stake account delegate"
     },
     {
       "code": 6007,
-      "name": "InvalidSignature",
-      "msg": "Invalid signature"
+      "name": "ErrorOfStakeAccountParsing",
+      "msg": "Error parsing stake_account_metadata and stake_account_checkpoints"
     },
     {
       "code": 6008,
-      "name": "InvalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "InvalidVestingConfigPDA",
+      "msg": "Invalid vesting config PDA"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidVestingBalancePDA",
+      "msg": "Invalid vesting balance PDA"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidVestingMint",
+      "msg": "Invalid vesting mint"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidStakeAccountOwner",
+      "msg": "Invalid stake account owner"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidVestingAdmin",
+      "msg": "Invalid vesting admin"
     }
   ],
   "types": [
