@@ -68,7 +68,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePoolOwner: address(timelock),
+      hubVotePool: address(hubVotePool),
       wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW

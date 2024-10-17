@@ -53,6 +53,8 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       initialOwner, VOTE_TIME_EXTENSION, address(timelock), initialOwner, MINIMUM_VOTE_EXTENSION
     );
 
+    hubVotePool = new HubVotePoolHarness(address(wormhole), address(0), hubVotePoolOwner);
+
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Test Gov",
       token: token,
@@ -61,14 +63,15 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePoolOwner: hubVotePoolOwner,
+      hubVotePool: address(hubVotePool),
       wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
     });
 
     hubGovernor = new HubGovernorHarness(params);
-    hubVotePool = new HubVotePoolHarness(address(wormhole), address(hubGovernor), hubVotePoolOwner);
+    vm.prank(address(hubVotePoolOwner));
+    hubVotePool.setGovernor(address(hubGovernor));
     hubSolanaSpokeVoteDecoder =
       new HubSolanaSpokeVoteDecoder(address(wormhole), address(hubVotePool), EXPECTED_PROGRAM_ID, SOLANA_TOKEN_DECIMALS);
 
