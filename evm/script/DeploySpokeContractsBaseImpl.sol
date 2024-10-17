@@ -78,7 +78,6 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     SpokeVoteAggregator voteAggregator = new SpokeVoteAggregator{salt: salt}(
       address(spokeMetadataCollector), config.votingToken, address(airlock), config.voteWeightWindow
     );
-  }
 
     vm.stopBroadcast();
 

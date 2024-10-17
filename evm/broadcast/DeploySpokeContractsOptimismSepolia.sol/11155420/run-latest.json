@@ -6,9 +6,7 @@
       "contractName": "SpokeMessageExecutor",
       "contractAddress": "0x47c72b8c39bb7a1b666d230399d6208593064500",
       "function": null,
-      "arguments": [
-        "0xEAC5F0d4A9a45E1f9FdD0e7e2882e9f60E301156"
-      ],
+      "arguments": ["0xEAC5F0d4A9a45E1f9FdD0e7e2882e9f60E301156"],
       "transaction": {
         "from": "0xeac5f0d4a9a45e1f9fdd0e7e2882e9f60e301156",
         "to": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
@@ -27,10 +25,7 @@
       "contractName": "ERC1967Proxy",
       "contractAddress": "0xe3c992f2850d2e4a22bfa9147ae35513f8118abc",
       "function": null,
-      "arguments": [
-        "0x47c72B8c39bb7A1b666d230399D6208593064500",
-        "0x"
-      ],
+      "arguments": ["0x47c72B8c39bb7A1b666d230399D6208593064500", "0x"],
       "transaction": {
         "from": "0xeac5f0d4a9a45e1f9fdd0e7e2882e9f60e301156",
         "to": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
