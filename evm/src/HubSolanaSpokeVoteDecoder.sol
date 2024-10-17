@@ -105,7 +105,8 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     // 8 bytes for the vote start
     _parsedPdaQueryRes.results[0].data.checkLength(72);
 
-    uint256 _voteStart = _governor.proposalSnapshot(uint256(_proposalIdBytes));
+    uint256 _proposalIdUint = uint256(_proposalIdBytes);
+    uint256 _voteStart = _governor.proposalSnapshot(_proposalIdUint);
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);
 
     if (_registeredAddress == bytes32(0)) revert SpokeNotRegistered();
@@ -121,11 +122,10 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     uint256 _forVotesScaled = _scale(_forVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
     uint256 _abstainVotesScaled = _scale(_abstainVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
 
-    bytes32 _spokeProposalId = keccak256(abi.encode(_perChainResp.chainId, uint256(_proposalIdBytes)));
     return (
       QueryVote({
-        proposalId: uint256(_proposalIdBytes),
-        spokeProposalId: _spokeProposalId,
+        proposalId: _proposalIdUint,
+        spokeProposalId: keccak256(abi.encode(_perChainResp.chainId, _proposalIdUint)),
         proposalVote: ProposalVote(_againstVotesScaled, _forVotesScaled, _abstainVotesScaled),
         chainId: _perChainResp.chainId
       })
