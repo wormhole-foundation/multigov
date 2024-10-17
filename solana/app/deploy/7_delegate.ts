@@ -22,22 +22,11 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    await stakeConnection.delegate(
-      undefined,
-      undefined,
-      WHTokenBalance.fromString("100"),
-    );
+    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("100"));
 
     const user = provider.wallet.publicKey;
-    const stakeAccountAddress =
-      await stakeConnection.getMainAccountAddress(user);
-    console.log(stakeAccountAddress);
 
-    await stakeConnection.delegate(
-      stakeAccountAddress,
-      stakeAccountAddress,
-      WHTokenBalance.fromString("100"),
-    );
+    await stakeConnection.delegate(user, WHTokenBalance.fromString("100"));
   } catch (err) {
     console.error("Error:", err);
   }
