@@ -90,6 +90,13 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     _parsedPdaQueryRes.requestCommitment.checkLength(9);
     if (bytes9(_parsedPdaQueryRes.requestCommitment) != SOLANA_COMMITMENT_LEVEL) revert InvalidQueryCommitment();
 
+    // Verify expected data length
+    // 8 byte for the discriminator
+    // 32 bytes for the proposal id
+    // 24 bytes for the for, abstain, and against votes
+    // 8 bytes for the vote start
+    _parsedPdaQueryRes.results[0].data.checkLength(72);
+
     (bytes32 _proposalIdBytes, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
       _parseData(_parsedPdaQueryRes.results[0].data);
 
@@ -97,13 +104,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
       _parsedPdaQueryRes.results[0].seeds[1].length != 32
         || bytes32(_parsedPdaQueryRes.results[0].seeds[1]) != _proposalIdBytes
     ) revert InvalidProposalIdSeed(_proposalIdBytes, bytes32(_parsedPdaQueryRes.results[0].seeds[1]));
-
-    // Verify expected data length
-    // 8 byte for the discriminator
-    // 32 bytes for the proposal id
-    // 24 bytes for the for, abstain, and against votes
-    // 8 bytes for the vote start
-    _parsedPdaQueryRes.results[0].data.checkLength(72);
 
     uint256 _proposalIdUint = uint256(_proposalIdBytes);
     uint256 _voteStart = _governor.proposalSnapshot(_proposalIdUint);
