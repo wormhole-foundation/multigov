@@ -40,12 +40,17 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
   function _getDeploymentConfiguration() internal pure virtual returns (DeploymentConfiguration memory);
 
   function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
-    uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
+    // If the ETHDEVNET_MNEMONIC environment variable is set, use it to derive the private key.
+    string memory mnemonic = vm.envOr("ETHDEVNET_MNEMONIC", string(""));
 
-    Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
-    Vm.Wallet memory defaultWallet = vm.createWallet(DEFAULT_DEPLOYER_PRIVATE_KEY);
-    if (defaultWallet.addr == wallet.addr) revert InvalidAddressConfiguration();
-    return wallet;
+    if (bytes(mnemonic).length > 0) {
+      uint256 privateKey = vm.deriveKey(mnemonic, 0); // Derive the first key (index 0)
+      return vm.createWallet(privateKey);
+    }
+
+    uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", uint256(0));
+    if (deployerPrivateKey == 0) revert InvalidAddressConfiguration();
+    return vm.createWallet(deployerPrivateKey);
   }
 
   function run() public returns (DeployedContracts memory) {
@@ -63,7 +68,8 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     executor.initialize(config.hubDispatcher, config.hubChainId, config.wormholeCore);
 
     SpokeAirlock airlock = executor.airlock();
-    SpokeMetadataCollector metadataCollector = new SpokeMetadataCollector{salt: salt}(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
+    SpokeMetadataCollector metadataCollector =
+      new SpokeMetadataCollector{salt: salt}(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
     SpokeVoteAggregator aggregator = new SpokeVoteAggregator{salt: salt}(
       address(metadataCollector), config.votingToken, address(airlock), config.voteWeightWindow
     );
@@ -71,10 +77,10 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     vm.stopBroadcast();
 
     return DeployedContracts({
-    aggregator: aggregator,
-    metadataCollector: metadataCollector,
-    executor: executor,
-    airlock: airlock
-	});
+      aggregator: aggregator,
+      metadataCollector: metadataCollector,
+      executor: executor,
+      airlock: airlock
+    });
   }
 }
