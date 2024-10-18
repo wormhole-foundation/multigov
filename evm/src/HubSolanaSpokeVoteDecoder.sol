@@ -114,11 +114,9 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     if (_registeredAddress == bytes32(0)) revert SpokeNotRegistered();
 
     // Check program ID and owner based on the registered spoke address
-    if (_parsedPdaQueryRes.results[0].programId != bytes32(_registeredAddress)) {
-      revert InvalidProgramId(bytes32(_registeredAddress));
-    }
+    if (_parsedPdaQueryRes.results[0].programId != _registeredAddress) revert InvalidProgramId(_registeredAddress);
 
-    if (_parsedPdaQueryRes.results[0].owner != bytes32(_registeredAddress)) revert InvalidAccountOwner();
+    if (_parsedPdaQueryRes.results[0].owner != _registeredAddress) revert InvalidAccountOwner();
 
     uint256 _againstVotesScaled = _scale(_againstVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
     uint256 _forVotesScaled = _scale(_forVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
