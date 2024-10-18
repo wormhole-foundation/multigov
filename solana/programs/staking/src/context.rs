@@ -26,6 +26,7 @@ pub const CHECKPOINT_DATA_SEED: &str = "owner";
 pub const CONFIG_SEED: &str = "config";
 pub const PROPOSAL_SEED: &str = "proposal";
 pub const VESTING_CONFIG_SEED: &str = "vesting_config";
+pub const VEST_SEED: &str = "vest";
 pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";

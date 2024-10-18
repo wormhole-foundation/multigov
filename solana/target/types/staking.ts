@@ -2903,68 +2903,88 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "notFullyVested",
-      "msg": "Not fully vested yet"
+      "name": "tooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
     },
     {
       "code": 6001,
-      "name": "notInSurplus",
-      "msg": "Vault is not in surplus"
+      "name": "genericOverflow",
+      "msg": "An arithmetic operation unexpectedly overflowed"
     },
     {
       "code": 6002,
-      "name": "vestingFinalized",
-      "msg": "Vesting finalized"
+      "name": "checkpointSerDe",
+      "msg": "Error deserializing checkpoint"
     },
     {
       "code": 6003,
-      "name": "vestingUnfinalized",
-      "msg": "Vesting unfinalized"
+      "name": "checkpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
     },
     {
       "code": 6004,
-      "name": "overflow",
-      "msg": "Integer overflow"
+      "name": "recoverWithStake",
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
     },
     {
       "code": 6005,
-      "name": "underflow",
-      "msg": "Integer underflow"
+      "name": "checkpointNotFound",
+      "msg": "Checkpoint not found"
     },
     {
       "code": 6006,
-      "name": "invalidStakeAccountCheckpoints",
-      "msg": "Invalid stake account delegate"
+      "name": "invalidTimestamp",
+      "msg": "Invalid timestamp"
     },
     {
       "code": 6007,
-      "name": "errorOfStakeAccountParsing",
-      "msg": "Error parsing stake_account_metadata and stake_account_checkpoints"
+      "name": "noWeight",
+      "msg": "No Weight"
     },
     {
       "code": 6008,
-      "name": "invalidVestingConfigPda",
-      "msg": "Invalid vesting config PDA"
+      "name": "allWeightCast",
+      "msg": "All weight cast"
     },
     {
       "code": 6009,
-      "name": "invalidVestingBalancePda",
-      "msg": "Invalid vesting balance PDA"
+      "name": "voteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
     },
     {
       "code": 6010,
-      "name": "invalidVestingMint",
-      "msg": "Invalid vesting mint"
+      "name": "withdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
     },
     {
       "code": 6011,
-      "name": "invalidStakeAccountOwner",
-      "msg": "Invalid stake account owner"
+      "name": "insufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
     },
     {
       "code": 6012,
-      "name": "invalidVestingAdmin",
-      "msg": "Invalid vesting admin"
+      "name": "proposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6013,
+      "name": "invalidMessageExecutor",
+      "msg": "Invalid message executor"
+    },
+    {
+      "code": 6014,
+      "name": "invalidSpokeAirlock",
+      "msg": "Invalid spoke airlock"
+    },
+    {
+      "code": 6015,
+      "name": "invalidCurrentDelegate",
+      "msg": "Invalid current delegate"
+    },
+    {
+      "code": 6016,
+      "name": "other",
+      "msg": "other"
     }
   ],
   "types": [

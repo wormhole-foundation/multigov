@@ -31,7 +31,7 @@ import {
   transferSolFromValidatorWallet,
 } from "./utils/before";
 import path from "path";
-import { AnchorError, AnchorProvider, Program, utils } from "@coral-xyz/anchor";
+import { AnchorError, AnchorProvider, Program } from "@coral-xyz/anchor";
 import * as console from "node:console";
 import { StakeConnection, WHTokenBalance } from "../app";
 import { StakeAccountMetadata } from "../app/StakeConnection";
@@ -105,7 +105,7 @@ describe("vesting", () => {
 
     config = PublicKey.findProgramAddressSync(
       [
-        utils.bytes.utf8.encode(wasm.Constants.VESTING_CONFIG_SEED()),
+        Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
         whMintAuthority.publicKey.toBuffer(),
         whMintAccount.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
@@ -132,7 +132,7 @@ describe("vesting", () => {
     );
     vestNow = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         vesterTa.toBuffer(),
         NOW.toBuffer("le", 8),
@@ -142,7 +142,7 @@ describe("vesting", () => {
 
     vestLater = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         vesterTa.toBuffer(),
         LATER.toBuffer("le", 8),
@@ -152,7 +152,7 @@ describe("vesting", () => {
 
     vestEvenLater = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         vesterTa.toBuffer(),
         EVEN_LATER.toBuffer("le", 8),
@@ -162,7 +162,7 @@ describe("vesting", () => {
 
     vestEvenLaterAgain = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         vesterTa.toBuffer(),
         EVEN_LATER_AGAIN.toBuffer("le", 8),
@@ -172,7 +172,7 @@ describe("vesting", () => {
 
     vestingBalance = PublicKey.findProgramAddressSync(
       [
-        utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
+        Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
         config.toBuffer(),
         vester.publicKey.toBuffer(),
       ],
@@ -315,7 +315,7 @@ describe("vesting", () => {
 
     fakeConfig = PublicKey.findProgramAddressSync(
       [
-        utils.bytes.utf8.encode(wasm.Constants.VESTING_CONFIG_SEED()),
+        Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
         fakeVestingAdmin.publicKey.toBuffer(),
         whMintAccount.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
@@ -827,7 +827,7 @@ describe("vesting", () => {
       fakeMintAccount = Keypair.generate();
       fakeConfig = PublicKey.findProgramAddressSync(
         [
-          utils.bytes.utf8.encode(wasm.Constants.VESTING_CONFIG_SEED()),
+          Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
           whMintAuthority.publicKey.toBuffer(),
           fakeMintAccount.publicKey.toBuffer(),
           seed.toBuffer("le", 8),
@@ -854,7 +854,7 @@ describe("vesting", () => {
       );
       fakeVestNow = PublicKey.findProgramAddressSync(
         [
-          Buffer.from("vest"),
+          Buffer.from(wasm.Constants.VEST_SEED()),
           fakeConfig.toBuffer(),
           fakeVesterTa.toBuffer(),
           NOW.toBuffer("le", 8),
@@ -923,7 +923,7 @@ describe("vesting", () => {
 
       fakeVestingBalanceAccount = PublicKey.findProgramAddressSync(
         [
-          utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
+          Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
           fakeConfig.toBuffer(),
           vester.publicKey.toBuffer(),
         ],

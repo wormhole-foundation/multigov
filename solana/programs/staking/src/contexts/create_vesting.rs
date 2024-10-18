@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
-use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED};
+use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
 use crate::state::VestingBalance;
 use crate::{
     error::VestingError,
@@ -32,7 +32,7 @@ pub struct CreateVesting<'info> {
         init,
         payer = admin,
         space = Vesting::INIT_SPACE,
-        seeds = [b"vest", config.key().as_ref(), vester_ta.key().as_ref(), maturation.to_le_bytes().as_ref()],
+        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), maturation.to_le_bytes().as_ref()],
         bump
     )]
     vest: Account<'info, Vesting>,

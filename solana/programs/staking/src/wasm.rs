@@ -181,6 +181,7 @@ reexport_seed_const!(CONFIG_SEED);
 reexport_seed_const!(PROPOSAL_SEED);
 reexport_seed_const!(VESTING_CONFIG_SEED);
 reexport_seed_const!(VESTING_BALANCE_SEED);
+reexport_seed_const!(VEST_SEED);
 
 #[wasm_bindgen]
 impl Constants {
