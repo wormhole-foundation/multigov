@@ -16,6 +16,7 @@ import {
   createAssociatedTokenAccountIdempotentInstruction,
   createMintToInstruction,
   createTransferCheckedInstruction,
+  getAccount,
   getAssociatedTokenAddressSync,
   getMinimumBalanceForRentExemptMint,
 } from "@solana/spl-token";
@@ -258,6 +259,8 @@ describe("vesting", () => {
         .signers([fakeVestingAdmin])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
@@ -279,6 +282,8 @@ describe("vesting", () => {
         .signers([fakeVestingAdmin])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "InvalidVestingAdmin",
@@ -307,6 +312,8 @@ describe("vesting", () => {
         .signers([fakeVestingAdmin])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
@@ -335,6 +342,8 @@ describe("vesting", () => {
         .signers([fakeVestingAdmin])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "AccountNotInitialized",
@@ -363,6 +372,8 @@ describe("vesting", () => {
         .signers([fakeVestingAdmin])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
@@ -404,7 +415,7 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Fail to claim a vest before finalization", async () => {
+  it("should fail to claim a vest before finalization", async () => {
     try {
       await stakeConnection.program.methods
         .claimVesting()
@@ -418,7 +429,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
-      throw new Error("Shouldn't have made it to here!");
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "VestingUnfinalized",
@@ -435,13 +447,29 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Finalizes the vest", async () => {
-    await stakeConnection.program.methods
-      .finalizeVestingConfig()
-      .accounts({ ...accounts })
-      .signers([whMintAuthority])
-      .rpc()
-      .then(confirm);
+  it("should fail to finalize vesting when vault token balance is less than vestingConfig.vested", async () => {
+    const vaultTokenBalance = (
+      await getAccount(stakeConnection.provider.connection, vault)
+    ).amount;
+    const vestingConfigVested = (
+      await stakeConnection.program.account.vestingConfig.fetch(config)
+    ).vested;
+    assert(vaultTokenBalance < vestingConfigVested, "In this test, the vault token balance must be less than vestingConfig.vested");
+
+    try {
+      await stakeConnection.program.methods
+        .finalizeVestingConfig()
+        .accounts({ ...accounts })
+        .signers([whMintAuthority])
+        .rpc()
+        .then(confirm);
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "VestedBalanceMismatch",
+      );
+    }
   });
 
   it("Deposits vesting tokens", async () => {
@@ -461,19 +489,64 @@ describe("vesting", () => {
     await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority]);
   });
 
-  it("Fail to cancel a vest after finalization", async () => {
+  it("should fail to finalize vesting when vault token balance is greater than vestingConfig.vested", async () => {
+    const vaultTokenBalance = (
+      await getAccount(stakeConnection.provider.connection, vault)
+    ).amount;
+    const vestingConfigVested = (
+      await stakeConnection.program.account.vestingConfig.fetch(config)
+    ).vested;
+    assert(vaultTokenBalance > vestingConfigVested, "In this test, the vault token balance must be greater than vestingConfig.vested");
+
+    try {
+      await stakeConnection.program.methods
+        .finalizeVestingConfig()
+        .accounts({ ...accounts })
+        .signers([whMintAuthority])
+        .rpc()
+        .then(confirm);
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "VestedBalanceMismatch",
+      );
+    }
+  });
+
+  it("Withdraw surplus tokens", async () => {
+    await stakeConnection.program.methods
+      .withdrawSurplus()
+      .accounts({ ...accounts })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+  });
+
+  it("Finalizes the vest", async () => {
+    await stakeConnection.program.methods
+      .finalizeVestingConfig()
+      .accounts({ ...accounts })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+  });
+
+  it("should fail to cancel a vest after finalization", async () => {
     try {
       await stakeConnection.program.methods
         .cancelVesting()
         .accounts({ ...accounts, vest: vestEvenLater })
         .signers([whMintAuthority])
         .rpc();
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert((e as AnchorError).error?.errorCode?.code === "VestingFinalized");
     }
   });
 
-  it("Fail to create a vest after finalize", async () => {
+  it("should fail to create a vest after finalize", async () => {
     try {
       await stakeConnection.program.methods
         .createVesting(EVEN_LATER_AGAIN, new BN(1337e6))
@@ -481,12 +554,14 @@ describe("vesting", () => {
         .signers([whMintAuthority])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert((e as AnchorError).error?.errorCode?.code === "VestingFinalized");
     }
   });
 
-  it("Fail to claim an unmatured vest", async () => {
+  it("should fail to claim an unmatured vest", async () => {
     try {
       await stakeConnection.program.methods
         .claimVesting()
@@ -500,18 +575,11 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert((e as AnchorError).error?.errorCode?.code === "NotFullyVested");
     }
-  });
-
-  it("Withdraw surplus tokens", async () => {
-    await stakeConnection.program.methods
-      .withdrawSurplus()
-      .accounts({ ...accounts })
-      .signers([whMintAuthority])
-      .rpc()
-      .then(confirm);
   });
 
   it("should successfully delegate with vest", async () => {
@@ -584,6 +652,8 @@ describe("vesting", () => {
         })
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "AccountNotInitialized",
@@ -623,6 +693,8 @@ describe("vesting", () => {
         })
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -645,6 +717,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -675,6 +749,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -705,6 +781,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -735,6 +813,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -770,6 +850,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -946,13 +1028,6 @@ describe("vesting", () => {
         .rpc()
         .then(confirm);
 
-      await stakeConnection.program.methods
-        .finalizeVestingConfig()
-        .accounts({ ...fakeAccounts })
-        .signers([whMintAuthority])
-        .rpc()
-        .then(confirm);
-
       tx = new Transaction();
       tx.add(
         createTransferCheckedInstruction(
@@ -960,13 +1035,20 @@ describe("vesting", () => {
           fakeMintAccount.publicKey,
           fakeVault,
           whMintAuthority.publicKey,
-          1339e7,
+          1337e6,
           6,
           undefined,
           TOKEN_PROGRAM_ID,
         ),
       );
       await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority]);
+
+      await stakeConnection.program.methods
+        .finalizeVestingConfig()
+        .accounts({ ...fakeAccounts })
+        .signers([whMintAuthority])
+        .rpc()
+        .then(confirm);
     });
 
     it("should fail to delegate with invalid vesting token", async () => {
@@ -999,6 +1081,8 @@ describe("vesting", () => {
           })
           .rpc()
           .then(confirm);
+
+        assert.fail("Expected error was not thrown");
       } catch (e) {
         assert(
           (e as AnchorError).error?.errorCode?.code === "InvalidVestingMint",
@@ -1028,6 +1112,8 @@ describe("vesting", () => {
           })
           .rpc()
           .then(confirm);
+
+        assert.fail("Expected error was not thrown");
       } catch (e) {
         assert(
           (e as AnchorError).error?.errorCode?.code === "InvalidVestingMint",

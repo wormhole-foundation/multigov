@@ -67,7 +67,9 @@ pub enum VestingError {
     #[msg("Invalid stake account owner")]
     InvalidStakeAccountOwner,
     #[msg("Invalid vesting admin")]
-    InvalidVestingAdmin
+    InvalidVestingAdmin,
+    #[msg("Vested token balance does not match the balance in the vault")]
+    VestedBalanceMismatch,
 }
 
 #[error_code]

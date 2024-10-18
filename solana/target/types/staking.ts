@@ -2903,88 +2903,63 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "tooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "tooManyQueryResponses",
+      "msg": "Too many query responses"
     },
     {
       "code": 6001,
-      "name": "genericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "senderChainMismatch",
+      "msg": "Sender chain mismatch"
     },
     {
       "code": 6002,
-      "name": "checkpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "tooManyEthCallResults",
+      "msg": "Too many eth call results"
     },
     {
       "code": 6003,
-      "name": "checkpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "invalidDataLength",
+      "msg": "Invalid data length"
     },
     {
       "code": 6004,
-      "name": "recoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+      "name": "errorOfContractAddressParsing",
+      "msg": "Error of contract_address parsing"
     },
     {
       "code": 6005,
-      "name": "checkpointNotFound",
-      "msg": "Checkpoint not found"
+      "name": "errorOfProposalIdParsing",
+      "msg": "Error of proposal_id parsing"
     },
     {
       "code": 6006,
-      "name": "invalidTimestamp",
-      "msg": "Invalid timestamp"
+      "name": "errorOfVoteStartParsing",
+      "msg": "Error of vote_start parsing"
     },
     {
       "code": 6007,
-      "name": "noWeight",
-      "msg": "No Weight"
+      "name": "invalidHubProposalMetadataContract",
+      "msg": "Invalid hub proposal metadata contract"
     },
     {
       "code": 6008,
-      "name": "allWeightCast",
-      "msg": "All weight cast"
+      "name": "invalidProposalId",
+      "msg": "Invalid proposal_id"
     },
     {
       "code": 6009,
-      "name": "voteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
+      "name": "nonFinalizedBlock",
+      "msg": "Non-finalized block"
     },
     {
       "code": 6010,
-      "name": "withdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
+      "name": "invalidChainSpecificQuery",
+      "msg": "Invalid ChainSpecificQuery"
     },
     {
       "code": 6011,
-      "name": "insufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6012,
-      "name": "proposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6013,
-      "name": "invalidMessageExecutor",
-      "msg": "Invalid message executor"
-    },
-    {
-      "code": 6014,
-      "name": "invalidSpokeAirlock",
-      "msg": "Invalid spoke airlock"
-    },
-    {
-      "code": 6015,
-      "name": "invalidCurrentDelegate",
-      "msg": "Invalid current delegate"
-    },
-    {
-      "code": 6016,
-      "name": "other",
-      "msg": "other"
+      "name": "invalidChainSpecificResponse",
+      "msg": "Invalid ChainSpecificResponse"
     }
   ],
   "types": [
