@@ -92,14 +92,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     _parsedPdaQueryRes.requestCommitment.checkLength(9);
     if (bytes9(_parsedPdaQueryRes.requestCommitment) != SOLANA_COMMITMENT_LEVEL) revert InvalidQueryCommitment();
 
-    // Verify expected data length
-    // 8 byte for the discriminator
-    // 32 bytes for the proposal id
-    // 24 bytes for the for, abstain, and against votes
-    // 8 bytes for the vote start
-    _parsedPdaQueryRes.results[0].data.checkLength(72);
-
-    (bytes32 _proposalIdBytes, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
+    (bytes32 _proposalIdBytes, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes,) =
       _parseData(_parsedPdaQueryRes.results[0].data);
 
     if (
@@ -142,13 +135,14 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   // @notice Parse the vote data from a solana pda query.
   // @param _data The solana query result.
   // @return The proposals id and vote totals.
-  function _parseData(bytes memory _data) internal pure returns (bytes32, uint64, uint64, uint64) {
+  function _parseData(bytes memory _data) internal pure returns (bytes32, uint64, uint64, uint64, uint64) {
     uint256 _offset = 0;
     bytes8 _discriminator;
     bytes32 _proposalIdBytes;
     uint64 _againstVotes;
     uint64 _forVotes;
     uint64 _abstainVotes;
+    uint64 _voteStart;
 
     (_discriminator, _offset) = _data.asBytes8Unchecked(_offset);
     if (_discriminator != PROPOSAL_DISCRIMINATOR) revert InvalidDiscriminator();
@@ -156,8 +150,13 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     (_proposalIdBytes, _offset) = _data.asBytes32Unchecked(_offset);
     (_againstVotes, _offset) = _data.asUint64Unchecked(_offset);
     (_forVotes, _offset) = _data.asUint64Unchecked(_offset);
-    (_abstainVotes,) = _data.asUint64Unchecked(_offset);
-    return (_proposalIdBytes, _againstVotes, _forVotes, _abstainVotes);
+    (_abstainVotes, _offset) = _data.asUint64Unchecked(_offset);
+    (_voteStart, _offset) = _data.asUint64Unchecked(_offset);
+
+    // Verify the total length of the data (72 bytes)
+    _data.checkLength(_offset);
+
+    return (_proposalIdBytes, _againstVotes, _forVotes, _abstainVotes, _voteStart);
   }
 
   /// @notice Scales an amount from original decimals to target decimals
