@@ -351,6 +351,25 @@ describe("vesting", () => {
       .then(confirm);
   });
 
+  it("should fail to create vest with invalid admin", async () => {
+    try {
+      await stakeConnection.program.methods
+        .createVesting(NOW, new BN(1337e6))
+        .accounts({
+          ...accounts,
+          vest: vestNow,
+          admin: fakeVestingAdmin.publicKey,
+        })
+        .signers([fakeVestingAdmin])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
+      );
+    }
+  });
+
   it("Create a matured vest", async () => {
     await stakeConnection.program.methods
       .createVesting(NOW, new BN(1337e6))
