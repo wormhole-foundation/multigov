@@ -24,16 +24,13 @@ import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   using BytesParsing for bytes;
 
-  uint16 public constant SOLANA_CHAIN_ID = 1;
-  bytes12 public constant SOLANA_COMMITMENT_LEVEL = "finalized";
+  bytes9 public constant SOLANA_COMMITMENT_LEVEL = "finalized";
   uint256 public constant DEFAULT_QUERY_VALUE = 0;
   bytes32 public constant PROPOSAL_SEED = bytes32("proposal");
+  bytes8 public constant PROPOSAL_DISCRIMINATOR = bytes8(sha256("account:ProposalData"));
 
   /// @notice The hub vote pool used to validate message emitter.
   HubVotePool public immutable HUB_VOTE_POOL;
-
-  /// @notice The expected program id for the Solana program.
-  bytes32 public immutable EXPECTED_PROGRAM_ID;
 
   /// @notice The decimals of the token on the hub
   uint8 public HUB_TOKEN_DECIMALS;
@@ -42,25 +39,22 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   uint8 public SOLANA_TOKEN_DECIMALS;
 
   error TooManySolanaPdaResults(uint256 resultsLength);
-  error InvalidProgramId(bytes32 expectedProgramId);
   error InvalidDataSlice();
+  error InvalidProgramId(bytes32 expectedProgramId);
   error InvalidQueryCommitment();
   error InvalidSeedsLength();
   error InvalidProposalSeed();
-  error InvalidProposalIdSeed();
+  error InvalidProposalIdSeed(bytes32 expected, bytes32 actual);
   error InvalidAccountOwner();
+  error SpokeNotRegistered();
+  error InvalidDiscriminator();
 
   /// @param _core The Wormhole core contract for the hub chain.
   /// @param _hubVotePool The address for the hub vote pool.
-  /// @param _expectedProgramId The expected Solana program ID.
   /// @param _solanaTokenDecimals The number of decimals for the Solana token.
-  constructor(address _core, address _hubVotePool, bytes32 _expectedProgramId, uint8 _solanaTokenDecimals)
-    QueryResponse(_core)
-  {
+  constructor(address _core, address _hubVotePool, uint8 _solanaTokenDecimals) QueryResponse(_core) {
     HUB_VOTE_POOL = HubVotePool(_hubVotePool);
-    EXPECTED_PROGRAM_ID = _expectedProgramId;
     SOLANA_TOKEN_DECIMALS = _solanaTokenDecimals;
-
     HubGovernor governor = HubGovernor(payable(address(HUB_VOTE_POOL.hubGovernor())));
     HUB_TOKEN_DECIMALS = IERC20Metadata(address(governor.token())).decimals();
   }
@@ -76,9 +70,6 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   {
     SolanaPdaQueryResponse memory _parsedPdaQueryRes = parseSolanaPdaQueryResponse(_perChainResp);
 
-    // verify chain id is Solana
-    if (_perChainResp.chainId != SOLANA_CHAIN_ID) revert InvalidChainId();
-
     // verify expected data offset and length
     if (
       _parsedPdaQueryRes.requestDataSliceOffset != DEFAULT_QUERY_VALUE
@@ -88,52 +79,46 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     // verity results length
     if (_parsedPdaQueryRes.results.length != 1) revert TooManySolanaPdaResults(_parsedPdaQueryRes.results.length);
 
-    // verify program id
-    if (_parsedPdaQueryRes.results[0].programId != EXPECTED_PROGRAM_ID) {
-      revert InvalidProgramId(_parsedPdaQueryRes.results[0].programId);
-    }
-
     // verify seeds length
     if (_parsedPdaQueryRes.results[0].seeds.length != 2) revert InvalidSeedsLength();
 
-    // verify length of each seed and value if possible
+    // verify length of each seed and value
     if (
       _parsedPdaQueryRes.results[0].seeds[0].length != 8
         || bytes32(_parsedPdaQueryRes.results[0].seeds[0]) != PROPOSAL_SEED
     ) revert InvalidProposalSeed();
 
-    if (bytes12(_parsedPdaQueryRes.requestCommitment) != SOLANA_COMMITMENT_LEVEL) revert InvalidQueryCommitment();
+    // verify commitment level length and value
+    _parsedPdaQueryRes.requestCommitment.checkLength(9);
+    if (bytes9(_parsedPdaQueryRes.requestCommitment) != SOLANA_COMMITMENT_LEVEL) revert InvalidQueryCommitment();
 
-    (uint256 _proposalId, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes) =
+    (bytes32 _proposalIdBytes, uint64 _againstVotes, uint64 _forVotes, uint64 _abstainVotes,) =
       _parseData(_parsedPdaQueryRes.results[0].data);
 
     if (
       _parsedPdaQueryRes.results[0].seeds[1].length != 32
-        || bytes32(_parsedPdaQueryRes.results[0].seeds[1]) != bytes32(uint256(_proposalId))
-    ) revert InvalidProposalIdSeed();
+        || bytes32(_parsedPdaQueryRes.results[0].seeds[1]) != _proposalIdBytes
+    ) revert InvalidProposalIdSeed(_proposalIdBytes, bytes32(_parsedPdaQueryRes.results[0].seeds[1]));
 
-    // verify expected data length
-    _parsedPdaQueryRes.results[0].data.checkLength(56);
-
-    // Check owner
-    if (_parsedPdaQueryRes.results[0].owner != EXPECTED_PROGRAM_ID) revert InvalidAccountOwner();
-
-    uint256 _voteStart = _governor.proposalSnapshot(_proposalId);
+    uint256 _proposalIdUint = uint256(_proposalIdBytes);
+    uint256 _voteStart = _governor.proposalSnapshot(_proposalIdUint);
     bytes32 _registeredAddress = HUB_VOTE_POOL.getSpoke(_perChainResp.chainId, _voteStart);
 
-    if (_registeredAddress == bytes32("") || _parsedPdaQueryRes.results[0].account != _registeredAddress) {
-      revert InvalidContractAddress();
-    }
+    if (_registeredAddress == bytes32(0)) revert SpokeNotRegistered();
+
+    // Check program ID and owner based on the registered spoke address
+    if (_parsedPdaQueryRes.results[0].programId != _registeredAddress) revert InvalidProgramId(_registeredAddress);
+
+    if (_parsedPdaQueryRes.results[0].owner != _registeredAddress) revert InvalidAccountOwner();
 
     uint256 _againstVotesScaled = _scale(_againstVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
     uint256 _forVotesScaled = _scale(_forVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
     uint256 _abstainVotesScaled = _scale(_abstainVotes, SOLANA_TOKEN_DECIMALS, HUB_TOKEN_DECIMALS);
 
-    bytes32 _spokeProposalId = keccak256(abi.encode(_perChainResp.chainId, _proposalId));
     return (
       QueryVote({
-        proposalId: _proposalId,
-        spokeProposalId: _spokeProposalId,
+        proposalId: _proposalIdUint,
+        spokeProposalId: keccak256(abi.encode(_perChainResp.chainId, _proposalIdUint)),
         proposalVote: ProposalVote(_againstVotesScaled, _forVotesScaled, _abstainVotesScaled),
         chainId: _perChainResp.chainId
       })
@@ -150,17 +135,28 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   // @notice Parse the vote data from a solana pda query.
   // @param _data The solana query result.
   // @return The proposals id and vote totals.
-  function _parseData(bytes memory _data) internal pure returns (uint256, uint64, uint64, uint64) {
+  function _parseData(bytes memory _data) internal pure returns (bytes32, uint64, uint64, uint64, uint64) {
     uint256 _offset = 0;
+    bytes8 _discriminator;
     bytes32 _proposalIdBytes;
     uint64 _againstVotes;
     uint64 _forVotes;
     uint64 _abstainVotes;
+    uint64 _voteStart;
+
+    (_discriminator, _offset) = _data.asBytes8Unchecked(_offset);
+    if (_discriminator != PROPOSAL_DISCRIMINATOR) revert InvalidDiscriminator();
+
     (_proposalIdBytes, _offset) = _data.asBytes32Unchecked(_offset);
     (_againstVotes, _offset) = _data.asUint64Unchecked(_offset);
     (_forVotes, _offset) = _data.asUint64Unchecked(_offset);
-    (_abstainVotes,) = _data.asUint64Unchecked(_offset);
-    return (uint256(_proposalIdBytes), _againstVotes, _forVotes, _abstainVotes);
+    (_abstainVotes, _offset) = _data.asUint64Unchecked(_offset);
+    (_voteStart, _offset) = _data.asUint64Unchecked(_offset);
+
+    // Verify the total length of the data (72 bytes)
+    _data.checkLength(_offset);
+
+    return (_proposalIdBytes, _againstVotes, _forVotes, _abstainVotes, _voteStart);
   }
 
   /// @notice Scales an amount from original decimals to target decimals
