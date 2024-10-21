@@ -424,7 +424,7 @@ describe("vesting", () => {
           vest: vestNow,
           stakeAccountCheckpoints: null,
           stakeAccountMetadata: null,
-          globalConfig: null,
+          globalConfig: stakeConnection.configAddress,
         })
         .signers([vester])
         .rpc()
@@ -570,7 +570,7 @@ describe("vesting", () => {
           vest: vestEvenLater,
           stakeAccountCheckpoints: null,
           stakeAccountMetadata: null,
-          globalConfig: null,
+          globalConfig: stakeConnection.configAddress,
         })
         .signers([vester])
         .rpc()
@@ -712,7 +712,7 @@ describe("vesting", () => {
           vest: vestNow,
           stakeAccountCheckpoints: null,
           stakeAccountMetadata: null,
-          globalConfig: null,
+          globalConfig: stakeConnection.configAddress,
         })
         .signers([vester])
         .rpc()
@@ -744,39 +744,7 @@ describe("vesting", () => {
           vest: vestNow,
           stakeAccountCheckpoints: null,
           stakeAccountMetadata: stakeAccountMetadataAddress,
-          globalConfig: null,
-        })
-        .signers([vester])
-        .rpc()
-        .then(confirm);
-
-      assert.fail("Expected error was not thrown");
-    } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code ===
-          "ErrorOfStakeAccountParsing",
-      );
-    }
-  });
-
-  it("should fail to claim without globalConfig", async () => {
-    let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.getStakeAccountCheckpointsAddress(
-        vesterStakeConnection.userPublicKey(),
-      );
-    let stakeAccountMetadataAddress =
-      await vesterStakeConnection.getStakeMetadataAddress(
-        stakeAccountCheckpointsAddress,
-      );
-    try {
-      await stakeConnection.program.methods
-        .claimVesting()
-        .accounts({
-          ...accounts,
-          vest: vestNow,
-          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
-          stakeAccountMetadata: stakeAccountMetadataAddress,
-          globalConfig: null,
+          globalConfig: stakeConnection.configAddress,
         })
         .signers([vester])
         .rpc()

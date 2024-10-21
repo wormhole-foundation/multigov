@@ -1,4 +1,4 @@
-use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
+use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED, CONFIG_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -34,7 +34,7 @@ pub struct ClaimVesting<'info> {
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
-        seeds = [VESTING_CONFIG_SEED.as_bytes(), config.admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [VESTING_CONFIG_SEED.as_bytes(), global_config.vesting_admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
     config: Account<'info, VestingConfig>,
@@ -61,8 +61,11 @@ pub struct ClaimVesting<'info> {
     pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
     #[account(mut)]
     pub stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
-    #[account(mut)]
-    pub global_config: Option<Box<Account<'info, GlobalConfig>>>,
+    #[account(
+        seeds = [CONFIG_SEED.as_bytes()], 
+        bump = global_config.bump,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
@@ -73,17 +76,16 @@ impl<'info> ClaimVesting<'info> {
     pub fn close_vesting(&mut self) -> Result<()> {
         // If vesting_balance.stake_account_metadata is not set it means that vester has not delegated his vests
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
-            if let (Some(stake_account_metadata), Some(stake_account_checkpoints), Some(global_config)) = (
+            if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
                 &mut self.stake_account_metadata,
                 &mut self.stake_account_checkpoints,
-                &mut self.global_config,
             ) {
                 require!(
                     stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
                     VestingError::InvalidStakeAccountCheckpoints
                 );
                 require!(
-                    self.config.mint == global_config.wh_token_mint,
+                    self.config.mint == self.global_config.wh_token_mint,
                     VestingError::InvalidVestingMint
                 );
 
