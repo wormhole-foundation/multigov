@@ -86,6 +86,10 @@ impl<'info> ClaimVesting<'info> {
                 );
                 require!(
                     self.config.mint == self.global_config.wh_token_mint,
+                    // This error can never happen here, because for the condition above 
+                    // (self.vesting_balance.stake_account_metadata != Pubkey::default()) 
+                    // to be met, the delegate instruction must be executed. 
+                    // However, delegate cannot be executed when self.config.mint != self.global_config.wh_token_mint.
                     VestingError::InvalidVestingMint
                 );
 

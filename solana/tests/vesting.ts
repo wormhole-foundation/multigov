@@ -1057,36 +1057,5 @@ describe("vesting", () => {
         );
       }
     });
-
-    it("should fail to claim with invalid vesting token", async () => {
-      let stakeAccountCheckpointsAddress =
-        await vesterStakeConnection.getStakeAccountCheckpointsAddress(
-          vesterStakeConnection.userPublicKey(),
-        );
-      let stakeAccountMetadataAddress =
-        await vesterStakeConnection.getStakeMetadataAddress(
-          stakeAccountCheckpointsAddress,
-        );
-
-      try {
-        await vesterStakeConnection.program.methods
-          .claimVesting()
-          .accounts({
-            ...fakeAccounts,
-            vest: fakeVestNow,
-            stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
-            stakeAccountMetadata: stakeAccountMetadataAddress,
-            globalConfig: stakeConnection.configAddress,
-          })
-          .rpc()
-          .then(confirm);
-
-        assert.fail("Expected error was not thrown");
-      } catch (e) {
-        assert(
-          (e as AnchorError).error?.errorCode?.code === "InvalidVestingMint",
-        );
-      }
-    });
   });
 });
