@@ -1,5 +1,5 @@
 import { parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
-import { PublicKey, Keypair, TransactionInstruction } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey, Keypair, Transaction, Instruction, SystemProgram } from "@solana/web3.js";
 import {
   startValidator,
   readAnchorConfig,
@@ -25,6 +25,7 @@ const portNumber = getPortNumber(path.basename(__filename));
 describe("config", async () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const randomUser = new Keypair();
   const zeroPubkey = new PublicKey(0);
 
   const vestingAdminKeypair = new Keypair();
@@ -35,8 +36,6 @@ describe("config", async () => {
 
   let program;
   let controller;
-
-  let stakeAccountAddress;
 
   let configAccount: PublicKey;
   let bump: number;
@@ -56,6 +55,18 @@ describe("config", async () => {
       null,
       WH_TOKEN_DECIMALS,
     );
+
+    let tx = new Transaction();
+    tx.instructions = [
+      SystemProgram.transfer({
+        fromPubkey: program.provider.publicKey,
+        toPubkey: randomUser.publicKey,
+        lamports: 10 * LAMPORTS_PER_SOL,
+      }),
+    ];
+    await program.provider.sendAndConfirm(tx, [
+      program.provider.wallet.payer,
+    ]);
   });
 
   it("initializes config", async () => {
@@ -160,26 +171,33 @@ describe("config", async () => {
       }),
     );
 
-    const owner = program.provider.wallet.publicKey;
-    const stakeAccountKeypair = new Keypair();
+    await program.methods
+      .createStakeAccount()
+      .accounts({
+        mint: whMintAccount.publicKey,
+        payer: randomUser.publicKey,
+      })
+      .signers([randomUser])
+      .rpc();
 
-    const checkpointDataAddress = PublicKey.findProgramAddressSync(
+    const checkpointDataAccountPublicKey = PublicKey.findProgramAddressSync(
       [
-        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-        owner.toBuffer(),
+        Buffer.from(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        randomUser.publicKey.toBuffer(),
       ],
       program.programId,
     )[0];
+    const metadataAddress = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()),
+        checkpointDataAccountPublicKey.toBuffer(),
+      ],
+      program.programId,
+    )[0];
+    const stakeAccountMetadata: StakeAccountMetadata =
+      await program.account.stakeAccountMetadata.fetch(metadataAddress);
 
-    await program.methods
-      .createStakeAccount(owner)
-      .accounts({
-        stakeAccountCheckpoints: checkpointDataAddress,
-        mint: whMintAccount.publicKey,
-      })
-      .rpc();
-
-    stakeAccountAddress = stakeAccountKeypair.publicKey;
+    assert(stakeAccountMetadata.owner.toString("hex") == randomUser.publicKey.toString("hex"))
   });
 
   it("someone else tries to access admin methods", async () => {

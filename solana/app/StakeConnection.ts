@@ -318,19 +318,10 @@ export class StakeConnection {
   public async createStakeAccount(): Promise<void> {
     const instructions: TransactionInstruction[] = [];
 
-    const checkpointDataAddress = PublicKey.findProgramAddressSync(
-      [
-        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-        this.userPublicKey().toBuffer(),
-      ],
-      this.program.programId,
-    )[0];
-
     instructions.push(
       await this.program.methods
-        .createStakeAccount(this.userPublicKey())
+        .createStakeAccount()
         .accounts({
-          stakeAccountCheckpoints: checkpointDataAddress,
           mint: this.config.whTokenMint,
         })
         .instruction(),
@@ -352,9 +343,8 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .createStakeAccount(owner)
+        .createStakeAccount()
         .accounts({
-          stakeAccountCheckpoints: checkpointDataAddress,
           mint: this.config.whTokenMint,
         })
         .instruction(),

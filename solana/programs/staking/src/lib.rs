@@ -104,8 +104,10 @@ pub mod staking {
 
     /// Trustless instruction that creates a stake account for a user
     #[inline(never)]
-    pub fn create_stake_account(ctx: Context<CreateStakeAccount>, owner: Pubkey) -> Result<()> {
+    pub fn create_stake_account(ctx: Context<CreateStakeAccount>) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+        let owner = &ctx.accounts.payer.key;
+
         stake_account_metadata.initialize(
             ctx.bumps.stake_account_metadata,
             ctx.bumps.stake_account_custody,
