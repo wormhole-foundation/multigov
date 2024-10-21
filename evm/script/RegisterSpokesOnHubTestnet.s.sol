@@ -5,7 +5,7 @@ import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 
-contract RegisterSpokesAndTransferHubVotePoolOwnership is Script {
+contract RegisterSpokesOnHubTestnet is Script {
   address HUB_VOTE_POOL = address(0); // TODO: Replace with the hub vote pool address
   address OPTIMISM_SEPOLIA_VOTE_AGGREGATOR = address(0); // TODO: Replace with a real address
   bytes32 SOLANA_SPOKE = bytes32(0xabd58849f17e52708082849880f862589c11f972cb372d73b0cd219722cd0f22);

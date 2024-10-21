@@ -38,7 +38,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint48 minimumExtensionTime;
     uint8 consistencyLevel;
     uint48 initialMaxQueryTimestampOffset;
-    bytes32 expectedProgramId;
     uint8 solanaTokenDecimals;
   }
 
