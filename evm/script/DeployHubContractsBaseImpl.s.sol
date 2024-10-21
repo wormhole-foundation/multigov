@@ -104,9 +104,8 @@ abstract contract DeployHubContractsBaseImpl is Script {
     hubVotePool.setGovernor(address(gov));
 
     // Deploy the vote decoder for Solana queries
-    HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder = new HubSolanaSpokeVoteDecoder(
-      config.wormholeCore, address(hubVotePool),  config.solanaTokenDecimals
-    );
+    HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder =
+      new HubSolanaSpokeVoteDecoder(config.wormholeCore, address(hubVotePool), config.solanaTokenDecimals);
 
     // Register Solana vote decoder, 5 is the constant for QT_SOL_PDA.
     hubVotePool.registerQueryType(5, address(hubSolanaSpokeVoteDecoder));

@@ -30,12 +30,12 @@ contract RegisterSpokesAndTransferHubVotePoolOwnership is Script {
     Vm.Wallet memory wallet = _deploymentWallet();
 
     vm.startBroadcast(wallet.privateKey);
-	HubVotePool hubVotePool = HubVotePool(HUB_VOTE_POOL);
-	// register solana
-	hubVotePool.registerSpoke(1, SOLANA_SPOKE);
-	hubVotePool.registerSpoke(10005, bytes32(uint256(uint160(OPTIMISM_SEPOLIA_VOTE_AGGREGATOR))));
-	// transfer owenr
-	hubVotePool.transferOwnership(TIMELOCK);
+    HubVotePool hubVotePool = HubVotePool(HUB_VOTE_POOL);
+    // register solana
+    hubVotePool.registerSpoke(1, SOLANA_SPOKE);
+    hubVotePool.registerSpoke(10_005, bytes32(uint256(uint160(OPTIMISM_SEPOLIA_VOTE_AGGREGATOR))));
+    // transfer owenr
+    hubVotePool.transferOwnership(TIMELOCK);
     vm.stopBroadcast();
   }
 }
