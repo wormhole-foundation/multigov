@@ -96,6 +96,7 @@ contract Constructor is Test {
 
 contract GetProposal is SpokeMetadataCollectorTest {
   function testFuzz_SuccessfullyGetProposal(uint256 _proposalId, uint256 _voteStart) public {
+    vm.assume(_voteStart != 0);
     _addProposal(_proposalId, _voteStart);
 
     SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.getProposal(_proposalId);
@@ -105,6 +106,7 @@ contract GetProposal is SpokeMetadataCollectorTest {
 
 contract AddProposal is SpokeMetadataCollectorTest {
   function testFuzz_SuccessfullyAddProposal(uint256 _proposalId, uint256 _voteStart) public {
+    vm.assume(_voteStart != 0);
     _addProposal(_proposalId, _voteStart);
     SpokeMetadataCollector.Proposal memory proposal = spokeMetadataCollector.exposed_proposals(_proposalId);
 
@@ -118,7 +120,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     uint256 _voteStart2
   ) public {
     vm.assume(_proposalId1 != _proposalId2);
-
+    vm.assume(_voteStart1 != 0 && _voteStart2 != 0);
     _addProposal(_proposalId1, _voteStart1);
     _addProposal(_proposalId2, _voteStart2);
 
@@ -135,6 +137,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     uint256 _voteStart1,
     uint256 _voteStart2
   ) public {
+    vm.assume(_voteStart1 != 0 && _voteStart2 != 0);
     vm.assume(_proposalId1 != _proposalId2 && _proposalId1 != 0 && _proposalId2 != 0);
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // blockId
@@ -197,6 +200,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
   }
 
   function testFuzz_EmitsProposalCreated(uint256 _proposalId, uint256 _voteStart) public {
+    vm.assume(_voteStart != 0);
     vm.expectEmit();
     emit SpokeMetadataCollector.ProposalCreated(_proposalId, _voteStart);
     _addProposal(_proposalId, _voteStart);
@@ -207,6 +211,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     uint256 _voteStart,
     uint16 _responseChainId
   ) public {
+    vm.assume(_voteStart != 0);
     vm.assume(_responseChainId != uint16(MAINNET_CHAIN_ID));
 
     bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, _responseChainId, GOVERNANCE_CONTRACT);
@@ -221,6 +226,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     uint256 _voteStart,
     address _callingAddress
   ) public {
+    vm.assume(_voteStart != 0);
     vm.assume(_callingAddress != GOVERNANCE_CONTRACT);
 
     bytes memory _resp = _buildAddProposalQuery(_proposalId, _voteStart, uint16(MAINNET_CHAIN_ID), _callingAddress);
@@ -251,6 +257,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     uint48 _voteEnd2
   ) public {
     vm.assume(_proposalId1 != _proposalId2);
+    vm.assume(_voteStart1 != 0 && _voteStart2 != 0);
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // blockId
       "finalized", // finality
@@ -324,6 +331,7 @@ contract AddProposal is SpokeMetadataCollectorTest {
     string memory blockId,
     bytes memory finality
   ) public {
+    vm.assume(_voteStart != 0);
     vm.assume(keccak256(finality) != keccak256("finalized"));
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes(blockId), // random blockId: a hash of the block number
@@ -370,6 +378,15 @@ contract AddProposal is SpokeMetadataCollectorTest {
     IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
 
     vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.InvalidQueryBlock.selector, bytes(blockId)));
+    spokeMetadataCollector.addProposal(_resp, signatures);
+  }
+
+  function testFuzz_RevertIf_InvalidVoteStart(uint256 _proposalId) public {
+    uint256 VOTE_START = 0;
+    bytes memory _resp = _buildAddProposalQuery(_proposalId, VOTE_START, uint16(MAINNET_CHAIN_ID), GOVERNANCE_CONTRACT);
+    IWormhole.Signature[] memory signatures = _getProposalSignatures(_resp);
+
+    vm.expectRevert(abi.encodeWithSelector(SpokeMetadataCollector.InvalidVoteStart.selector, _proposalId, VOTE_START));
     spokeMetadataCollector.addProposal(_resp, signatures);
   }
 }
