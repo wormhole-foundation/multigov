@@ -132,34 +132,8 @@ pub mod staking {
         let current_stake_balance = ctx.accounts.stake_account_custody.amount;
 
         if let Some(vesting_config) = &mut ctx.accounts.vesting_config {
-            let (expected_vesting_config_pda, _) = Pubkey::find_program_address(
-                &[
-                    VESTING_CONFIG_SEED.as_bytes(),
-                    vesting_config.admin.as_ref(),
-                    vesting_config.mint.as_ref(),
-                    vesting_config.seed.to_le_bytes().as_ref(),
-                ],
-                &crate::ID,
-            );
-            require!(
-                vesting_config.key() == expected_vesting_config_pda,
-                VestingError::InvalidVestingConfigPDA
-            );
-
             if vesting_config.finalized {
                 if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
-                    let (expected_vesting_balance_pda, _) = Pubkey::find_program_address(
-                        &[
-                            VESTING_BALANCE_SEED.as_bytes(),
-                            expected_vesting_config_pda.as_ref(),
-                            vesting_balance.vester.as_ref(),
-                        ],
-                        &crate::ID,
-                    );
-                    require!(
-                        vesting_balance.key() == expected_vesting_balance_pda,
-                        VestingError::InvalidVestingBalancePDA
-                    );
                     require!(
                         vesting_balance.vester == stake_account_metadata.owner,
                         VestingError::InvalidStakeAccountOwner
