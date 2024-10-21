@@ -125,7 +125,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
     // Deploy the evm aggregate proposer
     HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer =
       new HubEvmSpokeAggregateProposer(config.wormholeCore, address(gov), config.initialMaxQueryTimestampOffset);
-    hubVotePool.transferOwnership(address(timelock));
     extender.initialize(payable(gov));
 
     timelock.grantRole(timelock.PROPOSER_ROLE(), address(gov));
