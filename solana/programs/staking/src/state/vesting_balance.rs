@@ -11,5 +11,19 @@ pub struct VestingBalance {
 }
 
 impl Space for VestingBalance {
-    const INIT_SPACE: usize = 8 + 32 + 8 + 1 + 32;
+    const INIT_SPACE: usize = 8 + 32 + 8 + 8 + 32;
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::VestingBalance;
+    use anchor_lang::Discriminator;
+    use anchor_lang::Space;
+
+    #[test]
+    fn check_size() {
+        assert!(
+            size_of::<VestingBalance>() + VestingBalance::discriminator().len() == VestingBalance::INIT_SPACE
+        );
+    }
 }
