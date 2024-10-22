@@ -103,6 +103,11 @@ export async function startValidatorRaw(portNumber: number, otherArgs: string) {
   const internalController: AbortController = new AbortController();
   const { signal } = internalController;
 
+  console.log(
+    `solana-test-validator --ledger ${ledgerDir} --rpc-port ${portNumber} --faucet-port ${
+      portNumber + 101
+    } ${otherArgs}`,
+  );
   exec(
     `solana-test-validator --ledger ${ledgerDir} --rpc-port ${portNumber} --faucet-port ${
       portNumber + 101

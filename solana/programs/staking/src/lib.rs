@@ -6,6 +6,8 @@
 // Objects of type Result must be used, otherwise we might
 // call a function that returns a Result and not handle the error
 
+use crate::error::ErrorCode;
+use crate::error::MessageExecutorError;
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
@@ -443,20 +445,19 @@ pub mod staking {
 
         // Check if the message has already been processed.
         if message_received.executed {
-            return Err(error!(ErrorCode::Other));
+            return Err(error!(MessageExecutorError::MessageAlreadyExecuted));
         }
 
         let vaa_account_info = &ctx.accounts.posted_vaa;
 
         let vaa_data = &vaa_account_info.data.borrow();
 
-        let vaa = Vaa::parse(vaa_data).map_err(|_| ErrorCode::Other)?;
-
+        let vaa = Vaa::parse(vaa_data).map_err(|_| MessageExecutorError::FailedParseVaa)?;
 
         // Verify that the message is from the expected emitter.
         // if vaa.emitter_chain != 1002 || vaa.emitter_address != EXPECTED_EMITTER_ADDRESS {
-        if vaa.body().emitter_chain() != 1002 {
-            return Err(error!(ErrorCode::Other));
+        if vaa.body().emitter_chain() != 10002 {
+            return Err(error!(MessageExecutorError::InvalidEmitterChain));
         }
 
         // Deserialize the message payload.
@@ -472,7 +473,7 @@ pub mod staking {
                     .remaining_accounts
                     .iter()
                     .find(|a| a.key == &meta.pubkey)
-                    .ok_or_else(|| error!(ErrorCode::Other))?;
+                    .ok_or_else(|| error!(MessageExecutorError::MissedRemainingAccount))?;
                 account_infos.push(account_info.clone());
             }
 

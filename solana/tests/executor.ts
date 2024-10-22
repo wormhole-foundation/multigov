@@ -44,13 +44,10 @@ const portNumber = getPortNumber(path.basename(__filename));
 export const CORE_BRIDGE_PID = new PublicKey(
   contracts.coreBridge.get("Mainnet", "Solana")!,
 );
-const GUARDIAN_PRIVATE_KEYS = [
-  // Your private keys for mock guardians (hex strings without '0x' prefix)
-  "e2f2f8f16b6f8f1f7c6f6e5f4d4c3b2a1a0f0e0d0c0b0a090807060504030201",
-  // Add more keys as needed
-];
-const GUARDIAN_KEY = Buffer.from(GUARDIAN_PRIVATE_KEYS[0], "hex");
 
+export const GUARDIAN_KEY =
+  "cfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0";
+export const MOCK_GUARDIANS = new mocks.MockGuardians(0, [GUARDIAN_KEY]);
 describe("receive_message", () => {
   let stakeConnection: StakeConnection;
   let controller;
@@ -109,8 +106,6 @@ describe("receive_message", () => {
   it("should process receive_message correctly", async () => {
     console.log("wormholeProgram:", CORE_BRIDGE_PID.toBase58());
 
-    const guardians = new mocks.MockGuardians(0, GUARDIAN_PRIVATE_KEYS);
-
     // Prepare the message (payload) for the VAA
     const messagePayload = Buffer.from("Your message data"); // Replace with actual message data
 
@@ -122,7 +117,7 @@ describe("receive_message", () => {
     const { publicKey, hash } = await postReceiveMessageVaa(
       stakeConnection.provider.connection,
       payer,
-      guardians,
+      MOCK_GUARDIANS,
       Array.from(Buffer.alloc(32, "f0", "hex")),
       BigInt(1),
       messagePayload,
@@ -141,6 +136,7 @@ describe("receive_message", () => {
       stakeConnection.program.programId,
     );
 
+    console.log("Before receiveMessage");
     // Invoke receive_message instruction
     await stakeConnection.program.methods
       .receiveMessage(hash)
@@ -217,10 +213,9 @@ async function postVaa(
   vaaBuf: Buffer,
   coreBridgeAddress?: PublicKey,
 ) {
-  const core = new SolanaWormholeCore("Devnet", "Solana", connection, {
+  const core = new SolanaWormholeCore("Mainnet", "Solana", connection, {
     coreBridge: (coreBridgeAddress ?? CORE_BRIDGE_PID).toString(),
   });
-  console.log("payer.publicKey:", payer.publicKey.toBase58());
   const txs = core.postVaa(payer.publicKey, deserialize("Uint8Array", vaaBuf));
   const signer = new SolanaSendSigner(connection, "Solana", payer, false, {});
   await signAndSendWait(txs, signer);
