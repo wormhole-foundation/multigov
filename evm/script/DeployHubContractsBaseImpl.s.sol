@@ -5,7 +5,6 @@ import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
-import {QueryResponse} from "wormhole-sdk/QueryResponse.sol";
 
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
@@ -13,7 +12,6 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
 import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
-import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
 import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
 import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
 
