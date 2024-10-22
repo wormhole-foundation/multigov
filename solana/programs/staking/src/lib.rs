@@ -44,11 +44,6 @@ use crate::{
 use crate::state::GuardianSignatures;
 
 use crate::utils::execute_message::deserialize_message;
-use wormhole_query_sdk::{
-    MESSAGE_PREFIX,
-    QUERY_MESSAGE_LEN,
-};
-
 
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
@@ -91,8 +86,7 @@ declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
 pub mod staking {
     /// Creates a global config for the program
     use super::*;
-    use anchor_lang::solana_program::keccak;
-    use wormhole_raw_vaas::Vaa;
+    use crate::wormhole_bridge_core::accounts::PostedVAA;
 
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
         let config_account = &mut ctx.accounts.config_account;
@@ -440,7 +434,7 @@ pub mod staking {
     }
 
 
-    pub fn receive_message(ctx: Context<ReceiveMessage>, vaa_hash: [u8; 32]) -> Result<()> {
+    pub fn receive_message(ctx: Context<ReceiveMessage>, _vaa_hash: [u8; 32]) -> Result<()> {
         let message_received = &mut ctx.accounts.message_received;
 
         // Check if the message has already been processed.
@@ -452,16 +446,16 @@ pub mod staking {
 
         let vaa_data = &vaa_account_info.data.borrow();
 
-        let vaa = Vaa::parse(vaa_data).map_err(|_| MessageExecutorError::FailedParseVaa)?;
+        let vaa = PostedVAA::deserialize(&mut &***vaa_data).map_err(|_| MessageExecutorError::FailedParseVaa)?;
 
         // Verify that the message is from the expected emitter.
         // if vaa.emitter_chain != 1002 || vaa.emitter_address != EXPECTED_EMITTER_ADDRESS {
-        if vaa.body().emitter_chain() != 10002 {
+        if vaa.emitter_chain != 10002 {
             return Err(error!(MessageExecutorError::InvalidEmitterChain));
         }
 
         // Deserialize the message payload.
-        let message = deserialize_message(&vaa.payload().as_ref())?;
+        let message = deserialize_message(&vaa.payload.as_ref())?;
 
         // Execute the instructions in the message.
         for instruction in message.instructions {
