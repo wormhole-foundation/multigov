@@ -3130,6 +3130,7 @@ dependencies = [
  "bincode",
  "bytemuck",
  "ethabi",
+ "hex",
  "js-sys",
  "quickcheck",
  "quickcheck_macros",

@@ -1,77 +1,163 @@
-use crate::state::{
-    ProgramError,
-    Pubkey,
-};
-use core::convert::TryInto;
+// solana/programs/staking/src/utils/execute_message.rs
+use ethabi::{decode, encode, ParamType, Token};
+use crate::state::ProgramError;
 
-/// Define maximum allowed values to prevent excessive memory allocation
-const MAX_INSTRUCTIONS: usize = 10;
-const MAX_ACCOUNTS: usize = 20;
-const MAX_DATA_LENGTH: usize = 1024;
-
-/// Data structures to hold the parsed data
-#[derive(Clone, Debug)]
-pub struct AccountMeta {
-    pub pubkey:      Pubkey,
-    pub is_signer:   bool,
+#[derive(Clone)]
+pub struct SolanaAccountMeta {
+    pub pubkey: [u8; 32],
+    pub is_signer: bool,
     pub is_writable: bool,
 }
 
-#[derive(Debug)]
-pub struct InstructionData {
-    pub program_id: Pubkey,
-    pub accounts:   Vec<AccountMeta>,
-    pub data:       Vec<u8>,
+pub struct SolanaInstruction {
+    pub program_id: [u8; 32],
+    pub accounts: Vec<SolanaAccountMeta>,
+    pub data: Vec<u8>,
 }
 
 pub struct Message {
-    pub message_id:        [u8; 32],
+    pub message_id: u64,
     pub wormhole_chain_id: u16,
-    pub instructions:      Vec<InstructionData>,
+    pub instructions: Vec<SolanaInstruction>,
 }
 
-/// Parses an Ethereum ABI-encoded message
 pub fn parse_abi_encoded_message(data: &[u8]) -> Result<Message, ProgramError> {
-    let mut offset = 0;
+    let params = vec![ParamType::Tuple(vec![
+        ParamType::Uint(256), // messageId
+        ParamType::Uint(256), // wormholeChainId
+        ParamType::Array(Box::new(ParamType::Tuple(vec![
+            ParamType::FixedBytes(32), // programId (as bytes32)
+            ParamType::Array(Box::new(ParamType::Tuple(vec![
+                ParamType::FixedBytes(32), // pubkey (as bytes32)
+                ParamType::Bool,           // isSigner
+                ParamType::Bool,           // isWritable
+            ]))),
+            ParamType::Bytes, // data
+        ]))),
+    ])];
 
-    // Ensure data length is sufficient
-    if data.len() < 96 {
-        return Err(ProgramError::InvalidInstructionData);
-    }
+    let tokens = decode(&params, data).map_err(|_| ProgramError::InvalidInstructionData)?;
 
-    // Read messageId (uint256)
-    let message_id_bytes = &data[offset..offset + 32];
-    let message_id = message_id_bytes.try_into().unwrap();
-    offset += 32;
+    let message_tuple = tokens
+        .get(0)
+        .ok_or(ProgramError::InvalidInstructionData)?
+        .clone()
+        .into_tuple()
+        .ok_or(ProgramError::InvalidInstructionData)?;
 
-    // Read wormholeChainId (uint256)
-    let wormhole_chain_id_bytes = &data[offset..offset + 32];
-    let wormhole_chain_id = u16::from_be_bytes(
-        wormhole_chain_id_bytes[30..32]
+    // **Extract message_id from message_tuple**
+    let message_id_token = message_tuple
+        .get(0)
+        .ok_or(ProgramError::InvalidInstructionData)?;
+    let message_id = message_id_token
+        .clone()
+        .into_uint()
+        .ok_or(ProgramError::InvalidInstructionData)?
+        .as_u64();
+
+    // **Extract wormhole_chain_id from message_tuple**
+    let wormhole_chain_id_token = message_tuple
+        .get(1)
+        .ok_or(ProgramError::InvalidInstructionData)?;
+    let wormhole_chain_id = wormhole_chain_id_token
+        .clone()
+        .into_uint()
+        .ok_or(ProgramError::InvalidInstructionData)?
+        .as_u64() as u16;
+
+    // **Extract instructions array from message_tuple**
+    let instructions_token = message_tuple
+        .get(2)
+        .ok_or(ProgramError::InvalidInstructionData)?;
+    let instructions_array = instructions_token
+        .clone()
+        .into_array()
+        .ok_or(ProgramError::InvalidInstructionData)?;
+
+    let mut instructions = Vec::new();
+
+    for instr_token in instructions_array {
+        let instr_tuple = instr_token
+            .into_tuple()
+            .ok_or(ProgramError::InvalidInstructionData)?;
+
+        // Extract program_id
+        let program_id_token = instr_tuple
+            .get(0)
+            .ok_or(ProgramError::InvalidInstructionData)?;
+        let program_id = program_id_token
+            .clone()
+            .into_fixed_bytes()
+            .ok_or(ProgramError::InvalidInstructionData)?
             .try_into()
-            .map_err(|_| ProgramError::InvalidInstructionData)?,
-    );
-    offset += 32;
+            .map_err(|_| ProgramError::InvalidInstructionData)?;
 
-    // Read instructions length (uint256)
-    let instructions_length_bytes = &data[offset..offset + 32];
-    let instructions_length = u64::from_be_bytes(
-        instructions_length_bytes[24..32]
-            .try_into()
-            .map_err(|_| ProgramError::InvalidInstructionData)?,
-    ) as usize;
-    offset += 32;
+        // Extract accounts array
+        let accounts_token = instr_tuple
+            .get(1)
+            .ok_or(ProgramError::InvalidInstructionData)?;
+        let accounts_array = accounts_token
+            .clone()
+            .into_array()
+            .ok_or(ProgramError::InvalidInstructionData)?;
 
-    if instructions_length > MAX_INSTRUCTIONS {
-        return Err(ProgramError::InvalidInstructionData);
-    }
+        let mut accounts = Vec::new();
 
-    // Parse instructions
-    let mut instructions = Vec::with_capacity(instructions_length);
-    for _ in 0..instructions_length {
-        // Parse instruction
-        let instruction = parse_instruction(data, &mut offset)?;
-        instructions.push(instruction);
+        for account_token in accounts_array {
+            let account_tuple = account_token
+                .into_tuple()
+                .ok_or(ProgramError::InvalidInstructionData)?;
+
+            // Extract pubkey
+            let pubkey_token = account_tuple
+                .get(0)
+                .ok_or(ProgramError::InvalidInstructionData)?;
+            let pubkey = pubkey_token
+                .clone()
+                .into_fixed_bytes()
+                .ok_or(ProgramError::InvalidInstructionData)?
+                .try_into()
+                .map_err(|_| ProgramError::InvalidInstructionData)?;
+
+            // Extract is_signer
+            let is_signer_token = account_tuple
+                .get(1)
+                .ok_or(ProgramError::InvalidInstructionData)?;
+            let is_signer = is_signer_token
+                .clone()
+                .into_bool()
+                .ok_or(ProgramError::InvalidInstructionData)?;
+
+            // Extract is_writable
+            let is_writable_token = account_tuple
+                .get(2)
+                .ok_or(ProgramError::InvalidInstructionData)?;
+            let is_writable = is_writable_token
+                .clone()
+                .into_bool()
+                .ok_or(ProgramError::InvalidInstructionData)?;
+
+            accounts.push(SolanaAccountMeta {
+                pubkey,
+                is_signer,
+                is_writable,
+            });
+        }
+
+        // Extract instruction data
+        let data_token = instr_tuple
+            .get(2)
+            .ok_or(ProgramError::InvalidInstructionData)?;
+        let data = data_token
+            .clone()
+            .into_bytes()
+            .ok_or(ProgramError::InvalidInstructionData)?;
+
+        instructions.push(SolanaInstruction {
+            program_id,
+            accounts,
+            data,
+        });
     }
 
     Ok(Message {
@@ -81,104 +167,131 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> Result<Message, ProgramError> {
     })
 }
 
-/// Parses a single instruction
-fn parse_instruction(data: &[u8], offset: &mut usize) -> Result<InstructionData, ProgramError> {
-    // Ensure there's enough data for program_id
-    if *offset + 32 > data.len() {
-        return Err(ProgramError::InvalidInstructionData);
-    }
+#[test]
+fn test_parse_abi_encoded_message() {
+    // Prepare test data
+    // Construct the message as it would be encoded in Solidity
 
-    // Read programId (bytes32)
-    let program_id_bytes = &data[*offset..*offset + 32];
-    let program_id = Pubkey::new_from_array(
-        program_id_bytes
-            .try_into()
-            .map_err(|_| ProgramError::InvalidInstructionData)?,
-    );
-    *offset += 32;
+    // Example data for testing
+    let message_id: u64 = 1;
+    let wormhole_chain_id: u16 = 1; // Assuming Solana chain ID is 1
 
-    // Read accounts length (uint256)
-    if *offset + 32 > data.len() {
-        return Err(ProgramError::InvalidInstructionData);
-    }
-    let accounts_length_bytes = &data[*offset..*offset + 32];
-    let accounts_length = u64::from_be_bytes(
-        accounts_length_bytes[24..32]
-            .try_into()
-            .map_err(|_| ProgramError::InvalidInstructionData)?,
-    ) as usize;
-    *offset += 32;
+    // Create account metas
+    let account_meta = SolanaAccountMeta {
+        pubkey: [0x11; 32], // Example public key
+        is_signer: true,
+        is_writable: true,
+    };
 
-    if accounts_length > MAX_ACCOUNTS {
-        return Err(ProgramError::InvalidInstructionData);
-    }
+    // Create instruction
+    let instruction = SolanaInstruction {
+        program_id: [0x22; 32], // Example program ID
+        accounts: vec![account_meta.clone()],
+        data: vec![0x01, 0x02, 0x03], // Example instruction data
+    };
 
-    // Parse accounts
-    let mut accounts = Vec::with_capacity(accounts_length);
-    for _ in 0..accounts_length {
-        // Ensure enough data for pubkey, isSigner, isWritable
-        if *offset + 96 > data.len() {
-            return Err(ProgramError::InvalidInstructionData);
-        }
+    // **Encode accounts properly**
+    let accounts_tokens: Vec<Token> = instruction.accounts.iter().map(|account| {
+        Token::Tuple(vec![
+            Token::FixedBytes(account.pubkey.to_vec()),
+            Token::Bool(account.is_signer),
+            Token::Bool(account.is_writable),
+        ])
+    }).collect();
 
-        // Read pubkey (bytes32)
-        let pubkey_bytes = &data[*offset..*offset + 32];
-        let pubkey = Pubkey::new_from_array(
-            pubkey_bytes
-                .try_into()
-                .map_err(|_| ProgramError::InvalidInstructionData)?,
-        );
-        *offset += 32;
+    // **Encode the instruction using ethabi tokens**
+    let instruction_token = Token::Tuple(vec![
+        Token::FixedBytes(instruction.program_id.to_vec()),
+        Token::Array(accounts_tokens),
+        Token::Bytes(instruction.data.clone()),
+    ]);
 
-        // Read isSigner (bool)
-        let is_signer_word = &data[*offset..*offset + 32];
-        let is_signer = is_signer_word[31] != 0;
-        *offset += 32;
+    // **Encode the message using ethabi tokens**
+    let message_token = Token::Tuple(vec![
+        Token::Uint(message_id.into()),
+        Token::Uint((wormhole_chain_id as u64).into()),
+        Token::Array(vec![instruction_token]),
+    ]);
 
-        // Read isWritable (bool)
-        let is_writable_word = &data[*offset..*offset + 32];
-        let is_writable = is_writable_word[31] != 0;
-        *offset += 32;
+    // Encode the tokens into bytes
+    let encoded_message = encode(&[message_token]);
 
-        accounts.push(AccountMeta {
-            pubkey,
-            is_signer,
-            is_writable,
-        });
-    }
+    // Attempt to parse the ABI-encoded message
+    let parsed_message = parse_abi_encoded_message(&encoded_message).expect("Failed to parse message");
 
-    // Read data length (uint256)
-    if *offset + 32 > data.len() {
-        return Err(ProgramError::InvalidInstructionData);
-    }
-    let data_length_bytes = &data[*offset..*offset + 32];
-    let data_length = u64::from_be_bytes(
-        data_length_bytes[24..32]
-            .try_into()
-            .map_err(|_| ProgramError::InvalidInstructionData)?,
-    ) as usize;
-    *offset += 32;
+    // Assertions to verify that parsing was successful
+    assert_eq!(parsed_message.message_id, message_id);
+    assert_eq!(parsed_message.wormhole_chain_id, wormhole_chain_id);
+    assert_eq!(parsed_message.instructions.len(), 1);
 
-    if data_length > MAX_DATA_LENGTH {
-        return Err(ProgramError::InvalidInstructionData);
-    }
+    let parsed_instruction = &parsed_message.instructions[0];
+    assert_eq!(parsed_instruction.program_id, instruction.program_id);
+    assert_eq!(parsed_instruction.accounts.len(), 1);
+    assert_eq!(parsed_instruction.data, instruction.data);
 
-    // Read data
-    if *offset + data_length > data.len() {
-        return Err(ProgramError::InvalidInstructionData);
-    }
-    let data_bytes = &data[*offset..*offset + data_length];
-    let instruction_data = data_bytes.to_vec();
-    *offset += data_length;
-
-    Ok(InstructionData {
-        program_id,
-        accounts,
-        data: instruction_data,
-    })
+    let parsed_account_meta = &parsed_instruction.accounts[0];
+    assert_eq!(parsed_account_meta.pubkey, account_meta.pubkey);
+    assert_eq!(parsed_account_meta.is_signer, account_meta.is_signer);
+    assert_eq!(parsed_account_meta.is_writable, account_meta.is_writable);
 }
 
-/// Deserializes the message
-pub fn deserialize_message(data: &[u8]) -> Result<Message, ProgramError> {
-    parse_abi_encoded_message(data)
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hex::decode as hex_decode;
+
+    #[test]
+    fn test_parse_real_abi_encoded_message() {
+        // Hex string provided from Solidity contract
+        let hex_data = "\
+        0000000000000000000000000000000000000000000000000000000000000000\
+        0000000000000000000000000000000000000000000000000000000000000001\
+        0000000000000000000000000000000000000000000000000000000000000080\
+        0000000000000000000000000000000000000000000000000000000000000001\
+        0000000000000000000000000000000000000000000000000000000000000020\
+        42D381E13C2E2771F21A539E8CECE69BBCF00759884D0A108CD808BF8D8FEDED\
+        0000000000000000000000000000000000000000000000000000000000000060\
+        00000000000000000000000000000000000000000000000000000000000000E0\
+        0000000000000000000000000000000000000000000000000000000000000001\
+        C453CA036BBB742729F35727845114FB5C842EEA45A255CE794FDCB5EA7658F3\
+        0000000000000000000000000000000000000000000000000000000000000000\
+        0000000000000000000000000000000000000000000000000000000000000001\
+        0000000000000000000000000000000000000000000000000000000000000020\
+        00000000000000000000000000000000000000000000000000000000000003E8";
+
+        // Remove whitespace and newlines
+        let hex_data = hex_data.replace("\n", "").replace(" ", "");
+
+        // Decode the hex string into bytes
+        let encoded_message = hex_decode(hex_data).expect("Failed to decode hex string");
+
+        // Attempt to parse the ABI-encoded message
+        let parsed_message = parse_abi_encoded_message(&encoded_message)
+            .expect("Failed to parse message");
+
+        // Assertions to verify that parsing was successful
+        assert_eq!(parsed_message.message_id, 0);
+        assert_eq!(parsed_message.wormhole_chain_id, 1);
+        assert_eq!(parsed_message.instructions.len(), 1);
+
+        // Now check the instruction
+        let instruction = &parsed_message.instructions[0];
+        let expected_program_id = hex_decode("42D381E13C2E2771F21A539E8CECE69BBCF00759884D0A108CD808BF8D8FEDED")
+            .expect("Failed to decode program_id");
+        assert_eq!(instruction.program_id, expected_program_id.as_slice());
+
+        // Check accounts
+        assert_eq!(instruction.accounts.len(), 1);
+        let account = &instruction.accounts[0];
+        let expected_pubkey = hex_decode("C453CA036BBB742729F35727845114FB5C842EEA45A255CE794FDCB5EA7658F3")
+            .expect("Failed to decode pubkey");
+        assert_eq!(account.pubkey, expected_pubkey.as_slice());
+        assert_eq!(account.is_signer, false);  // According to the data
+        assert_eq!(account.is_writable, true); // According to the data
+
+        // Check data
+        let expected_data = hex_decode("00000000000000000000000000000000000000000000000000000000000003E8")
+            .expect("Failed to decode data");
+        assert_eq!(instruction.data, expected_data);
+    }
 }

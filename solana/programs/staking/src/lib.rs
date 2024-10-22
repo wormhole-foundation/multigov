@@ -43,7 +43,7 @@ use crate::{
 };
 use crate::state::GuardianSignatures;
 
-use crate::utils::execute_message::deserialize_message;
+use crate::utils::execute_message::parse_abi_encoded_message;
 
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
@@ -455,53 +455,54 @@ pub mod staking {
         }
 
         // Deserialize the message payload.
-        let message = deserialize_message(&vaa.payload.as_ref())?;
+        let message = parse_abi_encoded_message(&vaa.payload.as_ref())?;
 
         // Execute the instructions in the message.
         for instruction in message.instructions {
             // Prepare AccountInfo vector for the instruction.
             let mut account_infos = vec![];
-
+        
             for meta in &instruction.accounts {
+                let meta_pubkey = Pubkey::new_from_array(meta.pubkey);
                 let account_info = ctx
                     .remaining_accounts
                     .iter()
-                    .find(|a| a.key == &meta.pubkey)
+                    .find(|a| a.key == &meta_pubkey)
                     .ok_or_else(|| error!(MessageExecutorError::MissedRemainingAccount))?;
                 account_infos.push(account_info.clone());
             }
-
             // Create the instruction.
-            let ix = Instruction {
-                program_id: instruction.program_id,
-                accounts:   instruction
-                    .accounts
-                    .iter()
-                    .map(|meta| {
-                        if meta.is_signer {
-                            if meta.is_writable {
-                                AccountMeta::new(meta.pubkey, true)
-                            } else {
-                                AccountMeta::new_readonly(meta.pubkey, true)
-                            }
-                        } else {
-                            if meta.is_writable {
-                                AccountMeta::new(meta.pubkey, false)
-                            } else {
-                                AccountMeta::new_readonly(meta.pubkey, false)
-                            }
-                        }
-                    })
-                    .collect(),
-                data:       instruction.data.clone(),
-            };
+    let ix = Instruction {
+        program_id: Pubkey::new_from_array(instruction.program_id),
+        accounts: instruction
+            .accounts
+            .iter()
+            .map(|meta| {
+                let pubkey = Pubkey::new_from_array(meta.pubkey);
+                if meta.is_signer {
+                    if meta.is_writable {
+                        AccountMeta::new(pubkey, true)
+                    } else {
+                        AccountMeta::new_readonly(pubkey, true)
+                    }
+                } else {
+                    if meta.is_writable {
+                        AccountMeta::new(pubkey, false)
+                    } else {
+                        AccountMeta::new_readonly(pubkey, false)
+                    }
+                }
+            })
+            .collect(),
+        data: instruction.data.clone(),
+    };
 
-            // Use invoke_signed with the correct signer_seeds
-            let signer_seeds: &[&[&[u8]]] =
-                &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
+    // Use invoke_signed with the correct signer_seeds
+    let signer_seeds: &[&[&[u8]]] =
+        &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
 
-            invoke_signed(&ix, &account_infos, signer_seeds)?;
-        }
+    invoke_signed(&ix, &account_infos, signer_seeds)?;
+}
 
         // Mark the message as executed.
         message_received.executed = true;

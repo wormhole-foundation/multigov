@@ -41,6 +41,7 @@ ethabi = "18.0.0"
 rand = "0.8.5"
 quickcheck = "1"
 quickcheck_macros = "1"
+hex = "0.4"
 
 [profile.release]
 overflow-checks = true

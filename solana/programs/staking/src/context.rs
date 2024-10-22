@@ -532,7 +532,7 @@ pub struct ReceiveMessage<'info> {
         seeds = [MESSAGE_RECEIVED.as_bytes(), &vaa_hash],
         bump
     )]
-    pub message_received: Account<'info, MessageReceived>,
+    pub message_received: Box<Account<'info, MessageReceived>>,
 
     /// CHECK
     /// The verified Wormhole VAA account containing the message.
@@ -559,7 +559,7 @@ pub struct ReceiveMessage<'info> {
         seeds = [AIRLOCK_SEED.as_bytes()],
         bump = airlock.bump
     )]
-    pub airlock: Account<'info, SpokeAirlock>,
+    pub airlock: Box<Account<'info, SpokeAirlock>>,
 }
 
 #[derive(Accounts)]
