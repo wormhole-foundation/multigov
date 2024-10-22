@@ -349,6 +349,41 @@ describe("api", async () => {
         );
       }
     });
+
+    it("should revert if voteStart is zero", async () => {
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId15")
+        .digest();
+      const voteStart = 0;
+
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
+
+      try {
+        await stakeConnection.addProposal(
+          proposalIdInput,
+          ethProposalResponseBytes,
+          signaturesKeypair.publicKey,
+          mockGuardianSetIndex,
+          true,
+        );
+
+        assert.fail("Expected error was not thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code ===
+            "ProposalNotInitialized",
+        );
+      }
+    });
   });
 
   it("proposalVotes", async () => {

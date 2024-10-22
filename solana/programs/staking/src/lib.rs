@@ -584,6 +584,11 @@ pub mod staking {
 
             let proposal = &mut ctx.accounts.proposal;
 
+            require!(
+                proposal_data.vote_start != 0,
+                ProposalWormholeMessageError::ProposalNotInitialized
+            );
+
             let _ = proposal.add_proposal(
                 proposal_data.proposal_id,
                 proposal_data.vote_start,

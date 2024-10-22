@@ -2771,48 +2771,93 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "failedToParseResponse",
-      "msg": "Failed to parse response"
+      "name": "tooManyCheckpoints",
+      "msg": "Number of checkpoint limit reached"
     },
     {
       "code": 6001,
-      "name": "writeAuthorityMismatch",
-      "msg": "Write authority mismatch"
+      "name": "genericOverflow",
+      "msg": "An arithmetic operation unexpectedly overflowed"
     },
     {
       "code": 6002,
-      "name": "guardianSetExpired",
-      "msg": "Guardian set expired"
+      "name": "checkpointSerDe",
+      "msg": "Error deserializing checkpoint"
     },
     {
       "code": 6003,
-      "name": "invalidMessageHash",
-      "msg": "Invalid message hash"
+      "name": "checkpointOutOfBounds",
+      "msg": "Checkpoint out of bounds"
     },
     {
       "code": 6004,
-      "name": "noQuorum",
-      "msg": "No quorum"
+      "name": "recoverWithStake",
+      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
     },
     {
       "code": 6005,
-      "name": "invalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
+      "name": "checkpointNotFound",
+      "msg": "Checkpoint not found"
     },
     {
       "code": 6006,
-      "name": "invalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
+      "name": "invalidTimestamp",
+      "msg": "Invalid timestamp"
     },
     {
       "code": 6007,
-      "name": "invalidSignature",
-      "msg": "Invalid signature"
+      "name": "noWeight",
+      "msg": "No Weight"
     },
     {
       "code": 6008,
-      "name": "invalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "allWeightCast",
+      "msg": "All weight cast"
+    },
+    {
+      "code": 6009,
+      "name": "voteWouldExceedWeight",
+      "msg": "Vote would exceed weight"
+    },
+    {
+      "code": 6010,
+      "name": "withdrawToUnauthorizedAccount",
+      "msg": "Owner needs to own destination account"
+    },
+    {
+      "code": 6011,
+      "name": "insufficientWithdrawableBalance",
+      "msg": "Insufficient balance to cover the withdrawal"
+    },
+    {
+      "code": 6012,
+      "name": "proposalAlreadyExists",
+      "msg": "Proposal already exists"
+    },
+    {
+      "code": 6013,
+      "name": "invalidMessageExecutor",
+      "msg": "Invalid message executor"
+    },
+    {
+      "code": 6014,
+      "name": "invalidSpokeAirlock",
+      "msg": "Invalid spoke airlock"
+    },
+    {
+      "code": 6015,
+      "name": "invalidVestingBalance",
+      "msg": "Invalid vesting balance owner"
+    },
+    {
+      "code": 6016,
+      "name": "invalidCurrentDelegate",
+      "msg": "Invalid current delegate"
+    },
+    {
+      "code": 6017,
+      "name": "other",
+      "msg": "other"
     }
   ],
   "types": [

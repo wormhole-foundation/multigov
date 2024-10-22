@@ -110,4 +110,6 @@ pub enum ProposalWormholeMessageError {
     InvalidChainSpecificResponse,
     #[msg("Invalid function signature")]
     InvalidFunctionSignature,
+    #[msg("Proposal not initialized since start is zero")]
+    ProposalNotInitialized,
 }
