@@ -41,7 +41,3 @@
   mainnet = "${ETHEREUM_RPC_URL}"
   optimism_sepolia = "${OPTIMISM_SEPOLIA_RPC_URL}"
   sepolia = "${SEPOLIA_RPC_URL}"
-
-[etherscan]
-  holesky = { key = "${ETHERSCAN_API_KEY}" }
-  sepolia = { key = "${ETHERSCAN_API_KEY}" }
