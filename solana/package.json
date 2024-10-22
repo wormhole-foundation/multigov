@@ -19,6 +19,7 @@
     "@project-serum/anchor": "^0.26.0",
     "@solana/spl-token": "^0.4.8",
     "@solana/web3.js": "^1.95.3",
+    "@wormhole-foundation/sdk-solana-core": "^0.12.0",
     "@wormhole-foundation/wormhole-query-sdk": "^0.0.13",
     "@wormhole/staking-wasm": "file:./wasm",
     "binary-install": "^1.1.0",

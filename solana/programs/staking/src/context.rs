@@ -1,23 +1,38 @@
 use crate::state::*;
-use anchor_lang::{
-    prelude::*,
-    solana_program::{
-        self, keccak, program_memory::sol_memcpy, secp256k1_recover::secp256k1_recover,
-    },
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program_memory::sol_memcpy;
+use anchor_lang::solana_program::secp256k1_recover::secp256k1_recover;
+use anchor_lang::solana_program::{
+    self,
+    keccak,
 };
-use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
+use anchor_spl::token::{
+    Mint,
+    Token,
+    TokenAccount,
+    Transfer,
+};
 
 use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 
-use crate::{
-    error::ErrorCode,
-    error::QueriesSolanaVerifyError,
-    state::{GuardianSignatures, WormholeGuardianSet},
+use crate::error::{
+    ErrorCode,
+    QueriesSolanaVerifyError,
+};
+use crate::state::{
+    GuardianSignatures,
+    WormholeGuardianSet,
+};
+use anchor_lang::prelude::Clock;
+
+use wormhole_query_sdk::{
+    MESSAGE_PREFIX,
+    QUERY_MESSAGE_LEN,
 };
 
-use wormhole_query_sdk::{MESSAGE_PREFIX, QUERY_MESSAGE_LEN};
+use wormhole_raw_vaas::utils::quorum;
+use wormhole_raw_vaas::GuardianSetSig;
 
-use wormhole_raw_vaas::{utils::quorum, GuardianSetSig};
 
 pub const AUTHORITY_SEED: &str = "authority";
 pub const CUSTODY_SEED: &str = "custody";
@@ -49,7 +64,7 @@ pub struct InitConfig<'info> {
     // Stake program accounts:
     pub config_account: Account<'info, global_config::GlobalConfig>,
     // Primitive accounts:
-    pub rent: Sysvar<'info, Rent>,
+    pub rent:           Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
 
@@ -91,10 +106,10 @@ pub struct Delegate<'info> {
         constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
             @ ErrorCode::InvalidCurrentDelegate
     )]
-    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+    pub stake_account_metadata:    Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
-    pub custody_authority: AccountInfo<'info>,
+    pub custody_authority:         AccountInfo<'info>,
     #[account(
         mut,
         seeds = [
@@ -105,7 +120,7 @@ pub struct Delegate<'info> {
         token::mint = mint,
         token::authority = custody_authority,
     )]
-    pub stake_account_custody: Box<Account<'info, TokenAccount>>,
+    pub stake_account_custody:     Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     pub vesting_config: Option<Account<'info, VestingConfig>>,
@@ -366,7 +381,7 @@ pub struct UpdateGovernanceAuthority<'info> {
     #[account(address = config.governance_authority)]
     pub governance_signer: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
+    pub config:            Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]
@@ -374,7 +389,7 @@ pub struct UpdateVestingAdmin<'info> {
     #[account(address = config.vesting_admin)]
     pub vesting_admin: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
+    pub config:            Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]
@@ -393,15 +408,15 @@ pub struct CreateStakeAccount<'info> {
     )]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(init, payer = payer, space = stake_account::StakeAccountMetadata::LEN, seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
-    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+    pub stake_account_metadata:    Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
-    pub custody_authority: AccountInfo<'info>,
+    pub custody_authority:         AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Box<Account<'info, global_config::GlobalConfig>>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
-    pub mint: Account<'info, Mint>,
+    pub mint:                      Account<'info, Mint>,
     #[account(
         init,
         seeds = [
@@ -415,9 +430,9 @@ pub struct CreateStakeAccount<'info> {
     )]
     pub stake_account_custody: Box<Account<'info, TokenAccount>>,
     // Primitive accounts :
-    pub rent: Sysvar<'info, Rent>,
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
+    pub rent:                      Sysvar<'info, Rent>,
+    pub token_program:             Program<'info, Token>,
+    pub system_program:            Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -440,7 +455,7 @@ pub struct WithdrawTokens<'info> {
 
     // Destination
     #[account(mut)]
-    pub destination: Account<'info, TokenAccount>,
+    pub destination:               Account<'info, TokenAccount>,
     // Stake program accounts:
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
@@ -450,21 +465,21 @@ pub struct WithdrawTokens<'info> {
         constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
             @ ErrorCode::InvalidCurrentDelegate
     )]
-    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+    pub stake_account_metadata:    Box<Account<'info, stake_account::StakeAccountMetadata>>,
     #[account(
         mut,
         seeds = [CUSTODY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
         bump = stake_account_metadata.custody_bump,
     )]
-    pub stake_account_custody: Account<'info, TokenAccount>,
+    pub stake_account_custody:     Account<'info, TokenAccount>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump = stake_account_metadata.authority_bump)]
-    pub custody_authority: AccountInfo<'info>,
+    pub custody_authority:         AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
+    pub config:                    Account<'info, global_config::GlobalConfig>,
     // Primitive accounts :
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
+    pub token_program:             Program<'info, Token>,
+    pub system_program:            Program<'info, System>,
 }
 
 impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
@@ -472,8 +487,8 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
 {
     fn from(accounts: &WithdrawTokens<'info>) -> CpiContext<'a, 'b, 'c, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {
-            from: accounts.stake_account_custody.to_account_info(),
-            to: accounts.destination.to_account_info(),
+            from:      accounts.stake_account_custody.to_account_info(),
+            to:        accounts.destination.to_account_info(),
             authority: accounts.custody_authority.to_account_info(),
         };
         let cpi_program = accounts.token_program.to_account_info();
@@ -493,29 +508,51 @@ pub struct InitializeSpokeMessageExecutor<'info> {
         seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
         bump
     )]
-    pub executor: Account<'info, SpokeMessageExecutor>,
+    pub executor:       Account<'info, SpokeMessageExecutor>,
     /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
     #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
-    pub airlock: Account<'info, SpokeAirlock>,
+    pub airlock:        Account<'info, SpokeAirlock>,
     pub system_program: Program<'info, System>,
 }
 
 
 #[derive(Accounts)]
-#[instruction(_message_hash: [u8; 32])]
-pub struct ExecuteMessage<'info> {
+#[instruction(vaa_hash: [u8; 32])]
+pub struct ReceiveMessage<'info> {
+    /// The payer of the transaction fees.
     #[account(mut)]
     pub payer: Signer<'info>,
 
+    /// Stores the state of the message execution to prevent re-execution.
     #[account(
         init_if_needed,
         payer = payer,
         space = MessageReceived::LEN,
-        seeds = [MESSAGE_RECEIVED.as_bytes(), &_message_hash],
+        seeds = [MESSAGE_RECEIVED.as_bytes(), &vaa_hash],
         bump
     )]
     pub message_received: Account<'info, MessageReceived>,
+
+    /// CHECK
+    /// The verified Wormhole VAA account containing the message.
+    #[account(
+        seeds = [
+            b"PostedVAA",
+            &vaa_hash
+        ],
+        seeds::program = wormhole_program.key(),
+        bump
+    )]
+    pub posted_vaa: AccountInfo<'info>,
+
+    /// The Wormhole Core Bridge program.
+    /// CHECK: Ensures the correct program is used for PDA derivation.
+    #[account(address = CORE_BRIDGE_PROGRAM_ID)]
+    pub wormhole_program: AccountInfo<'info>,
+
+    /// The system program.
+    pub system_program: Program<'info, System>,
 
     #[account(
         mut,
@@ -523,10 +560,7 @@ pub struct ExecuteMessage<'info> {
         bump = airlock.bump
     )]
     pub airlock: Account<'info, SpokeAirlock>,
-
-    pub system_program: Program<'info, System>,
 }
-
 
 #[derive(Accounts)]
 pub struct SetAirlock<'info> {
@@ -556,7 +590,7 @@ pub struct InitializeSpokeAirlock<'info> {
         seeds = [AIRLOCK_SEED.as_bytes()],
         bump
     )]
-    pub airlock: Account<'info, SpokeAirlock>,
+    pub airlock:        Account<'info, SpokeAirlock>,
     pub system_program: Program<'info, System>,
 }
 

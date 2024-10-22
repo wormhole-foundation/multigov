@@ -10,26 +10,42 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
 use contexts::*;
-use state::checkpoints::{find_checkpoint_le, push_checkpoint, Operation};
+use state::checkpoints::{
+    find_checkpoint_le,
+    push_checkpoint,
+    Operation,
+};
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
-use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
-
-use anchor_lang::solana_program::{
-    instruction::AccountMeta, instruction::Instruction, program::invoke_signed,
+use wormhole_solana_consts::{
+    CORE_BRIDGE_PROGRAM_ID,
+    SOLANA_CHAIN,
 };
 
+use anchor_lang::solana_program::instruction::{
+    AccountMeta,
+    Instruction,
+};
+use anchor_lang::solana_program::program::invoke_signed;
+
 use wormhole_query_sdk::structs::{
-    ChainSpecificQuery, ChainSpecificResponse, EthCallData, QueryResponse,
+    ChainSpecificQuery,
+    ChainSpecificResponse,
+   EthCallData, QueryResponse,
 };
 
 use crate::{
     error::{ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError},
     state::GuardianSignatures,
 };
+use crate::state::GuardianSignatures;
 
-use crate::utils::execute_message::{deserialize_message};
+use crate::utils::execute_message::deserialize_message;
+use wormhole_query_sdk::{
+    MESSAGE_PREFIX,
+    QUERY_MESSAGE_LEN,
+};
 
 
 // automatically generate module using program idl found in ./idls
@@ -45,33 +61,36 @@ pub mod wasm;
 
 #[event]
 pub struct DelegateChanged {
-    pub delegator: Pubkey,
-    pub from_delegate: Pubkey,
-    pub to_delegate: Pubkey,
+    pub delegator:             Pubkey,
+    pub from_delegate:         Pubkey,
+    pub to_delegate:           Pubkey,
     pub total_delegated_votes: u64,
 }
 
 #[event]
 pub struct VoteCast {
-    pub voter: Pubkey,
-    pub proposal_id: [u8; 32],
-    pub weight: u64,
+    pub voter:         Pubkey,
+    pub proposal_id:   [u8; 32],
+    pub weight:        u64,
     pub against_votes: u64,
-    pub for_votes: u64,
+    pub for_votes:     u64,
     pub abstain_votes: u64,
 }
 
 #[event]
 pub struct ProposalCreated {
     pub proposal_id: [u8; 32],
-    pub vote_start: u64,
+    pub vote_start:  u64,
 }
+
 
 declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
 #[program]
 pub mod staking {
     /// Creates a global config for the program
     use super::*;
+    use anchor_lang::solana_program::keccak;
+    use wormhole_raw_vaas::Vaa;
 
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
         let config_account = &mut ctx.accounts.config_account;
@@ -164,10 +183,10 @@ pub mod staking {
             .unwrap();
 
         emit!(DelegateChanged {
-            delegator: ctx.accounts.stake_account_checkpoints.key(),
-            from_delegate: current_delegate,
-            to_delegate: delegatee,
-            total_delegated_votes: total_delegated_votes
+            delegator:             ctx.accounts.stake_account_checkpoints.key(),
+            from_delegate:         current_delegate,
+            to_delegate:           delegatee,
+            total_delegated_votes: total_delegated_votes,
         });
 
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
@@ -401,7 +420,8 @@ pub mod staking {
         ctx.accounts.withdraw_surplus()
     }
 
-    //------------------------------------ SPOKE MESSAGE EXECUTOR ------------------------------------------------
+    //------------------------------------ SPOKE MESSAGE EXECUTOR
+    //------------------------------------ ------------------------------------------------
     // Initialize and setting a spoke message executor
     pub fn initialize_spoke_message_executor(
         ctx: Context<InitializeSpokeMessageExecutor>,
@@ -418,75 +438,82 @@ pub mod staking {
     }
 
 
-    pub fn receive_message(
-        ctx: Context<ExecuteMessage>,
-        _message_hash: [u8; 32],
-        encoded_message: Vec<u8>,
-    ) -> Result<()> {
-
+    pub fn receive_message(ctx: Context<ReceiveMessage>, vaa_hash: [u8; 32]) -> Result<()> {
         let message_received = &mut ctx.accounts.message_received;
 
+        // Check if the message has already been processed.
         if message_received.executed {
             return Err(error!(ErrorCode::Other));
         }
 
-        let message = deserialize_message(&encoded_message)?;
+        let vaa_account_info = &ctx.accounts.posted_vaa;
 
-        message_received.executed = true;
+        let vaa_data = &vaa_account_info.data.borrow();
 
-        msg!("Message: {}", message);
+        let vaa = Vaa::parse(vaa_data).map_err(|_| ErrorCode::Other)?;
 
 
+        // Verify that the message is from the expected emitter.
+        // if vaa.emitter_chain != 1002 || vaa.emitter_address != EXPECTED_EMITTER_ADDRESS {
+        if vaa.body().emitter_chain() != 1002 {
+            return Err(error!(ErrorCode::Other));
+        }
+
+        // Deserialize the message payload.
+        let message = deserialize_message(&vaa.payload().as_ref())?;
+
+        // Execute the instructions in the message.
         for instruction in message.instructions {
+            // Prepare AccountInfo vector for the instruction.
             let mut account_infos = vec![];
 
             for meta in &instruction.accounts {
-                let pubkey = meta.pubkey;
-                msg!("Instruction account : {}", pubkey);
-
-                msg!("remaining_accounts : {:?}", ctx.remaining_accounts);
-
-                let account_info = ctx.remaining_accounts
+                let account_info = ctx
+                    .remaining_accounts
                     .iter()
-                    .find(|a| a.key == &pubkey)
+                    .find(|a| a.key == &meta.pubkey)
                     .ok_or_else(|| error!(ErrorCode::Other))?;
                 account_infos.push(account_info.clone());
             }
 
-            // If there are no accounts, skip execution
-            if account_infos.is_empty() {
-                continue;
-            }
-
+            // Create the instruction.
             let ix = Instruction {
                 program_id: instruction.program_id,
-                accounts: instruction.accounts.iter().map(|meta| {
-                    let pubkey = meta.pubkey;
-                    if meta.is_signer {
-                        if meta.is_writable {
-                            AccountMeta::new(pubkey, true)
+                accounts:   instruction
+                    .accounts
+                    .iter()
+                    .map(|meta| {
+                        if meta.is_signer {
+                            if meta.is_writable {
+                                AccountMeta::new(meta.pubkey, true)
+                            } else {
+                                AccountMeta::new_readonly(meta.pubkey, true)
+                            }
                         } else {
-                            AccountMeta::new_readonly(pubkey, true)
+                            if meta.is_writable {
+                                AccountMeta::new(meta.pubkey, false)
+                            } else {
+                                AccountMeta::new_readonly(meta.pubkey, false)
+                            }
                         }
-                    } else {
-                        if meta.is_writable {
-                            AccountMeta::new(pubkey, false)
-                        } else {
-                            AccountMeta::new_readonly(pubkey, false)
-                        }
-                    }
-                }).collect(),
-                data: instruction.data.clone(),
+                    })
+                    .collect(),
+                data:       instruction.data.clone(),
             };
 
-            let signer_seeds: &[&[&[u8]]] = &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
+            // Use invoke_signed with the correct signer_seeds
+            let signer_seeds: &[&[&[u8]]] =
+                &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
 
             invoke_signed(&ix, &account_infos, signer_seeds)?;
         }
 
+        // Mark the message as executed.
+        message_received.executed = true;
 
         Ok(())
     }
+
 
     pub fn set_airlock(ctx: Context<SetAirlock>) -> Result<()> {
         let executor = &mut ctx.accounts.executor;
@@ -500,7 +527,8 @@ pub mod staking {
         Ok(())
     }
 
-    //------------------------------------ SPOKE AIRLOCK ------------------------------------------------
+    //------------------------------------ SPOKE AIRLOCK
+    //------------------------------------ ------------------------------------------------
     pub fn initialize_spoke_airlock(
         ctx: Context<InitializeSpokeAirlock>,
         message_executor: Pubkey,
@@ -534,8 +562,8 @@ pub mod staking {
 
         let instruction = Instruction {
             program_id: cpi_target_program_id,
-            accounts: account_metas,
-            data: instruction_data,
+            accounts:   account_metas,
+            data:       instruction_data,
         };
 
         let signer_seeds: &[&[&[u8]]] = &[&[b"airlock", &[airlock.bump]]];
@@ -545,7 +573,8 @@ pub mod staking {
         Ok(())
     }
 
-    //------------------------------------ SPOKE METADATA COLLECTOR ------------------------------------------------
+    //------------------------------------ SPOKE METADATA COLLECTOR
+    //------------------------------------ ------------------------------------------------
     // Initialize and setting a spoke metadata collector
     pub fn initialize_spoke_metadata_collector(
         ctx: Context<InitializeSpokeMetadataCollector>,
@@ -677,13 +706,16 @@ pub mod staking {
 /// Creates or appends to a GuardianSignatures account for subsequent use by verify_query.
 /// This is necessary as the Wormhole query response (220 bytes)
 /// and 13 guardian signatures (a quorum of the current 19 mainnet guardians, 66 bytes each)
-/// alongside the required accounts is larger than the transaction size limit on Solana (1232 bytes).
+/// alongside the required accounts is larger than the transaction size limit on Solana (1232
+/// bytes).
 ///
-/// This instruction allows for the initial payer to append additional signatures to the account by calling the instruction again.
-/// This may be necessary if a quorum of signatures from the current guardian set grows larger than can fit into a single transaction.
+/// This instruction allows for the initial payer to append additional signatures to the account by
+/// calling the instruction again. This may be necessary if a quorum of signatures from the current
+/// guardian set grows larger than can fit into a single transaction.
 ///
-/// The GuardianSignatures account can be closed by anyone with a successful update_root_with_query instruction
-/// or by the initial payer via close_signatures, either of which will refund the initial payer.
+/// The GuardianSignatures account can be closed by anyone with a successful update_root_with_query
+/// instruction or by the initial payer via close_signatures, either of which will refund the
+/// initial payer.
 fn _post_signatures(
     ctx: Context<PostSignatures>,
     mut guardian_signatures: Vec<[u8; 66]>,

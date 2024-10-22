@@ -1,6 +1,10 @@
+use crate::state::{
+    msg,
+    ProgramError,
+    Pubkey,
+};
 use std::convert::TryInto;
 use std::fmt;
-use crate::state::{msg, ProgramError, Pubkey};
 
 /// Error codes for the parser
 #[derive(Debug)]
@@ -18,22 +22,26 @@ impl From<ParserError> for ProgramError {
 /// Data structures to hold the parsed data
 #[derive(Clone, Debug)]
 pub struct AccountMeta {
-    pub pubkey: Pubkey,
-    pub is_signer: bool,
+    pub pubkey:      Pubkey,
+    pub is_signer:   bool,
     pub is_writable: bool,
 }
 
 impl fmt::Display for AccountMeta {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Pubkey:  {}, is_signer: {}, is_writable: {}", self.pubkey, self.is_signer, self.is_writable)
+        write!(
+            f,
+            "Pubkey:  {}, is_signer: {}, is_writable: {}",
+            self.pubkey, self.is_signer, self.is_writable
+        )
     }
 }
 
 #[derive(Debug)]
 pub struct InstructionData {
     pub program_id: Pubkey,
-    pub accounts: Vec<AccountMeta>,
-    pub data: Vec<u8>,
+    pub accounts:   Vec<AccountMeta>,
+    pub data:       Vec<u8>,
 }
 
 impl fmt::Display for InstructionData {
@@ -49,30 +57,25 @@ impl fmt::Display for InstructionData {
 }
 
 
-
 pub struct Message {
-    pub message_id: [u8; 32],
+    pub message_id:        [u8; 32],
     pub wormhole_chain_id: u16,
-    pub instructions: Vec<InstructionData>,
+    pub instructions:      Vec<InstructionData>,
 }
 
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Message ID: {:?}, Wormhole Chain ID: {}, Instructions: {:?}", self.message_id, self.wormhole_chain_id, self.instructions)
+        write!(
+            f,
+            "Message ID: {:?}, Wormhole Chain ID: {}, Instructions: {:?}",
+            self.message_id, self.wormhole_chain_id, self.instructions
+        )
     }
 }
 
 /// Parses an Ethereum ABI-encoded message
 pub fn parse_abi_encoded_message(data: &[u8]) -> Result<Message, ProgramError> {
-    // Read the initial offset
-    let root_offset_bytes = &data[0..32];
-    let root_offset = u64::from_be_bytes(root_offset_bytes[24..32].try_into().unwrap()) as usize;
-
-    msg!("Root offset: {}", root_offset);
-
-    // Now set offset to root_offset
-    let mut offset = root_offset;
-    // Helper function to read 32-byte words
+    let mut offset = 0;
 
     // Read messageId (uint256)
     let message_id_bytes = &data[offset..offset + 32];
@@ -85,18 +88,13 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> Result<Message, ProgramError> {
     offset += 32;
 
     // Read instructions offset (uint256)
-    let instructions_offset_relative_bytes = &data[offset..offset + 32];
-    let instructions_offset_relative = u64::from_be_bytes(instructions_offset_relative_bytes[24..32].try_into().unwrap()) as usize;
+    let instructions_offset_bytes = &data[offset..offset + 32];
+    let instructions_offset =
+        u64::from_be_bytes(instructions_offset_bytes[24..32].try_into().unwrap()) as usize;
     offset += 32;
 
-    // The instructions_offset is relative to the root_offset
-    let instructions_offset = root_offset + instructions_offset_relative;
-
-    msg!("Message ID: {:?}", message_id);
-    msg!("Wormhole Chain ID: {}", wormhole_chain_id);
-    msg!("Instructions offset: {}", instructions_offset);
-
-    // Now parse instructions array from the instructions_offset
+    // The instructions_offset is absolute if it's a top-level parameter
+    // Adjust the offset to point to the instructions data
     let instructions = parse_instructions(data, instructions_offset)?;
 
     Ok(Message {
@@ -108,78 +106,64 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> Result<Message, ProgramError> {
 
 
 /// Parses the instructions array
-fn parse_instructions(data: &[u8], instructions_offset: usize) -> Result<Vec<InstructionData>, ProgramError> {
-    let mut offset = instructions_offset;
-
-    msg!("Parsing instructions at offset: {}", offset);
+fn parse_instructions(data: &[u8], offset: usize) -> Result<Vec<InstructionData>, ProgramError> {
+    let mut offset = offset;
 
     // Read instructions array length
-    let instructions_length_word = &data[offset..offset + 32];
-    let instructions_length = u64::from_be_bytes(instructions_length_word[24..32].try_into().unwrap()) as usize;
-    msg!("Instructions length: {}", instructions_length);
+    let instructions_length_bytes = &data[offset..offset + 32];
+    let instructions_length =
+        u64::from_be_bytes(instructions_length_bytes[24..32].try_into().unwrap()) as usize;
     offset += 32;
 
     let mut instructions = Vec::with_capacity(instructions_length);
 
-    for i in 0..instructions_length {
-        let instruction_start_offset = offset;
-
-        // Read programId (bytes32)
-        let program_id_bytes = &data[offset..offset + 32];
-        let program_id = Pubkey::new_from_array(program_id_bytes.try_into().unwrap());
+    for _ in 0..instructions_length {
+        // Read instruction offset (uint256)
+        let instruction_offset_bytes = &data[offset..offset + 32];
+        let instruction_offset =
+            u64::from_be_bytes(instruction_offset_bytes[24..32].try_into().unwrap()) as usize;
         offset += 32;
 
-        // Read accounts offset (uint256)
-        let accounts_offset_relative_bytes = &data[offset..offset + 32];
-        let accounts_offset_relative = u64::from_be_bytes(accounts_offset_relative_bytes[24..32].try_into().unwrap()) as usize;
-        offset += 32;
-
-        // Read data offset (uint256)
-        let data_offset_relative_bytes = &data[offset..offset + 32];
-        let data_offset_relative = u64::from_be_bytes(data_offset_relative_bytes[24..32].try_into().unwrap()) as usize;
-        offset += 32;
-
-        // Adjust offsets relative to `instructions_offset`
-        let accounts_offset = if accounts_offset_relative != 0 {
-            instructions_offset + accounts_offset_relative
-        } else {
-            0
-        };
-
-        let data_offset = if data_offset_relative != 0 {
-            instructions_offset + data_offset_relative
-        } else {
-            0
-        };
-
-        // Log offsets
-        msg!("Instruction {}:", i);
-        msg!("  Program ID: {}", program_id);
-        msg!("  Accounts offset relative: {}", accounts_offset_relative);
-        msg!("  Accounts offset absolute: {}", accounts_offset);
-        msg!("  Data offset relative: {}", data_offset_relative);
-        msg!("  Data offset absolute: {}", data_offset);
-
-        // Parse accounts array
-        let accounts = parse_accounts(data, accounts_offset)?;
-
-        // Parse instruction data
-        let instruction_data = parse_instruction_data(data, data_offset)?;
-
-        instructions.push(InstructionData {
-            program_id,
-            accounts,
-            data: instruction_data,
-        });
+        // Parse individual instruction
+        let instruction = parse_instruction(data, instruction_offset)?;
+        instructions.push(instruction);
     }
 
     Ok(instructions)
 }
 
+/// Parses a single instruction
+fn parse_instruction(data: &[u8], offset: usize) -> Result<InstructionData, ProgramError> {
+    let mut offset = offset;
 
+    // Read programId (bytes32)
+    let program_id_bytes = &data[offset..offset + 32];
+    let program_id = Pubkey::new_from_array(program_id_bytes.try_into().unwrap());
+    offset += 32;
 
+    // Read accounts array offset (uint256)
+    let accounts_offset_bytes = &data[offset..offset + 32];
+    let accounts_offset =
+        u64::from_be_bytes(accounts_offset_bytes[24..32].try_into().unwrap()) as usize;
+    offset += 32;
 
+    // Read data offset (uint256)
+    let data_offset_bytes = &data[offset..offset + 32];
+    let data_offset = u64::from_be_bytes(data_offset_bytes[24..32].try_into().unwrap()) as usize;
+    offset += 32;
 
+    // Parse accounts
+    let accounts = parse_accounts(data, accounts_offset)?;
+
+    // Parse instruction data
+    let instruction_data = parse_instruction_data(data, data_offset)?;
+
+    Ok(InstructionData {
+        program_id,
+        accounts,
+        data: instruction_data,
+    })
+}
 
 
 /// Parses the accounts array
@@ -195,7 +179,8 @@ fn parse_accounts(data: &[u8], accounts_offset: usize) -> Result<Vec<AccountMeta
 
     // Read accounts array length
     let accounts_length_word = &data[offset..offset + 32];
-    let accounts_length = u64::from_be_bytes(accounts_length_word[24..32].try_into().unwrap()) as usize;
+    let accounts_length =
+        u64::from_be_bytes(accounts_length_word[24..32].try_into().unwrap()) as usize;
     msg!("Accounts length: {}", accounts_length);
     offset += 32;
 
@@ -232,7 +217,6 @@ fn parse_accounts(data: &[u8], accounts_offset: usize) -> Result<Vec<AccountMeta
 }
 
 
-
 /// Parses the instruction data
 fn parse_instruction_data(data: &[u8], data_offset: usize) -> Result<Vec<u8>, ProgramError> {
     if data_offset == 0 {
@@ -263,8 +247,6 @@ fn parse_instruction_data(data: &[u8], data_offset: usize) -> Result<Vec<u8>, Pr
 
     Ok(instruction_data)
 }
-
-
 
 
 /// Deserializes the message

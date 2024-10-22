@@ -32,6 +32,10 @@ wormhole-solana-consts = { version = "0.3.0-alpha.1", features = ["testnet"] }
 wormhole-raw-vaas = {version = "0.3.0-alpha.1"}
 wormhole-query-sdk = { git = "https://github.com/wormholelabs-xyz/wormhole-query-sdk-rust", version = "0.0.1", rev = "0f34cb470f4e3137b53aa91adcbb0c7def280925" }
 arrayref = "0.3.8"
+wormhole-vaas-serde = { version = "0.1.0" }
+wormhole-sdk = "0.0.7"
+
+
 
 [dev-dependencies]
 rand = "0.8.5"

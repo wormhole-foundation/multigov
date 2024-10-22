@@ -1,229 +1,240 @@
+import { BN } from "@coral-xyz/anchor";
 import path from "path";
-import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
-import { StakeConnection } from "../app/StakeConnection";
-import { WHTokenBalance } from "../app";
-import {AbiCoder, keccak256, sha256} from "ethers";
-import assert from "assert";
 import {
-    standardSetup,
-    readAnchorConfig,
-    getPortNumber,
-    makeDefaultConfig,
-    ANCHOR_CONFIG_PATH,
+  Connection,
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
+import { ethers } from "ethers";
+import assert from "assert";
+import { StakeConnection } from "../app/StakeConnection";
+import { CORE_BRIDGE_ADDRESS, WHTokenBalance } from "../app";
+import {
+  standardSetup,
+  readAnchorConfig,
+  getPortNumber,
+  makeDefaultConfig,
+  ANCHOR_CONFIG_PATH,
 } from "./utils/before";
-import * as console from "node:console";
-import {BigNumber} from "@ethersproject/bignumber";
+import {
+  keccak256,
+  secp256k1,
+  serialize,
+  toUniversal,
+  deserialize,
+  UniversalAddress,
+} from "@wormhole-foundation/sdk-definitions";
+import { mocks } from "@wormhole-foundation/sdk-definitions/testing";
+import {
+  SolanaWormholeCore,
+  utils as coreUtils,
+  derivePostedVaaKey,
+} from "@wormhole-foundation/sdk-solana-core";
+import { SolanaSendSigner } from "@wormhole-foundation/sdk-solana";
+import { signAndSendWait } from "@wormhole-foundation/sdk-connect";
+import { Chain, contracts } from "@wormhole-foundation/sdk-base";
 
-// Define interfaces for SolanaAccountMeta and SolanaInstruction
-interface SolanaAccountMeta {
-    pubkey: Buffer; // 32 bytes representing the public key
-    isSigner: boolean;
-    isWritable: boolean;
-}
+// Define the port number for the test
+const portNumber = getPortNumber(path.basename(__filename));
 
-interface SolanaInstruction {
-    programId: Buffer; // 32 bytes representing the program ID
-    accounts: SolanaAccountMeta[];
-    data: Buffer; // Instruction data
-}
+// Constants
+export const CORE_BRIDGE_PID = new PublicKey(
+  contracts.coreBridge.get("Mainnet", "Solana")!,
+);
+const GUARDIAN_PRIVATE_KEYS = [
+  // Your private keys for mock guardians (hex strings without '0x' prefix)
+  "e2f2f8f16b6f8f1f7c6f6e5f4d4c3b2a1a0f0e0d0c0b0a090807060504030201",
+  // Add more keys as needed
+];
+const GUARDIAN_KEY = Buffer.from(GUARDIAN_PRIVATE_KEYS[0], "hex");
 
-// Define the test suite for receive_message()
-describe("receive_message test", () => {
-    let stakeConnection: StakeConnection;
-    let payer: Keypair;
-    let controller;
-    let airlockPDA: PublicKey;
-    let airlockBump: number;
-    let messageExecutor: PublicKey;
+describe("receive_message", () => {
+  let stakeConnection: StakeConnection;
+  let controller;
+  let payer: Keypair;
+  let airlockPDA: PublicKey;
+  let airlockBump: number;
+  let messageExecutor: PublicKey;
 
-    before(async () => {
-        // Initialize the connection and accounts
+  before(async () => {
+    // Read the Anchor configuration from the specified path
+    const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
 
-        // Read the Anchor configuration from the specified path
-        const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
+    // Generate keypairs for the Wormhole token mint account and its authority
+    const whMintAccount = Keypair.generate();
+    const whMintAuthority = Keypair.generate();
 
-        // Get a unique port number for the test based on the filename
-        const portNumber = getPortNumber(path.basename(__filename));
+    // Use standardSetup to initialize the StakeConnection and related setup
+    ({ controller, stakeConnection } = await standardSetup(
+      portNumber,
+      config,
+      whMintAccount,
+      whMintAuthority,
+      makeDefaultConfig(whMintAccount.publicKey),
+      WHTokenBalance.fromString("1000"), // Initial balance for testing
+    ));
 
-        console.log(portNumber);
+    // The payer is the wallet associated with the provider
+    payer = stakeConnection.provider.wallet.payer as Keypair;
 
-        // Generate keypairs for the Wormhole token mint account and its authority
-        const whMintAccount = Keypair.generate();
-        const whMintAuthority = Keypair.generate();
+    // Find the PDA and bump for the airlock account
+    [airlockPDA, airlockBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("airlock")],
+      stakeConnection.program.programId,
+    );
 
-        // Use standardSetup to initialize the StakeConnection and related setup
-        ({ controller, stakeConnection } = await standardSetup(
-            portNumber,
-            config,
-            whMintAccount,
-            whMintAuthority,
-            makeDefaultConfig(whMintAccount.publicKey),
-            WHTokenBalance.fromString("1000"), // Initial balance for testing
-        ));
+    // Determine the message executor public key
+    messageExecutor = payer.publicKey;
 
-        // The payer is the wallet associated with the provider
-        payer = stakeConnection.provider.wallet.payer as Keypair;
+    // Initialize the airlock account
+    await stakeConnection.program.methods
+      .initializeSpokeAirlock(messageExecutor)
+      .accounts({
+        payer: payer.publicKey,
+        airlock: airlockPDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([payer])
+      .rpc({ skipPreflight: true });
+  });
 
-        // Find the PDA and bump for the airlock account
-        [airlockPDA, airlockBump] = await PublicKey.findProgramAddress(
-            [Buffer.from("airlock")],
-            stakeConnection.program.programId,
-        );
+  after(async () => {
+    // Abort the controller to clean up after the test
+    controller.abort();
+  });
 
-        // Determine the message executor public key
-        // For testing, you can use the payer's public key or generate a new keypair
-        messageExecutor = payer.publicKey;
+  it("should process receive_message correctly", async () => {
+    console.log("wormholeProgram:", CORE_BRIDGE_PID.toBase58());
 
-        // Initialize the airlock account
-        await stakeConnection.program.methods
-            .initializeSpokeAirlock(messageExecutor)
-            .accounts({
-                payer: payer.publicKey,
-                airlock: airlockPDA,
-                systemProgram: SystemProgram.programId,
-            })
-            .signers([payer])
-            .rpc({skipPreflight: true});
-    });
+    const guardians = new mocks.MockGuardians(0, GUARDIAN_PRIVATE_KEYS);
 
-    after(async () => {
-        // Abort the controller to clean up after the test
-        controller.abort();
-    });
+    // Prepare the message (payload) for the VAA
+    const messagePayload = Buffer.from("Your message data"); // Replace with actual message data
 
-    it("should process the message in receive_message", async () => {
-        const recipient = Keypair.generate(); // Generate a recipient account
+    // Emitter address (32 bytes)
+    const emitterAddress = Buffer.alloc(32);
+    emitterAddress[31] = 1; // Example value
 
-        // Ensure correct instruction data
-        const transferInstruction: SolanaInstruction = {
-            programId: SystemProgram.programId.toBuffer(),
-            accounts: [
-                {
-                    pubkey: payer.publicKey.toBuffer(),
-                    isSigner: true,
-                    isWritable: true,
-                },
-                {
-                    pubkey: recipient.publicKey.toBuffer(),
-                    isSigner: false,
-                    isWritable: true,
-                },
-            ],
-            data: SystemProgram.transfer({
-                fromPubkey: payer.publicKey,
-                toPubkey: recipient.publicKey,
-                lamports: 1000, // Amount to transfer
-            }).data, // Ensure this contains the correct instruction data
-        };
+    // Generate the VAA
+    const { publicKey, hash } = await postReceiveMessageVaa(
+      stakeConnection.provider.connection,
+      payer,
+      guardians,
+      Array.from(Buffer.alloc(32, "f0", "hex")),
+      BigInt(1),
+      messagePayload,
+      { sourceChain: "Ethereum" },
+    );
 
+    console.log("payer.publicKey:", payer.publicKey.toBase58());
+    console.log("airlockPDA:", airlockPDA.toBase58());
+    console.log("postedVaaAddress:", publicKey.toBase58());
+    console.log("wormholeProgram:", CORE_BRIDGE_PID.toBase58());
+    console.log("systemProgram:", SystemProgram.programId.toBase58());
 
+    // Prepare PDA for message_received
+    const [messageReceivedPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("message_received"), hash],
+      stakeConnection.program.programId,
+    );
 
-        // Prepare the message parameters
-        const messageId = BigInt(1); // Arbitrary message ID
-        const wormholeChainId = 1; // Example chain ID for testing
-        const instructions = [transferInstruction]; // Single instruction in the message
+    // Invoke receive_message instruction
+    await stakeConnection.program.methods
+      .receiveMessage(hash)
+      .accounts({
+        payer: payer.publicKey,
+        messageReceived: messageReceivedPDA,
+        airlock: airlockPDA,
+        postedVaa: publicKey,
+        wormholeProgram: CORE_BRIDGE_PID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([payer])
+      .rpc({ skipPreflight: true });
 
-        // Encode the message using the encodeMessage function
-        const encodedMessage = encodeMessage(messageId, wormholeChainId, instructions);
+    // Verify the message_received account
+    const messageReceivedAccount =
+      await stakeConnection.program.account.messageReceived.fetch(
+        messageReceivedPDA,
+      );
 
-        // Compute the message hash (keccak256 hash of the encoded message)
-        const messageHash = sha256(encodedMessage); // or keccak256 if the program uses it
-        const messageHashBytes = Buffer.from(messageHash.slice(2), "hex"); // Remove '0x' prefix
-
-        console.log("Message Hash:", messageHash);
-        console.log("Message Hash Bytes Length:", messageHashBytes.length);
-
-        // Find the PDA for message_received account using the correct seeds
-        const [messageReceivedPDA] = await PublicKey.findProgramAddress(
-            [Buffer.from("message_received"), messageHashBytes],
-            stakeConnection.program.programId,
-        );
-
-        console.log("Client messageReceivedPDA:", messageReceivedPDA.toBase58());
-
-        const remainingAccounts = [
-            {
-                pubkey: payer.publicKey,
-                isSigner: true,
-                isWritable: true,
-            },
-            {
-                pubkey: recipient.publicKey,
-                isSigner: false,
-                isWritable: true,
-            },
-            {
-                pubkey: SystemProgram.programId,
-                isSigner: false,
-                isWritable: false,
-            },
-        ];
-
-
-        // Invoke the receive_message function on the staking program
-        await stakeConnection.program.methods
-            .receiveMessage( messageHashBytes, encodedMessage)
-            .accounts({
-                payer: payer.publicKey, // The payer of the transaction
-                messageReceived: messageReceivedPDA, // The message_received account PDA
-                airlock: airlockPDA, // The airlock account PDA
-                systemProgram: SystemProgram.programId,
-            })
-            .remainingAccounts(remainingAccounts)
-            .signers([payer])
-            .rpc({skipPreflight: true});
-
-        // Fetch the message_received account to verify it was marked as executed
-        const messageReceivedAccount =
-            await stakeConnection.program.account.messageReceived.fetch(messageReceivedPDA);
-
-        // Assert that the message has been marked as executed
-        assert.equal(messageReceivedAccount.executed, true);
-    });
+    assert.equal(messageReceivedAccount.executed, true);
+  });
 });
 
-// Function to encode the message as expected by the receive_message function
+export async function postReceiveMessageVaa(
+  connection: Connection,
+  payer: Keypair,
+  guardians: mocks.MockGuardians,
+  foreignEmitterAddress: Array<number>,
+  sequence: bigint,
+  message: Buffer,
+  args: { sourceChain?: Chain; timestamp?: number } = {},
+) {
+  let { sourceChain, timestamp } = args;
+  sourceChain = sourceChain ?? "Ethereum";
+  timestamp = timestamp ?? (await getBlockTime(connection));
 
-function encodeMessage(
-    messageId: bigint,
-    wormholeChainId: bigint,
-    instructions: SolanaInstruction[],
-): Buffer {
-    const abi = new AbiCoder();
+  const foreignEmitter = new mocks.MockEmitter(
+    toUniversal(sourceChain, new Uint8Array(foreignEmitterAddress)),
+    sourceChain,
+    sequence - BigInt(1),
+  );
 
-    // Define types without field names
-    const accountMetaType = "tuple(bytes32,bool,bool)";
-    const instructionType = `tuple(
-        bytes32,
-        ${accountMetaType}[],
-        bytes
-    )`;
-    const messageType = `tuple(
-        uint256,
-        uint256,
-        ${instructionType}[]
-    )`;
+  const published = foreignEmitter.publishMessage(
+    0, // nonce
+    message,
+    0, // consistencyLevel
+    timestamp,
+  );
+  const vaa = guardians.addSignatures(published, [0]);
 
-    // Prepare data without field names
-    const messageValue = [
-        messageId,
-        BigInt(wormholeChainId),
-        instructions.map(instr => [
-            '0x' + instr.programId.toString('hex'),
-            instr.accounts.map(acc => [
-                '0x' + acc.pubkey.toString('hex'),
-                acc.isSigner,
-                acc.isWritable,
-            ]),
-            '0x' + instr.data.toString('hex'),
-        ]),
-    ];
+  await postVaa(
+    connection,
+    payer,
+    Buffer.from(serialize(vaa)),
+    CORE_BRIDGE_PID,
+  );
 
-    // Encode the message
-    const encoded = abi.encode([messageType], [messageValue]);
-
-    console.log("Encoded Message:", encoded);
-    return Buffer.from(encoded.slice(2), "hex");
+  let hash = vaa.hash;
+  let publicKey = coreUtils.derivePostedVaaKey(
+    CORE_BRIDGE_PID,
+    Buffer.from(hash),
+  );
+  return { publicKey, hash };
 }
 
+/**
+ * Helper function to post VAA on Solana.
+ * This function uses the Wormhole SDK to post the VAA to the Solana Core Bridge.
+ */
+async function postVaa(
+  connection: Connection,
+  payer: Keypair,
+  vaaBuf: Buffer,
+  coreBridgeAddress?: PublicKey,
+) {
+  const core = new SolanaWormholeCore("Devnet", "Solana", connection, {
+    coreBridge: (coreBridgeAddress ?? CORE_BRIDGE_PID).toString(),
+  });
+  console.log("payer.publicKey:", payer.publicKey.toBase58());
+  const txs = core.postVaa(payer.publicKey, deserialize("Uint8Array", vaaBuf));
+  const signer = new SolanaSendSigner(connection, "Solana", payer, false, {});
+  await signAndSendWait(txs, signer);
+}
 
+/**
+ * Utility function to get block time.
+ * You should implement this function according to your project's utilities.
+ */
+async function getBlockTime(connection: Connection): Promise<number> {
+  const slot = await connection.getSlot();
+  const blockTime = await connection.getBlockTime(slot);
+  if (blockTime === null) {
+    throw new Error("Failed to get block time");
+  }
+  return blockTime;
+}
