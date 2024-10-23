@@ -37,8 +37,8 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     HubProposalMetadata proposalMetadata = contracts.hubProposalMetadata;
     HubMessageDispatcher dispatcher = contracts.hubMessageDispatcher;
     HubProposalExtender extender = contracts.extender;
-	HubEvmSpokeAggregateProposer aggregateProposer = contracts.hubEvmSpokeAggregateProposer;
-	HubSolanaSpokeVoteDecoder solanaVoteDecoder = contracts.hubSolanaSpokeVoteDecoder;
+    HubEvmSpokeAggregateProposer aggregateProposer = contracts.hubEvmSpokeAggregateProposer;
+    HubSolanaSpokeVoteDecoder solanaVoteDecoder = contracts.hubSolanaSpokeVoteDecoder;
 
     assertEq(timelock.getMinDelay(), 300);
     assertEq(timelock.hasRole(timelock.EXECUTOR_ROLE(), address(governor)), true);
@@ -55,7 +55,7 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     assertEq(governor.getVoteWeightWindowLength(uint48(block.timestamp)), 10 minutes);
     assertEq(governor.whitelistedProposer(), address(0));
 
-    assertEq(address(hubVotePool.wormhole()),  0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78);
+    assertEq(address(hubVotePool.wormhole()), 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78);
     assertEq(address(hubVotePool.owner()), deployer);
     assertEq(address(hubVotePool.hubGovernor()), address(governor));
 
@@ -70,7 +70,7 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     assertEq(dispatcher.owner(), address(timelock));
     assertEq(address(dispatcher.wormholeCore()), 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78);
     assertEq(dispatcher.consistencyLevel(), 0);
-	assertEq(aggregateProposer.maxQueryTimestampOffset(), 10 minutes);
-	assertEq(solanaVoteDecoder.SOLANA_TOKEN_DECIMALS(), 6);
+    assertEq(aggregateProposer.maxQueryTimestampOffset(), 10 minutes);
+    assertEq(solanaVoteDecoder.SOLANA_TOKEN_DECIMALS(), 6);
   }
 }
