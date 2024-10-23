@@ -33,7 +33,7 @@ contract DeploySpokeContractsTest is DeploySpokeContractsBase {
     SpokeAirlock airlock = SpokeAirlock(messageExecutor.airlock());
 
     assertEq(spokeMetadataCollector.HUB_CHAIN_ID(), 10_002);
-    assertEq(spokeMetadataCollector.HUB_PROPOSAL_METADATA(), 0x2f0183649E5016DEbDd359b392de03e384504604);
+    assertEq(spokeMetadataCollector.HUB_PROPOSAL_METADATA(), 0xc77B1FDc68E9E0BaccD55696Ec00BDaE0271b241);
 
     assertEq(address(aggregator.VOTING_TOKEN()), 0x74f00907CFC6E44Fb72535cdD1eC52a37EacAbE4);
     assertEq(address(aggregator.spokeMetadataCollector()), address(spokeMetadataCollector));
