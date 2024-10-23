@@ -16,6 +16,8 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
   uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
     uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
 
+  string constant DEFAULT_DEPLOY_VERSION = "v1";
+
   struct DeploymentConfiguration {
     address wormholeCore;
     uint16 hubChainId;
@@ -24,6 +26,13 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     uint48 voteWeightWindow;
     bytes32 hubDispatcher;
     uint16 spokeChainId;
+  }
+
+  struct DeployedContracts {
+    SpokeVoteAggregator aggregator;
+    SpokeMetadataCollector metadataCollector;
+    SpokeMessageExecutor executor;
+    SpokeAirlock airlock;
   }
 
   error InvalidAddressConfiguration();
@@ -39,26 +48,44 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
     return wallet;
   }
 
-  function run() public returns (SpokeVoteAggregator, SpokeMetadataCollector, SpokeMessageExecutor, SpokeAirlock) {
+  function run() public returns (DeployedContracts memory) {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
-    SpokeMessageExecutor impl = new SpokeMessageExecutor(wallet.addr);
+    string memory version = vm.envOr("DEPLOY_VERSION", DEFAULT_DEPLOY_VERSION);
+    bytes32 salt = keccak256(abi.encodePacked("WormholeGovernanceSpokeContracts", version, config.hubChainId));
+
     vm.startBroadcast(wallet.privateKey);
-    ERC1967Proxy proxy = new ERC1967Proxy(
-      address(impl),
-      abi.encodeCall(SpokeMessageExecutor.initialize, (config.hubDispatcher, config.hubChainId, config.wormholeCore))
-    );
+
+    // Deploy implementation
+    SpokeMessageExecutor impl = new SpokeMessageExecutor{salt: salt}(wallet.addr);
+
+    // Deploy executor proxy
+    ERC1967Proxy proxy = new ERC1967Proxy{salt: salt}(address(impl), "");
 
     SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
+
+    // Initialize executor
+    executor.initialize(config.hubDispatcher, config.hubChainId, config.wormholeCore);
+
+    // Assign deployed airlock
     SpokeAirlock airlock = executor.airlock();
 
+    // Deploy spoke metadata collector
     SpokeMetadataCollector spokeMetadataCollector =
-      new SpokeMetadataCollector(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
-    SpokeVoteAggregator aggregator = new SpokeVoteAggregator(
+      new SpokeMetadataCollector{salt: salt}(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
+
+    // Deploy vote aggregator
+    SpokeVoteAggregator voteAggregator = new SpokeVoteAggregator{salt: salt}(
       address(spokeMetadataCollector), config.votingToken, address(airlock), config.voteWeightWindow
     );
 
     vm.stopBroadcast();
-    return (aggregator, spokeMetadataCollector, executor, airlock);
+
+    return DeployedContracts({
+      aggregator: voteAggregator,
+      metadataCollector: spokeMetadataCollector,
+      executor: executor,
+      airlock: airlock
+    });
   }
 }
