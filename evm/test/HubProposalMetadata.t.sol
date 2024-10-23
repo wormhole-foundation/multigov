@@ -47,7 +47,7 @@ contract HubProposalMetadataTest is Test, ProposalTest {
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePoolOwner: initialOwner,
+      hubVotePool: initialOwner,
       wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WINDOW
