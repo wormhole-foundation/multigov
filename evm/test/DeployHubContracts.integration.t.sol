@@ -8,6 +8,8 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
+import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
+import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
 import {DeployHubContractsSepolia} from "script/DeployHubContractsSepolia.sol";
 import {DeployHubContractsBaseImpl} from "script/DeployHubContractsBaseImpl.s.sol";
 import {TestConstants} from "test/TestConstants.sol";
@@ -35,6 +37,8 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     HubProposalMetadata proposalMetadata = contracts.hubProposalMetadata;
     HubMessageDispatcher dispatcher = contracts.hubMessageDispatcher;
     HubProposalExtender extender = contracts.extender;
+	HubEvmSpokeAggregateProposer aggregateProposer = contracts.hubEvmSpokeAggregateProposer;
+	HubSolanaSpokeVoteDecoder solanaVoteDecoder = contracts.hubSolanaSpokeVoteDecoder;
 
     assertEq(timelock.getMinDelay(), 300);
     assertEq(timelock.hasRole(timelock.EXECUTOR_ROLE(), address(governor)), true);
@@ -51,7 +55,7 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     assertEq(governor.getVoteWeightWindowLength(uint48(block.timestamp)), 10 minutes);
     assertEq(governor.whitelistedProposer(), address(0));
 
-    assertEq(address(hubVotePool.wormhole()), 0x31377888146f3253211EFEf5c676D41ECe7D58Fe);
+    assertEq(address(hubVotePool.wormhole()),  0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78);
     assertEq(address(hubVotePool.owner()), deployer);
     assertEq(address(hubVotePool.hubGovernor()), address(governor));
 
@@ -64,7 +68,9 @@ contract DeployHubContractsTest is DeployHubContractsBase {
     assertEq(extender.initialized(), true);
 
     assertEq(dispatcher.owner(), address(timelock));
-    assertEq(address(dispatcher.wormholeCore()), 0x31377888146f3253211EFEf5c676D41ECe7D58Fe);
+    assertEq(address(dispatcher.wormholeCore()), 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78);
     assertEq(dispatcher.consistencyLevel(), 0);
+	assertEq(aggregateProposer.maxQueryTimestampOffset(), 10 minutes);
+	assertEq(solanaVoteDecoder.SOLANA_TOKEN_DECIMALS(), 6);
   }
 }
