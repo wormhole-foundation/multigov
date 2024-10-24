@@ -514,6 +514,26 @@ describe("vesting", () => {
     }
   });
 
+  it("should fail to withdraw surplus tokens if the signer is not a valid admin", async () => {
+    try {
+      await stakeConnection.program.methods
+        .withdrawSurplus()
+        .accounts({
+          ...accounts,
+          admin: fakeVestingAdmin.publicKey,
+        })
+        .signers([fakeVestingAdmin])
+        .rpc()
+        .then(confirm);
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
+      );
+    }
+  });
+
   it("Withdraw surplus tokens", async () => {
     await stakeConnection.program.methods
       .withdrawSurplus()
