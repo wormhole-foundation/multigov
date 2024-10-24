@@ -16,7 +16,7 @@ cpi = ["no-entrypoint"]
 mock-clock = []
 wasm = ["no-entrypoint", "js-sys", "bincode"]
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
-default = []
+default = ["mock-clock"]
 testnet = ["wormhole-solana-consts/testnet"]
 
 [dependencies]
