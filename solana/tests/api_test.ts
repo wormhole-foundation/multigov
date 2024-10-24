@@ -384,6 +384,40 @@ describe("api", async () => {
         );
       }
     });
+
+    it("should revert if the vote start value is more than 8 bytes", async () => {
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId16")
+        .digest();
+      const voteStart = Number("18446744073709551616"); // this is 2^64, which exceeds the maximum value of u64
+
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
+
+      try {
+        await stakeConnection.addProposal(
+          proposalIdInput,
+          ethProposalResponseBytes,
+          signaturesKeypair.publicKey,
+          mockGuardianSetIndex,
+          true
+        );
+        
+        assert.fail("Expected error was not thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code === "ErrorOfVoteStartParsing",
+        );
+      }
+    });
   });
 
   it("proposalVotes", async () => {

@@ -57,6 +57,11 @@ impl SpokeMetadataCollector {
             .try_into()
             .map_err(|_| ProposalWormholeMessageError::ErrorOfProposalIdParsing)?;
 
+        // Validate that bytes [32..56] are zeroed
+        if data[32..56].iter().any(|&byte| byte != 0) {
+            return err!(ProposalWormholeMessageError::ErrorOfVoteStartParsing);
+        }
+
         // Parse vote_start (32 bytes)
         // Convert u256 to u64 since vote_start is a timestamp and does not actually exceed u64
         let vote_start = u64::from_be_bytes(
