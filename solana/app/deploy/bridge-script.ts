@@ -43,12 +43,12 @@ const scripts: {
     }
 
     const encodedSignature = encodeSignature("getProposalMetadata(uint256)");
-    console.log("encodedSignature:",encodedSignature)
+    console.log("encodedSignature:", encodedSignature);
     const encodedParameters = new ethers.AbiCoder().encode(
       ["uint256"],
       [proposalId],
     );
-    console.log("encodedParameters:",encodedParameters)
+    console.log("encodedParameters:", encodedParameters);
 
     const calldata: EthCallData = {
       to: contractAddress,
@@ -117,7 +117,7 @@ In Solana:
       guardianSignatures: signaturesKeypair.publicKey,
       guardianSet: guardianSet,
     });
-`)
+`);
 
     return `In EVM chains: you can now call addProposal in evm with the following parameters:\n_queryResponseRaw: 0x${result.bytes}\n_signatures: ${JSON.stringify(signaturesToEvmStruct(result.signatures))}`;
   },

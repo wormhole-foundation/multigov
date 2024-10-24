@@ -48,7 +48,7 @@ export class BridgeData {
   constructor(
     guardianSetIndex: number,
     lastLamports: bigint,
-    config: BridgeConfig
+    config: BridgeConfig,
   ) {
     this.guardianSetIndex = guardianSetIndex;
     this.lastLamports = lastLamports;

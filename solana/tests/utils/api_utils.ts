@@ -18,7 +18,7 @@ import {
 import { ethers } from "ethers";
 
 function encodeSignature(signature: string): string {
-  return ethers.id(signature).substring(0, 10)
+  return ethers.id(signature).substring(0, 10);
 }
 
 function toUint256Bytes(value: number): Uint8Array {
@@ -26,7 +26,7 @@ function toUint256Bytes(value: number): Uint8Array {
   const bytes = new Uint8Array(32);
   for (let i = 0; i < 32; i++) {
     // Fill from the end, because the lowest bytes must be at the end (big-endian)
-    bytes[31 - i] = Number(bigIntValue >> BigInt(i * 8) & BigInt(0xff));
+    bytes[31 - i] = Number((bigIntValue >> BigInt(i * 8)) & BigInt(0xff));
   }
   return bytes;
 }
@@ -54,19 +54,23 @@ function getQueryRequestCalldata(proposalIdInput: Uint8Array): EthCallData {
 
   const calldata: EthCallData = {
     to: contractAddress,
-    data: encodedSignature + Buffer.from(proposalIdInput).toString('hex'),
+    data: encodedSignature + Buffer.from(proposalIdInput).toString("hex"),
   };
 
   return calldata;
 }
 
-function getQueryRequestCalldataWithInvalidFunctionSignature(proposalIdInput: Uint8Array): EthCallData {
+function getQueryRequestCalldataWithInvalidFunctionSignature(
+  proposalIdInput: Uint8Array,
+): EthCallData {
   const contractAddress = "0x2574802Db8590ee5C9EFC5eBeBFef1E174b712FC"; // HubProposalMetadata address
-  const encodedSignature = encodeSignature("getInvalidProposalMetadata(uint256)");
+  const encodedSignature = encodeSignature(
+    "getInvalidProposalMetadata(uint256)",
+  );
 
   const calldata: EthCallData = {
     to: contractAddress,
-    data: encodedSignature + Buffer.from(proposalIdInput).toString('hex'),
+    data: encodedSignature + Buffer.from(proposalIdInput).toString("hex"),
   };
 
   return calldata;
@@ -271,7 +275,11 @@ export function createProposalQueryResponseBytesWithInvalidFunctionSignature(
         new EthCallWithFinalityQueryRequest(
           987654, // block number
           "finalized",
-          [getQueryRequestCalldataWithInvalidFunctionSignature(proposalIdInput)],
+          [
+            getQueryRequestCalldataWithInvalidFunctionSignature(
+              proposalIdInput,
+            ),
+          ],
         ),
       ),
     ], // requests
@@ -305,4 +313,3 @@ export function createProposalQueryResponseBytesWithInvalidFunctionSignature(
 
   return serializedQueryResponse;
 }
-

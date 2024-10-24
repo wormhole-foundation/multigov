@@ -59,10 +59,10 @@ describe("api", async () => {
     bytes:
       "01000099920f75f0a3cb47a3284aa10c527942f9584b6b45ddfee7b0c428074f5a09be423519751ed54e034b8f7f88082ee3209cb2ebbcc36748a3662c1c9aaea40ba4010000005601000000000127120100000049000000083078363866643932012574802db8590ee5c9efc5ebebfef1e174b712fc00000024eb9b9838462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f20127120100000075000000000068fd92661f69fa2dd05b39802af57c3a59e4292d75a41652ada0747a310233e474d7a2000624846c1719000100000040462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f200000000000000000000000000000000000000000000000000000000670cd112",
     signatures: [
-      "bd1f4486d0aa0bf2a850272fc1822937e1a833f991de2e441fa96a4e3f098bcf0bdca11b1d126d432c658e0fcb712db5a7373451c8ad7a5f02db287f93a2ab3d0100"
+      "bd1f4486d0aa0bf2a850272fc1822937e1a833f991de2e441fa96a4e3f098bcf0bdca11b1d126d432c658e0fcb712db5a7373451c8ad7a5f02db287f93a2ab3d0100",
     ],
   };
-  
+
   let stakeConnection: StakeConnection;
   let user2StakeConnection: StakeConnection;
   let user3StakeConnection: StakeConnection;
@@ -170,8 +170,14 @@ describe("api", async () => {
     });
 
     it.skip("should correctly add a real sepolia proposal", async () => {
-      const proposalIdArray = Buffer.from("462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2", "hex");
-      const voteStart = Buffer.from("00000000000000000000000000000000000000000000000000000000670cd112", "hex");
+      const proposalIdArray = Buffer.from(
+        "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2",
+        "hex",
+      );
+      const voteStart = Buffer.from(
+        "00000000000000000000000000000000000000000000000000000000670cd112",
+        "hex",
+      );
 
       const signaturesKeypair = Keypair.generate();
       await stakeConnection.postSignatures(
@@ -408,13 +414,14 @@ describe("api", async () => {
           ethProposalResponseBytes,
           signaturesKeypair.publicKey,
           mockGuardianSetIndex,
-          true
+          true,
         );
-        
+
         assert.fail("Expected error was not thrown");
       } catch (e) {
         assert(
-          (e as AnchorError).error?.errorCode?.code === "ErrorOfVoteStartParsing",
+          (e as AnchorError).error?.errorCode?.code ===
+            "ErrorOfVoteStartParsing",
         );
       }
     });
