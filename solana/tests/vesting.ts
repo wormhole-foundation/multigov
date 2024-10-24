@@ -87,7 +87,7 @@ describe("vesting", () => {
     fakeVault,
     fakeVesterTa,
     fakeVestNow,
-    fakeVestingBalanceAccount
+    fakeVestingBalanceAccount;
 
   after(async () => {
     controller.abort();
@@ -262,9 +262,7 @@ describe("vesting", () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
     }
 
     try {
@@ -315,9 +313,7 @@ describe("vesting", () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
     }
 
     fakeConfig = PublicKey.findProgramAddressSync(
@@ -375,9 +371,7 @@ describe("vesting", () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
     }
   });
 
@@ -454,7 +448,10 @@ describe("vesting", () => {
     const vestingConfigVested = (
       await stakeConnection.program.account.vestingConfig.fetch(config)
     ).vested;
-    assert(vaultTokenBalance < vestingConfigVested, "In this test, the vault token balance must be less than vestingConfig.vested");
+    assert(
+      vaultTokenBalance < vestingConfigVested,
+      "In this test, the vault token balance must be less than vestingConfig.vested",
+    );
 
     try {
       await stakeConnection.program.methods
@@ -496,7 +493,10 @@ describe("vesting", () => {
     const vestingConfigVested = (
       await stakeConnection.program.account.vestingConfig.fetch(config)
     ).vested;
-    assert(vaultTokenBalance > vestingConfigVested, "In this test, the vault token balance must be greater than vestingConfig.vested");
+    assert(
+      vaultTokenBalance > vestingConfigVested,
+      "In this test, the vault token balance must be greater than vestingConfig.vested",
+    );
 
     try {
       await stakeConnection.program.methods
@@ -528,9 +528,7 @@ describe("vesting", () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
     }
   });
 
@@ -1000,7 +998,10 @@ describe("vesting", () => {
         stakeConnection.program.programId,
       )[0];
 
-      fakeAccounts = { ...fakeAccounts, vestingBalance: fakeVestingBalanceAccount };
+      fakeAccounts = {
+        ...fakeAccounts,
+        vestingBalance: fakeVestingBalanceAccount,
+      };
       await stakeConnection.program.methods
         .createVestingBalance()
         .accounts({ ...fakeAccounts })

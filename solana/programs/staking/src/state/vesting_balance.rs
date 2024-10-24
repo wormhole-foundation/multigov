@@ -23,7 +23,8 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            size_of::<VestingBalance>() + VestingBalance::discriminator().len() == VestingBalance::INIT_SPACE
+            size_of::<VestingBalance>() + VestingBalance::discriminator().len()
+                == VestingBalance::INIT_SPACE
         );
     }
 }

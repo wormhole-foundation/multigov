@@ -1,4 +1,4 @@
-use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED, CONFIG_SEED};
+use crate::context::{CONFIG_SEED, VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -7,8 +7,8 @@ use anchor_spl::{
 use std::convert::TryInto;
 
 use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
-use crate::state::stake_account::StakeAccountMetadata;
 use crate::state::global_config::GlobalConfig;
+use crate::state::stake_account::StakeAccountMetadata;
 use crate::{
     error::VestingError,
     state::{Vesting, VestingBalance, VestingConfig},
@@ -86,9 +86,9 @@ impl<'info> ClaimVesting<'info> {
                 );
                 require!(
                     self.config.mint == self.global_config.wh_token_mint,
-                    // This error can never happen here, because for the condition above 
-                    // (self.vesting_balance.stake_account_metadata != Pubkey::default()) 
-                    // to be met, the delegate instruction must be executed. 
+                    // This error can never happen here, because for the condition above
+                    // (self.vesting_balance.stake_account_metadata != Pubkey::default())
+                    // to be met, the delegate instruction must be executed.
                     // However, delegate cannot be executed when self.config.mint != self.global_config.wh_token_mint.
                     VestingError::InvalidVestingMint
                 );

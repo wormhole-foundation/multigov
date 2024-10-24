@@ -1,5 +1,12 @@
 import { parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
-import { LAMPORTS_PER_SOL, PublicKey, Keypair, Transaction, Instruction, SystemProgram } from "@solana/web3.js";
+import {
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Keypair,
+  Transaction,
+  Instruction,
+  SystemProgram,
+} from "@solana/web3.js";
 import {
   startValidator,
   readAnchorConfig,
@@ -64,9 +71,7 @@ describe("config", async () => {
         lamports: 10 * LAMPORTS_PER_SOL,
       }),
     ];
-    await program.provider.sendAndConfirm(tx, [
-      program.provider.wallet.payer,
-    ]);
+    await program.provider.sendAndConfirm(tx, [program.provider.wallet.payer]);
   });
 
   it("initializes config", async () => {
@@ -197,7 +202,10 @@ describe("config", async () => {
     const stakeAccountMetadata: StakeAccountMetadata =
       await program.account.stakeAccountMetadata.fetch(metadataAddress);
 
-    assert(stakeAccountMetadata.owner.toString("hex") == randomUser.publicKey.toString("hex"))
+    assert(
+      stakeAccountMetadata.owner.toString("hex") ==
+        randomUser.publicKey.toString("hex"),
+    );
   });
 
   it("someone else tries to access admin methods", async () => {

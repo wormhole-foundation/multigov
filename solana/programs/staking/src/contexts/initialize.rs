@@ -1,9 +1,6 @@
 use crate::context::{CONFIG_SEED, VESTING_CONFIG_SEED};
-use crate::{
-    error::VestingError,
-    state::{VestingConfig},
-};
 use crate::state::global_config::GlobalConfig;
+use crate::{error::VestingError, state::VestingConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,

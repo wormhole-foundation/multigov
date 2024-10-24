@@ -21,8 +21,6 @@ pub mod tests {
 
     #[test]
     fn check_size() {
-        assert!(
-            size_of::<Vesting>() + Vesting::discriminator().len() == Vesting::INIT_SPACE
-        );
+        assert!(size_of::<Vesting>() + Vesting::discriminator().len() == Vesting::INIT_SPACE);
     }
 }

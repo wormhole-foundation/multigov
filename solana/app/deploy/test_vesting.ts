@@ -1,6 +1,16 @@
 import { Wallet, AnchorProvider } from "@coral-xyz/anchor";
-import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
-import { DEPLOYER_AUTHORITY_KEYPAIR, USER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
+import {
+  DEPLOYER_AUTHORITY_KEYPAIR,
+  USER_AUTHORITY_KEYPAIR,
+  WORMHOLE_TOKEN,
+  RPC_NODE,
+} from "./devnet";
 import { STAKING_ADDRESS } from "../constants";
 import { StakeConnection } from "../StakeConnection";
 import { WHTokenBalance } from "../whTokenBalance";
@@ -19,16 +29,8 @@ async function main() {
   const vester = USER_AUTHORITY_KEYPAIR;
 
   const connection = new Connection(RPC_NODE);
-  const provider = new AnchorProvider(
-    connection,
-    new Wallet(admin),
-    {},
-  );
-  const vesterProvider = new AnchorProvider(
-    connection,
-    new Wallet(vester),
-    {},
-  );
+  const provider = new AnchorProvider(connection, new Wallet(admin), {});
+  const vesterProvider = new AnchorProvider(connection, new Wallet(vester), {});
 
   const stakeConnection = await StakeConnection.createStakeConnection(
     connection,
@@ -121,7 +123,9 @@ async function main() {
   }
 
   let vesterStakeAccountCheckpointsAddress =
-    await vesterStakeConnection.getStakeAccountCheckpointsAddress(vester.publicKey);
+    await vesterStakeConnection.getStakeAccountCheckpointsAddress(
+      vester.publicKey,
+    );
   if (!vesterStakeAccountCheckpointsAddress) {
     await vesterStakeConnection.createStakeAccount();
   }
