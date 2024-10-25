@@ -22,6 +22,7 @@ import * as wasm from "@wormhole/staking-wasm";
 import { WH_TOKEN_DECIMALS, WHTokenBalance, StakeConnection } from "../app";
 import * as console from "node:console";
 import BN from "bn.js";
+import { hubChainId, hubProposalMetadata, CORE_BRIDGE_ADDRESS } from "../app/constants";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -157,6 +158,42 @@ describe("config", async () => {
       const expectedLogMessage = `Allocate: account Address { address: ${configAccount.toString()}, base: None } already in use`;
       assert(e.transactionLogs.find((log) => log.includes(expectedLogMessage)));
     }
+  });
+
+  it("should fail to initialize SpokeMetadataCollector if the signer is not a valid governance_authority", async () => {
+    try {
+      await program.methods
+        .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
+        .accounts({ governanceAuthority: randomUser.publicKey })
+        .signers([randomUser])
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "ConstraintAddress",
+      );
+    }
+  });
+
+  it("should successfully initialize SpokeMetadataCollector", async () => {
+    await program.methods
+      .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
+      .accounts({ governanceAuthority: program.provider.wallet.publicKey })
+      .rpc();
+
+    const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] = PublicKey.findProgramAddressSync(
+      [utils.bytes.utf8.encode(wasm.Constants.SPOKE_METADATA_COLLECTOR_SEED())],
+      program.programId,
+    );
+
+    const spokeMetadataCollectorAccountData =
+      await program.account.spokeMetadataCollector.fetch(spokeMetadataCollectorAccount);
+
+    assert.equal(spokeMetadataCollectorAccountData.bump, spokeMetadataCollectorBump);
+    assert.equal(spokeMetadataCollectorAccountData.hubChainId, hubChainId);
+    assert.equal(spokeMetadataCollectorAccountData.hubProposalMetadata.toString(), hubProposalMetadata.toString());
+    assert.equal(spokeMetadataCollectorAccountData.wormholeCore.toString("hex"), CORE_BRIDGE_ADDRESS.toString("hex"));
   });
 
   it("create account", async () => {

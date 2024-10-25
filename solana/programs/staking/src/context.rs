@@ -31,7 +31,7 @@ pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
-pub const SPOKE_METADATA_COLLECTOR: &str = "spoke_metadata_collector";
+pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
 
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -158,7 +158,7 @@ pub struct InitializeSpokeMetadataCollector<'info> {
         init,
         payer = governance_authority,
         space = SpokeMetadataCollector::LEN,
-        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
         bump
     )]
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
@@ -229,7 +229,7 @@ pub struct AddProposal<'info> {
 
     #[account(
         mut,
-        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
         bump = spoke_metadata_collector.bump
     )]
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,

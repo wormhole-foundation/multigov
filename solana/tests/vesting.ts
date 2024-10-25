@@ -44,6 +44,7 @@ const portNumber = getPortNumber(path.basename(__filename));
 describe("vesting", () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const governanceAuthority = new Keypair();
   const fakeVestingAdmin = new Keypair();
 
   const confirm = async (signature: string): Promise<string> => {
@@ -100,6 +101,7 @@ describe("vesting", () => {
       anchorConfig,
       whMintAccount,
       whMintAuthority,
+      governanceAuthority,
       makeDefaultConfig(whMintAccount.publicKey, whMintAuthority.publicKey),
       WHTokenBalance.fromString("1000"),
     ));
