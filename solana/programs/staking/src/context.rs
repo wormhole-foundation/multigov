@@ -464,33 +464,6 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
 }
 
 #[derive(Accounts)]
-pub struct RecoverAccount<'info> {
-    // Native payer:
-    #[account(address = config.governance_authority)]
-    pub payer: Signer<'info>,
-
-    // Token account:
-    #[account(address = stake_account_metadata.owner)]
-    pub payer_token_account: Account<'info, TokenAccount>,
-
-    // Stake program accounts:
-    #[account(zero)]
-    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-
-    #[account(
-        mut,
-        seeds = [
-            STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
-        ],
-        bump = stake_account_metadata.metadata_bump
-    )]
-    pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
-
-    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
-}
-#[derive(Accounts)]
 pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
