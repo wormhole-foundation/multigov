@@ -45,6 +45,15 @@ impl SpokeMetadataCollector {
         Ok(())
     }
 
+    pub fn update_hub_proposal_metadata(
+        &mut self,
+        new_hub_proposal_metadata: [u8; 20],
+    ) -> Result<()> {
+        self.hub_proposal_metadata = new_hub_proposal_metadata;
+
+        Ok(())
+    }
+
     pub fn parse_eth_response_proposal_data(
         &mut self,
         data: &[u8],

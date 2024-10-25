@@ -177,8 +177,46 @@ describe("config", async () => {
   });
 
   it("should successfully initialize SpokeMetadataCollector", async () => {
+    const initHubProposalMetadata = new Uint8Array(20);
+    
     await program.methods
-      .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
+      .initializeSpokeMetadataCollector(hubChainId, initHubProposalMetadata)
+      .accounts({ governanceAuthority: program.provider.wallet.publicKey })
+      .rpc();
+
+    const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] = PublicKey.findProgramAddressSync(
+      [utils.bytes.utf8.encode(wasm.Constants.SPOKE_METADATA_COLLECTOR_SEED())],
+      program.programId,
+    );
+
+    const spokeMetadataCollectorAccountData =
+      await program.account.spokeMetadataCollector.fetch(spokeMetadataCollectorAccount);
+
+    assert.equal(spokeMetadataCollectorAccountData.bump, spokeMetadataCollectorBump);
+    assert.equal(spokeMetadataCollectorAccountData.hubChainId, hubChainId);
+    assert.equal(spokeMetadataCollectorAccountData.hubProposalMetadata.toString(), initHubProposalMetadata.toString());
+    assert.equal(spokeMetadataCollectorAccountData.wormholeCore.toString("hex"), CORE_BRIDGE_ADDRESS.toString("hex"));
+  });
+
+  it("should fail to update HubProposalMetadata if the signer is not a valid governance_authority", async () => {
+    try {
+      await program.methods
+        .updateHubProposalMetadata(hubProposalMetadata)
+        .accounts({ governanceAuthority: randomUser.publicKey })
+        .signers([randomUser])
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "ConstraintAddress",
+      );
+    }
+  });
+
+  it("should successfully update HubProposalMetadata", async () => {
+    await program.methods
+      .updateHubProposalMetadata(hubProposalMetadata)
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
       .rpc();
 

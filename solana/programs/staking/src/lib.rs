@@ -511,6 +511,18 @@ pub mod staking {
         Ok(())
     }
 
+    pub fn update_hub_proposal_metadata(
+        ctx: Context<UpdateHubProposalMetadata>,
+        new_hub_proposal_metadata: [u8; 20],
+    ) -> Result<()> {
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+        let _ = spoke_metadata_collector.update_hub_proposal_metadata(
+            new_hub_proposal_metadata,
+        );
+
+        Ok(())
+    }
+
     pub fn post_signatures(
         ctx: Context<PostSignatures>,
         guardian_signatures: Vec<[u8; 66]>,

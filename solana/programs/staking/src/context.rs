@@ -169,6 +169,22 @@ pub struct InitializeSpokeMetadataCollector<'info> {
 }
 
 #[derive(Accounts)]
+pub struct UpdateHubProposalMetadata<'info> {
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
+        bump = spoke_metadata_collector.bump
+    )]
+    pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+}
+
+#[derive(Accounts)]
 #[instruction(_guardian_signatures: Vec<[u8; 66]>, total_signatures: u8)]
 pub struct PostSignatures<'info> {
     #[account(mut)]
