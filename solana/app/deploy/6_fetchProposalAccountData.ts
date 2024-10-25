@@ -37,7 +37,6 @@ async function main() {
     console.log("forVotes:", proposalAccountData.forVotes.toNumber());
     console.log("abstainVotes:", proposalAccountData.abstainVotes.toNumber());
     console.log("voteStart:", proposalAccountData.voteStart.toNumber());
-    console.log("safeWindow:", proposalAccountData.safeWindow.toNumber());
   } catch (err) {
     console.error("Error:", err);
   }
