@@ -22,12 +22,8 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalIdHex = "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2"
+    const proposalIdHex = "89813b2c3ac79b429a4143dc4df617bee40d585d44e5763c64994efc854b05db"
     console.log("proposalIdHex:", proposalIdHex);
-
-    const voteStartHex = "00000000000000000000000000000000000000000000000000000000670cd112"
-    const voteStartInt = (new BN(voteStartHex, 16)).toString(10);
-    console.log("voteStartInt:", voteStartInt);
 
     const proposalIdArray = Buffer.from(proposalIdHex, "hex");
     const { proposalAccountData } =

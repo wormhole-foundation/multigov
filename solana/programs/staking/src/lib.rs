@@ -20,7 +20,9 @@ use anchor_lang::solana_program::{
     instruction::AccountMeta, instruction::Instruction, program::invoke_signed,
 };
 
-use wormhole_query_sdk::structs::{ChainSpecificQuery, ChainSpecificResponse, QueryResponse};
+use wormhole_query_sdk::structs::{
+    ChainSpecificQuery, ChainSpecificResponse, EthCallData, QueryResponse,
+};
 
 use crate::{
     error::{ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError},
@@ -551,6 +553,8 @@ pub mod staking {
             ProposalWormholeMessageError::TooManyQueryResponses
         );
 
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+
         if let ChainSpecificQuery::EthCallWithFinalityQueryRequest(eth_request) =
             &response.request.requests[0].query
         {
@@ -558,13 +562,27 @@ pub mod staking {
                 eth_request.finality == "finalized",
                 ProposalWormholeMessageError::NonFinalizedBlock
             );
+
+            let EthCallData { to, data } = &eth_request.call_data[0];
+
+            require!(
+                *to == spoke_metadata_collector.hub_proposal_metadata,
+                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
+            );
+
+            let proposal_query_request_data =
+                spoke_metadata_collector.parse_proposal_query_request_data(&data)?;
+
+            // The function signature should be bytes4(keccak256(bytes("getProposalMetadata(uint256)")))
+            require!(
+                proposal_query_request_data.signature == [0xeb, 0x9b, 0x98, 0x38],
+                ProposalWormholeMessageError::InvalidFunctionSignature
+            );
         } else {
             return Err(ProposalWormholeMessageError::InvalidChainSpecificQuery.into());
         }
 
         let response = &response.responses[0];
-
-        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
 
         require!(
             response.chain_id == spoke_metadata_collector.hub_chain_id,
@@ -583,22 +601,18 @@ pub mod staking {
                 .parse_eth_response_proposal_data(&eth_response.results[0])?;
 
             require!(
-                proposal_data.contract_address == spoke_metadata_collector.hub_proposal_metadata,
-                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
-            );
-
-            require!(
                 proposal_data.proposal_id == proposal_id,
                 ProposalWormholeMessageError::InvalidProposalId
             );
 
             let proposal = &mut ctx.accounts.proposal;
 
-            let _ = proposal.add_proposal(
-                proposal_data.proposal_id,
-                proposal_data.vote_start,
-                spoke_metadata_collector.safe_window,
+            require!(
+                proposal_data.vote_start != 0,
+                ProposalWormholeMessageError::ProposalNotInitialized
             );
+
+            let _ = proposal.add_proposal(proposal_data.proposal_id, proposal_data.vote_start);
 
             emit!(ProposalCreated {
                 proposal_id: proposal_data.proposal_id,

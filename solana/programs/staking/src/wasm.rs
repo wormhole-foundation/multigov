@@ -124,11 +124,6 @@ impl WasmProposalData {
             abstain_votes,
         }))
     }
-
-    #[wasm_bindgen(js_name=isVotingSafe)]
-    pub fn is_voting_safe(&self, timestamp: u64) -> Result<bool, JsValue> {
-        convert_error(self.wrapped.is_voting_safe(timestamp))
-    }
 }
 
 #[wasm_bindgen(js_name=getUnixTime)]
