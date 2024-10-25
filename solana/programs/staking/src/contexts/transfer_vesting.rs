@@ -1,5 +1,7 @@
-use crate::context::{CHECKPOINT_DATA_SEED, CONFIG_SEED, STAKE_ACCOUNT_METADATA_SEED,
-                     VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
+use crate::context::{
+    CHECKPOINT_DATA_SEED, CONFIG_SEED, STAKE_ACCOUNT_METADATA_SEED, VESTING_BALANCE_SEED,
+    VESTING_CONFIG_SEED, VEST_SEED,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -11,10 +13,7 @@ use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
 use crate::state::global_config::GlobalConfig;
 use crate::state::stake_account::StakeAccountMetadata;
 use crate::state::{VestingBalance, VestingConfig};
-use crate::{
-    error::VestingError,
-    state::Vesting,
-};
+use crate::{error::VestingError, state::Vesting};
 
 #[derive(Accounts)]
 #[instruction(new_vester: Pubkey)]
@@ -44,7 +43,7 @@ pub struct TransferVesting<'info> {
         close = vester,
         has_one = vester_ta, // This check is arbitrary, as ATA is baked into the PDA
         has_one = config, // This check is arbitrary, as ATA is baked into the PDA
-          seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
+        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump = vest.bump
     )]
     vest: Box<Account<'info, Vesting>>,
@@ -67,7 +66,7 @@ pub struct TransferVesting<'info> {
         init_if_needed,
         payer = vester,
         space = VestingBalance::INIT_SPACE,
-         seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), new_vester_ta.owner.key().as_ref()],
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), new_vester_ta.owner.key().as_ref()],
         bump
     )]
     new_vesting_balance: Box<Account<'info, VestingBalance>>,
@@ -93,12 +92,7 @@ pub struct TransferVesting<'info> {
 
 impl<'info> crate::contexts::TransferVesting<'info> {
     pub fn transfer_vesting(&mut self, new_vester: Pubkey, bump: u8) -> Result<()> {
-        fn update_balance(
-            balance: &mut u64,
-            amount: u64,
-            is_subtract: bool,
-        ) -> Result<()>
-        {
+        fn update_balance(balance: &mut u64, amount: u64, is_subtract: bool) -> Result<()> {
             if is_subtract {
                 *balance = balance.checked_sub(amount).ok_or(VestingError::Underflow)?;
             } else {
@@ -115,24 +109,35 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 // Additional checks to ensure the owner matches
                 require!(
                     stake_account_metadata.owner == self.vesting_balance.vester,
-                       VestingError::InvalidStakeAccountOwner
+                    VestingError::InvalidStakeAccountOwner
                 );
 
                 let (expected_stake_account_checkpoints_pda, _) = Pubkey::find_program_address(
                     &[CHECKPOINT_DATA_SEED.as_bytes(), self.vester.key().as_ref()],
                     &crate::ID,
                 );
-                require!(expected_stake_account_checkpoints_pda == stake_account_checkpoints.key(),
-                    VestingError::InvalidStakeAccountCheckpointsPDA);
+                require!(
+                    expected_stake_account_checkpoints_pda == stake_account_checkpoints.key(),
+                    VestingError::InvalidStakeAccountCheckpointsPDA
+                );
 
                 let (expected_stake_account_metadata_pda, _) = Pubkey::find_program_address(
-                    &[STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+                    &[
+                        STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
+                        stake_account_checkpoints.key().as_ref(),
+                    ],
                     &crate::ID,
                 );
-                require!(expected_stake_account_metadata_pda == stake_account_metadata.key(),
-                    VestingError::InvalidStakeAccountMetadataPDA);
+                require!(
+                    expected_stake_account_metadata_pda == stake_account_metadata.key(),
+                    VestingError::InvalidStakeAccountMetadataPDA
+                );
 
-                update_balance(&mut stake_account_metadata.recorded_vesting_balance, self.vest.amount, true)?;
+                update_balance(
+                    &mut stake_account_metadata.recorded_vesting_balance,
+                    self.vest.amount,
+                    true,
+                )?;
 
                 // Update checkpoints
                 let current_delegate_checkpoints_account_info =
@@ -169,32 +174,36 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     VestingError::InvalidStakeAccountOwner
                 );
 
-                let (expected_stake_account_checkpoints_vester_pda, _) = Pubkey::find_program_address(
-                    &[CHECKPOINT_DATA_SEED.as_bytes(),
-                        new_vester.as_ref()
-                    ],
-                    &crate::ID,
-                );
+                let (expected_stake_account_checkpoints_vester_pda, _) =
+                    Pubkey::find_program_address(
+                        &[CHECKPOINT_DATA_SEED.as_bytes(), new_vester.as_ref()],
+                        &crate::ID,
+                    );
 
                 require!(
-                    expected_stake_account_checkpoints_vester_pda == new_stake_account_checkpoints.key(),
-                     VestingError::InvalidStakeAccountCheckpointsPDA
+                    expected_stake_account_checkpoints_vester_pda
+                        == new_stake_account_checkpoints.key(),
+                    VestingError::InvalidStakeAccountCheckpointsPDA
                 );
 
                 let (expected_stake_account_metadata_vester_pda, _) = Pubkey::find_program_address(
-                    &[STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                        new_stake_account_checkpoints.key().as_ref()
+                    &[
+                        STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
+                        new_stake_account_checkpoints.key().as_ref(),
                     ],
                     &crate::ID,
                 );
 
                 require!(
                     expected_stake_account_metadata_vester_pda == new_stake_account_metadata.key(),
-                     VestingError::InvalidStakeAccountMetadataPDA
+                    VestingError::InvalidStakeAccountMetadataPDA
                 );
 
-
-                update_balance(&mut new_stake_account_metadata.recorded_vesting_balance, self.vest.amount, false)?;
+                update_balance(
+                    &mut new_stake_account_metadata.recorded_vesting_balance,
+                    self.vest.amount,
+                    false,
+                )?;
 
                 let current_delegate_checkpoints_account_info =
                     new_stake_account_checkpoints.to_account_info();
@@ -221,8 +230,16 @@ impl<'info> crate::contexts::TransferVesting<'info> {
             bump,
         });
 
-        update_balance(&mut self.vesting_balance.total_vesting_balance, self.vest.amount, true)?;
-        update_balance(&mut self.new_vesting_balance.total_vesting_balance, self.vest.amount, false)?;
+        update_balance(
+            &mut self.vesting_balance.total_vesting_balance,
+            self.vest.amount,
+            true,
+        )?;
+        update_balance(
+            &mut self.new_vesting_balance.total_vesting_balance,
+            self.vest.amount,
+            false,
+        )?;
 
         Ok(())
     }
