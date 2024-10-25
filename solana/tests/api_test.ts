@@ -336,7 +336,7 @@ describe("api", async () => {
     assert.equal(await stakeConnection.isVotingSafe(proposalIdInput), true);
   });
 
-  it("delegate2", async () => {
+  it("delegate", async () => {
     await stakeConnection.delegate(owner, WHTokenBalance.fromString("100"));
 
     await stakeConnection.delegate(owner, WHTokenBalance.fromString("100"));
@@ -389,6 +389,7 @@ describe("api", async () => {
             stakeAccountCheckpointsAddress, // Invalid delegate
           delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
           stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: null,
           vestingBalance: null,
           mint: stakeConnection.config.whTokenMint,
         })
