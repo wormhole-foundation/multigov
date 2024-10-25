@@ -21,7 +21,8 @@ async function main() {
     freeze: false,
     governanceAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
     whTokenMint: WORMHOLE_TOKEN,
-    agreementHash: Array(32).fill(0)
+    agreementHash: Array(32).fill(0),
+    freeze: false,
     vestingAdmin: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
   };
   await program.methods.initConfig(globalConfig).rpc();

@@ -10,5 +10,17 @@ pub struct Vesting {
 }
 
 impl Space for Vesting {
-    const INIT_SPACE: usize = 8 + 32 + 32 + 8 + 8 + 1;
+    const INIT_SPACE: usize = 8 + 32 + 32 + 8 + 8 + 8;
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::Vesting;
+    use anchor_lang::Discriminator;
+    use anchor_lang::Space;
+
+    #[test]
+    fn check_size() {
+        assert!(size_of::<Vesting>() + Vesting::discriminator().len() == Vesting::INIT_SPACE);
+    }
 }

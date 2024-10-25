@@ -3,39 +3,36 @@ use anchor_lang::prelude::*;
 #[error_code]
 #[derive(PartialEq, Eq)]
 pub enum ErrorCode {
-    #[msg("Number of checkpoint limit reached")] //6000
+    #[msg("Number of checkpoint limit reached")]
     TooManyCheckpoints,
-    #[msg("An arithmetic operation unexpectedly overflowed")] //6001
+    #[msg("An arithmetic operation unexpectedly overflowed")]
     GenericOverflow,
-    #[msg("Error deserializing checkpoint")] //6002
+    #[msg("Error deserializing checkpoint")]
     CheckpointSerDe,
-    #[msg("Checkpoint out of bounds")] //6003
+    #[msg("Checkpoint out of bounds")]
     CheckpointOutOfBounds,
     #[msg("Can't recover account with a non-zero staking balance. Unstake your tokens first.")]
-    // 6005
     RecoverWithStake,
-    #[msg("Checkpoint not found")] //6006
+    #[msg("Checkpoint not found")]
     CheckpointNotFound,
-    #[msg("Invalid timestamp")] //6007
+    #[msg("Invalid timestamp")]
     InvalidTimestamp,
-    #[msg("No Weight")] // 6009
+    #[msg("No Weight")]
     NoWeight,
-    #[msg("All weight cast")] // 6010
+    #[msg("All weight cast")]
     AllWeightCast,
-    #[msg("Vote would exceed weight")] // 6011
+    #[msg("Vote would exceed weight")]
     VoteWouldExceedWeight,
-    #[msg("Owner needs to own destination account")] //6012
+    #[msg("Owner needs to own destination account")]
     WithdrawToUnauthorizedAccount,
-    #[msg("Insufficient balance to cover the withdrawal")] //6013
+    #[msg("Insufficient balance to cover the withdrawal")]
     InsufficientWithdrawableBalance,
-    #[msg("Proposal already exists")] //6014
+    #[msg("Proposal already exists")]
     ProposalAlreadyExists,
-    #[msg("Invalid message executor")] //6015
+    #[msg("Invalid message executor")]
     InvalidMessageExecutor,
-    #[msg("Invalid spoke airlock")] //6016
+    #[msg("Invalid spoke airlock")]
     InvalidSpokeAirlock,
-    #[msg("Invalid vesting balance owner")] //6017
-    InvalidVestingBalance,
     #[msg("Invalid current delegate")]
     InvalidCurrentDelegate,
     #[msg("Other")]
@@ -56,6 +53,18 @@ pub enum VestingError {
     Overflow,
     #[msg("Integer underflow")]
     Underflow,
+    #[msg("Invalid stake account delegate")]
+    InvalidStakeAccountCheckpoints,
+    #[msg("Error parsing stake_account_metadata and stake_account_checkpoints")]
+    ErrorOfStakeAccountParsing,
+    #[msg("Invalid vesting mint")]
+    InvalidVestingMint,
+    #[msg("Invalid stake account owner")]
+    InvalidStakeAccountOwner,
+    #[msg("Invalid vesting admin")]
+    InvalidVestingAdmin,
+    #[msg("Vested token balance does not match the balance in the vault")]
+    VestedBalanceMismatch,
 }
 
 #[error_code]
@@ -92,6 +101,8 @@ pub enum ProposalWormholeMessageError {
     InvalidDataLength,
     #[msg("Error of contract_address parsing")]
     ErrorOfContractAddressParsing,
+    #[msg("Error of signature parsing")]
+    ErrorOfSignatureParsing,
     #[msg("Error of proposal_id parsing")]
     ErrorOfProposalIdParsing,
     #[msg("Error of vote_start parsing")]
@@ -106,4 +117,8 @@ pub enum ProposalWormholeMessageError {
     InvalidChainSpecificQuery,
     #[msg("Invalid ChainSpecificResponse")]
     InvalidChainSpecificResponse,
+    #[msg("Invalid function signature")]
+    InvalidFunctionSignature,
+    #[msg("Proposal not initialized since start is zero")]
+    ProposalNotInitialized,
 }

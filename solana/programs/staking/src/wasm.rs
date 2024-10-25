@@ -124,11 +124,6 @@ impl WasmProposalData {
             abstain_votes,
         }))
     }
-
-    #[wasm_bindgen(js_name=isVotingSafe)]
-    pub fn is_voting_safe(&self, timestamp: u64) -> Result<bool, JsValue> {
-        convert_error(self.wrapped.is_voting_safe(timestamp))
-    }
 }
 
 #[wasm_bindgen(js_name=getUnixTime)]
@@ -179,7 +174,9 @@ reexport_seed_const!(STAKE_ACCOUNT_METADATA_SEED);
 reexport_seed_const!(CHECKPOINT_DATA_SEED);
 reexport_seed_const!(CONFIG_SEED);
 reexport_seed_const!(PROPOSAL_SEED);
+reexport_seed_const!(VESTING_CONFIG_SEED);
 reexport_seed_const!(VESTING_BALANCE_SEED);
+reexport_seed_const!(VEST_SEED);
 
 #[wasm_bindgen]
 impl Constants {

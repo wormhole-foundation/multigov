@@ -51,7 +51,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
       initialVotingPeriod: 3 days,
       initialProposalThreshold: 500_000e18,
       initialQuorum: 100e18,
-      hubVotePoolOwner: address(timelock),
+      hubVotePool: address(timelock),
       wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
@@ -148,7 +148,7 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePoolOwner: _timelock,
+      hubVotePool: _timelock,
       wormholeCore: address(wormhole),
       governorProposalExtender: address(_voteExtender),
       initialVoteWeightWindow: 1 days
@@ -175,7 +175,6 @@ contract Constructor is HubGovernorTest {
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _voteExtender,
     address _extenderOwner,
     address _deployer
   ) public {
@@ -194,7 +193,7 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePoolOwner: _timelock,
+      hubVotePool: _timelock,
       wormholeCore: address(wormhole),
       governorProposalExtender: address(_voteExtender),
       initialVoteWeightWindow: 1 days
@@ -226,7 +225,7 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: _initialVotingPeriod,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePoolOwner: _timelock,
+      hubVotePool: _timelock,
       wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
@@ -253,7 +252,7 @@ contract Constructor is HubGovernorTest {
       initialVotingPeriod: 0,
       initialProposalThreshold: _initialProposalThreshold,
       initialQuorum: _initialQuorum,
-      hubVotePoolOwner: _timelock,
+      hubVotePool: _timelock,
       wormholeCore: address(wormhole),
       governorProposalExtender: _voteExtender,
       initialVoteWeightWindow: 1 days
@@ -684,7 +683,7 @@ contract _CountVote is HubGovernorTest {
     _support = uint8(bound(_support, 0, 2));
 
     (, delegates) = _setGovernorAndDelegates();
-    (ProposalBuilder builder) = _createArbitraryProposal();
+    ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(delegates[0]);
     uint256 _proposalId =
@@ -719,7 +718,7 @@ contract _CountVote is HubGovernorTest {
 
     _mintAndDelegate(address(governor.hubVotePool(uint96(block.timestamp))), _totalWeight);
     (, delegates) = _setGovernorAndDelegates();
-    (ProposalBuilder builder) = _createArbitraryProposal();
+    ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(delegates[0]);
     uint256 _proposalId =
@@ -756,7 +755,7 @@ contract _CountVote is HubGovernorTest {
     _support = uint8(bound(_support, 0, 2));
 
     (, delegates) = _setGovernorAndDelegates();
-    (ProposalBuilder builder) = _createArbitraryProposal();
+    ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(delegates[0]);
     uint256 _proposalId =
@@ -827,7 +826,7 @@ contract _CountVote is HubGovernorTest {
     token.delegate(_nonWhitelistedAddress);
 
     _setGovernor(governor);
-    (ProposalBuilder builder) = _createArbitraryProposal();
+    ProposalBuilder builder = _createArbitraryProposal();
 
     vm.startPrank(_nonWhitelistedAddress);
     uint256 _proposalId =
