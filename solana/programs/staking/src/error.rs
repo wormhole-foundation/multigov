@@ -56,6 +56,10 @@ pub enum VestingError {
     Overflow,
     #[msg("Integer underflow")]
     Underflow,
+    #[msg("Invalid stake account metadata PDA")]
+    InvalidStakeAccountMetadataPDA,
+    #[msg("Invalid stake account checkpoints PDA")]
+    InvalidStakeAccountCheckpointsPDA,
 }
 
 #[error_code]

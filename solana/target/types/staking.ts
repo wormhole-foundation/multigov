@@ -2134,6 +2134,244 @@ export type Staking = {
       ]
     },
     {
+      "name": "transferVesting",
+      "discriminator": [
+        218,
+        146,
+        163,
+        135,
+        88,
+        127,
+        242,
+        127
+      ],
+      "accounts": [
+        {
+          "name": "vester",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vestingBalance"
+          ]
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vesterTa",
+          "writable": true,
+          "relations": [
+            "vest"
+          ]
+        },
+        {
+          "name": "newVesterTa",
+          "writable": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.admin",
+                "account": "config"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "config.seed",
+                "account": "config"
+              }
+            ]
+          },
+          "relations": [
+            "vest"
+          ]
+        },
+        {
+          "name": "vest",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
+                "path": "vesterTa"
+              },
+              {
+                "kind": "account",
+                "path": "vest.maturation",
+                "account": "vesting"
+              }
+            ]
+          }
+        },
+        {
+          "name": "newVest",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
+                "path": "newVesterTa"
+              },
+              {
+                "kind": "account",
+                "path": "vest.maturation",
+                "account": "vesting"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vestingBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vester_ta.owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "newVestingBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "new_vester_ta.owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stakeAccountCheckpoints",
+          "docs": [
+            "CheckpointData and StakeAccountMetadata accounts are optional because",
+            "in order to be able to transfer vests that have not been delegated"
+          ],
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "stakeAccountMetadata",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "newStakeAccountCheckpoints",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "newStakeAccountMetadata",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "tokenProgram"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "newVester",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "updateGovernanceAuthority",
       "discriminator": [
         11,
@@ -2771,143 +3009,43 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "tooManyCheckpoints",
-      "msg": "Number of checkpoint limit reached"
+      "name": "notFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "genericOverflow",
-      "msg": "An arithmetic operation unexpectedly overflowed"
+      "name": "notInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "checkpointSerDe",
-      "msg": "Error deserializing checkpoint"
+      "name": "vestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "checkpointOutOfBounds",
-      "msg": "Checkpoint out of bounds"
+      "name": "vestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "notLlcMember",
-      "msg": "You need to be an LLC member to perform this action"
+      "name": "overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "recoverWithStake",
-      "msg": "Can't recover account with a non-zero staking balance. Unstake your tokens first."
+      "name": "underflow",
+      "msg": "Integer underflow"
     },
     {
       "code": 6006,
-      "name": "checkpointNotFound",
-      "msg": "Checkpoint not found"
+      "name": "invalidStakeAccountMetadataPda",
+      "msg": "Invalid stake account metadata PDA"
     },
     {
       "code": 6007,
-      "name": "invalidTimestamp",
-      "msg": "Invalid timestamp"
-    },
-    {
-      "code": 6008,
-      "name": "invalidLlcAgreement",
-      "msg": "Invalid LLC agreement"
-    },
-    {
-      "code": 6009,
-      "name": "noWeight",
-      "msg": "No Weight"
-    },
-    {
-      "code": 6010,
-      "name": "allWeightCast",
-      "msg": "All weight cast"
-    },
-    {
-      "code": 6011,
-      "name": "voteWouldExceedWeight",
-      "msg": "Vote would exceed weight"
-    },
-    {
-      "code": 6012,
-      "name": "withdrawToUnauthorizedAccount",
-      "msg": "Owner needs to own destination account"
-    },
-    {
-      "code": 6013,
-      "name": "insufficientWithdrawableBalance",
-      "msg": "Insufficient balance to cover the withdrawal"
-    },
-    {
-      "code": 6014,
-      "name": "proposalAlreadyExists",
-      "msg": "Proposal already exists"
-    },
-    {
-      "code": 6015,
-      "name": "invalidMessageExecutor",
-      "msg": "Invalid message executor"
-    },
-    {
-      "code": 6016,
-      "name": "invalidSpokeAirlock",
-      "msg": "Invalid spoke airlock"
-    },
-    {
-      "code": 6017,
-      "name": "invalidVestingBalance",
-      "msg": "Invalid vesting balance owner"
-    },
-    {
-      "code": 6018,
-      "name": "other",
-      "msg": "other"
-    },
-    {
-      "code": 6019,
-      "name": "failedToParseResponse",
-      "msg": "Failed to parse response"
-    },
-    {
-      "code": 6020,
-      "name": "writeAuthorityMismatch",
-      "msg": "Write authority mismatch"
-    },
-    {
-      "code": 6021,
-      "name": "guardianSetExpired",
-      "msg": "Guardian set expired"
-    },
-    {
-      "code": 6022,
-      "name": "invalidMessageHash",
-      "msg": "Invalid message hash"
-    },
-    {
-      "code": 6023,
-      "name": "noQuorum",
-      "msg": "No quorum"
-    },
-    {
-      "code": 6024,
-      "name": "invalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
-    },
-    {
-      "code": 6025,
-      "name": "invalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
-    },
-    {
-      "code": 6026,
-      "name": "invalidSignature",
-      "msg": "Invalid signature"
-    },
-    {
-      "code": 6027,
-      "name": "invalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "invalidStakeAccountCheckpointsPda",
+      "msg": "Invalid stake account checkpoints PDA"
     }
   ],
   "types": [
