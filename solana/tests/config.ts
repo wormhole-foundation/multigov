@@ -1,5 +1,12 @@
 import { parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
-import { PublicKey, Keypair, TransactionInstruction } from "@solana/web3.js";
+import {
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Keypair,
+  Transaction,
+  Instruction,
+  SystemProgram,
+} from "@solana/web3.js";
 import {
   startValidator,
   readAnchorConfig,
@@ -25,18 +32,17 @@ const portNumber = getPortNumber(path.basename(__filename));
 describe("config", async () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const randomUser = new Keypair();
   const zeroPubkey = new PublicKey(0);
 
-  const pdaAuthorityKeypair = new Keypair();
+  const vestingAdminKeypair = new Keypair();
+  const vestingAdmin = vestingAdminKeypair.publicKey;
   const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
-  const pdaAuthority = pdaAuthorityKeypair.publicKey;
 
   let errMap: Map<number, string>;
 
   let program;
   let controller;
-
-  let stakeAccountAddress;
 
   let configAccount: PublicKey;
   let bump: number;
@@ -56,6 +62,16 @@ describe("config", async () => {
       null,
       WH_TOKEN_DECIMALS,
     );
+
+    let tx = new Transaction();
+    tx.instructions = [
+      SystemProgram.transfer({
+        fromPubkey: program.provider.publicKey,
+        toPubkey: randomUser.publicKey,
+        lamports: 10 * LAMPORTS_PER_SOL,
+      }),
+    ];
+    await program.provider.sendAndConfirm(tx, [program.provider.wallet.payer]);
   });
 
   it("initializes config", async () => {
@@ -70,7 +86,7 @@ describe("config", async () => {
         mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        pdaAuthority: pdaAuthority,
+        vestingAdmin: vestingAdmin,
       })
       .rpc({
         skipPreflight: DEBUG,
@@ -95,7 +111,7 @@ describe("config", async () => {
         mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        pdaAuthority: pdaAuthority,
+        vestingAdmin: vestingAdmin,
         agreementHash: getDummyAgreementHash(),
       }),
     );
@@ -113,7 +129,7 @@ describe("config", async () => {
           governanceAuthority: program.provider.wallet.publicKey,
           whTokenMint: whMintAccount.publicKey,
           freeze: false,
-          pdaAuthority: pdaAuthority,
+          vestingAdmin: vestingAdmin,
           agreementHash: getDummyAgreementHash(),
           mockClockTime: new BN(0),
         })
@@ -124,7 +140,7 @@ describe("config", async () => {
           governanceAuthority: program.provider.wallet.publicKey,
           whTokenMint: whMintAccount.publicKey,
           freeze: false,
-          pdaAuthority: pdaAuthority,
+          vestingAdmin: vestingAdmin,
           agreementHash: getDummyAgreementHash(),
           mockClockTime: new BN(0),
         })
@@ -155,31 +171,41 @@ describe("config", async () => {
         mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        pdaAuthority: pdaAuthority,
+        vestingAdmin: vestingAdmin,
         agreementHash: getDummyAgreementHash(),
       }),
     );
 
-    const owner = program.provider.wallet.publicKey;
-    const stakeAccountKeypair = new Keypair();
+    await program.methods
+      .createStakeAccount()
+      .accounts({
+        mint: whMintAccount.publicKey,
+        payer: randomUser.publicKey,
+      })
+      .signers([randomUser])
+      .rpc();
 
-    const checkpointDataAddress = PublicKey.findProgramAddressSync(
+    const checkpointDataAccountPublicKey = PublicKey.findProgramAddressSync(
       [
-        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-        owner.toBuffer(),
+        Buffer.from(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        randomUser.publicKey.toBuffer(),
       ],
       program.programId,
     )[0];
+    const metadataAddress = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()),
+        checkpointDataAccountPublicKey.toBuffer(),
+      ],
+      program.programId,
+    )[0];
+    const stakeAccountMetadata: StakeAccountMetadata =
+      await program.account.stakeAccountMetadata.fetch(metadataAddress);
 
-    await program.methods
-      .createStakeAccount(owner)
-      .accounts({
-        stakeAccountCheckpoints: checkpointDataAddress,
-        mint: whMintAccount.publicKey,
-      })
-      .rpc();
-
-    stakeAccountAddress = stakeAccountKeypair.publicKey;
+    assert(
+      stakeAccountMetadata.owner.toString("hex") ==
+        randomUser.publicKey.toString("hex"),
+    );
   });
 
   it("someone else tries to access admin methods", async () => {
@@ -205,31 +231,30 @@ describe("config", async () => {
     );
   });
 
-  it("updates pda authority", async () => {
-    // governance authority can't update pda authority
+  it("updates vesting admin", async () => {
+    // governance authority can't update vesting admin
     await expectFail(
-      program.methods.updatePdaAuthority(program.provider.wallet.publicKey),
+      program.methods.updateVestingAdmin(program.provider.wallet.publicKey),
       "An address constraint was violated",
       errMap,
     );
 
-    const pdaConnection = await StakeConnection.createStakeConnection(
+    const vestingAdminConnection = await StakeConnection.createStakeConnection(
       program.provider.connection,
-      new Wallet(pdaAuthorityKeypair),
+      new Wallet(vestingAdminKeypair),
       program.programId,
     );
 
-    await pdaConnection.program.provider.connection.requestAirdrop(
-      pdaAuthorityKeypair.publicKey,
+    await vestingAdminConnection.program.provider.connection.requestAirdrop(
+      vestingAdminKeypair.publicKey,
       1_000_000_000_000,
     );
 
     // Airdrops are not instant unfortunately, wait
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // pda_authority updates pda_authority to the holder of governance_authority
-    await pdaConnection.program.methods
-      .updatePdaAuthority(program.provider.wallet.publicKey)
+    await vestingAdminConnection.program.methods
+      .updateVestingAdmin(program.provider.wallet.publicKey)
       .rpc();
 
     let configAccountData =
@@ -243,13 +268,13 @@ describe("config", async () => {
         mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        pdaAuthority: program.provider.wallet.publicKey,
+        vestingAdmin: program.provider.wallet.publicKey,
         agreementHash: getDummyAgreementHash(),
       }),
     );
 
-    // the authority gets returned to the original pda_authority
-    await program.methods.updatePdaAuthority(pdaAuthority).rpc();
+    // the authority gets returned to the original vesting admin
+    await program.methods.updateVestingAdmin(vestingAdmin).rpc();
 
     configAccountData = await program.account.globalConfig.fetch(configAccount);
 
@@ -261,7 +286,7 @@ describe("config", async () => {
         mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
-        pdaAuthority: pdaAuthority,
+        vestingAdmin: vestingAdmin,
         agreementHash: getDummyAgreementHash(),
       }),
     );

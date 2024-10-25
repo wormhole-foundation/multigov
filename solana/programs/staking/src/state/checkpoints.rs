@@ -154,7 +154,7 @@ pub fn push_checkpoint<'info>(
                 latest_checkpoint.value,
                 amount_delta,
                 operation,
-                current_timestamp
+                current_timestamp,
             )?;
 
             write_checkpoint_at_index(
@@ -167,7 +167,7 @@ pub fn push_checkpoint<'info>(
                 latest_checkpoint.value,
                 amount_delta,
                 operation,
-                current_timestamp
+                current_timestamp,
             )?;
 
             // overwrite checkpoint with same current_timestamp
@@ -198,12 +198,7 @@ pub fn push_checkpoint<'info>(
             }
         } // Mutable borrow ends here
 
-        let new_checkpoint = calc_new_checkpoint(
-            0,
-            amount_delta,
-            operation,
-            current_timestamp
-        )?;
+        let new_checkpoint = calc_new_checkpoint(0, amount_delta, operation, current_timestamp)?;
 
         write_checkpoint_at_index(
             checkpoints_account_info,

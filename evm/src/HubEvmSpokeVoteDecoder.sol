@@ -84,7 +84,7 @@ contract HubEvmSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @notice Validate the query eth calldata was from the expected spoke contract and contains the expected function
   /// signature.
   /// @param _r The Eth calldata of the query.
-  function _validateEthCallData(EthCallData memory _r) internal view {
+  function _validateEthCallData(EthCallData memory _r) internal pure {
     (bytes4 funcSig,) = _r.callData.asBytes4Unchecked(0);
     // The function signature should be bytes4(keccak256(bytes("proposalVotes(uint256)")))
     if (funcSig != bytes4(hex"544ffc9c")) revert InvalidFunctionSignature();

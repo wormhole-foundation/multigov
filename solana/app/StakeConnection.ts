@@ -318,19 +318,10 @@ export class StakeConnection {
   public async createStakeAccount(): Promise<void> {
     const instructions: TransactionInstruction[] = [];
 
-    const checkpointDataAddress = PublicKey.findProgramAddressSync(
-      [
-        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-        this.userPublicKey().toBuffer(),
-      ],
-      this.program.programId,
-    )[0];
-
     instructions.push(
       await this.program.methods
-        .createStakeAccount(this.userPublicKey())
+        .createStakeAccount()
         .accounts({
-          stakeAccountCheckpoints: checkpointDataAddress,
           mint: this.config.whTokenMint,
         })
         .instruction(),
@@ -352,9 +343,8 @@ export class StakeConnection {
 
     instructions.push(
       await this.program.methods
-        .createStakeAccount(owner)
+        .createStakeAccount()
         .accounts({
-          stakeAccountCheckpoints: checkpointDataAddress,
           mint: this.config.whTokenMint,
         })
         .instruction(),
@@ -395,6 +385,7 @@ export class StakeConnection {
     delegatee: PublicKey,
     amount: WHTokenBalance,
     include_vest: boolean,
+    vestingConfigAccount: PublicKey | null,
   ): Promise<PublicKey> {
     let stakeAccountCheckpointsAddress =
       await this.getStakeAccountCheckpointsAddress(this.userPublicKey());
@@ -440,6 +431,7 @@ export class StakeConnection {
       vestingBalanceAccount = PublicKey.findProgramAddressSync(
         [
           utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
+          vestingConfigAccount.toBuffer(),
           this.userPublicKey().toBuffer(),
         ],
         this.program.programId,
@@ -455,6 +447,7 @@ export class StakeConnection {
           delegateeStakeAccountCheckpoints:
             delegateeStakeAccountCheckpointsAddress,
           stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: vestingConfigAccount,
           vestingBalance: vestingBalanceAccount,
           mint: this.config.whTokenMint,
         })
@@ -517,6 +510,7 @@ export class StakeConnection {
           delegateeStakeAccountCheckpoints:
             delegateeStakeAccountCheckpointsAddress,
           stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: null,
           vestingBalance: null,
           mint: this.config.whTokenMint,
         })

@@ -17,7 +17,7 @@ async function main() {
     governanceAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
     whTokenMint: WORMHOLE_TOKEN,
     freeze: false,
-    pdaAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
+    vestingAdmin: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
   };
   await program.methods.initConfig(globalConfig).rpc();
 }

@@ -6,7 +6,6 @@
 // Objects of type Result must be used, otherwise we might
 // call a function that returns a Result and not handle the error
 
-use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
@@ -21,10 +20,12 @@ use anchor_lang::solana_program::{
     instruction::AccountMeta, instruction::Instruction, program::invoke_signed,
 };
 
-use wormhole_query_sdk::structs::{ChainSpecificQuery, ChainSpecificResponse, QueryResponse, EthCallData};
+use wormhole_query_sdk::structs::{
+    ChainSpecificQuery, ChainSpecificResponse, EthCallData, QueryResponse,
+};
 
 use crate::{
-    error::{ProposalWormholeMessageError, QueriesSolanaVerifyError},
+    error::{ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError},
     state::GuardianSignatures,
 };
 
@@ -75,7 +76,7 @@ pub mod staking {
         config_account.governance_authority = global_config.governance_authority;
         config_account.wh_token_mint = global_config.wh_token_mint;
         config_account.freeze = global_config.freeze;
-        config_account.pda_authority = global_config.pda_authority;
+        config_account.vesting_admin = global_config.vesting_admin;
 
         #[cfg(feature = "mock-clock")]
         {
@@ -94,19 +95,21 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn update_pda_authority(
-        ctx: Context<UpdatePdaAuthority>,
-        new_authority: Pubkey,
+    pub fn update_vesting_admin(
+        ctx: Context<UpdateVestingAdmin>,
+        new_vesting_admin: Pubkey,
     ) -> Result<()> {
         let config = &mut ctx.accounts.config;
-        config.pda_authority = new_authority;
+        config.vesting_admin = new_vesting_admin;
         Ok(())
     }
 
     /// Trustless instruction that creates a stake account for a user
     #[inline(never)]
-    pub fn create_stake_account(ctx: Context<CreateStakeAccount>, owner: Pubkey) -> Result<()> {
+    pub fn create_stake_account(ctx: Context<CreateStakeAccount>) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+        let owner = &ctx.accounts.payer.key;
+
         stake_account_metadata.initialize(
             ctx.bumps.stake_account_metadata,
             ctx.bumps.stake_account_custody,
@@ -123,6 +126,7 @@ pub mod staking {
 
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+        let config = &ctx.accounts.config;
 
         let prev_recorded_total_balance = stake_account_metadata
             .recorded_balance
@@ -131,14 +135,22 @@ pub mod staking {
 
         let current_stake_balance = ctx.accounts.stake_account_custody.amount;
 
-        if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
-            require!(
-                vesting_balance.vester.key() == stake_account_metadata.owner.key(),
-                ErrorCode::InvalidVestingBalance
-            );
-            vesting_balance.stake_account_metadata = stake_account_metadata.key();
-
-            stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
+        if let Some(vesting_config) = &mut ctx.accounts.vesting_config {
+            if vesting_config.finalized {
+                if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
+                    require!(
+                        vesting_balance.vester == stake_account_metadata.owner,
+                        VestingError::InvalidStakeAccountOwner
+                    );
+                    require!(
+                        vesting_config.mint == config.wh_token_mint,
+                        VestingError::InvalidVestingMint
+                    );
+                    vesting_balance.stake_account_metadata = stake_account_metadata.key();
+                    stake_account_metadata.recorded_vesting_balance =
+                        vesting_balance.total_vesting_balance;
+                }
+            }
         }
 
         let current_delegate = stake_account_metadata.delegate;
@@ -155,7 +167,6 @@ pub mod staking {
             total_delegated_votes: total_delegated_votes
         });
 
-        let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
 
         if current_delegate != delegatee {
@@ -547,8 +558,8 @@ pub mod staking {
                 ProposalWormholeMessageError::InvalidHubProposalMetadataContract
             );
 
-            let proposal_query_request_data = spoke_metadata_collector
-                .parse_proposal_query_request_data(&data)?;
+            let proposal_query_request_data =
+                spoke_metadata_collector.parse_proposal_query_request_data(&data)?;
 
             // The function signature should be bytes4(keccak256(bytes("getProposalMetadata(uint256)")))
             require!(
@@ -589,10 +600,7 @@ pub mod staking {
                 ProposalWormholeMessageError::ProposalNotInitialized
             );
 
-            let _ = proposal.add_proposal(
-                proposal_data.proposal_id,
-                proposal_data.vote_start,
-            );
+            let _ = proposal.add_proposal(proposal_data.proposal_id, proposal_data.vote_start);
 
             emit!(ProposalCreated {
                 proposal_id: proposal_data.proposal_id,
