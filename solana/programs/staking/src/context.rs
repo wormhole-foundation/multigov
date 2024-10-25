@@ -151,18 +151,20 @@ pub struct CastVote<'info> {
 
 #[derive(Accounts)]
 pub struct InitializeSpokeMetadataCollector<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
 
     #[account(
         init,
-        payer = payer,
+        payer = governance_authority,
         space = SpokeMetadataCollector::LEN,
         seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
         bump
     )]
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
 
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     pub system_program: Program<'info, System>,
 }
 
