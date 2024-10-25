@@ -2,7 +2,7 @@
 
 import {
   EthCallData,
-  EthCallQueryRequest,
+  EthCallWithFinalityQueryRequest,
   PerChainQueryRequest,
   QueryRequest,
   signaturesToEvmStruct,
@@ -44,6 +44,7 @@ const scripts: {
 
     const encodedSignature = encodeSignature("getProposalMetadata(uint256)");
     console.log("encodedSignature:", encodedSignature);
+
     const encodedParameters = new ethers.AbiCoder().encode(
       ["uint256"],
       [proposalId],
@@ -60,6 +61,7 @@ const scripts: {
     const result = await getWormholeQuery(chain, latestBlock, calldata);
     console.log("Query response: ", result);
     const queryResponse = QueryResponse.from(Buffer.from(result.bytes, "hex"));
+    console.log("queryResponse:", queryResponse);
     const solRequest = queryResponse.request.requests[0].query;
     const solResponse = queryResponse.responses[0].response;
     console.log("solRequest:", solRequest);
@@ -97,7 +99,7 @@ In Solana:
 2) call addProposal instruction:
   const ethProposalResponseBytes = Buffer.from(result.bytes, "hex");
   const proposalIdArray = Buffer.from(encodedParameters, "hex");
-  
+
   guardianSetIndex: ${guardianSetIndex}
   guardianSet: ${guardianSet}
 
@@ -206,7 +208,7 @@ async function getLatestBlock(rpc: string): Promise<number> {
   return (
     await axios.post(rpc, {
       method: "eth_getBlockByNumber",
-      params: ["latest", false],
+      params: ["finalized", false],
       id: 1,
       jsonrpc: "2.0",
     })
@@ -223,7 +225,7 @@ async function getWormholeQuery(
     [
       new PerChainQueryRequest(
         chain, // Ethereum Wormhole Chain ID
-        new EthCallQueryRequest(latestBlock, [calldata]),
+        new EthCallWithFinalityQueryRequest(latestBlock, "finalized", [calldata]),
       ),
     ],
   ).serialize();
