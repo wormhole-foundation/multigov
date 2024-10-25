@@ -6,9 +6,13 @@ import { WHTokenBalance } from "../whTokenBalance";
 import { STAKING_ADDRESS } from "../constants";
 import {
   USER_AUTHORITY_KEYPAIR,
-  USER2_AUTHORITY_PATH,
+  USER2_AUTHORITY_KEYPAIR,
   RPC_NODE,
 } from "./devnet";
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function main() {
   try {
@@ -26,11 +30,12 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("100"));
+    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("10"));
+    await sleep(10000);
 
     const user2Provider = new AnchorProvider(
       connection,
-      new Wallet(USER2_AUTHORITY_PATH),
+      new Wallet(USER2_AUTHORITY_KEYPAIR),
       {},
     );
 
@@ -42,12 +47,13 @@ async function main() {
 
     await user2StakeConnection.delegate(
       undefined,
-      WHTokenBalance.fromString("100"),
+      WHTokenBalance.fromString("10"),
     );
+    await sleep(10000);
 
     await stakeConnection.delegate(
       user2StakeConnection.userPublicKey(),
-      WHTokenBalance.fromString("100"),
+      WHTokenBalance.fromString("10"),
     );
   } catch (err) {
     console.error("Error:", err);

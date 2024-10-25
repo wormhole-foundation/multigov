@@ -6,7 +6,6 @@ import { initAddressLookupTable } from "../../tests/utils/utils";
 async function main() {
   try {
     const connection = new Connection(RPC_NODE);
-
     const provider = new AnchorProvider(
       connection,
       new Wallet(DEPLOYER_AUTHORITY_KEYPAIR),
