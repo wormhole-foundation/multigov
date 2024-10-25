@@ -15,12 +15,14 @@ contract DeployHubContractsSepolia is DeployHubContractsBaseImpl {
       initialVotingPeriod: 30 minutes,
       initialProposalThreshold: 500_000e18,
       initialQuorum: 1_000_000e18,
-      wormholeCore: 0x31377888146f3253211EFEf5c676D41ECe7D58Fe,
+      wormholeCore: 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78,
       voteWeightWindow: 10 minutes,
       voteExtenderAdmin: wallet.addr,
       voteTimeExtension: 5 minutes,
       minimumExtensionTime: 1 minutes,
-      consistencyLevel: 0
+      consistencyLevel: 0,
+      initialMaxQueryTimestampOffset: 10 minutes,
+      solanaTokenDecimals: 6
     });
   }
 }

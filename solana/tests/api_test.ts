@@ -19,6 +19,7 @@ import {
   createNonFinalizedProposalQueryResponseBytes,
   createProposalQueryResponseBytesWithInvalidChainSpecificQuery,
   createProposalQueryResponseBytesWithInvalidChainSpecificResponse,
+  createProposalQueryResponseBytesWithInvalidFunctionSignature,
 } from "./utils/api_utils";
 import { WHTokenBalance } from "../app";
 import crypto from "crypto";
@@ -51,6 +52,14 @@ describe("api", async () => {
       "ed986adf2099a6dc08bed9b6260d72bccf3e2226d774464b4761e7f885ff765d0d5291f1429b14862a52b6991a95fa6b842b66c2c3459970db2f314a1acd27710110",
       "51b5c3b2f16104357ebce559f145ec0f6c1fcbec205dfcaefc1f131191e17fca0eb4eb76b6ff6550d1091644e00314ecd8aa94701e2ef8f00e5b62482710ef3c0011",
       "a3d0cba06bf40ed5a3cc858dde5d3ab5ad016b242c273532c5b1419efe5863ae35d315a7087d6f0592c4dc3a7fccb4b6f1893af558a282728f5d9f468921ffd70012",
+    ],
+  };
+
+  const sepoliaEthProposalResponse = {
+    bytes:
+      "01000099920f75f0a3cb47a3284aa10c527942f9584b6b45ddfee7b0c428074f5a09be423519751ed54e034b8f7f88082ee3209cb2ebbcc36748a3662c1c9aaea40ba4010000005601000000000127120100000049000000083078363866643932012574802db8590ee5c9efc5ebebfef1e174b712fc00000024eb9b9838462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f20127120100000075000000000068fd92661f69fa2dd05b39802af57c3a59e4292d75a41652ada0747a310233e474d7a2000624846c1719000100000040462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f200000000000000000000000000000000000000000000000000000000670cd112",
+    signatures: [
+      "bd1f4486d0aa0bf2a850272fc1822937e1a833f991de2e441fa96a4e3f098bcf0bdca11b1d126d432c658e0fcb712db5a7373451c8ad7a5f02db287f93a2ab3d0100",
     ],
   };
 
@@ -155,10 +164,43 @@ describe("api", async () => {
         proposalAccountData.voteStart.toString(),
         voteStart.toString(),
       );
-      const safeWindow = new BN(24 * 60 * 60); // 24 hour
+      assert.equal(proposalAccountData.againstVotes.toString(), "0");
+      assert.equal(proposalAccountData.forVotes.toString(), "0");
+      assert.equal(proposalAccountData.abstainVotes.toString(), "0");
+    });
+
+    it.skip("should correctly add a real sepolia proposal", async () => {
+      const proposalIdArray = Buffer.from(
+        "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2",
+        "hex",
+      );
+      const voteStart = Buffer.from(
+        "00000000000000000000000000000000000000000000000000000000670cd112",
+        "hex",
+      );
+
+      const signaturesKeypair = Keypair.generate();
+      await stakeConnection.postSignatures(
+        sepoliaEthProposalResponse.signatures,
+        signaturesKeypair,
+      );
+
+      await stakeConnection.addProposal(
+        proposalIdArray,
+        Buffer.from(sepoliaEthProposalResponse.bytes, "hex"),
+        signaturesKeypair.publicKey,
+        0,
+      );
+
+      const { proposalAccountData } =
+        await stakeConnection.fetchProposalAccountData(proposalIdArray);
       assert.equal(
-        proposalAccountData.safeWindow.toString(),
-        safeWindow.toString(),
+        Buffer.from(proposalAccountData.id).toString("hex"),
+        proposalIdArray.toString("hex"),
+      );
+      assert.equal(
+        proposalAccountData.voteStart.toString(),
+        voteStart.toString(),
       );
       assert.equal(proposalAccountData.againstVotes.toString(), "0");
       assert.equal(proposalAccountData.forVotes.toString(), "0");
@@ -274,6 +316,115 @@ describe("api", async () => {
         );
       }
     });
+
+    it("should revert if function signature is invalid", async () => {
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId14")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
+
+      // Create a query with an invalid function signature
+      const invalidFunctionSignatureEthProposalResponseBytes =
+        createProposalQueryResponseBytesWithInvalidFunctionSignature(
+          proposalIdInput,
+          voteStart,
+        );
+
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(
+        invalidFunctionSignatureEthProposalResponseBytes,
+      );
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
+
+      try {
+        await stakeConnection.addProposal(
+          proposalIdInput,
+          invalidFunctionSignatureEthProposalResponseBytes,
+          signaturesKeypair.publicKey,
+          mockGuardianSetIndex,
+          true,
+        );
+        assert.fail("Expected error was not thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidFunctionSignature",
+        );
+      }
+    });
+
+    it("should revert if voteStart is zero", async () => {
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId15")
+        .digest();
+      const voteStart = 0;
+
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
+
+      try {
+        await stakeConnection.addProposal(
+          proposalIdInput,
+          ethProposalResponseBytes,
+          signaturesKeypair.publicKey,
+          mockGuardianSetIndex,
+          true,
+        );
+
+        assert.fail("Expected error was not thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code ===
+            "ProposalNotInitialized",
+        );
+      }
+    });
+
+    it("should revert if the vote start value is more than 8 bytes", async () => {
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId16")
+        .digest();
+      const voteStart = Number("18446744073709551616"); // this is 2^64, which exceeds the maximum value of u64
+
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      const mockGuardianSetIndex = 5;
+
+      try {
+        await stakeConnection.addProposal(
+          proposalIdInput,
+          ethProposalResponseBytes,
+          signaturesKeypair.publicKey,
+          mockGuardianSetIndex,
+          true,
+        );
+
+        assert.fail("Expected error was not thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code ===
+            "ErrorOfVoteStartParsing",
+        );
+      }
+    });
   });
 
   it("proposalVotes", async () => {
@@ -309,34 +460,7 @@ describe("api", async () => {
     assert.equal(abstainVotes.toString(), "0");
   });
 
-  it("isVotingSafe", async () => {
-    const proposalIdInput = crypto
-      .createHash("sha256")
-      .update("proposalId3")
-      .digest();
-    const voteStart = Math.floor(Date.now() / 1000);
-
-    const ethProposalResponseBytes = createProposalQueryResponseBytes(
-      proposalIdInput,
-      voteStart,
-    );
-    const signaturesKeypair = Keypair.generate();
-    const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(ethProposalResponseBytes);
-    await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
-    const mockGuardianSetIndex = 5;
-
-    await stakeConnection.addProposal(
-      proposalIdInput,
-      ethProposalResponseBytes,
-      signaturesKeypair.publicKey,
-      mockGuardianSetIndex,
-    );
-
-    assert.equal(await stakeConnection.isVotingSafe(proposalIdInput), true);
-  });
-
-  it("delegate2", async () => {
+  it("delegate", async () => {
     await stakeConnection.delegate(owner, WHTokenBalance.fromString("100"));
 
     await stakeConnection.delegate(owner, WHTokenBalance.fromString("100"));
@@ -389,6 +513,7 @@ describe("api", async () => {
             stakeAccountCheckpointsAddress, // Invalid delegate
           delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
           stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          vestingConfig: null,
           vestingBalance: null,
           mint: stakeConnection.config.whTokenMint,
         })

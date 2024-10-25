@@ -236,6 +236,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -255,7 +263,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           },
@@ -318,6 +326,10 @@ export type Staking = {
                   99,
                   101
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
               },
               {
                 "kind": "account",
@@ -559,6 +571,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -569,8 +589,8 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "config.admin",
-                "account": "config"
+                "path": "global_config.vesting_admin",
+                "account": "globalConfig"
               },
               {
                 "kind": "account",
@@ -579,7 +599,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           },
@@ -644,6 +664,10 @@ export type Staking = {
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -662,6 +686,24 @@ export type Staking = {
           "name": "stakeAccountMetadata",
           "writable": true,
           "optional": true
+        },
+        {
+          "name": "globalConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "associatedTokenProgram",
@@ -867,12 +909,7 @@ export type Staking = {
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": [
-        {
-          "name": "owner",
-          "type": "pubkey"
-        }
-      ]
+      "args": []
     },
     {
       "name": "createVesting",
@@ -912,6 +949,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -931,7 +976,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           }
@@ -992,6 +1037,10 @@ export type Staking = {
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -1038,6 +1087,46 @@ export type Staking = {
           "name": "mint"
         },
         {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "config.seed",
+                "account": "vestingConfig"
+              }
+            ]
+          }
+        },
+        {
           "name": "vestingBalance",
           "writable": true,
           "pda": {
@@ -1061,6 +1150,10 @@ export type Staking = {
                   99,
                   101
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
               },
               {
                 "kind": "account",
@@ -1257,6 +1350,16 @@ export type Staking = {
           }
         },
         {
+          "name": "vestingConfig",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "vestingBalance",
+          "writable": true,
+          "optional": true
+        },
+        {
           "name": "config",
           "pda": {
             "seeds": [
@@ -1273,11 +1376,6 @@ export type Staking = {
               }
             ]
           }
-        },
-        {
-          "name": "vestingBalance",
-          "writable": true,
-          "optional": true
         },
         {
           "name": "mint"
@@ -1434,6 +1532,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -1453,7 +1559,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           }
@@ -1823,6 +1929,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -1842,6 +1956,24 @@ export type Staking = {
               {
                 "kind": "arg",
                 "path": "seed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "globalConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
               }
             ]
           }
@@ -2176,6 +2308,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -2186,8 +2326,8 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "config.admin",
-                "account": "config"
+                "path": "global_config.vesting_admin",
+                "account": "globalConfig"
               },
               {
                 "kind": "account",
@@ -2196,7 +2336,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           },
@@ -2291,6 +2431,10 @@ export type Staking = {
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -2323,7 +2467,29 @@ export type Staking = {
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "new_vester_ta.owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "globalConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
               }
             ]
           }
@@ -2416,20 +2582,20 @@ export type Staking = {
       ]
     },
     {
-      "name": "updatePdaAuthority",
+      "name": "updateVestingAdmin",
       "discriminator": [
-        178,
         112,
-        199,
-        196,
-        59,
-        40,
-        140,
-        61
+        159,
+        137,
+        54,
+        228,
+        39,
+        63,
+        230
       ],
       "accounts": [
         {
-          "name": "governanceSigner",
+          "name": "vestingAdmin",
           "signer": true
         },
         {
@@ -2454,7 +2620,7 @@ export type Staking = {
       ],
       "args": [
         {
-          "name": "newAuthority",
+          "name": "newVestingAdmin",
           "type": "pubkey"
         }
       ]
@@ -2473,7 +2639,7 @@ export type Staking = {
       ],
       "accounts": [
         {
-          "name": "payer",
+          "name": "admin",
           "writable": true,
           "signer": true
         },
@@ -2552,6 +2718,14 @@ export type Staking = {
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -2562,8 +2736,7 @@ export type Staking = {
               },
               {
                 "kind": "account",
-                "path": "config.admin",
-                "account": "config"
+                "path": "admin"
               },
               {
                 "kind": "account",
@@ -2572,7 +2745,7 @@ export type Staking = {
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "config"
+                "account": "vestingConfig"
               }
             ]
           }
@@ -2783,19 +2956,6 @@ export type Staking = {
       ]
     },
     {
-      "name": "config",
-      "discriminator": [
-        155,
-        12,
-        170,
-        224,
-        30,
-        250,
-        204,
-        130
-      ]
-    },
-    {
       "name": "globalConfig",
       "discriminator": [
         149,
@@ -2939,6 +3099,19 @@ export type Staking = {
       ]
     },
     {
+      "name": "vestingConfig",
+      "discriminator": [
+        0,
+        138,
+        71,
+        135,
+        26,
+        29,
+        43,
+        125
+      ]
+    },
+    {
       "name": "wormholeGuardianSet",
       "discriminator": [
         0,
@@ -3039,11 +3212,41 @@ export type Staking = {
     },
     {
       "code": 6006,
+      "name": "invalidStakeAccountCheckpoints",
+      "msg": "Invalid stake account delegate"
+    },
+    {
+      "code": 6007,
+      "name": "errorOfStakeAccountParsing",
+      "msg": "Error parsing stake_account_metadata and stake_account_checkpoints"
+    },
+    {
+      "code": 6008,
+      "name": "invalidVestingMint",
+      "msg": "Invalid vesting mint"
+    },
+    {
+      "code": 6009,
+      "name": "invalidStakeAccountOwner",
+      "msg": "Invalid stake account owner"
+    },
+    {
+      "code": 6010,
+      "name": "invalidVestingAdmin",
+      "msg": "Invalid vesting admin"
+    },
+    {
+      "code": 6011,
+      "name": "vestedBalanceMismatch",
+      "msg": "Vested token balance does not match the balance in the vault"
+    },
+    {
+      "code": 6012,
       "name": "invalidStakeAccountMetadataPda",
       "msg": "Invalid stake account metadata PDA"
     },
     {
-      "code": 6007,
+      "code": 6013,
       "name": "invalidStakeAccountCheckpointsPda",
       "msg": "Invalid stake account checkpoints PDA"
     }
@@ -3071,42 +3274,6 @@ export type Staking = {
           {
             "name": "nextIndex",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "config",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "admin",
-            "type": "pubkey"
-          },
-          {
-            "name": "recovery",
-            "type": "pubkey"
-          },
-          {
-            "name": "seed",
-            "type": "u64"
-          },
-          {
-            "name": "vested",
-            "type": "u64"
-          },
-          {
-            "name": "finalized",
-            "type": "bool"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           }
         ]
       }
@@ -3181,7 +3348,7 @@ export type Staking = {
             "type": "pubkey"
           },
           {
-            "name": "pdaAuthority",
+            "name": "vestingAdmin",
             "type": "pubkey"
           },
           {
@@ -3289,10 +3456,6 @@ export type Staking = {
           {
             "name": "voteStart",
             "type": "u64"
-          },
-          {
-            "name": "safeWindow",
-            "type": "u64"
           }
         ]
       }
@@ -3395,10 +3558,6 @@ export type Staking = {
           {
             "name": "wormholeCore",
             "type": "pubkey"
-          },
-          {
-            "name": "safeWindow",
-            "type": "u64"
           }
         ]
       }
@@ -3502,6 +3661,42 @@ export type Staking = {
       }
     },
     {
+      "name": "vestingConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "recovery",
+            "type": "pubkey"
+          },
+          {
+            "name": "seed",
+            "type": "u64"
+          },
+          {
+            "name": "vested",
+            "type": "u64"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "voteCast",
       "type": {
         "kind": "struct",
@@ -3580,16 +3775,6 @@ export type Staking = {
           }
         ]
       }
-    }
-  ],
-  "constants": [
-    {
-      "name": "defaultSaveWindow",
-      "docs": [
-        "Save window by default"
-      ],
-      "type": "u64",
-      "value": "86400"
     }
   ]
 };

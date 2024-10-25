@@ -11,6 +11,9 @@ import {HubProposalExtender} from "src/HubProposalExtender.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
+import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
+import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
+import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
 
 abstract contract DeployHubContractsBaseImpl is Script {
   // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
@@ -32,6 +35,20 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint48 voteTimeExtension;
     uint48 minimumExtensionTime;
     uint8 consistencyLevel;
+    uint48 initialMaxQueryTimestampOffset;
+    uint8 solanaTokenDecimals;
+  }
+
+  struct DeployedContracts {
+    TimelockController timelock;
+    HubVotePool hubVotePool;
+    HubGovernor gov;
+    HubProposalMetadata hubProposalMetadata;
+    HubMessageDispatcher hubMessageDispatcher;
+    HubProposalExtender extender;
+    HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer;
+    HubSolanaMessageDispatcher hubSolanaMessageDispatcher;
+    HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder;
   }
 
   error InvalidAddressConfiguration();
@@ -46,28 +63,24 @@ abstract contract DeployHubContractsBaseImpl is Script {
     return wallet;
   }
 
-  function run()
-    public
-    returns (
-      TimelockController,
-      HubVotePool,
-      HubGovernor,
-      HubProposalMetadata,
-      HubMessageDispatcher,
-      HubProposalExtender
-    )
-  {
+  function run() public virtual returns (DeployedContracts memory) {
     DeploymentConfiguration memory config = _getDeploymentConfiguration();
     Vm.Wallet memory wallet = _deploymentWallet();
     vm.startBroadcast(wallet.privateKey);
+
+    // Deploy timelock for governor.
     TimelockController timelock =
       new TimelockController(config.minDelay, new address[](0), new address[](0), wallet.addr);
 
+    // Deploy proposal extender to be used in the HubGovernor.
     HubProposalExtender extender = new HubProposalExtender(
       config.voteExtenderAdmin, config.voteTimeExtension, address(timelock), wallet.addr, config.minimumExtensionTime
     );
 
-    HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
+    // Deploy `HubVotePool` which will revceive cross-chain votes.
+    HubVotePool hubVotePool = new HubVotePool(config.wormholeCore, address(0), wallet.addr);
+
+    HubGovernor.ConstructorParams memory hubGovernorParams = HubGovernor.ConstructorParams({
       name: config.name,
       token: ERC20Votes(config.token),
       timelock: timelock,
@@ -75,31 +88,41 @@ abstract contract DeployHubContractsBaseImpl is Script {
       initialVotingPeriod: config.initialVotingPeriod,
       initialProposalThreshold: config.initialProposalThreshold,
       initialQuorum: config.initialQuorum,
-      hubVotePoolOwner: wallet.addr,
+      hubVotePool: address(hubVotePool),
       wormholeCore: config.wormholeCore,
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: config.voteWeightWindow
     });
 
-    // Deploy Hub Governor
-    HubGovernor gov = new HubGovernor(params);
+    // Deploy Wormhole governor
+    HubGovernor gov = new HubGovernor(hubGovernorParams);
 
-    // Deploy HubProposalMetadata
+    // Set the governor on the `HubVotePool`
+    hubVotePool.setGovernor(address(gov));
+
+    // Deploy the vote decoder for Solana queries
+    HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder =
+      new HubSolanaSpokeVoteDecoder(config.wormholeCore, address(hubVotePool), config.solanaTokenDecimals);
+
+    // Register Solana vote decoder, 5 is the constant for QT_SOL_PDA.
+    hubVotePool.registerQueryType(5, address(hubSolanaSpokeVoteDecoder));
+
+    // Deploy hub metadata contract
     HubProposalMetadata hubProposalMetadata = new HubProposalMetadata(address(gov));
 
-    // Deploy Hub Discptacher
+    // Deploy the Evm hub dispatcher
     HubMessageDispatcher hubMessageDispatcher =
       new HubMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
 
-    HubVotePool hubVotePool = gov.hubVotePool(uint96(block.timestamp));
+    // Deploy the Solana hub dispatcher
+    HubSolanaMessageDispatcher hubSolanaMessageDispatcher =
+      new HubSolanaMessageDispatcher(address(timelock), config.wormholeCore, config.consistencyLevel);
 
-    // The timelock should be the owner of the hub vote pool
-    hubVotePool.transferOwnership(address(timelock));
-
-    // Set governor on extender
+    // Deploy the evm aggregate proposer
+    HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer =
+      new HubEvmSpokeAggregateProposer(config.wormholeCore, address(gov), config.initialMaxQueryTimestampOffset);
     extender.initialize(payable(gov));
 
-    // Grant roles
     timelock.grantRole(timelock.PROPOSER_ROLE(), address(gov));
     timelock.grantRole(timelock.EXECUTOR_ROLE(), address(gov));
     timelock.grantRole(timelock.CANCELLER_ROLE(), address(gov));
@@ -108,6 +131,16 @@ abstract contract DeployHubContractsBaseImpl is Script {
 
     vm.stopBroadcast();
 
-    return (timelock, hubVotePool, gov, hubProposalMetadata, hubMessageDispatcher, extender);
+    return DeployedContracts({
+      timelock: timelock,
+      extender: extender,
+      gov: gov,
+      hubProposalMetadata: hubProposalMetadata,
+      hubMessageDispatcher: hubMessageDispatcher,
+      hubVotePool: hubVotePool,
+      hubEvmSpokeAggregateProposer: hubEvmSpokeAggregateProposer,
+      hubSolanaMessageDispatcher: hubSolanaMessageDispatcher,
+      hubSolanaSpokeVoteDecoder: hubSolanaSpokeVoteDecoder
+    });
   }
 }

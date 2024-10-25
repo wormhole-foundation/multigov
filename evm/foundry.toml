@@ -37,6 +37,7 @@
   wrap_comments = true
 
 [rpc_endpoints]
+  holesky = "${HOLESKY_RPC_URL}"
   mainnet = "${ETHEREUM_RPC_URL}"
   optimism_sepolia = "${OPTIMISM_SEPOLIA_RPC_URL}"
   sepolia = "${SEPOLIA_RPC_URL}"

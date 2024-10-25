@@ -12,7 +12,7 @@ pub struct GlobalConfig {
 
     pub governance_authority: Pubkey,
     pub wh_token_mint: Pubkey,
-    pub pda_authority: Pubkey, // Authority that can authorize the transfer of locked tokens
+    pub vesting_admin: Pubkey,
     pub agreement_hash: [u8; 32],
 }
 
@@ -32,9 +32,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            size_of::<GlobalConfig>()
-                + GlobalConfig::discriminator().len()
-                == GlobalConfig::LEN
+            size_of::<GlobalConfig>() + GlobalConfig::discriminator().len() == GlobalConfig::LEN
         );
     }
 }

@@ -108,10 +108,9 @@ describe("staking", async () => {
       program.programId,
     );
 
-    const tx = await program.methods
-      .createStakeAccount(owner)
+    await program.methods
+      .createStakeAccount()
       .accounts({
-        stakeAccountCheckpoints: checkpointDataAddress,
         mint: whMintAccount.publicKey,
       })
       .rpc({
@@ -129,10 +128,10 @@ describe("staking", async () => {
         metadataBump,
         custodyBump,
         authorityBump,
-        owner,
-        delegate: checkpointDataAddress,
         recordedBalance: expectedRecordedBalance,
         recordedVestingBalance: expectedRecordedBalance,
+        owner,
+        delegate: checkpointDataAddress,
       }),
     );
   });
@@ -165,7 +164,7 @@ describe("staking", async () => {
     );
     transaction.add(ix);
 
-    const tx = await provider.sendAndConfirm(transaction, [], {
+    await provider.sendAndConfirm(transaction, [], {
       skipPreflight: DEBUG,
     });
   });

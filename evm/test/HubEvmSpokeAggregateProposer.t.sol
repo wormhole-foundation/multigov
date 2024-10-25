@@ -68,7 +68,7 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePoolOwner: address(timelock),
+      hubVotePool: address(timelock),
       wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WEIGHT_WINDOW
@@ -529,7 +529,6 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
   }
 
   function testFuzz_CorrectlyCheckAndProposeIfEligibleWithAtLeastTwoTokenCheckpoints(
-    uint128 _voteWeight,
     uint16 _chainId,
     address _spokeAddress,
     string memory _description,
@@ -641,7 +640,6 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
   }
 
   function testFuzz_RevertIf_QueryDoesNotHaveEnoughWeightAndCheckpointMinimumIsTooLow(
-    uint128 _voteWeight,
     uint16 _chainId,
     address _spokeAddress,
     string memory _description,

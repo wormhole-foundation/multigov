@@ -230,6 +230,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -249,7 +257,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           },
@@ -312,6 +320,10 @@
                   99,
                   101
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
               },
               {
                 "kind": "account",
@@ -553,6 +565,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -563,8 +583,8 @@
               },
               {
                 "kind": "account",
-                "path": "config.admin",
-                "account": "Config"
+                "path": "global_config.vesting_admin",
+                "account": "GlobalConfig"
               },
               {
                 "kind": "account",
@@ -573,7 +593,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           },
@@ -638,6 +658,10 @@
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -656,6 +680,24 @@
           "name": "stake_account_metadata",
           "writable": true,
           "optional": true
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "associated_token_program",
@@ -861,12 +903,7 @@
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": [
-        {
-          "name": "owner",
-          "type": "pubkey"
-        }
-      ]
+      "args": []
     },
     {
       "name": "create_vesting",
@@ -906,6 +943,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -925,7 +970,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           }
@@ -986,6 +1031,10 @@
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -1032,6 +1081,46 @@
           "name": "mint"
         },
         {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "config.seed",
+                "account": "VestingConfig"
+              }
+            ]
+          }
+        },
+        {
           "name": "vesting_balance",
           "writable": true,
           "pda": {
@@ -1055,6 +1144,10 @@
                   99,
                   101
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
               },
               {
                 "kind": "account",
@@ -1251,6 +1344,16 @@
           }
         },
         {
+          "name": "vesting_config",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "vesting_balance",
+          "writable": true,
+          "optional": true
+        },
+        {
           "name": "config",
           "pda": {
             "seeds": [
@@ -1267,11 +1370,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "vesting_balance",
-          "writable": true,
-          "optional": true
         },
         {
           "name": "mint"
@@ -1428,6 +1526,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -1447,7 +1553,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           }
@@ -1817,6 +1923,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -1836,6 +1950,24 @@
               {
                 "kind": "arg",
                 "path": "seed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
               }
             ]
           }
@@ -2170,6 +2302,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -2180,8 +2320,8 @@
               },
               {
                 "kind": "account",
-                "path": "config.admin",
-                "account": "Config"
+                "path": "global_config.vesting_admin",
+                "account": "GlobalConfig"
               },
               {
                 "kind": "account",
@@ -2190,7 +2330,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           },
@@ -2285,6 +2425,10 @@
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "vester_ta.owner"
               }
             ]
@@ -2317,7 +2461,29 @@
               },
               {
                 "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "account",
                 "path": "new_vester_ta.owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
               }
             ]
           }
@@ -2410,20 +2576,20 @@
       ]
     },
     {
-      "name": "update_pda_authority",
+      "name": "update_vesting_admin",
       "discriminator": [
-        178,
         112,
-        199,
-        196,
-        59,
-        40,
-        140,
-        61
+        159,
+        137,
+        54,
+        228,
+        39,
+        63,
+        230
       ],
       "accounts": [
         {
-          "name": "governance_signer",
+          "name": "vesting_admin",
           "signer": true
         },
         {
@@ -2448,7 +2614,7 @@
       ],
       "args": [
         {
-          "name": "new_authority",
+          "name": "new_vesting_admin",
           "type": "pubkey"
         }
       ]
@@ -2467,7 +2633,7 @@
       ],
       "accounts": [
         {
-          "name": "payer",
+          "name": "admin",
           "writable": true,
           "signer": true
         },
@@ -2546,6 +2712,14 @@
               {
                 "kind": "const",
                 "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
                   99,
                   111,
                   110,
@@ -2556,8 +2730,7 @@
               },
               {
                 "kind": "account",
-                "path": "config.admin",
-                "account": "Config"
+                "path": "admin"
               },
               {
                 "kind": "account",
@@ -2566,7 +2739,7 @@
               {
                 "kind": "account",
                 "path": "config.seed",
-                "account": "Config"
+                "account": "VestingConfig"
               }
             ]
           }
@@ -2777,19 +2950,6 @@
       ]
     },
     {
-      "name": "Config",
-      "discriminator": [
-        155,
-        12,
-        170,
-        224,
-        30,
-        250,
-        204,
-        130
-      ]
-    },
-    {
       "name": "GlobalConfig",
       "discriminator": [
         149,
@@ -2933,6 +3093,19 @@
       ]
     },
     {
+      "name": "VestingConfig",
+      "discriminator": [
+        0,
+        138,
+        71,
+        135,
+        26,
+        29,
+        43,
+        125
+      ]
+    },
+    {
       "name": "WormholeGuardianSet",
       "discriminator": [
         0,
@@ -3033,11 +3206,41 @@
     },
     {
       "code": 6006,
+      "name": "InvalidStakeAccountCheckpoints",
+      "msg": "Invalid stake account delegate"
+    },
+    {
+      "code": 6007,
+      "name": "ErrorOfStakeAccountParsing",
+      "msg": "Error parsing stake_account_metadata and stake_account_checkpoints"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidVestingMint",
+      "msg": "Invalid vesting mint"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidStakeAccountOwner",
+      "msg": "Invalid stake account owner"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidVestingAdmin",
+      "msg": "Invalid vesting admin"
+    },
+    {
+      "code": 6011,
+      "name": "VestedBalanceMismatch",
+      "msg": "Vested token balance does not match the balance in the vault"
+    },
+    {
+      "code": 6012,
       "name": "InvalidStakeAccountMetadataPDA",
       "msg": "Invalid stake account metadata PDA"
     },
     {
-      "code": 6007,
+      "code": 6013,
       "name": "InvalidStakeAccountCheckpointsPDA",
       "msg": "Invalid stake account checkpoints PDA"
     }
@@ -3065,42 +3268,6 @@
           {
             "name": "next_index",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Config",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "admin",
-            "type": "pubkey"
-          },
-          {
-            "name": "recovery",
-            "type": "pubkey"
-          },
-          {
-            "name": "seed",
-            "type": "u64"
-          },
-          {
-            "name": "vested",
-            "type": "u64"
-          },
-          {
-            "name": "finalized",
-            "type": "bool"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           }
         ]
       }
@@ -3175,7 +3342,7 @@
             "type": "pubkey"
           },
           {
-            "name": "pda_authority",
+            "name": "vesting_admin",
             "type": "pubkey"
           },
           {
@@ -3283,10 +3450,6 @@
           {
             "name": "vote_start",
             "type": "u64"
-          },
-          {
-            "name": "safe_window",
-            "type": "u64"
           }
         ]
       }
@@ -3389,10 +3552,6 @@
           {
             "name": "wormhole_core",
             "type": "pubkey"
-          },
-          {
-            "name": "safe_window",
-            "type": "u64"
           }
         ]
       }
@@ -3496,6 +3655,42 @@
       }
     },
     {
+      "name": "VestingConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "recovery",
+            "type": "pubkey"
+          },
+          {
+            "name": "seed",
+            "type": "u64"
+          },
+          {
+            "name": "vested",
+            "type": "u64"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "VoteCast",
       "type": {
         "kind": "struct",
@@ -3574,16 +3769,6 @@
           }
         ]
       }
-    }
-  ],
-  "constants": [
-    {
-      "name": "DEFAULT_SAVE_WINDOW",
-      "docs": [
-        "Save window by default"
-      ],
-      "type": "u64",
-      "value": "86400"
     }
   ]
 }
