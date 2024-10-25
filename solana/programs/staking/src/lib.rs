@@ -518,9 +518,7 @@ pub mod staking {
         new_hub_proposal_metadata: [u8; 20],
     ) -> Result<()> {
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
-        let _ = spoke_metadata_collector.update_hub_proposal_metadata(
-            new_hub_proposal_metadata,
-        );
+        let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);
 
         Ok(())
     }

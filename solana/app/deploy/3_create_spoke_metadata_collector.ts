@@ -23,7 +23,10 @@ async function main() {
     );
 
     await program.methods
-      .initializeSpokeMetadataCollector(hubChainId, Array.from(hubProposalMetadata))
+      .initializeSpokeMetadataCollector(
+        hubChainId,
+        Array.from(hubProposalMetadata),
+      )
       .rpc();
   } catch (err) {
     console.error("Error:", err);

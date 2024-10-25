@@ -47,7 +47,7 @@ async function main() {
   }
 
   const latestBlock = await getLatestFinalizedBlock(rpc);
-  console.log("latestBlock:", parseInt(latestBlock.toString(), 16))
+  console.log("latestBlock:", parseInt(latestBlock.toString(), 16));
 }
 
 main();

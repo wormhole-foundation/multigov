@@ -22,7 +22,11 @@ import * as wasm from "@wormhole/staking-wasm";
 import { WH_TOKEN_DECIMALS, WHTokenBalance, StakeConnection } from "../app";
 import * as console from "node:console";
 import BN from "bn.js";
-import { hubChainId, hubProposalMetadata, CORE_BRIDGE_ADDRESS } from "../app/constants";
+import {
+  hubChainId,
+  hubProposalMetadata,
+  CORE_BRIDGE_ADDRESS,
+} from "../app/constants";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -170,32 +174,46 @@ describe("config", async () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ConstraintAddress",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintAddress");
     }
   });
 
   it("should successfully initialize SpokeMetadataCollector", async () => {
     const initHubProposalMetadata = new Uint8Array(20);
-    
+
     await program.methods
       .initializeSpokeMetadataCollector(hubChainId, initHubProposalMetadata)
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
       .rpc();
 
-    const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] = PublicKey.findProgramAddressSync(
-      [utils.bytes.utf8.encode(wasm.Constants.SPOKE_METADATA_COLLECTOR_SEED())],
-      program.programId,
-    );
+    const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(
+            wasm.Constants.SPOKE_METADATA_COLLECTOR_SEED(),
+          ),
+        ],
+        program.programId,
+      );
 
     const spokeMetadataCollectorAccountData =
-      await program.account.spokeMetadataCollector.fetch(spokeMetadataCollectorAccount);
+      await program.account.spokeMetadataCollector.fetch(
+        spokeMetadataCollectorAccount,
+      );
 
-    assert.equal(spokeMetadataCollectorAccountData.bump, spokeMetadataCollectorBump);
+    assert.equal(
+      spokeMetadataCollectorAccountData.bump,
+      spokeMetadataCollectorBump,
+    );
     assert.equal(spokeMetadataCollectorAccountData.hubChainId, hubChainId);
-    assert.equal(spokeMetadataCollectorAccountData.hubProposalMetadata.toString(), initHubProposalMetadata.toString());
-    assert.equal(spokeMetadataCollectorAccountData.wormholeCore.toString("hex"), CORE_BRIDGE_ADDRESS.toString("hex"));
+    assert.equal(
+      spokeMetadataCollectorAccountData.hubProposalMetadata.toString(),
+      initHubProposalMetadata.toString(),
+    );
+    assert.equal(
+      spokeMetadataCollectorAccountData.wormholeCore.toString("hex"),
+      CORE_BRIDGE_ADDRESS.toString("hex"),
+    );
   });
 
   it("should fail to update HubProposalMetadata if the signer is not a valid governance_authority", async () => {
@@ -208,9 +226,7 @@ describe("config", async () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ConstraintAddress",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintAddress");
     }
   });
 
@@ -220,18 +236,34 @@ describe("config", async () => {
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
       .rpc();
 
-    const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] = PublicKey.findProgramAddressSync(
-      [utils.bytes.utf8.encode(wasm.Constants.SPOKE_METADATA_COLLECTOR_SEED())],
-      program.programId,
-    );
+    const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(
+            wasm.Constants.SPOKE_METADATA_COLLECTOR_SEED(),
+          ),
+        ],
+        program.programId,
+      );
 
     const spokeMetadataCollectorAccountData =
-      await program.account.spokeMetadataCollector.fetch(spokeMetadataCollectorAccount);
+      await program.account.spokeMetadataCollector.fetch(
+        spokeMetadataCollectorAccount,
+      );
 
-    assert.equal(spokeMetadataCollectorAccountData.bump, spokeMetadataCollectorBump);
+    assert.equal(
+      spokeMetadataCollectorAccountData.bump,
+      spokeMetadataCollectorBump,
+    );
     assert.equal(spokeMetadataCollectorAccountData.hubChainId, hubChainId);
-    assert.equal(spokeMetadataCollectorAccountData.hubProposalMetadata.toString(), hubProposalMetadata.toString());
-    assert.equal(spokeMetadataCollectorAccountData.wormholeCore.toString("hex"), CORE_BRIDGE_ADDRESS.toString("hex"));
+    assert.equal(
+      spokeMetadataCollectorAccountData.hubProposalMetadata.toString(),
+      hubProposalMetadata.toString(),
+    );
+    assert.equal(
+      spokeMetadataCollectorAccountData.wormholeCore.toString("hex"),
+      CORE_BRIDGE_ADDRESS.toString("hex"),
+    );
   });
 
   it("create account", async () => {
