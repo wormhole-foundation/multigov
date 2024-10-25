@@ -274,14 +274,14 @@ export async function initConfig(
 
 export function makeDefaultConfig(
   whMint: PublicKey,
-  pdaAuthority: PublicKey = PublicKey.unique(),
+  vestingAdmin: PublicKey = PublicKey.unique(),
 ): GlobalConfig {
   return {
     bump: 0,
     governanceAuthority: null,
     whTokenMint: whMint,
     freeze: true,
-    pdaAuthority: pdaAuthority,
+    vestingAdmin: vestingAdmin,
     mockClockTime: new BN(10),
   };
 }
@@ -388,8 +388,8 @@ export async function standardSetup(
 
   globalConfig.governanceAuthority = Keypair.generate().publicKey;
 
-  if (globalConfig.pdaAuthority == null) {
-    globalConfig.pdaAuthority = user;
+  if (globalConfig.vestingAdmin == null) {
+    globalConfig.vestingAdmin = user;
   }
 
   const temporaryConfig = { ...globalConfig };

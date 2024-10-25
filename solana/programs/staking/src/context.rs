@@ -25,6 +25,8 @@ pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
 pub const CHECKPOINT_DATA_SEED: &str = "owner";
 pub const CONFIG_SEED: &str = "config";
 pub const PROPOSAL_SEED: &str = "proposal";
+pub const VESTING_CONFIG_SEED: &str = "vesting_config";
+pub const VEST_SEED: &str = "vest";
 pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
@@ -105,11 +107,13 @@ pub struct Delegate<'info> {
     )]
     pub stake_account_custody: Box<Account<'info, TokenAccount>>,
 
-    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+    #[account(mut)]
+    pub vesting_config: Option<Account<'info, VestingConfig>>,
     #[account(mut)]
     pub vesting_balance: Option<Account<'info, VestingBalance>>,
 
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
     pub mint: Account<'info, Mint>,
@@ -348,9 +352,9 @@ pub struct UpdateGovernanceAuthority<'info> {
 }
 
 #[derive(Accounts)]
-pub struct UpdatePdaAuthority<'info> {
-    #[account(address = config.pda_authority)]
-    pub governance_signer: Signer<'info>,
+pub struct UpdateVestingAdmin<'info> {
+    #[account(address = config.vesting_admin)]
+    pub vesting_admin: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,
 }
@@ -376,7 +380,7 @@ pub struct CreateStakeAccount<'info> {
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub custody_authority: AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
     pub mint: Account<'info, Mint>,
@@ -391,7 +395,7 @@ pub struct CreateStakeAccount<'info> {
         token::mint = mint,
         token::authority = custody_authority,
     )]
-    pub stake_account_custody: Account<'info, TokenAccount>,
+    pub stake_account_custody: Box<Account<'info, TokenAccount>>,
     // Primitive accounts :
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,

@@ -47,6 +47,6 @@
     "build": "npm run build_wasm && tsc -p tsconfig.api.json",
     "build_wasm": "./scripts/build_wasm.sh",
     "localnet": "anchor build && ts-node ./app/scripts/localnet.ts",
-    "format": "prettier --write 'app/**/*.ts' 'tests/**/*.ts'"
+    "format": "prettier --write 'app/**/*.ts' 'tests/**/*.ts' && cargo fmt"
   }
 }
