@@ -21,7 +21,7 @@ async function main() {
       JSON.parse(fs.readFileSync("./target/idl/staking.json").toString()),
       provider,
     );
-      
+
     await program.methods
       .updateHubProposalMetadata(Array.from(hubProposalMetadata))
       .accounts({ governanceAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey })

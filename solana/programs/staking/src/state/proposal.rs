@@ -13,7 +13,7 @@ pub struct ProposalData {
 }
 
 impl ProposalData {
-    pub const LEN: usize = 10240; // 8 + 6 * 8;
+    pub const LEN: usize = 72; // 8 + 32 + 4 * 8;
 
     fn initialize(&mut self, proposal_id: [u8; 32], vote_start: u64) {
         self.id = proposal_id;
@@ -51,7 +51,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            size_of::<ProposalData>() + ProposalData::discriminator().len() <= ProposalData::LEN
+            size_of::<ProposalData>() + ProposalData::discriminator().len() == ProposalData::LEN
         );
     }
 
