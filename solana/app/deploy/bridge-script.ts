@@ -225,7 +225,9 @@ async function getWormholeQuery(
     [
       new PerChainQueryRequest(
         chain, // Ethereum Wormhole Chain ID
-        new EthCallWithFinalityQueryRequest(latestBlock, "finalized", [calldata]),
+        new EthCallWithFinalityQueryRequest(latestBlock, "finalized", [
+          calldata,
+        ]),
       ),
     ],
   ).serialize();

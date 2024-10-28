@@ -24,10 +24,16 @@ const provider = new AnchorProvider(
 async function transferWToken(
   fromPublicKey: PublicKey,
   toPublicKey: PublicKey,
-  amount: number
+  amount: number,
 ) {
-  const fromTokenAccount = getAssociatedTokenAddressSync(WORMHOLE_TOKEN, fromPublicKey);
-  const toTokenAccount = getAssociatedTokenAddressSync(WORMHOLE_TOKEN, toPublicKey);
+  const fromTokenAccount = getAssociatedTokenAddressSync(
+    WORMHOLE_TOKEN,
+    fromPublicKey,
+  );
+  const toTokenAccount = getAssociatedTokenAddressSync(
+    WORMHOLE_TOKEN,
+    toPublicKey,
+  );
 
   let tx = new Transaction();
   tx.instructions = [
@@ -41,11 +47,13 @@ async function transferWToken(
       fromTokenAccount,
       toTokenAccount,
       fromPublicKey,
-      amount
+      amount,
     ),
   ];
 
-  const signature = await provider.sendAndConfirm(tx, [DEPLOYER_AUTHORITY_KEYPAIR]);
+  const signature = await provider.sendAndConfirm(tx, [
+    DEPLOYER_AUTHORITY_KEYPAIR,
+  ]);
   console.log(`Tokens sent successfully. Signature: ${signature}`);
 }
 
