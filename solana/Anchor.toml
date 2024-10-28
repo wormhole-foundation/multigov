@@ -7,7 +7,7 @@ seeds = true
 members = ["programs/staking"]
 
 [programs.localnet]
-staking = "5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ"
+staking = "8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g"
 
 [registry]
 url = "https://anchor.projectserum.com"

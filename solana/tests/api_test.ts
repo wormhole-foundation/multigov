@@ -34,6 +34,7 @@ const portNumber = getPortNumber(path.basename(__filename));
 describe("api", async () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const governanceAuthority = new Keypair();
 
   const ethProposalResponse = {
     bytes:
@@ -84,6 +85,7 @@ describe("api", async () => {
       config,
       whMintAccount,
       whMintAuthority,
+      governanceAuthority,
       makeDefaultConfig(whMintAccount.publicKey),
       WHTokenBalance.fromString("1000"),
     ));

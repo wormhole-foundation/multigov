@@ -20,7 +20,8 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalIdHex = "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2"
+    const proposalIdHex =
+      "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2";
     const proposalIdArray = Buffer.from(proposalIdHex, "hex");
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
