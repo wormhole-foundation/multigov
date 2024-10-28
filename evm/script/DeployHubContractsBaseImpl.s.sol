@@ -18,6 +18,8 @@ import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
 import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
 
 abstract contract DeployHubContractsBaseImpl is Script {
+  string constant DEFAULT_DEPLOY_VERSION = "v1";
+
   // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
   // should be set.
   uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
