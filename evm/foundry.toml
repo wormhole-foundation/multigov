@@ -12,6 +12,9 @@
   solc_version = "0.8.23"
   verbosity = 3
 
+# Allow read access to the broadcast directory
+fs_permissions = [{ access = "read", path = "./broadcast" }]
+
 [profile.ir]
   via_ir = true
 

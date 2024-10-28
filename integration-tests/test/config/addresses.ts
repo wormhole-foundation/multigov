@@ -1,20 +1,75 @@
+import { join } from "path";
+import { readFileSync } from "fs";
 import type { Address } from 'viem';
 
+// Chain IDs for the different networks
+const CHAIN_IDS = {
+  HUB: 1337,    // EthDevnet1 (Hub)
+  SPOKE: 1397,  // EthDevnet2 (Spoke)
+} as const;
+
+function getDeploymentAddresses(deploymentFile: string, chainId: number = CHAIN_IDS.HUB) {
+  const projectRoot = join(__dirname, '..', '..', '..', '..');
+  
+  const artifactPath = join(
+    projectRoot,
+    'example-cross-chain-governance',
+    'evm',
+    'broadcast',
+    deploymentFile,
+    chainId.toString(),
+    "run-latest.json"
+  );
+  
+  try {
+    console.log('Attempting to read deployment from:', artifactPath);
+    const deployment = JSON.parse(
+      readFileSync(artifactPath, "utf-8")
+    );
+
+    const addresses: Record<string, Address> = {};
+    
+    deployment.transactions
+      .filter((tx: any) => tx.contractAddress)
+      .forEach((tx: any) => {
+        addresses[tx.contractName] = tx.contractAddress as Address;
+      });
+
+    return addresses;
+  } catch (error) {
+    if ((error as any).code === 'ENOENT') {
+      console.error(`Deployment file not found: ${artifactPath}`);
+      console.error('Make sure you have run the deployments for both hub and spoke chains');
+      console.error(`Expected chainIds: Hub=${CHAIN_IDS.HUB}, Spoke=${CHAIN_IDS.SPOKE}`);
+      console.error(`Current directory: ${__dirname}`);
+      console.error(`Project root: ${projectRoot}`);
+    }
+    throw error;
+  }
+}
+
+// Get Hub contract addresses from EthDevnet1 deployment
+const hubAddresses = getDeploymentAddresses("DeployHubContractsEthDevnet1.sol", CHAIN_IDS.HUB);
+// Get Spoke contract addresses from EthDevnet2 deployment
+const spokeAddresses = getDeploymentAddresses("DeploySpokeContractsEthDevnet2.sol", CHAIN_IDS.SPOKE);
+
 const ContractAddressesEnum = {
-  HUB_EVM_SPOKE_AGGREGATE_PROPOSER:
-    '0x94dFeceb91678ec912ef8f14c72721c102ed2Df7',
-  HUB_GOVERNOR: '0xFF5181e2210AB92a5c9db93729Bc47332555B9E9',
-  HUB_MESSAGE_DISPATCHER: '0xd611F1AF9D056f00F49CB036759De2753EfA82c2',
-  HUB_VOTE_POOL: '0xb4fFe5983B0B748124577Af4d16953bd096b6897',
-  TOKEN: '0x515a2768024620d5af96F91300F69B84F523A54a', // ERC20VotesFake
-  TIMELOCK_CONTROLLER: '0x9e90054F4B6730cffAf1E6f6ea10e1bF9dD26dbb',
-  HUB_PROPOSAL_METADATA: '0x25AF99b922857C37282f578F428CB7f34335B379',
-  HUB_PROPOSAL_EXTENDER: '0xfE82e8f24A51E670133f4268cDfc164c49FC3b37',
-  HUB_SOLANA_MESSAGE_DISPATCHER: '0x995629b19667Ae71483DC812c1B5a35fCaaAF4B8',
-  HUB_SOLANA_SPOKE_VOTE_DECODER: '0xC5aFE31AE505594B190AC71EA689B58139d1C354',
-  SPOKE_VOTE_AGGREGATOR: '0xB3B1667527EcdB3632f48570B25a8cA1360b5ae9',
-  SPOKE_MESSAGE_EXECUTOR: '0x62875A0d3f91014497180fbEAC79b45dd11B8e75',
-  SPOKE_METADATA_COLLECTOR: '0xc613B8aFf2c201d2C345731925D61cA51EAad420',
+  // Hub contracts (deployed on EthDevnet1)
+  HUB_EVM_SPOKE_AGGREGATE_PROPOSER: hubAddresses.HubEvmSpokeAggregateProposer,
+  HUB_GOVERNOR: hubAddresses.HubGovernor,
+  HUB_MESSAGE_DISPATCHER: hubAddresses.HubMessageDispatcher,
+  HUB_VOTE_POOL: hubAddresses.HubVotePool,
+  TOKEN: hubAddresses.ERC20VotesFake,
+  TIMELOCK_CONTROLLER: hubAddresses.TimelockController,
+  HUB_PROPOSAL_METADATA: hubAddresses.HubProposalMetadata,
+  HUB_PROPOSAL_EXTENDER: hubAddresses.HubProposalExtender,
+  HUB_SOLANA_MESSAGE_DISPATCHER: hubAddresses.HubSolanaMessageDispatcher,
+  HUB_SOLANA_SPOKE_VOTE_DECODER: hubAddresses.HubSolanaSpokeVoteDecoder,
+  
+  // Spoke contracts (deployed on EthDevnet2)
+  SPOKE_VOTE_AGGREGATOR: spokeAddresses.SpokeVoteAggregator,
+  SPOKE_MESSAGE_EXECUTOR: spokeAddresses.SpokeMessageExecutor,
+  SPOKE_METADATA_COLLECTOR: spokeAddresses.SpokeMetadataCollector,
 } as const;
 
 type AddressesType = typeof ContractAddressesEnum;
@@ -24,4 +79,11 @@ export type Addresses = {
   [K in AddressKeys]: Address;
 };
 
-export const ContractAddresses: Addresses = ContractAddressesEnum;
+// Validate all addresses are defined
+Object.entries(ContractAddressesEnum).forEach(([key, value]) => {
+  if (!value) {
+    throw new Error(`Missing address for ${key}`);
+  }
+});
+
+export { ContractAddressesEnum as ContractAddresses };

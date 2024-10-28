@@ -4,8 +4,8 @@ pragma solidity ^0.8.23;
 import {Vm} from "forge-std/Vm.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {toWormholeFormat} from "wormhole-sdk/Utils.sol";
-import {DeploySpokeContractsBaseImpl} from "script/DeploySpokeContractsBaseImpl.sol";
-import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
+import {DeploySpokeContractsBaseImpl} from "./DeploySpokeContractsBaseImpl.sol";
+import {ERC20VotesFake} from "../test/fakes/ERC20VotesFake.sol";
 
 /**
  * @notice Deploy the spoke contracts for EthDevnet2 when using the Wormhole Tilt testing environment (Devnet).
@@ -13,9 +13,30 @@ import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
  * contracts.
  * @dev Deploy with:
  * @dev forge script script/DeploySpokeContractsEthDevnet2.sol:DeploySpokeContractsEthDevnet2 --rpc-url
- * http://localhost:8546 --broadcast --via-ir
+ * http://localhost:8546 --broadcast --via-ir --ffi
  */
 contract DeploySpokeContractsEthDevnet2 is DeploySpokeContractsBaseImpl {
+  error ContractNotFound(string contractName);
+
+  function _findContractAddress(string memory json, string memory contractName) internal view returns (address) {
+    // First get the transactions array from the broadcast object
+    bytes[] memory txs = abi.decode(vm.parseJson(json, "$.transactions"), (bytes[]));
+    uint256 length = txs.length;
+
+    for (uint256 i = 0; i < length; i++) {
+      string memory namePath = string.concat("$.transactions[", vm.toString(i), "].contractName");
+      string memory currentName = vm.parseJsonString(json, namePath);
+
+      if (keccak256(bytes(currentName)) == keccak256(bytes(contractName))) {
+        string memory addrPath = string.concat("$.transactions[", vm.toString(i), "].contractAddress");
+        bytes memory addrBytes = vm.parseJson(json, addrPath);
+        return abi.decode(addrBytes, (address));
+      }
+    }
+
+    revert ContractNotFound(contractName);
+  }
+
   function _getDeploymentConfiguration() internal override returns (DeploymentConfiguration memory) {
     Vm.Wallet memory wallet = _deploymentWallet();
 
@@ -33,13 +54,21 @@ contract DeploySpokeContractsEthDevnet2 is DeploySpokeContractsBaseImpl {
     token.mint(wallet.addr, initialSupply);
     vm.stopBroadcast();
 
+    // Read the latest hub deployment to get the addresses
+    string memory root = vm.projectRoot();
+    string memory path = string.concat(root, "/broadcast/DeployHubContractsEthDevnet1.sol/1337/run-latest.json");
+    string memory json = vm.readFile(path);
+
+    address hubProposalMetadata = _findContractAddress(json, "HubProposalMetadata");
+    address hubDispatcher = _findContractAddress(json, "HubMessageDispatcher");
+
     return DeploymentConfiguration({
       wormholeCore: 0xC89Ce4735882C9F0f0FE26686c53074E09B0D550, // EthDevnet2 Wormhole Core
       hubChainId: 2, // EthDevnet1 Wormhole chain ID
-      hubProposalMetadata: 0x25AF99b922857C37282f578F428CB7f34335B379, // From EthDevnet1 hub contracts' deployment
+      hubProposalMetadata: hubProposalMetadata,
       votingToken: address(token),
       voteWeightWindow: 10 minutes,
-      hubDispatcher: toWormholeFormat(0xd611F1AF9D056f00F49CB036759De2753EfA82c2), // Convert to Wormhole format
+      hubDispatcher: toWormholeFormat(hubDispatcher),
       spokeChainId: 4 // EthDevnet2 Wormhole chain ID
     });
   }
