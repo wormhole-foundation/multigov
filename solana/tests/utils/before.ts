@@ -61,10 +61,6 @@ export function readAnchorConfig(pathToAnchorToml: string): AnchorConfig {
   return config;
 }
 
-export function getDummyAgreementHash(): number[] {
-  return Array(32).fill(0);
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
