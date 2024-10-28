@@ -81,10 +81,6 @@ impl<'info> ClaimVesting<'info> {
                 &mut self.stake_account_checkpoints,
             ) {
                 require!(
-                    stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
-                    VestingError::InvalidStakeAccountCheckpoints
-                );
-                require!(
                     self.config.mint == self.global_config.wh_token_mint,
                     // This error can never happen here, because for the condition above
                     // (self.vesting_balance.stake_account_metadata != Pubkey::default())
