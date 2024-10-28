@@ -154,15 +154,10 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     &self.vester.to_account_info(),
                     &self.system_program.to_account_info(),
                 )?;
+            } else {
+                return err!(VestingError::ErrorOfStakeAccountParsing);
             }
         }
-
-        self.new_vesting_balance.set_inner(VestingBalance {
-            vester: self.new_vesting_balance.vester,
-            stake_account_metadata: self.new_vesting_balance.stake_account_metadata,
-            total_vesting_balance: self.new_vesting_balance.total_vesting_balance,
-            bump: self.new_vesting_balance.bump,
-        });
 
         if self.new_vesting_balance.stake_account_metadata != Pubkey::default() {
             if let (Some(new_stake_account_metadata), Some(new_stake_account_checkpoints)) = (
@@ -219,6 +214,8 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     &self.vester.to_account_info(),
                     &self.system_program.to_account_info(),
                 )?;
+            } else {
+                return err!(VestingError::ErrorOfStakeAccountParsing);
             }
         }
 

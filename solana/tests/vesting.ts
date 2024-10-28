@@ -1089,6 +1089,87 @@ describe("vesting", () => {
     }
   });
 
+  it("should fail to transfer without stakeAccountMetadata", async () => {
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let newStakeAccountCheckpointsAddress =
+      await newVesterStakeConnection.getStakeAccountCheckpointsAddress(
+        newVesterStakeConnection.userPublicKey(),
+      );
+    let newStakeAccountMetadataAddress =
+      await newVesterStakeConnection.getStakeMetadataAddress(
+        newStakeAccountCheckpointsAddress,
+      );
+    try {
+      await stakeConnection.program.methods
+        .transferVesting(newVester.publicKey)
+        .accounts({
+          ...accounts,
+          vest: vestNowForTransfer,
+          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          stakeAccountMetadata: null,
+          newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newStakeAccountMetadata: newStakeAccountMetadataAddress,
+          newVestingBalance: newVestingBalance,
+          globalConfig: stakeConnection.configAddress,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code ===
+          "ErrorOfStakeAccountParsing",
+      );
+    }
+  });
+
+  it("should fail to transfer without stakeAccountCheckpoints", async () => {
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        stakeAccountCheckpointsAddress,
+      );
+
+    let newStakeAccountCheckpointsAddress =
+      await newVesterStakeConnection.getStakeAccountCheckpointsAddress(
+        newVesterStakeConnection.userPublicKey(),
+      );
+    let newStakeAccountMetadataAddress =
+      await newVesterStakeConnection.getStakeMetadataAddress(
+        newStakeAccountCheckpointsAddress,
+      );
+    try {
+      await stakeConnection.program.methods
+        .transferVesting(newVester.publicKey)
+        .accounts({
+          ...accounts,
+          vest: vestNowForTransfer,
+          stakeAccountCheckpoints: null,
+          stakeAccountMetadata: stakeAccountMetadataAddress,
+          newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newStakeAccountMetadata: newStakeAccountMetadataAddress,
+          newVestingBalance: newVestingBalance,
+          globalConfig: stakeConnection.configAddress,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code ===
+          "ErrorOfStakeAccountParsing",
+      );
+    }
+  });
+
   it("should successfully transfer vest to another vester", async () => {
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.getStakeAccountCheckpointsAddress(
