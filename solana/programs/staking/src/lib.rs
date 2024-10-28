@@ -45,8 +45,6 @@ use crate::{
 };
 use crate::state::GuardianSignatures;
 
-use crate::utils::execute_message::parse_abi_encoded_message;
-
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
 
@@ -89,7 +87,6 @@ pub mod staking {
     /// Creates a global config for the program
     use super::*;
     use crate::utils::execute_message::Message;
-    use crate::wormhole_bridge_core::accounts::PostedVAA;
 
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
         let config_account = &mut ctx.accounts.config_account;
@@ -449,12 +446,14 @@ pub mod staking {
 
         msg!("Deserializing VAA...");
         let vaa_account_info = &ctx.accounts.posted_vaa;
+        let message_executor = &ctx.accounts.message_executor;
+
 
         // Deserialize the account data
         let vaa_data: wormhole_anchor_sdk::wormhole::PostedVaa<Message> = {
             let data = &vaa_account_info.data.borrow();
             let mut data_slice: &[u8] = data;
-            wormhole_anchor_sdk::wormhole::PostedVaa::<Message>::deserialize(&mut data_slice)
+            wormhole_anchor_sdk::wormhole::PostedVaa::<Message>::try_deserialize(&mut data_slice)
                 .map_err(|e| {
                     msg!("Failed to deserialize VAA data: {:?}", e);
                     ProgramError::InvalidAccountData
@@ -469,8 +468,16 @@ pub mod staking {
 
         msg!("Checking emitter chain: {}", vaa_data.meta.emitter_chain);
         // Verify that the message is from the expected emitter.
-        // if vaa.emitter_chain != 10002 || vaa.emitter_address != EXPECTED_EMITTER_ADDRESS {
-        //     return Err(error!(MessageExecutorError::InvalidEmitterChain));
+        if vaa_data.meta.emitter_chain != message_executor.hub_chain_id {
+            return Err(error!(MessageExecutorError::InvalidEmitterChain));
+        }
+
+        if vaa_data.meta.emitter_address != message_executor.hub_dispatcher.to_bytes() {
+            return Err(error!(MessageExecutorError::InvalidHubDispatcher));
+        }
+
+        // if  vaa_data.meta.finality == 0 {
+        //     return Err(error!(MessageExecutorError::VaaNotFinalized));
         // }
 
         msg!("Executing instructions in the message...");

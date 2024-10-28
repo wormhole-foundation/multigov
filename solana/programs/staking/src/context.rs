@@ -24,13 +24,11 @@ use crate::state::{
     WormholeGuardianSet,
 };
 use anchor_lang::prelude::Clock;
-use wormhole_anchor_sdk::wormhole::PostedVaa;
 use wormhole_query_sdk::{
     MESSAGE_PREFIX,
     QUERY_MESSAGE_LEN,
 };
 
-use crate::utils::execute_message::Message;
 use wormhole_raw_vaas::utils::quorum;
 use wormhole_raw_vaas::GuardianSetSig;
 
@@ -43,7 +41,7 @@ pub const PROPOSAL_SEED: &str = "proposal";
 pub const VESTING_CONFIG_SEED: &str = "vesting_config";
 pub const VEST_SEED: &str = "vest";
 pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
-pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
+pub const SPOKE_MESSAGE_EXECUTOR_SEED: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
 pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
@@ -505,7 +503,7 @@ pub struct InitializeSpokeMessageExecutor<'info> {
         init,
         payer = payer,
         space = SpokeMessageExecutor::LEN,
-        seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
+        seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
         bump
     )]
     pub executor:       Account<'info, SpokeMessageExecutor>,
@@ -545,6 +543,19 @@ pub struct ReceiveMessage<'info> {
     )]
     pub posted_vaa:       AccountInfo<'info>,
 
+    #[account(
+        mut,
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        bump = airlock.bump
+    )]
+    pub airlock: Box<Account<'info, SpokeAirlock>>,
+
+    #[account(
+        seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
+        bump = message_executor.bump
+    )]
+    pub message_executor: Box<Account<'info, SpokeMessageExecutor>>,
+
     /// The Wormhole Core Bridge program.
     /// CHECK: Ensures the correct program is used for PDA derivation
     #[account(address = CORE_BRIDGE_PROGRAM_ID)]
@@ -552,13 +563,6 @@ pub struct ReceiveMessage<'info> {
 
     /// The system program.
     pub system_program: Program<'info, System>,
-
-    #[account(
-        mut,
-        seeds = [AIRLOCK_SEED.as_bytes()],
-        bump = airlock.bump
-    )]
-    pub airlock: Box<Account<'info, SpokeAirlock>>,
 }
 
 #[derive(Accounts)]
@@ -568,7 +572,7 @@ pub struct SetAirlock<'info> {
 
     #[account(
         mut,
-        seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
+        seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
         bump = executor.bump
     )]
     pub executor: Account<'info, SpokeMessageExecutor>,

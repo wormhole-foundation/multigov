@@ -135,7 +135,10 @@ pub enum MessageExecutorError {
     FailedParseVaa,
     #[msg("Invalid Emitter Chain")]
     InvalidEmitterChain,
+    #[msg("Invalid hub dispatcher")]
+    InvalidHubDispatcher,
+    #[msg("Vaa not finalized")]
+    VaaNotFinalized,
     #[msg("Missing Remaining account")]
-    MissedRemainingAccount
-
+    MissedRemainingAccount,
 }
