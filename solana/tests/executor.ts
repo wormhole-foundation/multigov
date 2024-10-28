@@ -11,7 +11,7 @@ import {
 import { ethers } from "ethers";
 import assert from "assert";
 import { StakeConnection } from "../app/StakeConnection";
-import { CORE_BRIDGE_ADDRESS, WHTokenBalance } from "../app";
+import { WHTokenBalance } from "../app";
 import {
   standardSetup,
   readAnchorConfig,
@@ -106,8 +106,78 @@ describe("receive_message", () => {
   it("should process receive_message correctly", async () => {
     console.log("wormholeProgram:", CORE_BRIDGE_PID.toBase58());
 
-    // Prepare the message (payload) for the VAA
-    const messagePayload = Buffer.from("Your message data"); // Replace with actual message data
+    const recipientKeypair = Keypair.generate();
+    const lamportsForRecipient =
+      await stakeConnection.provider.connection.getMinimumBalanceForRentExemption(
+        0,
+      );
+
+    const createRecipientAccountIx = SystemProgram.createAccount({
+      fromPubkey: payer.publicKey,
+      newAccountPubkey: recipientKeypair.publicKey,
+      lamports: lamportsForRecipient,
+      space: 0,
+      programId: SystemProgram.programId,
+    });
+
+    const tx = new Transaction().add(createRecipientAccountIx);
+
+    await stakeConnection.provider.sendAndConfirm(tx, [
+      payer,
+      recipientKeypair,
+    ]);
+
+    const lamports = 1000; // Amount to transfer
+
+    const transferInstruction = SystemProgram.transfer({
+      fromPubkey: payer.publicKey,
+      toPubkey: recipientKeypair.publicKey,
+      lamports: lamports,
+    });
+
+    // Extract programId, accounts, data
+    const accounts = transferInstruction.keys.map((accountMeta) => {
+      return {
+        pubkey: "0x" + accountMeta.pubkey.toBuffer().toString("hex"),
+        isSigner: accountMeta.isSigner,
+        isWritable: accountMeta.isWritable,
+      };
+    });
+
+    const instructionData = {
+      programId:
+        "0x" + transferInstruction.programId.toBuffer().toString("hex"),
+      accounts: accounts,
+      data: "0x" + transferInstruction.data.toString("hex"),
+    };
+
+    // Prepare the message
+    const messageId = ethers.BigNumber.from(1);
+    const wormholeChainId = ethers.BigNumber.from(1);
+    const instructions = [instructionData];
+    const instructionsLength = ethers.BigNumber.from(instructions.length);
+
+    // Define the ABI types
+    const SolanaAccountMetaType =
+      "tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
+    const SolanaInstructionType = `tuple(bytes32 programId, ${SolanaAccountMetaType}[] accounts, bytes data)`;
+    const MessageType = `tuple(uint256 messageId, uint256 wormholeChainId, ${SolanaInstructionType}[] instructions)`;
+
+    // Prepare the message without instructionsLength
+    const messageObject = {
+      messageId: messageId,
+      wormholeChainId: wormholeChainId,
+      instructions: instructions,
+    };
+
+    // Encode the message
+    const abiCoder = new ethers.utils.AbiCoder();
+    const messagePayloadHex = abiCoder.encode([MessageType], [messageObject]);
+
+    console.log("Encoded message payload:", messagePayloadHex);
+
+    // Convert the encoded message to Buffer
+    const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");
 
     // Emitter address (32 bytes)
     const emitterAddress = Buffer.alloc(32);
@@ -120,21 +190,29 @@ describe("receive_message", () => {
       MOCK_GUARDIANS,
       Array.from(Buffer.alloc(32, "f0", "hex")),
       BigInt(1),
-      messagePayload,
+      messagePayloadBuffer,
       { sourceChain: "Ethereum" },
     );
-
-    console.log("payer.publicKey:", payer.publicKey.toBase58());
-    console.log("airlockPDA:", airlockPDA.toBase58());
-    console.log("postedVaaAddress:", publicKey.toBase58());
-    console.log("wormholeProgram:", CORE_BRIDGE_PID.toBase58());
-    console.log("systemProgram:", SystemProgram.programId.toBase58());
 
     // Prepare PDA for message_received
     const [messageReceivedPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("message_received"), hash],
       stakeConnection.program.programId,
     );
+
+    // Prepare the required accounts for the instruction
+    const remainingAccounts = transferInstruction.keys.map((key) => ({
+      pubkey: key.pubkey,
+      isWritable: key.isWritable,
+      isSigner: key.isSigner,
+    }));
+
+    // Include the programId account as well
+    remainingAccounts.push({
+      pubkey: transferInstruction.programId,
+      isWritable: false,
+      isSigner: false,
+    });
 
     console.log("Before receiveMessage");
     // Invoke receive_message instruction
@@ -148,6 +226,7 @@ describe("receive_message", () => {
         wormholeProgram: CORE_BRIDGE_PID,
         systemProgram: SystemProgram.programId,
       })
+      .remainingAccounts(remainingAccounts)
       .signers([payer])
       .rpc({ skipPreflight: true });
 

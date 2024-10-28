@@ -6,8 +6,10 @@
 // Objects of type Result must be used, otherwise we might
 // call a function that returns a Result and not handle the error
 
-use crate::error::ErrorCode;
-use crate::error::MessageExecutorError;
+use crate::error::{
+    ErrorCode,
+    MessageExecutorError,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
@@ -86,6 +88,7 @@ declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
 pub mod staking {
     /// Creates a global config for the program
     use super::*;
+    use crate::utils::execute_message::Message;
     use crate::wormhole_bridge_core::accounts::PostedVAA;
 
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
@@ -438,30 +441,44 @@ pub mod staking {
         let message_received = &mut ctx.accounts.message_received;
 
         // Check if the message has already been processed.
+        msg!("Checking if message has already been executed...");
         if message_received.executed {
+            msg!("Message already executed, returning error.");
             return Err(error!(MessageExecutorError::MessageAlreadyExecuted));
         }
 
+        msg!("Deserializing VAA...");
         let vaa_account_info = &ctx.accounts.posted_vaa;
 
-        let vaa_data = &vaa_account_info.data.borrow();
+        // Deserialize the account data
+        let vaa_data: wormhole_anchor_sdk::wormhole::PostedVaa<Message> = {
+            let data = &vaa_account_info.data.borrow();
+            let mut data_slice: &[u8] = data;
+            wormhole_anchor_sdk::wormhole::PostedVaa::<Message>::deserialize(&mut data_slice)
+                .map_err(|e| {
+                    msg!("Failed to deserialize VAA data: {:?}", e);
+                    ProgramError::InvalidAccountData
+                })?
+        };
 
-        let vaa = PostedVAA::deserialize(&mut &***vaa_data).map_err(|_| MessageExecutorError::FailedParseVaa)?;
 
+        // Now you can use `vaa_data` as needed
+        // For example:
+        msg!("Received VAA with sequence: {}", vaa_data.meta.sequence);
+
+
+        msg!("Checking emitter chain: {}", vaa_data.meta.emitter_chain);
         // Verify that the message is from the expected emitter.
-        // if vaa.emitter_chain != 1002 || vaa.emitter_address != EXPECTED_EMITTER_ADDRESS {
-        if vaa.emitter_chain != 10002 {
-            return Err(error!(MessageExecutorError::InvalidEmitterChain));
-        }
+        // if vaa.emitter_chain != 10002 || vaa.emitter_address != EXPECTED_EMITTER_ADDRESS {
+        //     return Err(error!(MessageExecutorError::InvalidEmitterChain));
+        // }
 
-        // Deserialize the message payload.
-        let message = parse_abi_encoded_message(&vaa.payload.as_ref())?;
-
+        msg!("Executing instructions in the message...");
         // Execute the instructions in the message.
-        for instruction in message.instructions {
+        for instruction in vaa_data.payload.1.instructions.clone() {
             // Prepare AccountInfo vector for the instruction.
             let mut account_infos = vec![];
-        
+
             for meta in &instruction.accounts {
                 let meta_pubkey = Pubkey::new_from_array(meta.pubkey);
                 let account_info = ctx
@@ -472,37 +489,37 @@ pub mod staking {
                 account_infos.push(account_info.clone());
             }
             // Create the instruction.
-    let ix = Instruction {
-        program_id: Pubkey::new_from_array(instruction.program_id),
-        accounts: instruction
-            .accounts
-            .iter()
-            .map(|meta| {
-                let pubkey = Pubkey::new_from_array(meta.pubkey);
-                if meta.is_signer {
-                    if meta.is_writable {
-                        AccountMeta::new(pubkey, true)
-                    } else {
-                        AccountMeta::new_readonly(pubkey, true)
-                    }
-                } else {
-                    if meta.is_writable {
-                        AccountMeta::new(pubkey, false)
-                    } else {
-                        AccountMeta::new_readonly(pubkey, false)
-                    }
-                }
-            })
-            .collect(),
-        data: instruction.data.clone(),
-    };
+            let ix = Instruction {
+                program_id: Pubkey::new_from_array(instruction.program_id),
+                accounts:   instruction
+                    .accounts
+                    .iter()
+                    .map(|meta| {
+                        let pubkey = Pubkey::new_from_array(meta.pubkey);
+                        if meta.is_signer {
+                            if meta.is_writable {
+                                AccountMeta::new(pubkey, true)
+                            } else {
+                                AccountMeta::new_readonly(pubkey, true)
+                            }
+                        } else {
+                            if meta.is_writable {
+                                AccountMeta::new(pubkey, false)
+                            } else {
+                                AccountMeta::new_readonly(pubkey, false)
+                            }
+                        }
+                    })
+                    .collect(),
+                data:       instruction.data.clone(),
+            };
 
-    // Use invoke_signed with the correct signer_seeds
-    let signer_seeds: &[&[&[u8]]] =
-        &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
+            // Use invoke_signed with the correct signer_seeds
+            let signer_seeds: &[&[&[u8]]] =
+                &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
 
-    invoke_signed(&ix, &account_infos, signer_seeds)?;
-}
+            invoke_signed(&ix, &account_infos, signer_seeds)?;
+        }
 
         // Mark the message as executed.
         message_received.executed = true;

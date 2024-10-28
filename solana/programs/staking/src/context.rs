@@ -24,15 +24,15 @@ use crate::state::{
     WormholeGuardianSet,
 };
 use anchor_lang::prelude::Clock;
-
+use wormhole_anchor_sdk::wormhole::PostedVaa;
 use wormhole_query_sdk::{
     MESSAGE_PREFIX,
     QUERY_MESSAGE_LEN,
 };
 
+use crate::utils::execute_message::Message;
 use wormhole_raw_vaas::utils::quorum;
 use wormhole_raw_vaas::GuardianSetSig;
-
 
 pub const AUTHORITY_SEED: &str = "authority";
 pub const CUSTODY_SEED: &str = "custody";
@@ -533,7 +533,6 @@ pub struct ReceiveMessage<'info> {
         bump
     )]
     pub message_received: Box<Account<'info, MessageReceived>>,
-
     /// CHECK
     /// The verified Wormhole VAA account containing the message.
     #[account(
@@ -544,10 +543,10 @@ pub struct ReceiveMessage<'info> {
         seeds::program = wormhole_program.key(),
         bump
     )]
-    pub posted_vaa: AccountInfo<'info>,
+    pub posted_vaa:       AccountInfo<'info>,
 
     /// The Wormhole Core Bridge program.
-    /// CHECK: Ensures the correct program is used for PDA derivation.
+    /// CHECK: Ensures the correct program is used for PDA derivation
     #[account(address = CORE_BRIDGE_PROGRAM_ID)]
     pub wormhole_program: AccountInfo<'info>,
 
