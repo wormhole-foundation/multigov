@@ -1,0 +1,24 @@
+{
+  "name": "eth-call-w-timestamp",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "test": "bun test",
+    "lint": "tsc --noEmit && biome lint --write",
+    "format": "biome format --write",
+    "check": "tsc --noEmit && biome check --write",
+    "check-write": "tsc --noEmit && biome check --write"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@wormhole-foundation/wormhole-query-sdk": "^0.0.13",
+    "dotenv": "^16.4.5",
+    "viem": "^2.18.7"
+  }
+}
