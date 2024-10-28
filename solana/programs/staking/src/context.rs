@@ -31,7 +31,7 @@ pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
-pub const SPOKE_METADATA_COLLECTOR: &str = "spoke_metadata_collector";
+pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
 
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -151,19 +151,37 @@ pub struct CastVote<'info> {
 
 #[derive(Accounts)]
 pub struct InitializeSpokeMetadataCollector<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
 
     #[account(
         init,
-        payer = payer,
+        payer = governance_authority,
         space = SpokeMetadataCollector::LEN,
-        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
         bump
     )]
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
 
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateHubProposalMetadata<'info> {
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
+        bump = spoke_metadata_collector.bump
+    )]
+    pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
 }
 
 #[derive(Accounts)]
@@ -227,7 +245,7 @@ pub struct AddProposal<'info> {
 
     #[account(
         mut,
-        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
         bump = spoke_metadata_collector.bump
     )]
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,

@@ -64,7 +64,7 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-declare_id!("5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ");
+declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
 #[program]
 pub mod staking {
     /// Creates a global config for the program
@@ -509,6 +509,16 @@ pub mod staking {
             hub_proposal_metadata,
             CORE_BRIDGE_PROGRAM_ID,
         );
+
+        Ok(())
+    }
+
+    pub fn update_hub_proposal_metadata(
+        ctx: Context<UpdateHubProposalMetadata>,
+        new_hub_proposal_metadata: [u8; 20],
+    ) -> Result<()> {
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+        let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);
 
         Ok(())
     }

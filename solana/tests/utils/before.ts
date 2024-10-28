@@ -360,6 +360,7 @@ export async function standardSetup(
   config: AnchorConfig,
   whMintAccount: Keypair,
   whMintAuthority: Keypair,
+  governanceAuthority: Keypair,
   globalConfig: GlobalConfig,
   amount?: WHTokenBalance,
 ) {
@@ -386,14 +387,14 @@ export async function standardSetup(
     program.provider.connection,
   );
 
-  globalConfig.governanceAuthority = Keypair.generate().publicKey;
+  globalConfig.governanceAuthority = governanceAuthority.publicKey;
 
   if (globalConfig.vestingAdmin == null) {
     globalConfig.vestingAdmin = user;
   }
 
   const temporaryConfig = { ...globalConfig };
-  // User becomes a temporary dictator during setup
+  // User becomes a temporary governanceAuthority during setup
   temporaryConfig.governanceAuthority = user;
 
   await initConfig(program, whMintAccount.publicKey, temporaryConfig);
@@ -402,18 +403,17 @@ export async function standardSetup(
     provider,
     whMintAccount.publicKey,
   );
-
   //   console.log("Lookup table address: ", lookupTableAddress.toBase58());
-
-  // Give the power back to the people
-  await program.methods
-    .updateGovernanceAuthority(globalConfig.governanceAuthority)
-    .accounts({ governanceSigner: user })
-    .rpc();
 
   await program.methods
     .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
-    .accounts({ payer: user })
+    .accounts({ governance_authority: user })
+    .rpc();
+
+  // Give the admin power back to globalConfig.governanceAuthority
+  await program.methods
+    .updateGovernanceAuthority(globalConfig.governanceAuthority)
+    .accounts({ governanceSigner: user })
     .rpc();
 
   const connection = getConnection(portNumber);
