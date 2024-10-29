@@ -19,6 +19,7 @@ export const createProposalViaAggregateProposer = async ({
   const { ethClient, ethWallet, account } = createClients();
   const timestamp = (await ethClient.getBlock()).timestamp - 300n; // 5 minutes ago
 
+  // Pass block timestamp - the Wormhole query will handle microsecond conversion
   const { queryResponseBytes, queryResponseSignatures } =
     await getWormholeGetVotesQueryResponse({
       account: account.address,
@@ -369,4 +370,70 @@ export const waitForProposalToBeActive = async (proposalId: bigint) => {
   await mineToTimestamp({ client: eth2Client, timestamp: timestampToUse });
 
   console.log('✅ Proposal is active');
+};
+
+// Creates and executes a proposal via the HubGovernor directly
+export async function createAndExecuteProposal(proposalData: ProposalData) {
+  const { ethWallet } = createClients();
+
+  const proposalId = await createProposalViaHubGovernor({
+    targets: proposalData.targets,
+    values: proposalData.values,
+    calldatas: proposalData.calldatas,
+    description: proposalData.description,
+  });
+
+  await passProposal({
+    proposalId,
+  });
+
+  await executeProposal({
+    wallet: ethWallet,
+    proposalId,
+    proposalData,
+  });
+
+  return proposalId;
+}
+
+export const createProposalViaHubGovernor = async ({
+  targets,
+  values,
+  calldatas,
+  description,
+}: ProposalData) => {
+  const { ethClient, ethWallet } = createClients();
+
+  const { result: proposalId } = await ethClient.simulateContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'propose',
+    args: [targets, values, calldatas, description],
+  });
+
+  const hash = await ethWallet.writeContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'propose',
+    args: [targets, values, calldatas, description],
+    account: handleNoAccount(ethWallet),
+    chain: ethWallet.chain,
+  });
+
+  console.log(`Created proposal ${proposalId}. Transaction hash: ${hash}`);
+
+  return proposalId;
+};
+
+// Go through the proposal state flow to make it pass
+export const passProposal = async ({ proposalId }: { proposalId: bigint }) => {
+  const { ethClient } = createClients();
+
+  const voteStart = await getVoteStart({ proposalId });
+
+  await mineToTimestamp({ client: ethClient, timestamp: voteStart });
+  await voteOnProposal({ proposalId, isHub: true, voteType: VoteType.FOR });
+
+  const voteEnd = await getVoteEnd({ proposalId });
+  await mineToTimestamp({ client: ethClient, timestamp: voteEnd + 1n });
 };
