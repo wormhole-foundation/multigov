@@ -170,6 +170,7 @@ export const getProposalVotes = async ({
   };
 };
 
+// Get the vote start for a proposal on the hub
 export const getVoteStart = async ({ proposalId }: { proposalId: bigint }) => {
   const { ethClient } = createClients();
 
@@ -181,6 +182,7 @@ export const getVoteStart = async ({ proposalId }: { proposalId: bigint }) => {
   });
 };
 
+// Get the vote end for a proposal on the hub
 export const getVoteEnd = async ({ proposalId }: { proposalId: bigint }) => {
   const { ethClient } = createClients();
   return await ethClient.readContract({

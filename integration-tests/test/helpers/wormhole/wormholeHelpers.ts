@@ -13,48 +13,63 @@ import { ContractAddresses } from '../../config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from '../../config/chains';
 import { createClients } from '../../config/clients';
 import { getPrivateKeyHex } from '../../config/mainAccount';
-
-export type QueryRes = {
-  signatures: string[];
-  bytes: string;
-};
+import type { QueryRes } from './types';
 
 export const sendQueryToWormhole = async ({
   serialized,
 }: {
-  signature: string; // TODO figure out how to correctly make this
+  signature: string;
   serialized: Uint8Array;
 }) => {
   if (!process.env.WORMHOLE_API_KEY) {
     throw new Error('WORMHOLE_API_KEY is not set');
   }
 
-  const response = await fetch(QUERY_URL, {
-    method: 'PUT',
-    body: JSON.stringify({
-      // signature, // TODO: add this
-      bytes: Buffer.from(serialized).toString('hex'),
-    }),
-    headers: {
-      'X-API-Key': process.env.WORMHOLE_API_KEY,
-    },
-  });
+  const maxRetries = 3;
+  let attempt = 0;
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+  while (attempt < maxRetries) {
+    try {
+      console.log(
+        `Sending query to Wormhole (attempt ${attempt + 1}/${maxRetries})...`,
+      );
+      const response = await fetch(QUERY_URL, {
+        method: 'PUT',
+        body: JSON.stringify({
+          bytes: Buffer.from(serialized).toString('hex'),
+        }),
+        headers: {
+          'X-API-Key': process.env.WORMHOLE_API_KEY,
+        },
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as QueryRes;
+        console.log('Query successful!');
+
+        const queryResponseBytes = `0x${data.bytes}` as `0x${string}`;
+        const queryResponseSignatures = formatQueryResponseSignaturesForViem(
+          data.signatures,
+        );
+
+        return {
+          queryResponseBytes,
+          queryResponseSignatures,
+        };
+      }
+
+      console.log(`Query failed with status ${response.status}, retrying...`);
+    } catch (error) {
+      console.log(`Query failed with error: ${error}, retrying...`);
+    }
+
+    attempt++;
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 second delay between retries
+    }
   }
 
-  const data = (await response.json()) as QueryRes;
-
-  const queryResponseBytes = `0x${data.bytes}` as `0x${string}`;
-  const queryResponseSignatures = formatQueryResponseSignaturesForViem(
-    data.signatures,
-  );
-
-  return {
-    queryResponseBytes,
-    queryResponseSignatures,
-  };
+  throw new Error('Failed to query Wormhole after all retries');
 };
 
 export const getWormholeGetVotesQueryResponse = async ({

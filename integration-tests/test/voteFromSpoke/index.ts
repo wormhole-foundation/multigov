@@ -1,9 +1,5 @@
 import { afterAll, beforeAll, describe, test } from 'bun:test';
-import {
-  addProposalToSpoke,
-  createProposalOnSpoke,
-  dispatchProposalToHub,
-} from 'test/createProposalOnSpoke/helpers';
+import { createProposalOnSpoke } from 'test/createProposalOnSpoke/helpers';
 import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
 import { voteFromSpoke } from './helpers';
 
@@ -13,8 +9,7 @@ describe('Vote from spoke', () => {
   beforeAll(async () => {
     await setupTestEnvironment();
     proposalId = await createProposalOnSpoke();
-    await dispatchProposalToHub(proposalId);
-    await addProposalToSpoke(proposalId);
+    console.log('🦄 ~ beforeAll ~ proposalId:', proposalId);
   });
 
   afterAll(async () => {
