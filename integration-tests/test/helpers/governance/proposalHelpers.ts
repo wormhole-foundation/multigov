@@ -122,6 +122,9 @@ export const createProposalViaAggregateProposer = async ({
     });
 
     console.log(`Created proposal. Transaction hash: ${hash}`);
+
+    await ethWallet.waitForTransactionReceipt({ hash });
+
     return proposalId;
   } catch (error) {
     console.error('Error creating proposal:', error);
