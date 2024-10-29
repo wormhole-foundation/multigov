@@ -65,6 +65,10 @@ pub enum VestingError {
     InvalidVestingAdmin,
     #[msg("Vested token balance does not match the balance in the vault")]
     VestedBalanceMismatch,
+    #[msg("Invalid stake account metadata PDA")]
+    InvalidStakeAccountMetadataPDA,
+    #[msg("Invalid stake account checkpoints PDA")]
+    InvalidStakeAccountCheckpointsPDA,
 }
 
 #[error_code]
