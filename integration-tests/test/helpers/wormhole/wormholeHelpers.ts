@@ -20,14 +20,11 @@ export type QueryRes = {
 };
 
 export const sendQueryToWormhole = async ({
-  signature,
   serialized,
 }: {
-  signature: string;
+  signature: string; // TODO figure out how to correctly make this
   serialized: Uint8Array;
 }) => {
-  console.log('🦄 ~ signature:', signature);
-
   if (!process.env.WORMHOLE_API_KEY) {
     throw new Error('WORMHOLE_API_KEY is not set');
   }
