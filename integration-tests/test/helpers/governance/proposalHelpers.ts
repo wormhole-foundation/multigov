@@ -511,13 +511,6 @@ export const getProposal = async (
 };
 
 // Helper functions
-const handleNoAccount = (wallet: WalletClient) => {
-  if (!wallet.account) {
-    throw new Error('Wallet account is undefined');
-  }
-  return wallet.account;
-};
-
 const needsQueue = async (proposalId: bigint): Promise<boolean> => {
   const { ethClient } = createClients();
   return ethClient.readContract({
