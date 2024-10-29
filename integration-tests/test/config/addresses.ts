@@ -8,6 +8,15 @@ const CHAIN_IDS = {
   SPOKE: 1397, // EthDevnet2 (Spoke)
 } as const;
 
+// Type for Node.js file system errors
+type NodeError = {
+  code: string;
+  message: string;
+  errno: number;
+  syscall: string;
+  path: string;
+};
+
 function getDeploymentAddresses(
   deploymentFile: string,
   chainId: number = CHAIN_IDS.HUB,
@@ -38,7 +47,7 @@ function getDeploymentAddresses(
 
     return addresses;
   } catch (error) {
-    if ((error as any).code === 'ENOENT') {
+    if ((error as NodeError).code === 'ENOENT') {
       console.error(`Deployment file not found: ${artifactPath}`);
       console.error(
         'Make sure you have run the deployments for both hub and spoke chains',
