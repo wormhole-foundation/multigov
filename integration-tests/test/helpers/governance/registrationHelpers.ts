@@ -7,7 +7,7 @@ import {
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
 import {
-  createAndExecuteProposal,
+  createAndExecuteProposalViaHubGovernor,
   createProposalData,
 } from './proposalHelpers';
 
@@ -140,7 +140,7 @@ export const registerSpokeOnHubVotePool = async ({
     description: `Register spoke for chain ${chainId} at address ${spokeAddress}`,
   });
 
-  const proposalId = await createAndExecuteProposal(proposalData);
+  const proposalId = await createAndExecuteProposalViaHubGovernor(proposalData);
 
   console.log(
     `Registered spoke for chain ${chainId} at address ${spokeAddress}. Proposal ID: ${proposalId}`,
@@ -170,7 +170,7 @@ export async function registerWhitelistedProposer({
     description: `Set whitelisted proposer to ${proposerAddress} at timestamp ${timestamp} (nonce: ${nonce})`,
   });
 
-  const proposalId = await createAndExecuteProposal(proposalData);
+  const proposalId = await createAndExecuteProposalViaHubGovernor(proposalData);
 
   console.log(
     `Set whitelisted proposer to ${proposerAddress}. Proposal ID: ${proposalId}`,
