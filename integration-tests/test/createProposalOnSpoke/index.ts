@@ -1,10 +1,7 @@
-import { afterAll, beforeAll, describe, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { getProposal, getVoteStart } from 'test/helpers';
 import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
-import {
-  addProposalToSpoke,
-  createProposalOnSpoke,
-  dispatchProposalToHub,
-} from './helpers';
+import { createProposalOnSpoke, getProposalOnSpoke } from './helpers';
 
 describe('Create proposal on spoke', () => {
   beforeAll(async () => {
@@ -17,8 +14,12 @@ describe('Create proposal on spoke', () => {
 
   test('should create proposal on spoke', async () => {
     const proposalId = await createProposalOnSpoke();
-    await dispatchProposalToHub(proposalId);
-    await addProposalToSpoke(proposalId);
-    // check proposal created on spoke
-  });
+    const spokeProposalData = await getProposalOnSpoke(proposalId);
+    const hubProposalData = await getProposal(proposalId);
+
+    expect(spokeProposalData.voteStart).toEqual(
+      await getVoteStart({ proposalId }),
+    );
+    expect(hubProposalData.id).toEqual(proposalId);
+  }, 120000); // Timeout to 2 minutes to allow for query server updates to handle finality
 });

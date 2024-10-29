@@ -29,7 +29,7 @@ export const toWormholeFormat = (address: Address): `0x${string}` => {
 export const guardiansCertifyWormholeQuery = async ({
   serialized,
 }: {
-  signature: string; // TODO figure out how to correctly make this
+  signature: string;
   serialized: Uint8Array;
 }) => {
   if (!process.env.WORMHOLE_API_KEY) {
