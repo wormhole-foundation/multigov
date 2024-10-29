@@ -1,8 +1,9 @@
 import type { createClients } from './clients';
 
 export enum VoteType {
-  FOR = 1,
   AGAINST = 0,
+  FOR = 1,
+  ABSTAIN = 2,
 }
 
 export type Client =

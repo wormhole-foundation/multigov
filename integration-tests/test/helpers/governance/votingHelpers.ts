@@ -2,7 +2,7 @@ import type { Address } from 'viem';
 import { HubGovernorAbi, SpokeVoteAggregatorAbi } from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
-import type { VoteType } from '../../config/types';
+import { VoteType } from '../../config/types';
 
 export const voteOnProposal = async ({
   isHub,
@@ -13,8 +13,10 @@ export const voteOnProposal = async ({
   proposalId: bigint;
   voteType: VoteType;
 }) => {
-  const { ethWallet, eth2Wallet, account } = createClients();
+  const { ethClient, ethWallet, eth2Client, eth2Wallet, account } =
+    createClients();
   const wallet = isHub ? ethWallet : eth2Wallet;
+  const client = isHub ? ethClient : eth2Client;
   const contractAddress = isHub
     ? ContractAddresses.HUB_GOVERNOR
     : ContractAddresses.SPOKE_VOTE_AGGREGATOR;
@@ -22,6 +24,16 @@ export const voteOnProposal = async ({
   const abi = isHub ? HubGovernorAbi : SpokeVoteAggregatorAbi;
   const chain = isHub ? ethWallet.chain : eth2Wallet.chain;
 
+  // Get voting power before voting
+  const snapshot = await getVoteStart({ proposalId });
+  const votingPower = await getVotingPower({
+    account: account.address,
+    isHub,
+    timestamp: snapshot,
+  });
+  console.log(`Voting power before voting: ${votingPower}`);
+
+  // Cast vote
   const hash = await wallet.writeContract({
     address: contractAddress,
     abi,
@@ -30,9 +42,27 @@ export const voteOnProposal = async ({
     account,
     chain,
   });
-  console.log(
-    `Voted on proposal ${proposalId} on chain ${chain.name}. Support: ${voteType}. Transaction hash: ${hash}`,
-  );
+
+  // Wait for transaction to be mined
+  await client.waitForTransactionReceipt({ hash });
+
+  // Verify vote was counted
+  const votes = await client.readContract({
+    address: contractAddress,
+    abi,
+    functionName: 'proposalVotes',
+    args: [proposalId],
+  });
+  console.log('Votes after casting:', votes);
+
+  // Verify our vote was counted correctly
+  const expectedVotes = {
+    againstVotes: voteType === VoteType.AGAINST ? votingPower : 0n,
+    forVotes: voteType === VoteType.FOR ? votingPower : 0n,
+    abstainVotes: voteType === VoteType.ABSTAIN ? votingPower : 0n,
+  };
+  console.log('Expected votes:', expectedVotes);
+
   return hash;
 };
 
