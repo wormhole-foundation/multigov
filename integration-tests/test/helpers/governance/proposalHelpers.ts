@@ -397,6 +397,7 @@ export async function createAndExecuteProposal(proposalData: ProposalData) {
   console.log('Passing proposal...');
   await passProposal({
     proposalId,
+    proposalData,
   });
 
   // Get and log state after voting
@@ -462,8 +463,11 @@ export const createProposalViaHubGovernor = async ({
 };
 
 // Go through the proposal state flow to make it pass
-export const passProposal = async ({ proposalId }: { proposalId: bigint }) => {
-  const { ethClient } = createClients();
+export const passProposal = async ({
+  proposalId,
+  proposalData,
+}: { proposalId: bigint; proposalData: ProposalData }) => {
+  const { ethClient, ethWallet } = createClients();
 
   const voteStart = await getVoteStart({ proposalId });
   console.log('Vote start timestamp:', voteStart);
@@ -490,6 +494,15 @@ export const passProposal = async ({ proposalId }: { proposalId: bigint }) => {
     voteType: VoteType.FOR,
   });
 
+  // Get the proposal stats to make sure the vote went through
+  const votes = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'proposalVotes',
+    args: [proposalId],
+  });
+  console.log('Proposal votes:', votes);
+
   const voteEnd = await getVoteEnd({ proposalId });
   console.log('Vote end timestamp:', voteEnd);
 
@@ -511,5 +524,40 @@ export const passProposal = async ({ proposalId }: { proposalId: bigint }) => {
   if (state === 3) {
     // Defeated
     throw new Error('Proposal was defeated. Check quorum and voting power.');
+  }
+
+  // Queue the proposal if needed
+  const needsQueue = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'proposalNeedsQueuing',
+    args: [proposalId],
+  });
+
+  if (needsQueue) {
+    console.log('Queueing proposal...');
+    const hash = await ethWallet.writeContract({
+      address: ContractAddresses.HUB_GOVERNOR,
+      abi: HubGovernorAbi,
+      functionName: 'queue',
+      args: [
+        proposalData.targets,
+        proposalData.values,
+        proposalData.calldatas,
+        keccak256(toBytes(proposalData.description)),
+      ],
+      account: handleNoAccount(ethWallet),
+      chain: ethWallet.chain,
+    });
+    console.log('Queued proposal. Transaction hash:', hash);
+
+    // Wait for timelock delay
+    const eta = await ethClient.readContract({
+      address: ContractAddresses.HUB_GOVERNOR,
+      abi: HubGovernorAbi,
+      functionName: 'proposalEta',
+      args: [proposalId],
+    });
+    await mineToTimestamp({ client: ethClient, timestamp: eta + 1n });
   }
 };

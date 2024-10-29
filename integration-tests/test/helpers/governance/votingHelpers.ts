@@ -6,7 +6,7 @@ import {
 } from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
-import type { VoteType } from '../../config/types';
+import { VoteType } from '../../config/types';
 
 export const voteOnProposal = async ({
   isHub,
