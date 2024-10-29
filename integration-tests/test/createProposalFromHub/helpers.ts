@@ -1,10 +1,12 @@
-import { createArbitraryProposalData, createProposal } from 'test/helpers';
+import {
+  createArbitraryProposalData,
+  createProposalViaAggregateProposer,
+} from 'test/helpers';
 
 export const createProposalFromHub = async () => {
   const proposalData = await createArbitraryProposalData();
-  const proposalId = await createProposal({
+  const proposalId = await createProposalViaAggregateProposer({
     proposalData,
   });
   return proposalId;
-  // TODO: Add the rest of the logic to create a proposal from hub
 };

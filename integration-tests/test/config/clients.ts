@@ -29,13 +29,13 @@ export const createClients = () => {
     account,
     chain: ethDevnet,
     transport: http(ETH_DEVNET_NODE_URL),
-  });
+  }).extend(publicActions);
 
   const eth2Wallet = createWalletClient({
     account,
     chain: eth2Devnet,
     transport: http(ETH2_DEVNET_NODE_URL),
-  });
+  }).extend(publicActions);
 
   return { ethClient, eth2Client, ethWallet, eth2Wallet, account };
 };

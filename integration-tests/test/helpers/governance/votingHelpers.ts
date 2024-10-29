@@ -139,3 +139,24 @@ export const getProposalVotes = async ({
     abstainVotes: votes[3],
   };
 };
+
+export const getVoteStart = async ({ proposalId }: { proposalId: bigint }) => {
+  const { ethClient } = createClients();
+
+  return await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'proposalSnapshot',
+    args: [proposalId],
+  });
+};
+
+export const getVoteEnd = async ({ proposalId }: { proposalId: bigint }) => {
+  const { ethClient } = createClients();
+  return await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'proposalDeadline',
+    args: [proposalId],
+  });
+};
