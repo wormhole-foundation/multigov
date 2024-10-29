@@ -174,6 +174,7 @@ export const createArbitraryProposalData = async () => {
   const { ethClient } = createClients();
 
   const timestamp = (await ethClient.getBlock()).timestamp;
+  const nonce = Math.floor(Math.random() * 1000000);
   const quorum = await ethClient.readContract({
     address: ContractAddresses.HUB_GOVERNOR,
     abi: HubGovernorAbi,
@@ -192,7 +193,7 @@ export const createArbitraryProposalData = async () => {
         args: [newQuorum],
       }),
     ],
-    description: `Arbitrary proposal to set quorum to ${newQuorum}`,
+    description: `Arbitrary proposal to set quorum to ${newQuorum} (nonce: ${nonce})`,
   };
 };
 
@@ -205,19 +206,41 @@ const handleNoAccount = (wallet: WalletClient) => {
 
 // Creates and executes a proposal via the HubGovernor directly
 export async function createAndExecuteProposal(proposalData: ProposalData) {
-  const { ethWallet } = createClients();
+  const { ethClient, ethWallet } = createClients();
 
+  console.log('Creating proposal...');
   const proposalId = await createProposalViaHubGovernor({
     targets: proposalData.targets,
     values: proposalData.values,
     calldatas: proposalData.calldatas,
     description: proposalData.description,
   });
+  console.log('Created proposal:', proposalId);
 
+  // Get and log current state
+  const state = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'state',
+    args: [proposalId],
+  });
+  console.log('Initial proposal state:', state);
+
+  console.log('Passing proposal...');
   await passProposal({
     proposalId,
   });
 
+  // Get and log state after voting
+  const stateAfterVoting = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'state',
+    args: [proposalId],
+  });
+  console.log('State after voting:', stateAfterVoting);
+
+  console.log('Executing proposal...');
   await executeProposal({
     wallet: ethWallet,
     proposalId,
@@ -235,13 +258,16 @@ export const createProposalViaHubGovernor = async ({
 }: ProposalData) => {
   const { ethClient, ethWallet } = createClients();
 
+  // First simulate to get the proposal ID
   const { result: proposalId } = await ethClient.simulateContract({
     address: ContractAddresses.HUB_GOVERNOR,
     abi: HubGovernorAbi,
     functionName: 'propose',
     args: [targets, values, calldatas, description],
+    account: handleNoAccount(ethWallet),
   });
 
+  // Send the transaction
   const hash = await ethWallet.writeContract({
     address: ContractAddresses.HUB_GOVERNOR,
     abi: HubGovernorAbi,
@@ -251,7 +277,18 @@ export const createProposalViaHubGovernor = async ({
     chain: ethWallet.chain,
   });
 
-  console.log(`Created proposal ${proposalId}. Transaction hash: ${hash}`);
+  // Wait for transaction to be mined
+  const receipt = await ethClient.waitForTransactionReceipt({ hash });
+  console.log(`Created proposal ${proposalId}. Transaction receipt:`, receipt);
+
+  // Verify proposal exists
+  const state = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'state',
+    args: [proposalId],
+  });
+  console.log('Initial proposal state:', state);
 
   return proposalId;
 };
@@ -261,10 +298,49 @@ export const passProposal = async ({ proposalId }: { proposalId: bigint }) => {
   const { ethClient } = createClients();
 
   const voteStart = await getVoteStart({ proposalId });
+  console.log('Vote start timestamp:', voteStart);
+
+  if (voteStart === 0n) {
+    throw new Error('Vote start timestamp is 0');
+  }
 
   await mineToTimestamp({ client: ethClient, timestamp: voteStart });
-  await voteOnProposal({ proposalId, isHub: true, voteType: VoteType.FOR });
+
+  // Check quorum before voting
+  const quorum = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'quorum',
+    args: [voteStart],
+  });
+  console.log('Quorum required:', quorum);
+
+  // Vote with enough power to pass
+  await voteOnProposal({ 
+    proposalId, 
+    isHub: true, 
+    voteType: VoteType.FOR,
+  });
 
   const voteEnd = await getVoteEnd({ proposalId });
+  console.log('Vote end timestamp:', voteEnd);
+
+  if (voteEnd === 0n) {
+    throw new Error('Vote end timestamp is 0');
+  }
+
   await mineToTimestamp({ client: ethClient, timestamp: voteEnd + 1n });
+
+  // Check state after voting
+  const state = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'state',
+    args: [proposalId],
+  });
+  console.log('State after voting:', state);
+
+  if (state === 3) { // Defeated
+    throw new Error('Proposal was defeated. Check quorum and voting power.');
+  }
 };
