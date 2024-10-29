@@ -3,7 +3,7 @@ import {
   createProposalViaAggregateProposer,
 } from 'test/helpers';
 
-export const createProposalFromHub = async () => {
+export const createProposalOnHub = async () => {
   const proposalData = await createArbitraryProposalData();
   const proposalId = await createProposalViaAggregateProposer({
     proposalData,
