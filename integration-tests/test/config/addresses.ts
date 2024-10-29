@@ -1,16 +1,19 @@
-import { join } from "path";
-import { readFileSync } from "fs";
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Address } from 'viem';
 
 // Chain IDs for the different networks
 const CHAIN_IDS = {
-  HUB: 1337,    // EthDevnet1 (Hub)
-  SPOKE: 1397,  // EthDevnet2 (Spoke)
+  HUB: 1337, // EthDevnet1 (Hub)
+  SPOKE: 1397, // EthDevnet2 (Spoke)
 } as const;
 
-function getDeploymentAddresses(deploymentFile: string, chainId: number = CHAIN_IDS.HUB) {
+function getDeploymentAddresses(
+  deploymentFile: string,
+  chainId: number = CHAIN_IDS.HUB,
+) {
   const projectRoot = join(__dirname, '..', '..', '..', '..');
-  
+
   const artifactPath = join(
     projectRoot,
     'example-cross-chain-governance',
@@ -18,29 +21,31 @@ function getDeploymentAddresses(deploymentFile: string, chainId: number = CHAIN_
     'broadcast',
     deploymentFile,
     chainId.toString(),
-    "run-latest.json"
+    'run-latest.json',
   );
-  
+
   try {
     console.log('Attempting to read deployment from:', artifactPath);
-    const deployment = JSON.parse(
-      readFileSync(artifactPath, "utf-8")
-    );
+    const deployment = JSON.parse(readFileSync(artifactPath, 'utf-8'));
 
     const addresses: Record<string, Address> = {};
-    
-    deployment.transactions
-      .filter((tx: any) => tx.contractAddress)
-      .forEach((tx: any) => {
+
+    for (const tx of deployment.transactions) {
+      if (tx.contractAddress) {
         addresses[tx.contractName] = tx.contractAddress as Address;
-      });
+      }
+    }
 
     return addresses;
   } catch (error) {
     if ((error as any).code === 'ENOENT') {
       console.error(`Deployment file not found: ${artifactPath}`);
-      console.error('Make sure you have run the deployments for both hub and spoke chains');
-      console.error(`Expected chainIds: Hub=${CHAIN_IDS.HUB}, Spoke=${CHAIN_IDS.SPOKE}`);
+      console.error(
+        'Make sure you have run the deployments for both hub and spoke chains',
+      );
+      console.error(
+        `Expected chainIds: Hub=${CHAIN_IDS.HUB}, Spoke=${CHAIN_IDS.SPOKE}`,
+      );
       console.error(`Current directory: ${__dirname}`);
       console.error(`Project root: ${projectRoot}`);
     }
@@ -49,9 +54,15 @@ function getDeploymentAddresses(deploymentFile: string, chainId: number = CHAIN_
 }
 
 // Get Hub contract addresses from EthDevnet1 deployment
-const hubAddresses = getDeploymentAddresses("DeployHubContractsEthDevnet1.sol", CHAIN_IDS.HUB);
+const hubAddresses = getDeploymentAddresses(
+  'DeployHubContractsEthDevnet1.sol',
+  CHAIN_IDS.HUB,
+);
 // Get Spoke contract addresses from EthDevnet2 deployment
-const spokeAddresses = getDeploymentAddresses("DeploySpokeContractsEthDevnet2.sol", CHAIN_IDS.SPOKE);
+const spokeAddresses = getDeploymentAddresses(
+  'DeploySpokeContractsEthDevnet2.sol',
+  CHAIN_IDS.SPOKE,
+);
 
 const ContractAddressesEnum = {
   // Hub contracts (deployed on EthDevnet1)
@@ -65,7 +76,7 @@ const ContractAddressesEnum = {
   HUB_PROPOSAL_EXTENDER: hubAddresses.HubProposalExtender,
   HUB_SOLANA_MESSAGE_DISPATCHER: hubAddresses.HubSolanaMessageDispatcher,
   HUB_SOLANA_SPOKE_VOTE_DECODER: hubAddresses.HubSolanaSpokeVoteDecoder,
-  
+
   // Spoke contracts (deployed on EthDevnet2)
   SPOKE_VOTE_AGGREGATOR: spokeAddresses.SpokeVoteAggregator,
   SPOKE_MESSAGE_EXECUTOR: spokeAddresses.SpokeMessageExecutor,
@@ -80,10 +91,10 @@ export type Addresses = {
 };
 
 // Validate all addresses are defined
-Object.entries(ContractAddressesEnum).forEach(([key, value]) => {
+for (const [key, value] of Object.entries(ContractAddressesEnum)) {
   if (!value) {
     throw new Error(`Missing address for ${key}`);
   }
-});
+}
 
 export { ContractAddressesEnum as ContractAddresses };

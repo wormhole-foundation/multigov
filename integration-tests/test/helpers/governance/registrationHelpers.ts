@@ -1,9 +1,4 @@
-import {
-  type Account,
-  type Address,
-  encodeFunctionData,
-  zeroAddress,
-} from 'viem';
+import { type Address, encodeFunctionData, zeroAddress } from 'viem';
 import {
   HubEvmSpokeAggregateProposerAbi,
   HubGovernorAbi,
@@ -11,13 +6,10 @@ import {
 } from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
-import { VoteType } from '../../config/types';
 import {
-  createProposal,
+  createAndExecuteProposal,
   createProposalData,
-  executeProposal,
 } from './proposalHelpers';
-import { voteOnProposal } from './votingHelpers';
 
 export const getWhitelistedProposer = async () => {
   const { ethClient } = createClients();
@@ -135,7 +127,6 @@ export const registerSpokeOnHubVotePool = async ({
   chainId: number;
   spokeAddress: Address;
 }) => {
-  const { ethClient, ethWallet } = createClients();
   const registerSpokeCalldata = encodeFunctionData({
     abi: HubVotePoolAbi,
     functionName: 'registerSpoke',
@@ -149,89 +140,35 @@ export const registerSpokeOnHubVotePool = async ({
     description: `Register spoke for chain ${chainId} at address ${spokeAddress}`,
   });
 
-  const proposalId = await createProposal({
-    proposalData,
-  });
+  const proposalId = await createAndExecuteProposal(proposalData);
 
   console.log(
-    `Created proposal to register spoke for chain ${chainId} at address ${spokeAddress}. Proposal ID: ${proposalId}`,
+    `Registered spoke for chain ${chainId} at address ${spokeAddress}. Proposal ID: ${proposalId}`,
   );
-
-  // Fast forward to the vote start
-  const voteStart = await getVoteStart({ proposalId });
-  await ethClient.setNextBlockTimestamp({ timestamp: voteStart });
-
-  // Vote on the proposal to make it pass
-  await voteOnProposal({
-    isHub: true,
-    proposalId,
-    voteType: VoteType.FOR,
-  });
-
-  // Fast forward to the end of voting period
-  const voteEnd = await getVoteEnd({ proposalId });
-  await ethClient.setNextBlockTimestamp({ timestamp: voteEnd + 1n });
-  await ethClient.mine({ blocks: 1 });
-
-  // Execute the proposal
-  const hash = await executeProposal({
-    wallet: ethWallet,
-    proposalId,
-    proposalData,
-  });
-
-  return hash;
+  return proposalId;
 };
 
-export const registerWhitelistedProposer = async ({
+export async function registerWhitelistedProposer({
   proposerAddress,
 }: {
   proposerAddress: Address;
-  account: Account;
-}) => {
-  const { ethClient, ethWallet } = createClients();
-
-  // Impersonate the HubGovernor
-  await ethClient.impersonateAccount({
-    address: ContractAddresses.HUB_GOVERNOR,
+}) {
+  const proposalData = createProposalData({
+    targets: [ContractAddresses.HUB_GOVERNOR],
+    values: [0n],
+    calldatas: [
+      encodeFunctionData({
+        abi: HubGovernorAbi,
+        functionName: 'setWhitelistedProposer',
+        args: [proposerAddress],
+      }),
+    ],
+    description: `Set whitelisted proposer to ${proposerAddress}`,
   });
 
-  const hash = await ethWallet.writeContract({
-    address: ContractAddresses.HUB_GOVERNOR,
-    abi: HubGovernorAbi,
-    functionName: 'setWhitelistedProposer',
-    args: [proposerAddress],
-    account: ContractAddresses.HUB_GOVERNOR,
-    chain: ethWallet.chain,
-  });
-
-  await ethClient.stopImpersonatingAccount({
-    address: ContractAddresses.HUB_GOVERNOR,
-  });
+  const proposalId = await createAndExecuteProposal(proposalData);
 
   console.log(
-    `Registered whitelisted proposer at address ${proposerAddress}. Transaction hash: ${hash}`,
+    `Set whitelisted proposer to ${proposerAddress}. Proposal ID: ${proposalId}`,
   );
-  return hash;
-};
-
-const getVoteStart = async ({ proposalId }: { proposalId: bigint }) => {
-  const { ethClient } = createClients();
-
-  return await ethClient.readContract({
-    address: ContractAddresses.HUB_GOVERNOR,
-    abi: HubGovernorAbi,
-    functionName: 'proposalSnapshot',
-    args: [proposalId],
-  });
-};
-
-const getVoteEnd = async ({ proposalId }: { proposalId: bigint }) => {
-  const { ethClient } = createClients();
-  return await ethClient.readContract({
-    address: ContractAddresses.HUB_GOVERNOR,
-    abi: HubGovernorAbi,
-    functionName: 'proposalDeadline',
-    args: [proposalId],
-  });
-};
+}

@@ -1,6 +1,7 @@
 import { ContractAddresses } from './config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from './config/chains';
 import { createClients } from './config/clients';
+import { syncTime } from './helpers';
 import {
   handleRegisterSpokeOnAggProposer,
   handleRegisterSpokeOnHubVotePool,
@@ -48,9 +49,9 @@ export async function setupTestEnvironment() {
   // 5. Register whitelisted proposer (HubEvmSpokeAggregateProposer)
   await registerWhitelistedProposer({
     proposerAddress: ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER,
-    account,
   });
 
+  await syncTime();
   console.log('Test environment setup completed');
 }
 

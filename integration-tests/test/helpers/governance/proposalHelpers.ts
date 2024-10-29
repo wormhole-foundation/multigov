@@ -1,5 +1,5 @@
+import { VoteType, type Wallet } from 'test/config/types';
 import {
-  type Address,
   type WalletClient,
   encodeFunctionData,
   keccak256,
@@ -8,20 +8,25 @@ import {
 import { HubEvmSpokeAggregateProposerAbi, HubGovernorAbi } from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
-import { getWormholeGetVotesQueryResponse } from '../wormhole/wormholeHelpers';
-import { getVotingPower } from './votingHelpers';
+import { mineToTimestamp } from '../time/timeHelpers';
+import {
+  getMaxQueryTimestampOffset,
+  getWormholeGetVotesQueryResponse,
+} from '../wormhole/wormholeHelpers';
+import type { ProposalData } from './types';
+import {
+  getVoteEnd,
+  getVoteStart,
+  getVotingPower,
+  voteOnProposal,
+} from './votingHelpers';
 
 export function createProposalData({
   targets,
   values,
   calldatas,
   description,
-}: {
-  targets: Address[];
-  values: bigint[];
-  calldatas: `0x${string}`[];
-  description: string;
-}) {
+}: ProposalData) {
   return {
     targets,
     values,
@@ -30,41 +35,59 @@ export function createProposalData({
   };
 }
 
-export const createProposal = async ({
+export const createProposalViaAggregateProposer = async ({
   proposalData,
 }: {
-  proposalData: ReturnType<typeof createProposalData>;
+  proposalData: ProposalData;
 }) => {
   const { ethClient, eth2Client, ethWallet, account } = createClients();
 
-  // Use a past timestamp to account for limitations in the query server
-  // Use 5 minutes ago
-  const timestampHub = (await ethClient.getBlock()).timestamp - 300n;
-  const timestampSpoke = (await eth2Client.getBlock()).timestamp - 300n;
+  // Get current block timestamps
+  const hubBlock = await ethClient.getBlock();
+  const spokeBlock = await eth2Client.getBlock();
+  const maxQueryTimestampOffset = await getMaxQueryTimestampOffset();
 
-  // Debug: Check voting power
+  // Use timestamp from 5 minutes ago for query server compatibility
+  const FIVE_MINUTES = 300n;
+  const timestamp = hubBlock.timestamp - FIVE_MINUTES;
+
+  // Verify we're still within maxQueryTimestampOffset
+  if (hubBlock.timestamp - timestamp > BigInt(maxQueryTimestampOffset)) {
+    throw new Error('Timestamp too old for maxQueryTimestampOffset');
+  }
+
+  console.log('Timestamps after sync:', {
+    hubBlock: Number(hubBlock.timestamp),
+    spokeBlock: Number(spokeBlock.timestamp),
+    queryTimestamp: Number(timestamp),
+    maxOffset: maxQueryTimestampOffset,
+    offsetFromCurrent: Number(hubBlock.timestamp - timestamp),
+  });
+
+  // Debug: Check voting power using block timestamp
   const hubVotingPower = await getVotingPower({
     account: account.address,
     isHub: true,
-    timestamp: timestampHub,
+    timestamp,
   });
   const spokeVotingPower = await getVotingPower({
     account: account.address,
     isHub: false,
-    timestamp: timestampSpoke,
+    timestamp,
   });
   console.log(`Hub voting power: ${hubVotingPower}`);
   console.log(`Spoke voting power: ${spokeVotingPower}`);
 
+  // Pass block timestamp - the Wormhole query will handle microsecond conversion
   const { queryResponseBytes, queryResponseSignatures } =
     await getWormholeGetVotesQueryResponse({
       account: account.address,
-      timestampSpoke,
+      timestampSpoke: timestamp,
     });
 
-  // Debug: Log query response
   console.log('Query response bytes:', queryResponseBytes);
   console.log('Query response signatures:', queryResponseSignatures);
+  console.log('🦄 ~ account:', account.address);
 
   try {
     const { result: proposalId } = await ethClient.simulateContract({
@@ -111,11 +134,24 @@ export const executeProposal = async ({
   proposalId,
   proposalData,
 }: {
-  wallet: WalletClient;
+  wallet: Wallet;
   proposalId: bigint;
-  proposalData: ReturnType<typeof createProposalData>;
+  proposalData: ProposalData;
 }) => {
   const descriptionHash = keccak256(toBytes(proposalData.description));
+
+  await wallet.simulateContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'execute',
+    args: [
+      proposalData.targets,
+      proposalData.values,
+      proposalData.calldatas,
+      descriptionHash,
+    ],
+  });
+
   const hash = await wallet.writeContract({
     address: ContractAddresses.HUB_GOVERNOR,
     abi: HubGovernorAbi,
@@ -129,8 +165,9 @@ export const executeProposal = async ({
     account: handleNoAccount(wallet),
     chain: wallet.chain,
   });
+
   console.log(`Executed proposal ${proposalId}. Transaction hash: ${hash}`);
-  return hash;
+  return proposalId;
 };
 
 export const createArbitraryProposalData = async () => {
@@ -164,4 +201,70 @@ const handleNoAccount = (wallet: WalletClient) => {
     throw new Error('Wallet account is undefined');
   }
   return wallet.account;
+};
+
+// Creates and executes a proposal via the HubGovernor directly
+export async function createAndExecuteProposal(proposalData: ProposalData) {
+  const { ethWallet } = createClients();
+
+  const proposalId = await createProposalViaHubGovernor({
+    targets: proposalData.targets,
+    values: proposalData.values,
+    calldatas: proposalData.calldatas,
+    description: proposalData.description,
+  });
+
+  await passProposal({
+    proposalId,
+  });
+
+  await executeProposal({
+    wallet: ethWallet,
+    proposalId,
+    proposalData,
+  });
+
+  return proposalId;
+}
+
+export const createProposalViaHubGovernor = async ({
+  targets,
+  values,
+  calldatas,
+  description,
+}: ProposalData) => {
+  const { ethClient, ethWallet } = createClients();
+
+  const { result: proposalId } = await ethClient.simulateContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'propose',
+    args: [targets, values, calldatas, description],
+  });
+
+  const hash = await ethWallet.writeContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'propose',
+    args: [targets, values, calldatas, description],
+    account: handleNoAccount(ethWallet),
+    chain: ethWallet.chain,
+  });
+
+  console.log(`Created proposal ${proposalId}. Transaction hash: ${hash}`);
+
+  return proposalId;
+};
+
+// Go through the proposal state flow to make it pass
+export const passProposal = async ({ proposalId }: { proposalId: bigint }) => {
+  const { ethClient } = createClients();
+
+  const voteStart = await getVoteStart({ proposalId });
+
+  await mineToTimestamp({ client: ethClient, timestamp: voteStart });
+  await voteOnProposal({ proposalId, isHub: true, voteType: VoteType.FOR });
+
+  const voteEnd = await getVoteEnd({ proposalId });
+  await mineToTimestamp({ client: ethClient, timestamp: voteEnd + 1n });
 };
