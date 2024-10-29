@@ -7,6 +7,7 @@ import { createProposalFromHub } from './helpers';
 describe('Create proposal from hub', () => {
   beforeAll(async () => {
     await setupTestEnvironment();
+
     // check to make sure hubevmspokeaggregate proposer is whitelisted
     const isWhitelisted = await getWhitelistedProposer();
     expect(isWhitelisted).toBe(
