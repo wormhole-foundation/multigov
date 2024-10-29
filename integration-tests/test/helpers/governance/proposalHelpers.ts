@@ -551,6 +551,8 @@ export const passProposal = async ({
     });
     console.log('Queued proposal. Transaction hash:', hash);
 
+    await ethClient.waitForTransactionReceipt({ hash });
+
     // Wait for timelock delay
     const eta = await ethClient.readContract({
       address: ContractAddresses.HUB_GOVERNOR,
@@ -558,6 +560,7 @@ export const passProposal = async ({
       functionName: 'proposalEta',
       args: [proposalId],
     });
+
     await mineToTimestamp({ client: ethClient, timestamp: eta + 1n });
   }
 };
