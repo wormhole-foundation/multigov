@@ -16,4 +16,4 @@ import './proposeFromSpoke';
 import './createProposalOnSpoke';
 import './voteFromSpoke';
 import './executeCrossChain';
-import './createProposalFromHub';
+import './createProposalOnHub';

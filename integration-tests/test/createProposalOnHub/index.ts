@@ -3,14 +3,14 @@ import { ContractAddresses } from 'test/config/addresses';
 import { getProposal } from 'test/helpers/governance/proposalHelpers';
 import { getWhitelistedProposer } from 'test/helpers/governance/registrationHelpers';
 import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
-import { createProposalFromHub } from './helpers';
+import { createProposalOnHub } from './helpers';
 
-describe('Create proposal from hub', () => {
+describe('Create proposal on hub via the HubEvmSpokeAggregateProposer', () => {
   beforeAll(async () => {
     await setupTestEnvironment();
 
-    // check to make sure hubevmspokeaggregate proposer is whitelisted
     const isWhitelisted = await getWhitelistedProposer();
+
     expect(isWhitelisted).toBe(
       ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER,
     );
@@ -20,8 +20,8 @@ describe('Create proposal from hub', () => {
     await teardownTestEnvironment();
   });
 
-  test('should create proposal from hub', async () => {
-    const proposalId = await createProposalFromHub();
+  test('Should create proposal on hub', async () => {
+    const proposalId = await createProposalOnHub();
     expect(proposalId).toBeDefined();
 
     // check it exists in the governor
