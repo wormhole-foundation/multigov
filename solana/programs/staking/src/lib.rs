@@ -403,6 +403,12 @@ pub mod staking {
         ctx.accounts.close_vesting()
     }
 
+    // Transfer Vesting from and send to new Vester
+    pub fn transfer_vesting(ctx: Context<TransferVesting>, new_vester: Pubkey) -> Result<()> {
+        ctx.accounts
+            .transfer_vesting(new_vester, ctx.bumps.new_vest)
+    }
+
     // Cancel and close a Vesting account for a non-finalized Config
     pub fn cancel_vesting(ctx: Context<CancelVesting>) -> Result<()> {
         ctx.accounts.cancel_vesting()
