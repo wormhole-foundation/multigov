@@ -786,7 +786,6 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     vm.assume(_spokeAddress != address(0));
     vm.assume(_calldataTimepoint != uint64(vm.getBlockTimestamp()));
 
-
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
 
