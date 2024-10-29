@@ -782,14 +782,15 @@ contract CheckAndProposeIfEligible is HubEvmSpokeAggregateProposerTest {
     uint64 _calldataTimepoint,
     string memory _description
   ) public {
+    _warpToValidTimestamp();
     vm.assume(_spokeAddress != address(0));
     vm.assume(_calldataTimepoint != uint64(vm.getBlockTimestamp()));
+
 
     VoteWeight[] memory voteWeights = new VoteWeight[](1);
     voteWeights[0] = VoteWeight({voteWeight: _voteWeight, chainId: _chainId, spokeAddress: _spokeAddress});
 
     _assumeThresholdMet(voteWeights);
-    _warpToValidTimestamp();
     _registerSpokes(voteWeights);
 
     bytes memory queryResponse = _mockQueryResponse(voteWeights, _caller, _calldataTimepoint);
