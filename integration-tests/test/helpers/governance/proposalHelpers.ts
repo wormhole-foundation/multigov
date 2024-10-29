@@ -1,14 +1,10 @@
-import {
-  type WalletClient,
-  encodeFunctionData,
-  keccak256,
-  toBytes,
-} from 'viem';
+import { encodeFunctionData, keccak256, toBytes } from 'viem';
 import { HubEvmSpokeAggregateProposerAbi, HubGovernorAbi } from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
 import { VoteType } from '../../config/types';
 import { mineToTimestamp } from '../time/timeHelpers';
+import { handleNoAccount } from '../wallet/walletHelpers';
 import { getWormholeGetVotesQueryResponse } from '../wormhole/wormholeHelpers';
 import type { ProposalData, ProposalInfo } from './types';
 import { getVoteEnd, getVoteStart, voteOnProposal } from './votingHelpers';
@@ -201,13 +197,6 @@ export const getProposal = async (
 };
 
 // Helper functions
-const handleNoAccount = (wallet: WalletClient) => {
-  if (!wallet.account) {
-    throw new Error('Wallet account is undefined');
-  }
-  return wallet.account;
-};
-
 const needsQueue = async (proposalId: bigint): Promise<boolean> => {
   const { ethClient } = createClients();
   return ethClient.readContract({
