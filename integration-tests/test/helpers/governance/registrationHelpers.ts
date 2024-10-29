@@ -153,6 +153,10 @@ export async function registerWhitelistedProposer({
 }: {
   proposerAddress: Address;
 }) {
+  const { ethClient } = createClients();
+  const timestamp = (await ethClient.getBlock()).timestamp;
+  const nonce = Math.floor(Math.random() * 1000000);
+
   const proposalData = createProposalData({
     targets: [ContractAddresses.HUB_GOVERNOR],
     values: [0n],
@@ -163,7 +167,7 @@ export async function registerWhitelistedProposer({
         args: [proposerAddress],
       }),
     ],
-    description: `Set whitelisted proposer to ${proposerAddress}`,
+    description: `Set whitelisted proposer to ${proposerAddress} at timestamp ${timestamp} (nonce: ${nonce})`,
   });
 
   const proposalId = await createAndExecuteProposal(proposalData);
