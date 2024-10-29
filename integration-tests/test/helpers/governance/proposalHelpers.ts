@@ -170,6 +170,8 @@ export const executeProposal = async ({
   });
 
   console.log(`Executed proposal ${proposalId}. Transaction hash: ${hash}`);
+
+  await wallet.waitForTransactionReceipt({ hash });
   return proposalId;
 };
 
@@ -304,6 +306,10 @@ export const passProposal = async ({
 }: { proposalId: bigint; proposalData: ProposalData }) => {
   const { ethClient, ethWallet } = createClients();
 
+  // Get initial proposal state
+  const initialProposal = await getProposal(proposalId);
+  console.log('Initial proposal state:', initialProposal);
+
   const voteStart = await getVoteStart({ proposalId });
   console.log('Vote start timestamp:', voteStart);
 
@@ -329,15 +335,6 @@ export const passProposal = async ({
     voteType: VoteType.FOR,
   });
 
-  // Get the proposal stats to make sure the vote went through
-  const votes = await ethClient.readContract({
-    address: ContractAddresses.HUB_GOVERNOR,
-    abi: HubGovernorAbi,
-    functionName: 'proposalVotes',
-    args: [proposalId],
-  });
-  console.log('Proposal votes:', votes);
-
   const voteEnd = await getVoteEnd({ proposalId });
   console.log('Vote end timestamp:', voteEnd);
 
@@ -356,7 +353,11 @@ export const passProposal = async ({
   });
   console.log('State after voting:', state);
 
-  if (state === 3) {
+  // Get final proposal state
+  const finalProposal = await getProposal(proposalId);
+  console.log('Final proposal state:', finalProposal);
+
+  if (finalProposal.state === 3) {
     // Defeated
     throw new Error('Proposal was defeated. Check quorum and voting power.');
   }
@@ -398,4 +399,66 @@ export const passProposal = async ({
 
     await mineToTimestamp({ client: ethClient, timestamp: eta + 1n });
   }
+};
+
+export const getProposal = async (proposalId: bigint) => {
+  const { ethClient } = createClients();
+
+  // Get proposal state
+  const state = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'state',
+    args: [proposalId],
+  });
+
+  // Get proposal votes
+  const votes = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'proposalVotes',
+    args: [proposalId],
+  });
+
+  // Get proposal snapshot and deadline
+  const snapshot = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'proposalSnapshot',
+    args: [proposalId],
+  });
+
+  const deadline = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'proposalDeadline',
+    args: [proposalId],
+  });
+
+  // Get proposer
+  const proposer = await ethClient.readContract({
+    address: ContractAddresses.HUB_GOVERNOR,
+    abi: HubGovernorAbi,
+    functionName: 'proposalProposer',
+    args: [proposalId],
+  });
+
+  return {
+    id: proposalId,
+    state,
+    votes: {
+      againstVotes: votes[0],
+      forVotes: votes[1],
+      abstainVotes: votes[2],
+    },
+    snapshot,
+    deadline,
+    proposer,
+    eta: await ethClient.readContract({
+      address: ContractAddresses.HUB_GOVERNOR,
+      abi: HubGovernorAbi,
+      functionName: 'proposalEta',
+      args: [proposalId],
+    }),
+  };
 };
