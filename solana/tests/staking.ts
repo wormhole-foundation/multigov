@@ -41,6 +41,7 @@ describe("staking", async () => {
 
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const governanceAuthority = new Keypair();
 
   let userAta: PublicKey;
   const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
@@ -57,6 +58,7 @@ describe("staking", async () => {
       config,
       whMintAccount,
       whMintAuthority,
+      governanceAuthority,
       makeDefaultConfig(whMintAccount.publicKey),
     ));
     program = stakeConnection.program;
@@ -108,10 +110,9 @@ describe("staking", async () => {
       program.programId,
     );
 
-    const tx = await program.methods
-      .createStakeAccount(owner)
+    await program.methods
+      .createStakeAccount()
       .accounts({
-        stakeAccountCheckpoints: checkpointDataAddress,
         mint: whMintAccount.publicKey,
       })
       .rpc({
@@ -129,10 +130,10 @@ describe("staking", async () => {
         metadataBump,
         custodyBump,
         authorityBump,
-        owner,
-        delegate: checkpointDataAddress,
         recordedBalance: expectedRecordedBalance,
         recordedVestingBalance: expectedRecordedBalance,
+        owner,
+        delegate: checkpointDataAddress,
       }),
     );
   });
@@ -165,7 +166,7 @@ describe("staking", async () => {
     );
     transaction.add(ix);
 
-    const tx = await provider.sendAndConfirm(transaction, [], {
+    await provider.sendAndConfirm(transaction, [], {
       skipPreflight: DEBUG,
     });
   });

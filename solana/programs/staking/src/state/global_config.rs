@@ -6,16 +6,21 @@ use anchor_lang::prelude::*;
 pub struct GlobalConfig {
     pub bump: u8,
     pub freeze: bool,
-    //     #[cfg(feature = "mock-clock")]
+
+    #[cfg(feature = "mock-clock")]
     pub mock_clock_time: i64,
+
     pub governance_authority: Pubkey,
     pub wh_token_mint: Pubkey,
-    pub pda_authority: Pubkey, // Authority that can authorize the transfer of locked tokens
-    pub agreement_hash: [u8; 32],
+    pub vesting_admin: Pubkey,
 }
 
 impl GlobalConfig {
-    pub const LEN: usize = 8 + 8 + 8 + 32 + 32 + 32 + 32; // == 152
+    #[cfg(feature = "mock-clock")]
+    pub const LEN: usize = 8 + 8 + 8 + 32 + 32 + 32; // == 120
+
+    #[cfg(not(feature = "mock-clock"))]
+    pub const LEN: usize = 8 + 2 + 32 + 32 + 32; // == 106
 }
 
 #[cfg(test)]
@@ -26,9 +31,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            size_of::<GlobalConfig>()
-                + GlobalConfig::discriminator().len()
-                == GlobalConfig::LEN
+            size_of::<GlobalConfig>() + GlobalConfig::discriminator().len() == GlobalConfig::LEN
         );
     }
 }

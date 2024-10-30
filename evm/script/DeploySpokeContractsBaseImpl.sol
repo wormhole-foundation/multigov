@@ -61,24 +61,34 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
 
     vm.startBroadcast(wallet.privateKey);
 
+    // Deploy implementation
     SpokeMessageExecutor impl = new SpokeMessageExecutor{salt: salt}(wallet.addr);
+
+    // Deploy executor proxy
     ERC1967Proxy proxy = new ERC1967Proxy{salt: salt}(address(impl), "");
 
     SpokeMessageExecutor executor = SpokeMessageExecutor(address(proxy));
+
+    // Initialize executor
     executor.initialize(config.hubDispatcher, config.hubChainId, config.wormholeCore);
 
+    // Assign deployed airlock
     SpokeAirlock airlock = executor.airlock();
-    SpokeMetadataCollector metadataCollector =
+
+    // Deploy spoke metadata collector
+    SpokeMetadataCollector spokeMetadataCollector =
       new SpokeMetadataCollector{salt: salt}(config.wormholeCore, config.hubChainId, config.hubProposalMetadata);
-    SpokeVoteAggregator aggregator = new SpokeVoteAggregator{salt: salt}(
-      address(metadataCollector), config.votingToken, address(airlock), config.voteWeightWindow
+
+    // Deploy vote aggregator
+    SpokeVoteAggregator voteAggregator = new SpokeVoteAggregator{salt: salt}(
+      address(spokeMetadataCollector), config.votingToken, address(airlock), config.voteWeightWindow
     );
 
     vm.stopBroadcast();
 
     return DeployedContracts({
-      aggregator: aggregator,
-      metadataCollector: metadataCollector,
+      aggregator: voteAggregator,
+      metadataCollector: spokeMetadataCollector,
       executor: executor,
       airlock: airlock
     });

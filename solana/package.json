@@ -13,16 +13,18 @@
   "repository": "https://github.com/wormhole-foundation/example-multigov/tree/main/solana",
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
+    "@inquirer/input": "^4.0.0",
+    "@inquirer/select": "^4.0.0",
     "@project-serum/anchor": "^0.26.0",
     "@solana/spl-token": "^0.4.8",
     "@solana/web3.js": "^1.95.3",
-    "@wormhole/staking-wasm": "file:./wasm",
     "@wormhole-foundation/wormhole-query-sdk": "^0.0.13",
+    "@wormhole/staking-wasm": "file:./wasm",
     "binary-install": "^1.1.0",
     "borsh": "^0.7.0",
     "bs58": "^6.0.0",
     "encoding": "^0.1.13",
-    "ethers": "^6.10.0",
+    "ethers": "^6.13.4",
     "rpc-websockets": "^7.11.2",
     "ts-node": "^10.9.2"
   },
@@ -42,11 +44,11 @@
     "wasm-pack": "^0.13.0"
   },
   "scripts": {
-    "test": "npm run build_wasm && anchor build && npx ts-mocha --parallel -p ./tsconfig.json -t 1000000 tests/*.ts",
+    "test": "cargo build && cargo test && npm run build_wasm && anchor build && npx ts-mocha --parallel -p ./tsconfig.json -t 1000000 tests/*.ts",
     "test:ci": "npm run build_wasm && ./scripts/build_verifiable_staking_program.sh -t && ts-mocha --parallel -p ./tsconfig.json -t 1000000 tests/*.ts",
     "build": "npm run build_wasm && tsc -p tsconfig.api.json",
     "build_wasm": "./scripts/build_wasm.sh",
     "localnet": "anchor build && ts-node ./app/scripts/localnet.ts",
-    "format": "prettier --write 'app/**/*.ts' 'tests/**/*.ts'"
+    "format": "prettier --write 'app/**/*.ts' 'tests/**/*.ts' && cargo fmt"
   }
 }

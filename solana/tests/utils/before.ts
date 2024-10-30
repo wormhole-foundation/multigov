@@ -61,10 +61,6 @@ export function readAnchorConfig(pathToAnchorToml: string): AnchorConfig {
   return config;
 }
 
-export function getDummyAgreementHash(): number[] {
-  return Array(32).fill(0);
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -165,7 +161,7 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
 
   const user = loadKeypair(config.provider.wallet);
 
-  const otherArgs = `--account ${config.guardian_set_5.address} ${config.guardian_set_5.filename} --mint ${
+  const otherArgs = `--account ${config.guardian_set_0.address} ${config.guardian_set_0.filename} --account ${config.guardian_set_5.address} ${config.guardian_set_5.filename} --mint ${
     user.publicKey
   } --reset --bpf-program ${programAddress.toBase58()} ${binaryPath} -ud`;
 
@@ -274,14 +270,14 @@ export async function initConfig(
 
 export function makeDefaultConfig(
   whMint: PublicKey,
-  pdaAuthority: PublicKey = PublicKey.unique(),
+  vestingAdmin: PublicKey = PublicKey.unique(),
 ): GlobalConfig {
   return {
     bump: 0,
     governanceAuthority: null,
     whTokenMint: whMint,
     freeze: true,
-    pdaAuthority: pdaAuthority,
+    vestingAdmin: vestingAdmin,
     mockClockTime: new BN(10),
   };
 }
@@ -360,6 +356,7 @@ export async function standardSetup(
   config: AnchorConfig,
   whMintAccount: Keypair,
   whMintAuthority: Keypair,
+  governanceAuthority: Keypair,
   globalConfig: GlobalConfig,
   amount?: WHTokenBalance,
 ) {
@@ -386,14 +383,14 @@ export async function standardSetup(
     program.provider.connection,
   );
 
-  globalConfig.governanceAuthority = Keypair.generate().publicKey;
+  globalConfig.governanceAuthority = governanceAuthority.publicKey;
 
-  if (globalConfig.pdaAuthority == null) {
-    globalConfig.pdaAuthority = user;
+  if (globalConfig.vestingAdmin == null) {
+    globalConfig.vestingAdmin = user;
   }
 
   const temporaryConfig = { ...globalConfig };
-  // User becomes a temporary dictator during setup
+  // User becomes a temporary governanceAuthority during setup
   temporaryConfig.governanceAuthority = user;
 
   await initConfig(program, whMintAccount.publicKey, temporaryConfig);
@@ -402,18 +399,17 @@ export async function standardSetup(
     provider,
     whMintAccount.publicKey,
   );
-
   //   console.log("Lookup table address: ", lookupTableAddress.toBase58());
-
-  // Give the power back to the people
-  await program.methods
-    .updateGovernanceAuthority(globalConfig.governanceAuthority)
-    .accounts({ governanceSigner: user })
-    .rpc();
 
   await program.methods
     .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
-    .accounts({ payer: user })
+    .accounts({ governance_authority: user })
+    .rpc();
+
+  // Give the admin power back to globalConfig.governanceAuthority
+  await program.methods
+    .updateGovernanceAuthority(globalConfig.governanceAuthority)
+    .accounts({ governanceSigner: user })
     .rpc();
 
   const connection = getConnection(portNumber);

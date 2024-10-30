@@ -4,7 +4,7 @@ import { getProgramTransactions } from "../utils/parse_transactions";
 
 async function main() {
   const connection = new Connection(RPC_NODE, "confirmed");
-  const programId = "5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ";
+  const programId = "8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g";
   const limit = 15;
 
   getProgramTransactions(connection, programId, limit)

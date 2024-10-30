@@ -13,7 +13,6 @@ import {HubVotePool} from "src/HubVotePool.sol";
 import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
 import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
-import {HubEvmSpokeVoteDecoder} from "src/HubEvmSpokeVoteDecoder.sol";
 import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
 import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
 
@@ -40,7 +39,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
     uint48 minimumExtensionTime;
     uint8 consistencyLevel;
     uint48 initialMaxQueryTimestampOffset;
-    bytes32 expectedProgramId;
     uint8 solanaTokenDecimals;
   }
 
@@ -112,9 +110,8 @@ abstract contract DeployHubContractsBaseImpl is Script {
     hubVotePool.setGovernor(address(gov));
 
     // Deploy the vote decoder for Solana queries
-    HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder = new HubSolanaSpokeVoteDecoder(
-      config.wormholeCore, address(hubVotePool), config.expectedProgramId, config.solanaTokenDecimals
-    );
+    HubSolanaSpokeVoteDecoder hubSolanaSpokeVoteDecoder =
+      new HubSolanaSpokeVoteDecoder(config.wormholeCore, address(hubVotePool), config.solanaTokenDecimals);
 
     // Register Solana vote decoder, 5 is the constant for QT_SOL_PDA.
     hubVotePool.registerQueryType(5, address(hubSolanaSpokeVoteDecoder));
@@ -133,7 +130,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
     // Deploy the evm aggregate proposer
     HubEvmSpokeAggregateProposer hubEvmSpokeAggregateProposer =
       new HubEvmSpokeAggregateProposer(config.wormholeCore, address(gov), config.initialMaxQueryTimestampOffset);
-    hubVotePool.transferOwnership(address(timelock));
     extender.initialize(payable(gov));
 
     timelock.grantRole(timelock.PROPOSER_ROLE(), address(gov));

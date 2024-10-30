@@ -3,14 +3,14 @@ use anchor_lang::prelude::*;
 
 use crate::error::ProposalWormholeMessageError;
 
-/// Save window by default
-#[constant]
-pub const DEFAULT_SAVE_WINDOW: u64 = 24 * 60 * 60;
-
 pub struct ProposalDataFromEthResponse {
-    pub contract_address: [u8; 20],
     pub proposal_id: [u8; 32],
     pub vote_start: u64,
+}
+
+pub struct ProposalQueryRequestData {
+    pub signature: [u8; 4],
+    pub proposal_id: [u8; 32],
 }
 
 #[account]
@@ -23,11 +23,10 @@ pub struct SpokeMetadataCollector {
     pub hub_proposal_metadata: [u8; 20],
     // Wormhole contract handling messages
     pub wormhole_core: Pubkey,
-    pub safe_window: u64,
 }
 
 impl SpokeMetadataCollector {
-    pub const LEN: usize = 8 + 2 + 2 + 20 + 32 + 8; // 72 bytes
+    pub const LEN: usize = 8 + 2 + 2 + 20 + 32; // 64 bytes
 
     pub fn initialize(
         &mut self,
@@ -40,7 +39,15 @@ impl SpokeMetadataCollector {
         self.hub_chain_id = hub_chain_id;
         self.hub_proposal_metadata = hub_proposal_metadata;
         self.wormhole_core = wormhole_core;
-        self.safe_window = DEFAULT_SAVE_WINDOW;
+
+        Ok(())
+    }
+
+    pub fn update_hub_proposal_metadata(
+        &mut self,
+        new_hub_proposal_metadata: [u8; 20],
+    ) -> Result<()> {
+        self.hub_proposal_metadata = new_hub_proposal_metadata;
 
         Ok(())
     }
@@ -50,31 +57,56 @@ impl SpokeMetadataCollector {
         data: &[u8],
     ) -> Result<ProposalDataFromEthResponse> {
         require!(
-            data.len() == 60, // 20 + 32 + 8
+            data.len() == 64, // 32 + 32
             ProposalWormholeMessageError::InvalidDataLength
         );
 
-        // Parse contract_address (20 bytes)
-        let contract_address: [u8; 20] = data[0..20]
-            .try_into()
-            .map_err(|_| ProposalWormholeMessageError::ErrorOfContractAddressParsing)?;
-
         // Parse proposal_id (32 bytes)
-        let proposal_id: [u8; 32] = data[20..52]
+        let proposal_id: [u8; 32] = data[0..32]
             .try_into()
             .map_err(|_| ProposalWormholeMessageError::ErrorOfProposalIdParsing)?;
 
-        // Parse vote_start (8 bytes)
-        let vote_start = u64::from_le_bytes(
-            data[52..60]
+        // Validate that bytes [32..56] are zeroed
+        if data[32..56].iter().any(|&byte| byte != 0) {
+            return err!(ProposalWormholeMessageError::ErrorOfVoteStartParsing);
+        }
+
+        // Parse vote_start (32 bytes)
+        // Convert u256 to u64 since vote_start is a timestamp and does not actually exceed u64
+        let vote_start = u64::from_be_bytes(
+            data[56..64] // the last 8 bytes where the low bytes of uint256 are located
                 .try_into()
                 .map_err(|_| ProposalWormholeMessageError::ErrorOfVoteStartParsing)?,
         );
 
         Ok(ProposalDataFromEthResponse {
-            contract_address,
             proposal_id,
             vote_start,
+        })
+    }
+
+    pub fn parse_proposal_query_request_data(
+        &mut self,
+        calldata: &[u8],
+    ) -> Result<ProposalQueryRequestData> {
+        require!(
+            calldata.len() == 36, // 4 + 32
+            ProposalWormholeMessageError::InvalidDataLength
+        );
+
+        // Parse signature (4 bytes)
+        let signature: [u8; 4] = calldata[0..4]
+            .try_into()
+            .map_err(|_| ProposalWormholeMessageError::ErrorOfSignatureParsing)?;
+
+        // Parse proposal_id (32 bytes)
+        let proposal_id: [u8; 32] = calldata[4..36]
+            .try_into()
+            .map_err(|_| ProposalWormholeMessageError::ErrorOfProposalIdParsing)?;
+
+        Ok(ProposalQueryRequestData {
+            signature,
+            proposal_id,
         })
     }
 }

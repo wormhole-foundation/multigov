@@ -25,11 +25,13 @@ pub const STAKE_ACCOUNT_METADATA_SEED: &str = "stake_metadata";
 pub const CHECKPOINT_DATA_SEED: &str = "owner";
 pub const CONFIG_SEED: &str = "config";
 pub const PROPOSAL_SEED: &str = "proposal";
+pub const VESTING_CONFIG_SEED: &str = "vesting_config";
+pub const VEST_SEED: &str = "vest";
 pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
-pub const SPOKE_METADATA_COLLECTOR: &str = "spoke_metadata_collector";
+pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
 
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -105,11 +107,13 @@ pub struct Delegate<'info> {
     )]
     pub stake_account_custody: Box<Account<'info, TokenAccount>>,
 
-    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+    #[account(mut)]
+    pub vesting_config: Option<Account<'info, VestingConfig>>,
     #[account(mut)]
     pub vesting_balance: Option<Account<'info, VestingBalance>>,
 
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
     pub mint: Account<'info, Mint>,
@@ -147,19 +151,37 @@ pub struct CastVote<'info> {
 
 #[derive(Accounts)]
 pub struct InitializeSpokeMetadataCollector<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
 
     #[account(
         init,
-        payer = payer,
+        payer = governance_authority,
         space = SpokeMetadataCollector::LEN,
-        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
         bump
     )]
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
 
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateHubProposalMetadata<'info> {
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
+        bump = spoke_metadata_collector.bump
+    )]
+    pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
 }
 
 #[derive(Accounts)]
@@ -223,7 +245,7 @@ pub struct AddProposal<'info> {
 
     #[account(
         mut,
-        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
         bump = spoke_metadata_collector.bump
     )]
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
@@ -348,9 +370,9 @@ pub struct UpdateGovernanceAuthority<'info> {
 }
 
 #[derive(Accounts)]
-pub struct UpdatePdaAuthority<'info> {
-    #[account(address = config.pda_authority)]
-    pub governance_signer: Signer<'info>,
+pub struct UpdateVestingAdmin<'info> {
+    #[account(address = config.vesting_admin)]
+    pub vesting_admin: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,
 }
@@ -376,7 +398,7 @@ pub struct CreateStakeAccount<'info> {
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub custody_authority: AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
     pub mint: Account<'info, Mint>,
@@ -391,7 +413,7 @@ pub struct CreateStakeAccount<'info> {
         token::mint = mint,
         token::authority = custody_authority,
     )]
-    pub stake_account_custody: Account<'info, TokenAccount>,
+    pub stake_account_custody: Box<Account<'info, TokenAccount>>,
     // Primitive accounts :
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
@@ -459,33 +481,6 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
     }
 }
 
-#[derive(Accounts)]
-pub struct RecoverAccount<'info> {
-    // Native payer:
-    #[account(address = config.governance_authority)]
-    pub payer: Signer<'info>,
-
-    // Token account:
-    #[account(address = stake_account_metadata.owner)]
-    pub payer_token_account: Account<'info, TokenAccount>,
-
-    // Stake program accounts:
-    #[account(zero)]
-    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-
-    #[account(
-        mut,
-        seeds = [
-            STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
-        ],
-        bump = stake_account_metadata.metadata_bump
-    )]
-    pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
-
-    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
-}
 #[derive(Accounts)]
 pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(mut)]
