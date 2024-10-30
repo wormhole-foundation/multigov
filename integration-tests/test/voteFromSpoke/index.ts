@@ -6,8 +6,11 @@ import { createClients } from 'test/config/clients';
 import { createProposalOnSpoke } from 'test/createProposalOnSpoke/helpers';
 
 describe('Vote from spoke', () => {
+  let proposalId: bigint;
+
   beforeAll(async () => {
     await setupTestEnvironment();
+    proposalId = await createProposalOnSpoke();
   });
 
   afterAll(async () => {
@@ -21,8 +24,6 @@ describe('Vote from spoke', () => {
       isHub: true,
       timestamp: (await ethClient.getBlock()).timestamp,
     });
-
-    const proposalId = await createProposalOnSpoke();
 
     const votesBeforeOnHub = await getProposalVotes({
       proposalId,

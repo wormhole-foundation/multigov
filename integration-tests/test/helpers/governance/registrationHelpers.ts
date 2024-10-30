@@ -83,6 +83,8 @@ const registerSpokeOnAggProposer = async ({
     address: ContractAddresses.HUB_GOVERNOR,
   });
 
+  await ethClient.waitForTransactionReceipt({ hash });
+
   console.log(
     `Registered spoke for chain ${chainId} at address ${spokeAddress}. Transaction hash: ${hash}`,
   );
