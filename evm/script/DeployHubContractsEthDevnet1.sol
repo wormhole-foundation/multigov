@@ -47,7 +47,6 @@ contract DeployHubContractsEthDevnet1 is DeployHubContractsBaseImpl {
       minimumExtensionTime: 1 minutes,
       consistencyLevel: 0,
       initialMaxQueryTimestampOffset: 10 minutes,
-      expectedProgramId: 0x0000000000000000000000000000000000000000000000000000000000000000,
       solanaTokenDecimals: 8
     });
   }
