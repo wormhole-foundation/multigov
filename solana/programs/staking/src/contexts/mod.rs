@@ -16,4 +16,8 @@ pub use cancel_vesting::*;
 pub mod withdraw_surplus;
 pub use withdraw_surplus::*;
 mod create_vesting_balance;
+
 pub use create_vesting_balance::*;
+
+pub mod transfer_vesting;
+pub use transfer_vesting::*;

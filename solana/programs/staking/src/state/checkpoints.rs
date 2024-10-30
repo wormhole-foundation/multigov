@@ -23,10 +23,10 @@ pub struct DelegateVotesChanged {
 }
 
 impl CheckpointData {
-    pub const CHECKPOINT_SIZE: usize = 16;
-    pub const CHECKPOINT_DATA_HEADER_SIZE: usize = 48;
+    pub const CHECKPOINT_SIZE: usize = 16; // 8 + 8 (timestamp + value)
+    pub const CHECKPOINT_DATA_HEADER_SIZE: usize = 48; // 8 + 32 + 8 (discriminator + owner + next_index)
 
-    pub const LEN: usize = 80; // 48 + 16 (header + space for one checkpoint)
+    pub const LEN: usize = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE; // 48 (header)
 
     pub fn initialize(&mut self, owner: &Pubkey) {
         self.owner = *owner;
@@ -136,7 +136,7 @@ pub fn push_checkpoint<'info>(
                 checkpoint_data.next_index += 1;
 
                 let required_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
-                    + (checkpoint_data.next_index as usize + 1) * CheckpointData::CHECKPOINT_SIZE;
+                    + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
 
                 drop(checkpoint_data);
 
@@ -150,22 +150,12 @@ pub fn push_checkpoint<'info>(
                 }
             } // Mutable borrow ends here
 
-            // Calculate the new value, ensuring to handle the None case properly
-            let new_value = match operation {
-                Operation::Add => latest_checkpoint
-                    .value
-                    .checked_add(amount_delta)
-                    .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
-                Operation::Subtract => latest_checkpoint
-                    .value
-                    .checked_sub(amount_delta)
-                    .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
-            };
-
-            let new_checkpoint = Checkpoint {
-                timestamp: current_timestamp,
-                value: new_value,
-            };
+            let new_checkpoint = calc_new_checkpoint(
+                latest_checkpoint.value,
+                amount_delta,
+                operation,
+                current_timestamp,
+            )?;
 
             write_checkpoint_at_index(
                 checkpoints_account_info,
@@ -173,25 +163,14 @@ pub fn push_checkpoint<'info>(
                 &new_checkpoint,
             )?;
         } else {
+            let new_checkpoint = calc_new_checkpoint(
+                latest_checkpoint.value,
+                amount_delta,
+                operation,
+                current_timestamp,
+            )?;
+
             // overwrite checkpoint with same current_timestamp
-
-            // Calculate the new value, ensuring to handle the None case properly
-            let new_value = match operation {
-                Operation::Add => latest_checkpoint
-                    .value
-                    .checked_add(amount_delta)
-                    .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
-                Operation::Subtract => latest_checkpoint
-                    .value
-                    .checked_sub(amount_delta)
-                    .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
-            };
-
-            let new_checkpoint = Checkpoint {
-                timestamp: current_timestamp,
-                value: new_value,
-            };
-
             write_checkpoint_at_index(
                 checkpoints_account_info,
                 current_index as usize - 1,
@@ -205,7 +184,7 @@ pub fn push_checkpoint<'info>(
             checkpoint_data.next_index += 1;
 
             let required_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
-                + (checkpoint_data.next_index as usize + 1) * CheckpointData::CHECKPOINT_SIZE;
+                + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
 
             drop(checkpoint_data);
 
@@ -219,10 +198,7 @@ pub fn push_checkpoint<'info>(
             }
         } // Mutable borrow ends here
 
-        let new_checkpoint = Checkpoint {
-            timestamp: current_timestamp,
-            value: amount_delta,
-        };
+        let new_checkpoint = calc_new_checkpoint(0, amount_delta, operation, current_timestamp)?;
 
         write_checkpoint_at_index(
             checkpoints_account_info,
@@ -234,12 +210,36 @@ pub fn push_checkpoint<'info>(
     Ok(())
 }
 
+fn calc_new_checkpoint(
+    current_value: u64,
+    amount_delta: u64,
+    operation: Operation,
+    current_timestamp: u64,
+) -> Result<Checkpoint> {
+    // Calculate the new value, ensuring to handle the None case properly
+    let new_value = match operation {
+        Operation::Add => current_value
+            .checked_add(amount_delta)
+            .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
+        Operation::Subtract => current_value
+            .checked_sub(amount_delta)
+            .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
+    };
+
+    let new_checkpoint = Checkpoint {
+        timestamp: current_timestamp,
+        value: new_value,
+    };
+
+    Ok(new_checkpoint)
+}
+
 pub fn find_checkpoint_le(
     account_info: &AccountInfo,
     target_timestamp: u64,
 ) -> Result<Option<Checkpoint>> {
     let data = account_info.try_borrow_data()?;
-    let header_size = 8 + 32 + 8;
+    let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE;
     let data = &data[header_size..];
 
     let element_size = 16;

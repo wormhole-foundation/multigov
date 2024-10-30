@@ -6,7 +6,6 @@
 // Objects of type Result must be used, otherwise we might
 // call a function that returns a Result and not handle the error
 
-use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
@@ -21,10 +20,12 @@ use anchor_lang::solana_program::{
     instruction::AccountMeta, instruction::Instruction, program::invoke_signed,
 };
 
-use wormhole_query_sdk::structs::{ChainSpecificQuery, ChainSpecificResponse, QueryResponse};
+use wormhole_query_sdk::structs::{
+    ChainSpecificQuery, ChainSpecificResponse, EthCallData, QueryResponse,
+};
 
 use crate::{
-    error::{ProposalWormholeMessageError, QueriesSolanaVerifyError},
+    error::{ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError},
     state::GuardianSignatures,
 };
 
@@ -63,7 +64,7 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-declare_id!("5Vry3MrbhPCBWuviXVgcLQzhQ1mRsVfmQyNFuDgcPUAQ");
+declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
 #[program]
 pub mod staking {
     /// Creates a global config for the program
@@ -75,7 +76,7 @@ pub mod staking {
         config_account.governance_authority = global_config.governance_authority;
         config_account.wh_token_mint = global_config.wh_token_mint;
         config_account.freeze = global_config.freeze;
-        config_account.pda_authority = global_config.pda_authority;
+        config_account.vesting_admin = global_config.vesting_admin;
 
         #[cfg(feature = "mock-clock")]
         {
@@ -94,19 +95,21 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn update_pda_authority(
-        ctx: Context<UpdatePdaAuthority>,
-        new_authority: Pubkey,
+    pub fn update_vesting_admin(
+        ctx: Context<UpdateVestingAdmin>,
+        new_vesting_admin: Pubkey,
     ) -> Result<()> {
         let config = &mut ctx.accounts.config;
-        config.pda_authority = new_authority;
+        config.vesting_admin = new_vesting_admin;
         Ok(())
     }
 
     /// Trustless instruction that creates a stake account for a user
     #[inline(never)]
-    pub fn create_stake_account(ctx: Context<CreateStakeAccount>, owner: Pubkey) -> Result<()> {
+    pub fn create_stake_account(ctx: Context<CreateStakeAccount>) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+        let owner = &ctx.accounts.payer.key;
+
         stake_account_metadata.initialize(
             ctx.bumps.stake_account_metadata,
             ctx.bumps.stake_account_custody,
@@ -123,6 +126,7 @@ pub mod staking {
 
     pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
+        let config = &ctx.accounts.config;
 
         let prev_recorded_total_balance = stake_account_metadata
             .recorded_balance
@@ -131,14 +135,22 @@ pub mod staking {
 
         let current_stake_balance = ctx.accounts.stake_account_custody.amount;
 
-        if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
-            require!(
-                vesting_balance.vester.key() == stake_account_metadata.owner.key(),
-                ErrorCode::InvalidVestingBalance
-            );
-            vesting_balance.stake_account_metadata = stake_account_metadata.key();
-
-            stake_account_metadata.recorded_vesting_balance = vesting_balance.total_vesting_balance;
+        if let Some(vesting_config) = &mut ctx.accounts.vesting_config {
+            if vesting_config.finalized {
+                if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
+                    require!(
+                        vesting_balance.vester == stake_account_metadata.owner,
+                        VestingError::InvalidStakeAccountOwner
+                    );
+                    require!(
+                        vesting_config.mint == config.wh_token_mint,
+                        VestingError::InvalidVestingMint
+                    );
+                    vesting_balance.stake_account_metadata = stake_account_metadata.key();
+                    stake_account_metadata.recorded_vesting_balance =
+                        vesting_balance.total_vesting_balance;
+                }
+            }
         }
 
         let current_delegate = stake_account_metadata.delegate;
@@ -155,7 +167,6 @@ pub mod staking {
             total_delegated_votes: total_delegated_votes
         });
 
-        let config = &ctx.accounts.config;
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
 
         if current_delegate != delegatee {
@@ -343,27 +354,6 @@ pub mod staking {
         Ok(())
     }
 
-    /** Recovers a user's `stake account` ownership by transferring ownership
-     * from a token account to the `owner` of that token account.
-     *
-     * This functionality addresses the scenario where a user mistakenly
-     * created a stake account using their token account address as the owner.
-     */
-    pub fn recover_account(ctx: Context<RecoverAccount>) -> Result<()> {
-        // Check that there aren't any staked tokens in the account.
-        // Transferring accounts with staked tokens might lead to double voting
-        require!(
-            ctx.accounts.stake_account_metadata.recorded_balance == 0,
-            ErrorCode::RecoverWithStake
-        );
-
-        let new_owner = ctx.accounts.payer_token_account.owner;
-
-        ctx.accounts.stake_account_metadata.owner = new_owner;
-
-        Ok(())
-    }
-
     //------------------------------------ VESTING ------------------------------------------------
     // Initialize a new Config, setting up a mint, vault and admin
     pub fn initialize_vesting_config(ctx: Context<Initialize>, seed: u64) -> Result<()> {
@@ -390,6 +380,12 @@ pub mod staking {
     // Claim from and close a Vesting account
     pub fn claim_vesting(ctx: Context<ClaimVesting>) -> Result<()> {
         ctx.accounts.close_vesting()
+    }
+
+    // Transfer Vesting from and send to new Vester
+    pub fn transfer_vesting(ctx: Context<TransferVesting>, new_vester: Pubkey) -> Result<()> {
+        ctx.accounts
+            .transfer_vesting(new_vester, ctx.bumps.new_vest)
     }
 
     // Cancel and close a Vesting account for a non-finalized Config
@@ -502,6 +498,16 @@ pub mod staking {
         Ok(())
     }
 
+    pub fn update_hub_proposal_metadata(
+        ctx: Context<UpdateHubProposalMetadata>,
+        new_hub_proposal_metadata: [u8; 20],
+    ) -> Result<()> {
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+        let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);
+
+        Ok(())
+    }
+
     pub fn post_signatures(
         ctx: Context<PostSignatures>,
         guardian_signatures: Vec<[u8; 66]>,
@@ -530,6 +536,8 @@ pub mod staking {
             ProposalWormholeMessageError::TooManyQueryResponses
         );
 
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+
         if let ChainSpecificQuery::EthCallWithFinalityQueryRequest(eth_request) =
             &response.request.requests[0].query
         {
@@ -537,13 +545,27 @@ pub mod staking {
                 eth_request.finality == "finalized",
                 ProposalWormholeMessageError::NonFinalizedBlock
             );
+
+            let EthCallData { to, data } = &eth_request.call_data[0];
+
+            require!(
+                *to == spoke_metadata_collector.hub_proposal_metadata,
+                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
+            );
+
+            let proposal_query_request_data =
+                spoke_metadata_collector.parse_proposal_query_request_data(&data)?;
+
+            // The function signature should be bytes4(keccak256(bytes("getProposalMetadata(uint256)")))
+            require!(
+                proposal_query_request_data.signature == [0xeb, 0x9b, 0x98, 0x38],
+                ProposalWormholeMessageError::InvalidFunctionSignature
+            );
         } else {
             return Err(ProposalWormholeMessageError::InvalidChainSpecificQuery.into());
         }
 
         let response = &response.responses[0];
-
-        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
 
         require!(
             response.chain_id == spoke_metadata_collector.hub_chain_id,
@@ -562,22 +584,18 @@ pub mod staking {
                 .parse_eth_response_proposal_data(&eth_response.results[0])?;
 
             require!(
-                proposal_data.contract_address == spoke_metadata_collector.hub_proposal_metadata,
-                ProposalWormholeMessageError::InvalidHubProposalMetadataContract
-            );
-
-            require!(
                 proposal_data.proposal_id == proposal_id,
                 ProposalWormholeMessageError::InvalidProposalId
             );
 
             let proposal = &mut ctx.accounts.proposal;
 
-            let _ = proposal.add_proposal(
-                proposal_data.proposal_id,
-                proposal_data.vote_start,
-                spoke_metadata_collector.safe_window,
+            require!(
+                proposal_data.vote_start != 0,
+                ProposalWormholeMessageError::ProposalNotInitialized
             );
+
+            let _ = proposal.add_proposal(proposal_data.proposal_id, proposal_data.vote_start);
 
             emit!(ProposalCreated {
                 proposal_id: proposal_data.proposal_id,

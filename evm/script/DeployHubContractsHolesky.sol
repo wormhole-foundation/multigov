@@ -9,7 +9,7 @@ contract DeployHubContractsHolesky is DeployHubContractsBaseImpl {
     Vm.Wallet memory wallet = _deploymentWallet();
     return DeploymentConfiguration({
       minDelay: 300,
-      name: "",
+      name: "Wormhole Sepolia Governor",
       token: 0xf11d8878B388b2456a9Fe9F6bB979e920F340a52,
       initialVotingDelay: 1.5 minutes,
       initialVotingPeriod: 30 minutes,
@@ -22,7 +22,6 @@ contract DeployHubContractsHolesky is DeployHubContractsBaseImpl {
       minimumExtensionTime: 1 minutes,
       consistencyLevel: 0,
       initialMaxQueryTimestampOffset: 10 minutes,
-      expectedProgramId: 0x0000000000000000000000000000000000000000000000000000000000000000,
       solanaTokenDecimals: 8
     });
   }

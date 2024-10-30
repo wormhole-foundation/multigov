@@ -175,7 +175,6 @@ contract Constructor is HubGovernorTest {
     uint32 _initialVotingPeriod,
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
-    address _voteExtender,
     address _extenderOwner,
     address _deployer
   ) public {

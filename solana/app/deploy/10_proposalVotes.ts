@@ -1,21 +1,13 @@
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
-import { PublicKey, Connection } from "@solana/web3.js";
+import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
 import { USER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
-import BN from "bn.js";
-import crypto from "crypto";
 
 async function main() {
   try {
-    const stakeAccount = new PublicKey(
-      // stakeAccountSecret.publicKey generated in  3_create_stake_account.ts
-      "EHbjaCjypw3HAZMWskLhX1KtmVUDmNFrijPcBtfqH8S3",
-    );
-
     const connection = new Connection(RPC_NODE);
-
     const provider = new AnchorProvider(
       connection,
       new Wallet(USER_AUTHORITY_KEYPAIR),
@@ -28,14 +20,12 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const _proposalId = crypto
-      .createHash("sha256")
-      .update("proposalId4")
-      .digest();
-    console.log("_proposalId:", _proposalId.toString("hex"));
+    const proposalIdHex =
+      "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2";
+    const proposalIdArray = Buffer.from(proposalIdHex, "hex");
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
-      await stakeConnection.proposalVotes(_proposalId);
+      await stakeConnection.proposalVotes(proposalIdArray);
 
     console.log("proposalId", proposalId.toString("hex"));
     console.log("againstVotes", againstVotes.toString());

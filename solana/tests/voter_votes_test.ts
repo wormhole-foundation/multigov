@@ -18,6 +18,7 @@ const portNumber = getPortNumber(path.basename(__filename));
 describe("voter_votes_test", async () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const governanceAuthority = new Keypair();
 
   let stakeConnection: StakeConnection;
   let controller: CustomAbortController;
@@ -31,6 +32,7 @@ describe("voter_votes_test", async () => {
       config,
       whMintAccount,
       whMintAuthority,
+      governanceAuthority,
       makeDefaultConfig(whMintAccount.publicKey),
     ));
 

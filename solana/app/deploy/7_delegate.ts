@@ -4,7 +4,11 @@ import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { WHTokenBalance } from "../whTokenBalance";
 import { STAKING_ADDRESS } from "../constants";
-import { USER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function main() {
   try {
@@ -12,7 +16,7 @@ async function main() {
 
     const provider = new AnchorProvider(
       connection,
-      new Wallet(USER_AUTHORITY_KEYPAIR),
+      new Wallet(DEPLOYER_AUTHORITY_KEYPAIR),
       {},
     );
 
@@ -22,11 +26,12 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("100"));
+    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("10"));
+    await sleep(10000);
 
     const user = provider.wallet.publicKey;
-
-    await stakeConnection.delegate(user, WHTokenBalance.fromString("100"));
+    console.log("user:", user);
+    await stakeConnection.delegate(user, WHTokenBalance.fromString("10"));
   } catch (err) {
     console.error("Error:", err);
   }
