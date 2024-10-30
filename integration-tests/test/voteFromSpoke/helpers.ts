@@ -171,3 +171,7 @@ export const waitForProposalActive = async (proposalId: bigint) => {
 
   console.log('✅ Proposal is active');
 };
+
+export const bridgeVotesToHub = async () => {
+  // TODO: Add the rest of the logic to bridge votes to hub
+};

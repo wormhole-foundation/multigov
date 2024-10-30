@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, test } from 'bun:test';
 import { createProposalOnSpoke } from 'test/createProposalOnSpoke/helpers';
 import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
-import { voteFromSpoke } from './helpers';
+import { bridgeVotesToHub, voteFromSpoke } from './helpers';
 
 describe('Vote from spoke', () => {
   let proposalId: bigint;
@@ -18,5 +18,9 @@ describe('Vote from spoke', () => {
 
   test('should successfully vote from spoke', async () => {
     await voteFromSpoke();
+  });
+
+  test('should successfully bridge votes to hub', async () => {
+    await bridgeVotesToHub();
   });
 });
