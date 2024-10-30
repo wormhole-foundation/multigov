@@ -3217,48 +3217,73 @@ export type Staking = {
   "errors": [
     {
       "code": 6000,
-      "name": "failedToParseResponse",
-      "msg": "Failed to parse response"
+      "name": "notFullyVested",
+      "msg": "Not fully vested yet"
     },
     {
       "code": 6001,
-      "name": "writeAuthorityMismatch",
-      "msg": "Write authority mismatch"
+      "name": "notInSurplus",
+      "msg": "Vault is not in surplus"
     },
     {
       "code": 6002,
-      "name": "guardianSetExpired",
-      "msg": "Guardian set expired"
+      "name": "vestingFinalized",
+      "msg": "Vesting finalized"
     },
     {
       "code": 6003,
-      "name": "invalidMessageHash",
-      "msg": "Invalid message hash"
+      "name": "vestingUnfinalized",
+      "msg": "Vesting unfinalized"
     },
     {
       "code": 6004,
-      "name": "noQuorum",
-      "msg": "No quorum"
+      "name": "overflow",
+      "msg": "Integer overflow"
     },
     {
       "code": 6005,
-      "name": "invalidGuardianIndexNonIncreasing",
-      "msg": "Invalid guardian index non increasing"
+      "name": "underflow",
+      "msg": "Integer underflow"
     },
     {
       "code": 6006,
-      "name": "invalidGuardianIndexOutOfRange",
-      "msg": "Invalid guardian index out of range"
+      "name": "invalidStakeAccountCheckpoints",
+      "msg": "Invalid stake account delegate"
     },
     {
       "code": 6007,
-      "name": "invalidSignature",
-      "msg": "Invalid signature"
+      "name": "errorOfStakeAccountParsing",
+      "msg": "Error parsing stake_account_metadata and stake_account_checkpoints"
     },
     {
       "code": 6008,
-      "name": "invalidGuardianKeyRecovery",
-      "msg": "Invalid guardian key recovery"
+      "name": "invalidVestingMint",
+      "msg": "Invalid vesting mint"
+    },
+    {
+      "code": 6009,
+      "name": "invalidStakeAccountOwner",
+      "msg": "Invalid stake account owner"
+    },
+    {
+      "code": 6010,
+      "name": "invalidVestingAdmin",
+      "msg": "Invalid vesting admin"
+    },
+    {
+      "code": 6011,
+      "name": "vestedBalanceMismatch",
+      "msg": "Vested token balance does not match the balance in the vault"
+    },
+    {
+      "code": 6012,
+      "name": "invalidStakeAccountMetadataPda",
+      "msg": "Invalid stake account metadata PDA"
+    },
+    {
+      "code": 6013,
+      "name": "invalidStakeAccountCheckpointsPda",
+      "msg": "Invalid stake account checkpoints PDA"
     }
   ],
   "types": [

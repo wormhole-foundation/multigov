@@ -229,12 +229,13 @@ export async function generateTransferInstruction(
   const SolanaAccountMetaType =
     "tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
   const SolanaInstructionType = `tuple(bytes32 programId, ${SolanaAccountMetaType}[] accounts, bytes data)`;
-  const MessageType = `tuple(uint256 messageId, uint256 wormholeChainId, ${SolanaInstructionType}[] instructions)`;
+  const MessageType = `tuple(uint256 messageId, uint256 wormholeChainId, uint256 instructionsLength, ${SolanaInstructionType}[] instructions)`;
 
   // Prepare the message without instructionsLength
   const messageObject = {
     messageId: messageId,
     wormholeChainId: wormholeChainId,
+    instructionsLength: instructionsLength,
     instructions: instructions,
   };
 
