@@ -5,7 +5,8 @@ import {
   QueryRequest,
   sign,
 } from '@wormhole-foundation/wormhole-query-sdk';
-import { type Address, encodeFunctionData, toBytes, toHex } from 'viem';
+import { type NativeAddress, toNative } from '@wormhole-foundation/sdk';
+import { type Address, encodeFunctionData } from 'viem';
 import { HubEvmSpokeAggregateProposerAbi } from '../../../abis';
 import { SpokeVoteAggregatorAbi } from '../../../abis';
 import { QUERY_URL } from '../../config';
@@ -18,10 +19,11 @@ import type { QueryRes } from './types';
 /**
  * Converts an EVM address to Wormhole's bytes32 format
  * @param address The EVM address to convert
- * @returns The address as bytes32, padded with zeros
+ * @returns The address as bytes32, right-padded with zeros
  */
 export const toWormholeFormat = (address: Address): `0x${string}` => {
-  return toHex(toBytes(address, { size: 32 }));
+  const ethAddress: NativeAddress<'Ethereum'> = toNative('Ethereum', address);
+  return ethAddress.toUniversalAddress().toString() as `0x${string}`;
 };
 
 export const sendQueryToWormhole = async ({
