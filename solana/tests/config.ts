@@ -13,7 +13,6 @@ import {
   getPortNumber,
   ANCHOR_CONFIG_PATH,
   requestWHTokenAirdrop,
-  getDummyAgreementHash,
 } from "./utils/before";
 import { expectFail, createMint } from "./utils/utils";
 import assert from "assert";
@@ -117,7 +116,6 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
-        agreementHash: getDummyAgreementHash(),
       }),
     );
   });
@@ -135,7 +133,6 @@ describe("config", async () => {
           whTokenMint: whMintAccount.publicKey,
           freeze: false,
           vestingAdmin: vestingAdmin,
-          agreementHash: getDummyAgreementHash(),
           mockClockTime: new BN(0),
         })
         .rpc();
@@ -146,7 +143,6 @@ describe("config", async () => {
           whTokenMint: whMintAccount.publicKey,
           freeze: false,
           vestingAdmin: vestingAdmin,
-          agreementHash: getDummyAgreementHash(),
           mockClockTime: new BN(0),
         })
         .rpc();
@@ -279,7 +275,6 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
-        agreementHash: getDummyAgreementHash(),
       }),
     );
 
@@ -376,7 +371,6 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: program.provider.wallet.publicKey,
-        agreementHash: getDummyAgreementHash(),
       }),
     );
 
@@ -394,7 +388,6 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
-        agreementHash: getDummyAgreementHash(),
       }),
     );
   });
