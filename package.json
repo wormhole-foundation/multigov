@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "format": "bunx @biomejs/biome format .",
+    "lint": "bunx @biomejs/biome lint .",
+    "check": "bunx @biomejs/biome check ."
+  }
+}
