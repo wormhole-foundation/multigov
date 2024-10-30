@@ -63,8 +63,6 @@ contract DeployHubContractsTest is DeployHubContractsBase {
 
     assertEq(address(proposalMetadata.GOVERNOR()), address(governor));
 
-    console2.log("extender.voteExtenderAdmin()", extender.voteExtenderAdmin());
-    console2.log("deployer", deployer);
     assertEq(extender.voteExtenderAdmin(), address(deployer));
     assertEq(extender.extensionDuration(), 5 minutes);
     assertEq(extender.MINIMUM_EXTENSION_DURATION(), 1 minutes);
