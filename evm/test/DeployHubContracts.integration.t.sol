@@ -21,6 +21,8 @@ contract DeployHubContractsBase is Test, TestConstants {
   function setUp() public {
     (deployer, deployerKey) = makeAddrAndKey("deployer");
     vm.setEnv("DEPLOYER_PRIVATE_KEY", vm.toString(deployerKey));
+    // Set to empty string to avoid since we aren't testing the devnet deployment
+    vm.setEnv("ETHDEVNET_MNEMONIC", "");
   }
 }
 
@@ -61,6 +63,8 @@ contract DeployHubContractsTest is DeployHubContractsBase {
 
     assertEq(address(proposalMetadata.GOVERNOR()), address(governor));
 
+    console2.log("extender.voteExtenderAdmin()", extender.voteExtenderAdmin());
+    console2.log("deployer", deployer);
     assertEq(extender.voteExtenderAdmin(), address(deployer));
     assertEq(extender.extensionDuration(), 5 minutes);
     assertEq(extender.MINIMUM_EXTENSION_DURATION(), 1 minutes);
