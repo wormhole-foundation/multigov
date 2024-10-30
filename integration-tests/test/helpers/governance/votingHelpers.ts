@@ -2,7 +2,7 @@ import type { Address } from 'viem';
 import { HubGovernorAbi, SpokeVoteAggregatorAbi } from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
-import { VoteType } from '../../config/types';
+import type { VoteType } from '../../config/types';
 
 export const voteOnProposal = async ({
   isHub,
@@ -24,15 +24,6 @@ export const voteOnProposal = async ({
   const abi = isHub ? HubGovernorAbi : SpokeVoteAggregatorAbi;
   const chain = isHub ? ethWallet.chain : eth2Wallet.chain;
 
-  // Get voting power before voting
-  const snapshot = await getVoteStart({ proposalId });
-  const votingPower = await getVotingPower({
-    account: account.address,
-    isHub,
-    timestamp: snapshot,
-  });
-  console.log(`Voting power before voting: ${votingPower}`);
-
   // Cast vote
   const hash = await wallet.writeContract({
     address: contractAddress,
@@ -45,25 +36,6 @@ export const voteOnProposal = async ({
 
   // Wait for transaction to be mined
   await client.waitForTransactionReceipt({ hash });
-
-  // Verify vote was counted
-  const votes = await client.readContract({
-    address: contractAddress,
-    abi,
-    functionName: 'proposalVotes',
-    args: [proposalId],
-  });
-  console.log('Votes after casting:', votes);
-
-  // Verify our vote was counted correctly
-  const expectedVotes = {
-    againstVotes: voteType === VoteType.AGAINST ? votingPower : 0n,
-    forVotes: voteType === VoteType.FOR ? votingPower : 0n,
-    abstainVotes: voteType === VoteType.ABSTAIN ? votingPower : 0n,
-  };
-  console.log('Expected votes:', expectedVotes);
-
-  return hash;
 };
 
 export const getVotingPower = async ({
@@ -76,11 +48,6 @@ export const getVotingPower = async ({
   timestamp: bigint;
 }) => {
   const { ethClient, eth2Client } = createClients();
-  console.log(
-    `Getting voting weight for ${account} at timestamp ${timestamp} on ${
-      isHub ? 'hub' : 'spoke'
-    }`,
-  );
 
   const client = isHub ? ethClient : eth2Client;
 

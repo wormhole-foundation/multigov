@@ -10,6 +10,7 @@ import {
   createAndExecuteProposalViaHubGovernor,
   createProposalData,
 } from './proposalHelpers';
+import { toWormholeFormat } from '../wormhole/wormholeHelpers';
 
 export const getWhitelistedProposer = async () => {
   const { ethClient } = createClients();
@@ -86,7 +87,7 @@ const registerSpokeOnAggProposer = async ({
   await ethClient.waitForTransactionReceipt({ hash });
 
   console.log(
-    `Registered spoke for chain ${chainId} at address ${spokeAddress}. Transaction hash: ${hash}`,
+    `Registered spoke for chain ${chainId} at address ${spokeAddress} on the HubEvmSpokeAggregateProposer. Transaction hash: ${hash}`,
   );
 };
 
@@ -95,7 +96,11 @@ export const handleRegisterSpokeOnHubVotePool = async ({
 }: {
   chainId: number;
 }) => {
-  const isRegistered = await isSpokeRegisteredOnHubVotePool({ chainId });
+  const isRegistered = await isSpokeRegisteredOnHubVotePool({
+    chainId,
+    spokeAddress: ContractAddresses.SPOKE_VOTE_AGGREGATOR,
+  });
+
   if (isRegistered) {
     return;
   }
@@ -108,18 +113,21 @@ export const handleRegisterSpokeOnHubVotePool = async ({
 
 export const isSpokeRegisteredOnHubVotePool = async ({
   chainId,
+  spokeAddress,
 }: {
   chainId: number;
+  spokeAddress: Address;
 }) => {
   const { ethClient } = createClients();
   const timestamp = (await ethClient.getBlock()).timestamp;
-  const spokeAddress = await ethClient.readContract({
+  const registeredAddress = await ethClient.readContract({
     address: ContractAddresses.HUB_VOTE_POOL,
     abi: HubVotePoolAbi,
     functionName: 'getSpoke',
     args: [chainId, timestamp],
   });
-  return spokeAddress !== zeroAddress;
+
+  return registeredAddress === toWormholeFormat(spokeAddress);
 };
 
 export const registerSpokeOnHubVotePool = async ({
@@ -129,23 +137,26 @@ export const registerSpokeOnHubVotePool = async ({
   chainId: number;
   spokeAddress: Address;
 }) => {
+  // Convert the spoke address to Wormhole format before registering
+  const spokeAddressBytes32 = toWormholeFormat(spokeAddress);
+
   const registerSpokeCalldata = encodeFunctionData({
     abi: HubVotePoolAbi,
     functionName: 'registerSpoke',
-    args: [chainId, spokeAddress],
+    args: [chainId, spokeAddressBytes32],
   });
 
   const proposalData = createProposalData({
     targets: [ContractAddresses.HUB_VOTE_POOL],
     values: [0n],
     calldatas: [registerSpokeCalldata],
-    description: `Register spoke for chain ${chainId} at address ${spokeAddress}`,
+    description: `Register spoke for chain ${chainId} at address ${spokeAddressBytes32}`,
   });
 
   const proposalId = await createAndExecuteProposalViaHubGovernor(proposalData);
 
   console.log(
-    `Registered spoke for chain ${chainId} at address ${spokeAddress}. Proposal ID: ${proposalId}`,
+    `Registered spoke for chain ${chainId} at address ${spokeAddress} on the HubVotePool. Proposal ID: ${proposalId}`,
   );
   return proposalId;
 };
