@@ -61,6 +61,8 @@ export const mintTokens = async ({
   console.log(
     `✅ Tokens minted successfully ${amount} for ${recipientAddress} on ${isHub ? 'hub' : 'spoke'} chain`,
   );
+
+  await client.waitForTransactionReceipt({ hash });
   return hash;
 };
 
