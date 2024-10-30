@@ -13,7 +13,7 @@ import {ERC20VotesFake} from "../test/fakes/ERC20VotesFake.sol";
  * contracts.
  * @dev Deploy with:
  * @dev forge script script/DeploySpokeContractsEthDevnet2.sol:DeploySpokeContractsEthDevnet2 --rpc-url
- * http://localhost:8546 --broadcast --via-ir --ffi
+ * http://localhost:8546 --broadcast --via-ir
  */
 contract DeploySpokeContractsEthDevnet2 is DeploySpokeContractsBaseImpl {
   error ContractNotFound(string contractName);
