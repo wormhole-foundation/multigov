@@ -1,43 +1,57 @@
 use crate::context::{
-    CHECKPOINT_DATA_SEED, CONFIG_SEED, STAKE_ACCOUNT_METADATA_SEED, VESTING_BALANCE_SEED,
-    VESTING_CONFIG_SEED, VEST_SEED,
+    CHECKPOINT_DATA_SEED,
+    CONFIG_SEED,
+    STAKE_ACCOUNT_METADATA_SEED,
+    VESTING_BALANCE_SEED,
+    VESTING_CONFIG_SEED,
+    VEST_SEED,
 };
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token_interface::{Mint, TokenAccount, TokenInterface},
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{
+    Mint,
+    TokenAccount,
+    TokenInterface,
 };
 use std::convert::TryInto;
 
-use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
+use crate::error::VestingError;
+use crate::state::checkpoints::{
+    push_checkpoint,
+    CheckpointData,
+    Operation,
+};
 use crate::state::global_config::GlobalConfig;
 use crate::state::stake_account::StakeAccountMetadata;
-use crate::state::{VestingBalance, VestingConfig};
-use crate::{error::VestingError, state::Vesting};
+use crate::state::{
+    Vesting,
+    VestingBalance,
+    VestingConfig,
+};
 
 #[derive(Accounts)]
 #[instruction(new_vester: Pubkey)]
 pub struct TransferVesting<'info> {
     #[account(mut)]
-    vester: Signer<'info>,
-    mint: InterfaceAccount<'info, Mint>,
+    vester:                            Signer<'info>,
+    mint:                              InterfaceAccount<'info, Mint>,
     #[account(
         mut,
         token::mint = mint
     )]
-    vester_ta: InterfaceAccount<'info, TokenAccount>,
+    vester_ta:                         InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
         token::mint = mint
     )]
-    new_vester_ta: InterfaceAccount<'info, TokenAccount>,
+    new_vester_ta:                     InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
         seeds = [VESTING_CONFIG_SEED.as_bytes(), global_config.vesting_admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
-    config: Box<Account<'info, VestingConfig>>,
+    config:                            Box<Account<'info, VestingConfig>>,
     #[account(
         mut,
         close = vester,
@@ -46,7 +60,7 @@ pub struct TransferVesting<'info> {
         seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump = vest.bump
     )]
-    vest: Box<Account<'info, Vesting>>,
+    vest:                              Box<Account<'info, Vesting>>,
     #[account(
         init_if_needed,
         payer = vester,
@@ -54,14 +68,14 @@ pub struct TransferVesting<'info> {
         seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), new_vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump
     )]
-    new_vest: Box<Account<'info, Vesting>>,
+    new_vest:                          Box<Account<'info, Vesting>>,
     #[account(
         mut,
         has_one = vester,
         seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref()],
         bump = vesting_balance.bump
     )]
-    vesting_balance: Box<Account<'info, VestingBalance>>,
+    vesting_balance:                   Box<Account<'info, VestingBalance>>,
     #[account(
         init_if_needed,
         payer = vester,
@@ -69,25 +83,25 @@ pub struct TransferVesting<'info> {
         seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), new_vester_ta.owner.key().as_ref()],
         bump
     )]
-    new_vesting_balance: Box<Account<'info, VestingBalance>>,
+    new_vesting_balance:               Box<Account<'info, VestingBalance>>,
     #[account(
         seeds = [CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
     )]
-    pub global_config: Box<Account<'info, GlobalConfig>>,
+    pub global_config:                 Box<Account<'info, GlobalConfig>>,
     /// CheckpointData and StakeAccountMetadata accounts are optional because
     /// in order to be able to transfer vests that have not been delegated
     #[account(mut)]
-    pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
+    pub stake_account_checkpoints:     Option<AccountLoader<'info, CheckpointData>>,
     #[account(mut)]
-    pub stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
+    pub stake_account_metadata:        Option<Box<Account<'info, StakeAccountMetadata>>>,
     #[account(mut)]
     pub new_stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
     #[account(mut)]
-    pub new_stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
-    associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
-    system_program: Program<'info, System>,
+    pub new_stake_account_metadata:    Option<Box<Account<'info, StakeAccountMetadata>>>,
+    associated_token_program:          Program<'info, AssociatedToken>,
+    token_program:                     Interface<'info, TokenInterface>,
+    system_program:                    Program<'info, System>,
 }
 
 impl<'info> crate::contexts::TransferVesting<'info> {

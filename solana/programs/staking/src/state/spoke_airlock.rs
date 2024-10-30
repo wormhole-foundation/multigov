@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Default, Debug, BorshSchema)]
 pub struct SpokeAirlock {
-    pub bump: u8,
+    pub bump:             u8,
     pub message_executor: Pubkey,
 }
 
@@ -20,7 +20,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            std::mem::size_of::<SpokeAirlock>() + SpokeAirlock::discriminator().len()
+            std::mem::size_of::<SpokeAirlock>() + SpokeAirlock::DISCRIMINATOR.len()
                 == SpokeAirlock::LEN
         );
     }

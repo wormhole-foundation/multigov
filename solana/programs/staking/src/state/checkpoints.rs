@@ -228,7 +228,7 @@ fn calc_new_checkpoint(
 
     let new_checkpoint = Checkpoint {
         timestamp: current_timestamp,
-        value: new_value,
+        value:     new_value,
     };
 
     Ok(new_checkpoint)

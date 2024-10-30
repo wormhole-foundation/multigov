@@ -1,4 +1,3 @@
-import { BN } from "@coral-xyz/anchor";
 import path from "path";
 import {
   Connection,
@@ -6,7 +5,6 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
-  TransactionInstruction,
 } from "@solana/web3.js";
 import { ethers } from "ethers";
 import assert from "assert";
@@ -20,12 +18,9 @@ import {
   ANCHOR_CONFIG_PATH,
 } from "./utils/before";
 import {
-  keccak256,
-  secp256k1,
   serialize,
   toUniversal,
   deserialize,
-  UniversalAddress,
 } from "@wormhole-foundation/sdk-definitions";
 import { mocks } from "@wormhole-foundation/sdk-definitions/testing";
 import {
@@ -42,7 +37,7 @@ const portNumber = getPortNumber(path.basename(__filename));
 
 // Constants
 export const CORE_BRIDGE_PID = new PublicKey(
-  contracts.coreBridge.get("Mainnet", "Solana")!,
+  contracts.coreBridge.get("Testnet", "Solana")!,
 );
 
 export const GUARDIAN_KEY =
@@ -53,9 +48,7 @@ describe("receive_message", () => {
   let controller;
   let payer: Keypair;
   let airlockPDA: PublicKey;
-  let airlockBump: number;
   let messageExecutorPDA: PublicKey;
-  let messageExecutorBump: number;
   let messageExecutor: PublicKey;
 
   before(async () => {
@@ -80,16 +73,15 @@ describe("receive_message", () => {
     payer = stakeConnection.provider.wallet.payer as Keypair;
 
     // Find the PDA and bump for the airlock account
-    [airlockPDA, airlockBump] = PublicKey.findProgramAddressSync(
+    [airlockPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("airlock")],
       stakeConnection.program.programId,
     );
 
-    [messageExecutorPDA, messageExecutorBump] =
-      PublicKey.findProgramAddressSync(
-        [Buffer.from("spoke_message_executor")],
-        stakeConnection.program.programId,
-      );
+    [messageExecutorPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("spoke_message_executor")],
+      stakeConnection.program.programId,
+    );
 
     // Determine the message executor public key
     messageExecutor = messageExecutorPDA;
@@ -220,10 +212,10 @@ export async function generateTransferInstruction(
   };
 
   // Prepare the message
-  const messageId = ethers.BigNumber.from(1);
-  const wormholeChainId = ethers.BigNumber.from(1);
+  const messageId = BigInt(1);
+  const wormholeChainId = BigInt(1);
   const instructions = [instructionData];
-  const instructionsLength = ethers.BigNumber.from(instructions.length);
+  const instructionsLength = BigInt(instructions.length);
 
   // Define the ABI types
   const SolanaAccountMetaType =
@@ -239,7 +231,7 @@ export async function generateTransferInstruction(
   };
 
   // Encode the message
-  const abiCoder = new ethers.utils.AbiCoder();
+  const abiCoder = new ethers.AbiCoder();
   const messagePayloadHex = abiCoder.encode([MessageType], [messageObject]);
 
   console.log("Encoded message payload:", messagePayloadHex);
@@ -316,7 +308,7 @@ async function postVaa(
   vaaBuf: Buffer,
   coreBridgeAddress?: PublicKey,
 ) {
-  const core = new SolanaWormholeCore("Mainnet", "Solana", connection, {
+  const core = new SolanaWormholeCore("Testnet", "Solana", connection, {
     coreBridge: (coreBridgeAddress ?? CORE_BRIDGE_PID).toString(),
   });
   const txs = core.postVaa(payer.publicKey, deserialize("Uint8Array", vaaBuf));

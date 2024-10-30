@@ -5,11 +5,11 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Debug, BorshSchema)]
 pub struct ProposalData {
-    pub id: [u8; 32],
+    pub id:            [u8; 32],
     pub against_votes: u64,
-    pub for_votes: u64,
+    pub for_votes:     u64,
     pub abstain_votes: u64,
-    pub vote_start: u64,
+    pub vote_start:    u64,
 }
 
 impl ProposalData {
@@ -50,20 +50,18 @@ pub mod tests {
 
     #[test]
     fn check_size() {
-        assert!(
-            size_of::<ProposalData>() + ProposalData::discriminator().len() == ProposalData::LEN
-        );
+        assert!(size_of::<ProposalData>() + ProposalData::DISCRIMINATOR.len() == ProposalData::LEN);
     }
 
     #[test]
     fn proposal_votes_test() {
         let proposal_id: [u8; 32] = [1; 32];
         let proposal = &mut ProposalData {
-            id: proposal_id,
+            id:            proposal_id,
             against_votes: 50,
-            for_votes: 40,
+            for_votes:     40,
             abstain_votes: 30,
-            vote_start: 10,
+            vote_start:    10,
         };
 
         assert_eq!(

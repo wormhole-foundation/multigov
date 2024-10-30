@@ -82,9 +82,9 @@ impl ProposalId {
 
 #[wasm_bindgen]
 pub struct VotesSummary {
-    pub proposal_id: ProposalId,
+    pub proposal_id:   ProposalId,
     pub against_votes: u64,
-    pub for_votes: u64,
+    pub for_votes:     u64,
     pub abstain_votes: u64,
 }
 

@@ -166,7 +166,18 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
 
   const user = loadKeypair(config.provider.wallet);
 
-  const otherArgs = `--account ${config.guardian_set_0.address} ${config.guardian_set_0.filename} --account ${config.guardian_set_5.address} ${config.guardian_set_5.filename} --account 2yVjuQwpsvdsrywzsJJVs9Ueh4zayyo5DYJbBNc3DDpn tests/accounts/config.json --account 9bFNrXNb2WTx8fMHXCheaZqkLZ3YCCaiqTftHxeintHy tests/accounts/fee_collector.json --account DS7qfSAgYsonPpKoAjcGhX9VFjXdGkiHjEDkTidf8H2P tests/accounts/guardian_set_0.json  --mint ${user.publicKey} --reset --bpf-program ${programAddress.toBase58()} ${binaryPath} --bpf-program worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth tests/artifacts/mainnet_core_bridge.so -ud`;
+  const otherArgs = `
+  --account ${config.guardian_set_0.address} ${config.guardian_set_0.filename} 
+  --account ${config.guardian_set_1.address} ${config.guardian_set_1.filename} 
+  --account ${config.config.address} ${config.config.filename}  
+  --account ${config.fee_collector.address} ${config.fee_collector.filename} 
+  --account ${config.guardian_set_5.address} ${config.guardian_set_5.filename} 
+  --mint ${user.publicKey} 
+  --reset 
+  --bpf-program ${programAddress.toBase58()} ${binaryPath} 
+  --bpf-program ${config.core_bridge_program.address} ${config.core_bridge_program.program} 
+  -ud
+`;
 
   const { controller, connection } = await startValidatorRaw(
     portNumber,

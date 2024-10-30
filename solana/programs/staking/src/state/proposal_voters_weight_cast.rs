@@ -7,8 +7,8 @@ use anchor_lang::prelude::*;
 #[derive(BorshSchema)]
 pub struct ProposalVotersWeightCast {
     pub proposal_id: [u8; 32],
-    pub voter: Pubkey,
-    pub value: u64,
+    pub voter:       Pubkey,
+    pub value:       u64,
 }
 
 impl ProposalVotersWeightCast {
@@ -33,7 +33,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            size_of::<ProposalVotersWeightCast>() + ProposalVotersWeightCast::discriminator().len()
+            size_of::<ProposalVotersWeightCast>() + ProposalVotersWeightCast::DISCRIMINATOR.len()
                 <= ProposalVotersWeightCast::LEN
         );
     }

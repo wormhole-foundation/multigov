@@ -6,10 +6,7 @@
 // Objects of type Result must be used, otherwise we might
 // call a function that returns a Result and not handle the error
 
-use crate::error::{
-    ErrorCode,
-    MessageExecutorError,
-};
+use crate::error::MessageExecutorError;
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
@@ -36,12 +33,15 @@ use anchor_lang::solana_program::program::invoke_signed;
 use wormhole_query_sdk::structs::{
     ChainSpecificQuery,
     ChainSpecificResponse,
-   EthCallData, QueryResponse,
+    EthCallData,
+    QueryResponse,
 };
 
-use crate::{
-    error::{ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError},
-    state::GuardianSignatures,
+use crate::error::{
+    ErrorCode,
+    ProposalWormholeMessageError,
+    QueriesSolanaVerifyError,
+    VestingError,
 };
 use crate::state::GuardianSignatures;
 
@@ -86,7 +86,6 @@ declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
 pub mod staking {
     /// Creates a global config for the program
     use super::*;
-    use crate::utils::execute_message::Message;
 
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
         let config_account = &mut ctx.accounts.config_account;
@@ -445,34 +444,22 @@ pub mod staking {
         }
 
         msg!("Deserializing VAA...");
-        let vaa_account_info = &ctx.accounts.posted_vaa;
+        let vaa_account = &ctx.accounts.posted_vaa;
         let message_executor = &ctx.accounts.message_executor;
-
-
-        // Deserialize the account data
-        let vaa_data: wormhole_anchor_sdk::wormhole::PostedVaa<Message> = {
-            let data = &vaa_account_info.data.borrow();
-            let mut data_slice: &[u8] = data;
-            wormhole_anchor_sdk::wormhole::PostedVaa::<Message>::try_deserialize(&mut data_slice)
-                .map_err(|e| {
-                    msg!("Failed to deserialize VAA data: {:?}", e);
-                    ProgramError::InvalidAccountData
-                })?
-        };
-
+        
 
         // Now you can use `vaa_data` as needed
         // For example:
-        msg!("Received VAA with sequence: {}", vaa_data.meta.sequence);
+        msg!("Received VAA with sequence: {}", vaa_account.meta.sequence);
 
 
-        msg!("Checking emitter chain: {}", vaa_data.meta.emitter_chain);
+        msg!("Checking emitter chain: {}", vaa_account.meta.emitter_chain);
         // Verify that the message is from the expected emitter.
-        if vaa_data.meta.emitter_chain != message_executor.hub_chain_id {
+        if vaa_account.meta.emitter_chain != message_executor.hub_chain_id {
             return Err(error!(MessageExecutorError::InvalidEmitterChain));
         }
 
-        if vaa_data.meta.emitter_address != message_executor.hub_dispatcher.to_bytes() {
+        if vaa_account.meta.emitter_address != message_executor.hub_dispatcher.to_bytes() {
             return Err(error!(MessageExecutorError::InvalidHubDispatcher));
         }
 
@@ -482,7 +469,7 @@ pub mod staking {
 
         msg!("Executing instructions in the message...");
         // Execute the instructions in the message.
-        for instruction in vaa_data.payload.1.instructions.clone() {
+        for instruction in vaa_account.payload.1.instructions.clone() {
             // Prepare AccountInfo vector for the instruction.
             let mut account_infos = vec![];
 
@@ -670,7 +657,8 @@ pub mod staking {
             let proposal_query_request_data =
                 spoke_metadata_collector.parse_proposal_query_request_data(&data)?;
 
-            // The function signature should be bytes4(keccak256(bytes("getProposalMetadata(uint256)")))
+            // The function signature should be
+            // bytes4(keccak256(bytes("getProposalMetadata(uint256)")))
             require!(
                 proposal_query_request_data.signature == [0xeb, 0x9b, 0x98, 0x38],
                 ProposalWormholeMessageError::InvalidFunctionSignature
@@ -713,7 +701,7 @@ pub mod staking {
 
             emit!(ProposalCreated {
                 proposal_id: proposal_data.proposal_id,
-                vote_start: proposal_data.vote_start
+                vote_start:  proposal_data.vote_start,
             });
         } else {
             return Err(ProposalWormholeMessageError::InvalidChainSpecificResponse.into());

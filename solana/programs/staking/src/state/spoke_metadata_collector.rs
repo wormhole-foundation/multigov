@@ -5,24 +5,24 @@ use crate::error::ProposalWormholeMessageError;
 
 pub struct ProposalDataFromEthResponse {
     pub proposal_id: [u8; 32],
-    pub vote_start: u64,
+    pub vote_start:  u64,
 }
 
 pub struct ProposalQueryRequestData {
-    pub signature: [u8; 4],
+    pub signature:   [u8; 4],
     pub proposal_id: [u8; 32],
 }
 
 #[account]
 #[derive(Default, Debug, BorshSchema)]
 pub struct SpokeMetadataCollector {
-    pub bump: u8,
+    pub bump:                  u8,
     // The hub chain id
-    pub hub_chain_id: u16,
+    pub hub_chain_id:          u16,
     // Wormhole Hub Proposal Metadata Contract (Ethereum address)
     pub hub_proposal_metadata: [u8; 20],
     // Wormhole contract handling messages
-    pub wormhole_core: Pubkey,
+    pub wormhole_core:         Pubkey,
 }
 
 impl SpokeMetadataCollector {
@@ -120,7 +120,7 @@ mod tests {
     fn check_spoke_metadata_collector_size() {
         assert!(
             std::mem::size_of::<SpokeMetadataCollector>()
-                + SpokeMetadataCollector::discriminator().len()
+                + SpokeMetadataCollector::DISCRIMINATOR.len()
                 == SpokeMetadataCollector::LEN
         );
     }

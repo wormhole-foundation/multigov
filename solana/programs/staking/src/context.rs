@@ -29,6 +29,7 @@ use wormhole_query_sdk::{
     QUERY_MESSAGE_LEN,
 };
 
+use crate::utils::execute_message::Message;
 use wormhole_raw_vaas::utils::quorum;
 use wormhole_raw_vaas::GuardianSetSig;
 
@@ -121,15 +122,15 @@ pub struct Delegate<'info> {
     pub stake_account_custody:     Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
-    pub vesting_config: Option<Account<'info, VestingConfig>>,
+    pub vesting_config:  Option<Account<'info, VestingConfig>>,
     #[account(mut)]
     pub vesting_balance: Option<Account<'info, VestingBalance>>,
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+    pub config:         Box<Account<'info, global_config::GlobalConfig>>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
-    pub mint: Account<'info, Mint>,
+    pub mint:           Account<'info, Mint>,
     pub system_program: Program<'info, System>,
 }
 
@@ -177,7 +178,7 @@ pub struct InitializeSpokeMetadataCollector<'info> {
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+    pub config:         Box<Account<'info, global_config::GlobalConfig>>,
     pub system_program: Program<'info, System>,
 }
 
@@ -387,7 +388,7 @@ pub struct UpdateVestingAdmin<'info> {
     #[account(address = config.vesting_admin)]
     pub vesting_admin: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config:            Account<'info, global_config::GlobalConfig>,
+    pub config:        Account<'info, global_config::GlobalConfig>,
 }
 
 #[derive(Accounts)]
@@ -411,7 +412,7 @@ pub struct CreateStakeAccount<'info> {
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
     pub custody_authority:         AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+    pub config:                    Box<Account<'info, global_config::GlobalConfig>>,
     // Wormhole token mint:
     #[account(address = config.wh_token_mint)]
     pub mint:                      Account<'info, Mint>,
@@ -426,7 +427,7 @@ pub struct CreateStakeAccount<'info> {
         token::mint = mint,
         token::authority = custody_authority,
     )]
-    pub stake_account_custody: Box<Account<'info, TokenAccount>>,
+    pub stake_account_custody:     Box<Account<'info, TokenAccount>>,
     // Primitive accounts :
     pub rent:                      Sysvar<'info, Rent>,
     pub token_program:             Program<'info, Token>,
@@ -541,7 +542,7 @@ pub struct ReceiveMessage<'info> {
         seeds::program = wormhole_program.key(),
         bump
     )]
-    pub posted_vaa:       AccountInfo<'info>,
+    pub posted_vaa:       Account<'info, wormhole_anchor_sdk::wormhole::PostedVaa<Message>>,
 
     #[account(
         mut,

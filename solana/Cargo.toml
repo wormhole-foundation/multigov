@@ -6,5 +6,3 @@ members = [
 [profile.release]
 overflow-checks = true
 
-[patch.crates-io]
-anchor-lang = { git = "https://github.com/coral-xyz/anchor", tag = "v0.30.1" }
