@@ -53,6 +53,8 @@ export const mintTokens = async ({
   console.log(
     `Minted ${amount} tokens for account ${recipientAddress} on chain ${chain.name}. Transaction hash: ${hash}`,
   );
+
+  await client.waitForTransactionReceipt({ hash });
   return hash;
 };
 
@@ -82,6 +84,9 @@ export const delegate = async ({
     account,
     chain,
   });
+
+  await client.waitForTransactionReceipt({ hash });
+
   console.log(
     `Delegated votes from ${account.address} to ${delegatee} on chain ${ethWallet.chain?.name}. Transaction hash: ${hash}`,
   );
