@@ -17,6 +17,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@wormhole-foundation/sdk": "^0.15.0",
     "@wormhole-foundation/wormhole-query-sdk": "^0.0.13",
     "dotenv": "^16.4.5",
     "viem": "^2.18.7"
