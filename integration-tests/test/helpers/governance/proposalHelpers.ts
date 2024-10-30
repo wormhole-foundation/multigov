@@ -674,3 +674,9 @@ export const createArbitraryProposalData = async () => {
     description: `Arbitrary proposal to set quorum to ${newQuorum} at timestamp ${timestamp} (nonce: ${nonce})`,
   });
 };
+
+export const waitForProposalToBeActive = async (proposalId: bigint) => {
+  const { ethClient } = createClients();
+  const voteStart = await getVoteStart({ proposalId });
+  await mineToTimestamp({ client: ethClient, timestamp: voteStart });
+};
