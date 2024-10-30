@@ -6,7 +6,7 @@ import { VoteType } from '../../config/types';
 import { mineToTimestamp } from '../time/timeHelpers';
 import { handleNoAccount } from '../wallet/walletHelpers';
 import { getWormholeGetVotesQueryResponse } from '../wormhole/wormholeHelpers';
-import type { ProposalData, ProposalInfo } from './types';
+import type { ProposalData, ProposalInfo, ProposalVotes } from './types';
 import { getVoteEnd, getVoteStart, voteOnProposal } from './votingHelpers';
 
 // Core proposal creation functions
