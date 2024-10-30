@@ -24,14 +24,17 @@ use crate::state::{
     WormholeGuardianSet,
 };
 use anchor_lang::prelude::Clock;
+use wormhole_anchor_sdk::wormhole::PostedVaa;
 use wormhole_query_sdk::{
     MESSAGE_PREFIX,
     QUERY_MESSAGE_LEN,
 };
 
 use crate::utils::execute_message::Message;
+use crate::MessageExecutorError;
 use wormhole_raw_vaas::utils::quorum;
 use wormhole_raw_vaas::GuardianSetSig;
+
 
 pub const AUTHORITY_SEED: &str = "authority";
 pub const CUSTODY_SEED: &str = "custody";
@@ -517,41 +520,42 @@ pub struct InitializeSpokeMessageExecutor<'info> {
 
 
 #[derive(Accounts)]
-#[instruction(vaa_hash: [u8; 32])]
 pub struct ReceiveMessage<'info> {
-    /// The payer of the transaction fees.
+    /// The payer of the transaction fees
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    /// Stores the state of the message execution to prevent re-execution.
+    /// Stores the state of the message execution to prevent re-execution
     #[account(
         init_if_needed,
-        payer = payer,
         space = MessageReceived::LEN,
-        seeds = [MESSAGE_RECEIVED.as_bytes(), &vaa_hash],
+        payer = payer,
+        seeds = [
+            MESSAGE_RECEIVED.as_bytes(),
+            posted_vaa.emitter_chain().to_be_bytes().as_ref(),
+            posted_vaa.emitter_address().as_ref(),
+            posted_vaa.sequence().to_be_bytes().as_ref()
+        ],
         bump
     )]
     pub message_received: Box<Account<'info, MessageReceived>>,
-    /// CHECK
-    /// The verified Wormhole VAA account containing the message.
+
+    /// The verified Wormhole VAA account containing the message
     #[account(
-        seeds = [
-            b"PostedVAA",
-            &vaa_hash
-        ],
-        seeds::program = wormhole_program.key(),
-        bump
+        constraint = posted_vaa.emitter_chain() == message_executor.hub_chain_id @ MessageExecutorError::InvalidEmitterChain,
+        constraint = *posted_vaa.emitter_address() == message_executor.hub_dispatcher.to_bytes() @ MessageExecutorError::InvalidHubDispatcher,
     )]
-    pub posted_vaa:       Account<'info, wormhole_anchor_sdk::wormhole::PostedVaa<Message>>,
+    pub posted_vaa: Account<'info, PostedVaa::<Message>>,
 
     #[account(
-        mut,
+        address = message_executor.airlock,
         seeds = [AIRLOCK_SEED.as_bytes()],
-        bump = airlock.bump
+        bump = airlock.bump,
     )]
     pub airlock: Box<Account<'info, SpokeAirlock>>,
 
     #[account(
+        address = airlock.message_executor,
         seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
         bump = message_executor.bump
     )]
@@ -596,17 +600,4 @@ pub struct InitializeSpokeAirlock<'info> {
     )]
     pub airlock:        Account<'info, SpokeAirlock>,
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct ExecuteOperation<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [AIRLOCK_SEED.as_bytes()],
-        bump = airlock.bump
-    )]
-    pub airlock: Account<'info, SpokeAirlock>,
 }

@@ -22,13 +22,13 @@ testnet = ["wormhole-solana-consts/testnet", "wormhole-anchor-sdk/solana-devnet"
 mainnet = ["wormhole-solana-consts/mainnet", "wormhole-anchor-sdk/mainnet"]
 
 [dependencies]
+# The same anchor crates are used as in other wormhole repositories (e.g. wormhole-anchor-sdk)
 anchor-lang = { version = "0.30.1", git = "https://github.com/coral-xyz/anchor/", rev = "06527e57c3e59683c36eb0a5c69ee669100b42e5", features = [
     "init-if-needed",
 ] }
-anchor-spl = { version = "0.30.1", git = "https://github.com/coral-xyz/anchor/", rev = "06527e57c3e59683c36eb0a5c69ee669100b42e5", features = [
-    "metadata",
-] }
+anchor-spl = { version = "0.30.1", git = "https://github.com/coral-xyz/anchor/", rev = "06527e57c3e59683c36eb0a5c69ee669100b42e5"}
 anchor-attribute-error= { version = "0.30.1", git = "https://github.com/coral-xyz/anchor/", rev = "06527e57c3e59683c36eb0a5c69ee669100b42e5"}
+
 wasm-bindgen = "0.2.93"
 js-sys = { version = "0.3.70", optional = true }
 bincode = { version = "1.3.3", optional = true }

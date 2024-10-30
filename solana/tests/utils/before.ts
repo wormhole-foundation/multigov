@@ -166,16 +166,15 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
 
   const user = loadKeypair(config.provider.wallet);
 
-  const otherArgs = `
-  --account ${config.guardian_set_0.address} ${config.guardian_set_0.filename} 
-  --account ${config.guardian_set_1.address} ${config.guardian_set_1.filename} 
-  --account ${config.config.address} ${config.config.filename}  
-  --account ${config.fee_collector.address} ${config.fee_collector.filename} 
-  --account ${config.guardian_set_5.address} ${config.guardian_set_5.filename} 
-  --mint ${user.publicKey} 
-  --reset 
-  --bpf-program ${programAddress.toBase58()} ${binaryPath} 
-  --bpf-program ${config.core_bridge_program.address} ${config.core_bridge_program.program} 
+  const otherArgs = `--account ${config.guardian_set_0.address} ${config.guardian_set_0.filename} \
+  --account ${config.guardian_set_1.address} ${config.guardian_set_1.filename} \
+  --account ${config.config.address} ${config.config.filename}  \
+  --account ${config.fee_collector.address} ${config.fee_collector.filename} \
+  --account ${config.guardian_set_5.address} ${config.guardian_set_5.filename} \
+  --mint ${user.publicKey}  \
+  --reset \
+  --bpf-program ${programAddress.toBase58()} ${binaryPath} \
+  --bpf-program ${config.core_bridge_program.address} ${config.core_bridge_program.program} \
   -ud
 `;
 

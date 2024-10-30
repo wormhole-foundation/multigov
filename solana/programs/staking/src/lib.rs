@@ -433,43 +433,20 @@ pub mod staking {
     }
 
 
-    pub fn receive_message(ctx: Context<ReceiveMessage>, _vaa_hash: [u8; 32]) -> Result<()> {
+    pub fn receive_message(ctx: Context<ReceiveMessage>) -> Result<()> {
         let message_received = &mut ctx.accounts.message_received;
 
         // Check if the message has already been processed.
-        msg!("Checking if message has already been executed...");
         if message_received.executed {
             msg!("Message already executed, returning error.");
             return Err(error!(MessageExecutorError::MessageAlreadyExecuted));
         }
 
-        msg!("Deserializing VAA...");
-        let vaa_account = &ctx.accounts.posted_vaa;
-        let message_executor = &ctx.accounts.message_executor;
-        
-
-        // Now you can use `vaa_data` as needed
-        // For example:
-        msg!("Received VAA with sequence: {}", vaa_account.meta.sequence);
+        let posted_vaa = &ctx.accounts.posted_vaa;
 
 
-        msg!("Checking emitter chain: {}", vaa_account.meta.emitter_chain);
-        // Verify that the message is from the expected emitter.
-        if vaa_account.meta.emitter_chain != message_executor.hub_chain_id {
-            return Err(error!(MessageExecutorError::InvalidEmitterChain));
-        }
-
-        if vaa_account.meta.emitter_address != message_executor.hub_dispatcher.to_bytes() {
-            return Err(error!(MessageExecutorError::InvalidHubDispatcher));
-        }
-
-        // if  vaa_data.meta.finality == 0 {
-        //     return Err(error!(MessageExecutorError::VaaNotFinalized));
-        // }
-
-        msg!("Executing instructions in the message...");
         // Execute the instructions in the message.
-        for instruction in vaa_account.payload.1.instructions.clone() {
+        for instruction in posted_vaa.payload.1.instructions.clone() {
             // Prepare AccountInfo vector for the instruction.
             let mut account_infos = vec![];
 
@@ -546,39 +523,6 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn execute_operation<'info>(
-        ctx: Context<'_, '_, '_, 'info, ExecuteOperation<'info>>,
-        cpi_target_program_id: Pubkey,
-        instruction_data: Vec<u8>,
-        _value: u64,
-    ) -> Result<()> {
-        let airlock = &ctx.accounts.airlock;
-        require!(
-            ctx.accounts.payer.key() == airlock.message_executor,
-            ErrorCode::InvalidMessageExecutor
-        );
-
-        let mut all_account_infos = ctx.accounts.to_account_infos();
-        all_account_infos.extend_from_slice(ctx.remaining_accounts);
-
-        let account_metas = all_account_infos
-            .clone()
-            .into_iter()
-            .map(|account| AccountMeta::new(*account.key, false))
-            .collect();
-
-        let instruction = Instruction {
-            program_id: cpi_target_program_id,
-            accounts:   account_metas,
-            data:       instruction_data,
-        };
-
-        let signer_seeds: &[&[&[u8]]] = &[&[b"airlock", &[airlock.bump]]];
-
-        invoke_signed(&instruction, &all_account_infos, signer_seeds)?;
-
-        Ok(())
-    }
 
     //------------------------------------ SPOKE METADATA COLLECTOR
     //------------------------------------ ------------------------------------------------

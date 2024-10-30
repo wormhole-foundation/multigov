@@ -29,7 +29,8 @@ impl Discriminator for WormholeGuardianSet {
     const DISCRIMINATOR: &'static [u8] = &[];
 }
 
-impl AccountSerialize for WormholeGuardianSet {}
+impl AccountSerialize for WormholeGuardianSet {
+}
 
 impl AccountDeserialize for WormholeGuardianSet {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> Result<Self> {

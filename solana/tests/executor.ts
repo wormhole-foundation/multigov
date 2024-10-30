@@ -133,16 +133,24 @@ describe("receive_message", () => {
       { sourceChain: "Ethereum" },
     );
 
+    // Prepare the seeds
+    const messageReceivedSeed = Buffer.from("message_received");
+    const emitterChainSeed = Buffer.alloc(2);
+    emitterChainSeed.writeUInt16BE(2, 0);
+    const emitterAddressSeed = Buffer.alloc(32, "f0", "hex");
+    const sequenceSeed = Buffer.alloc(8);
+    sequenceSeed.writeBigUInt64BE(BigInt(1), 0);
+
     // Prepare PDA for message_received
     const [messageReceivedPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("message_received"), hash],
+      [messageReceivedSeed, emitterChainSeed, emitterAddressSeed, sequenceSeed],
       stakeConnection.program.programId,
     );
 
     console.log("Before receiveMessage");
     // Invoke receive_message instruction
     await stakeConnection.program.methods
-      .receiveMessage(hash)
+      .receiveMessage()
       .accounts({
         payer: payer.publicKey,
         messageReceived: messageReceivedPDA,

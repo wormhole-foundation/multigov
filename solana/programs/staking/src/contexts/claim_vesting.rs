@@ -1,43 +1,58 @@
-use crate::context::{CONFIG_SEED, VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
+use crate::context::{
+    CONFIG_SEED,
+    VESTING_BALANCE_SEED,
+    VESTING_CONFIG_SEED,
+    VEST_SEED,
+};
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{
+    transfer_checked,
+    Mint,
+    TokenAccount,
+    TokenInterface,
+    TransferChecked,
 };
 use std::convert::TryInto;
 
-use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
+use crate::error::VestingError;
+use crate::state::checkpoints::{
+    push_checkpoint,
+    CheckpointData,
+    Operation,
+};
 use crate::state::global_config::GlobalConfig;
 use crate::state::stake_account::StakeAccountMetadata;
-use crate::{
-    error::VestingError,
-    state::{Vesting, VestingBalance, VestingConfig},
+use crate::state::{
+    Vesting,
+    VestingBalance,
+    VestingConfig,
 };
 
 #[derive(Accounts)]
 pub struct ClaimVesting<'info> {
     #[account(mut)]
-    vester: Signer<'info>,
-    mint: InterfaceAccount<'info, Mint>,
+    vester:                        Signer<'info>,
+    mint:                          InterfaceAccount<'info, Mint>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = config,
         associated_token::token_program = token_program
     )]
-    vault: InterfaceAccount<'info, TokenAccount>,
+    vault:                         InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
         token::mint = mint
     )]
-    vester_ta: InterfaceAccount<'info, TokenAccount>,
+    vester_ta:                     InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
         seeds = [VESTING_CONFIG_SEED.as_bytes(), global_config.vesting_admin.as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
-    config: Account<'info, VestingConfig>,
+    config:                        Account<'info, VestingConfig>,
     #[account(
         mut,
         close = vester,
@@ -47,34 +62,35 @@ pub struct ClaimVesting<'info> {
         seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump = vest.bump
     )]
-    vest: Account<'info, Vesting>,
+    vest:                          Account<'info, Vesting>,
     #[account(
         mut,
         has_one = vester,
         seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref()],
         bump = vesting_balance.bump
     )]
-    vesting_balance: Account<'info, VestingBalance>,
+    vesting_balance:               Account<'info, VestingBalance>,
     /// CheckpointData and StakeAccountMetadata accounts are optional because
     /// in order to be able to claim vests that have not been delegated
     #[account(mut)]
     pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
     #[account(mut)]
-    pub stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
+    pub stake_account_metadata:    Option<Box<Account<'info, StakeAccountMetadata>>>,
     #[account(
-        seeds = [CONFIG_SEED.as_bytes()], 
+        seeds = [CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
     )]
-    pub global_config: Box<Account<'info, GlobalConfig>>,
+    pub global_config:             Box<Account<'info, GlobalConfig>>,
 
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
-    system_program: Program<'info, System>,
+    token_program:            Interface<'info, TokenInterface>,
+    system_program:           Program<'info, System>,
 }
 
 impl<'info> ClaimVesting<'info> {
     pub fn close_vesting(&mut self) -> Result<()> {
-        // If vesting_balance.stake_account_metadata is not set it means that vester has not delegated his vests
+        // If vesting_balance.stake_account_metadata is not set it means that vester has not
+        // delegated his vests
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
             if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
                 &mut self.stake_account_metadata,
@@ -85,7 +101,8 @@ impl<'info> ClaimVesting<'info> {
                     // This error can never happen here, because for the condition above
                     // (self.vesting_balance.stake_account_metadata != Pubkey::default())
                     // to be met, the delegate instruction must be executed.
-                    // However, delegate cannot be executed when self.config.mint != self.global_config.wh_token_mint.
+                    // However, delegate cannot be executed when self.config.mint !=
+                    // self.global_config.wh_token_mint.
                     VestingError::InvalidVestingMint
                 );
 
@@ -153,9 +170,9 @@ impl<'info> ClaimVesting<'info> {
         let ctx = CpiContext::new_with_signer(
             self.token_program.to_account_info(),
             TransferChecked {
-                from: self.vault.to_account_info(),
-                to: self.vester_ta.to_account_info(),
-                mint: self.mint.to_account_info(),
+                from:      self.vault.to_account_info(),
+                to:        self.vester_ta.to_account_info(),
+                mint:      self.mint.to_account_info(),
                 authority: self.config.to_account_info(),
             },
             &signer_seeds,

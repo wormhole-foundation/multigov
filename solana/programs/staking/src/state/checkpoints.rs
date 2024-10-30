@@ -1,5 +1,8 @@
 use crate::error::ErrorCode;
-use anchor_lang::prelude::borsh::{BorshDeserialize, BorshSerialize};
+use anchor_lang::prelude::borsh::{
+    BorshDeserialize,
+    BorshSerialize,
+};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction;
@@ -11,15 +14,15 @@ use anchor_lang::solana_program::system_instruction;
 #[account(zero_copy)]
 #[derive(Default)]
 pub struct CheckpointData {
-    pub owner: Pubkey,
+    pub owner:      Pubkey,
     pub next_index: u64,
 }
 
 #[event]
 pub struct DelegateVotesChanged {
-    pub delegate: Pubkey,
+    pub delegate:         Pubkey,
     pub previous_balance: u64,
-    pub new_balance: u64,
+    pub new_balance:      u64,
 }
 
 impl CheckpointData {
@@ -278,5 +281,5 @@ pub fn find_checkpoint_le(
 #[derive(Clone, Copy, Default, BorshSerialize, BorshDeserialize)]
 pub struct Checkpoint {
     pub timestamp: u64,
-    pub value: u64,
+    pub value:     u64,
 }

@@ -1,10 +1,11 @@
 #![allow(non_snake_case)]
 use crate::state::checkpoints::CheckpointData;
 use crate::state::proposal::ProposalData;
-use anchor_lang::{
-    prelude::{Clock, Error},
-    AccountDeserialize,
+use anchor_lang::prelude::{
+    Clock,
+    Error,
 };
+use anchor_lang::AccountDeserialize;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
