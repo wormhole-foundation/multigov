@@ -16,11 +16,8 @@ import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
  */
 contract DeployHubContractsEthDevnet1 is DeployHubContractsBaseImpl {
   function _getDeploymentConfiguration() internal override returns (DeploymentConfiguration memory) {
-    string memory mnemonic = vm.envString("ETHDEVNET_MNEMONIC");
-    uint256 privateKey = vm.deriveKey(mnemonic, 0);
-    Vm.Wallet memory wallet = vm.createWallet(privateKey);
-
-    vm.setEnv("DEPLOYER_PRIVATE_KEY", string.concat("0x", vm.toString(privateKey)));
+    Vm.Wallet memory wallet = _deploymentWallet();
+    vm.deal(wallet.addr, 100 ether);
 
     vm.startBroadcast(wallet.privateKey);
 

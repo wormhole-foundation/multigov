@@ -1,17 +1,4 @@
-import { toHex } from 'viem';
-import { mnemonicToAccount } from 'viem/accounts';
+import { privateKeyToAccount } from 'viem/accounts';
 
-const MNEMONIC = process.env.ETHDEVNET_MNEMONIC;
-
-if (!MNEMONIC) {
-  throw new Error('ETHDEVNET_MNEMONIC environment variable is not set');
-}
-
-export const account = mnemonicToAccount(MNEMONIC);
-export const getPrivateKeyHex = () => {
-  const privateKey = account.getHdKey().privateKey;
-  if (!privateKey) {
-    throw new Error('Private key not found');
-  }
-  return toHex(privateKey, { size: 32 });
-};
+const DEFAULT_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+export const account = privateKeyToAccount(DEFAULT_PRIVATE_KEY);

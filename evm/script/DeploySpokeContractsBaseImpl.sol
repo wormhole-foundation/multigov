@@ -41,10 +41,7 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
 
   function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
     uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
-
     Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
-    Vm.Wallet memory defaultWallet = vm.createWallet(DEFAULT_DEPLOYER_PRIVATE_KEY);
-    if (defaultWallet.addr == wallet.addr) revert InvalidAddressConfiguration();
     return wallet;
   }
 

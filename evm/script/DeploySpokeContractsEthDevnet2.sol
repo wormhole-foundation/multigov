@@ -39,6 +39,7 @@ contract DeploySpokeContractsEthDevnet2 is DeploySpokeContractsBaseImpl {
 
   function _getDeploymentConfiguration() internal override returns (DeploymentConfiguration memory) {
     Vm.Wallet memory wallet = _deploymentWallet();
+    vm.deal(wallet.addr, 100 ether);
 
     vm.startBroadcast(wallet.privateKey);
 
@@ -71,5 +72,12 @@ contract DeploySpokeContractsEthDevnet2 is DeploySpokeContractsBaseImpl {
       hubDispatcher: toWormholeFormat(hubDispatcher),
       spokeChainId: 4 // EthDevnet2 Wormhole chain ID
     });
+  }
+
+  function setUp() public override {
+    // Deal some ETH to the deployer address
+    vm.deal(msg.sender, 100 ether);
+
+    super.setUp();
   }
 }
