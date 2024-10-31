@@ -37,9 +37,9 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
 
   error InvalidAddressConfiguration();
 
-  function _getDeploymentConfiguration() internal virtual returns (DeploymentConfiguration memory);
+  function _getDeploymentConfiguration() internal pure virtual returns (DeploymentConfiguration memory);
 
-  function _deploymentWallet() internal pure virtual returns (Vm.Wallet memory) {
+  function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
     uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
 
     Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
