@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {console} from "forge-std/console.sol";
 import {Script, stdJson} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
@@ -59,14 +60,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
   function _getDeploymentConfiguration() internal virtual returns (DeploymentConfiguration memory);
 
   function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
-    // If the ETHDEVNET_MNEMONIC environment variable is set, use it to derive the private key.
-    string memory mnemonic = vm.envOr("ETHDEVNET_MNEMONIC", string(""));
-
-    if (bytes(mnemonic).length > 0) {
-      uint256 privateKey = vm.deriveKey(mnemonic, 0); // Derive the first key (index 0)
-      return vm.createWallet(privateKey);
-    }
-
     uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", uint256(0));
     if (deployerPrivateKey == 0) revert InvalidAddressConfiguration();
     return vm.createWallet(deployerPrivateKey);
@@ -102,6 +95,19 @@ abstract contract DeployHubContractsBaseImpl is Script {
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: config.voteWeightWindow
     });
+
+    console.log("Deploying HubGovernor with params:");
+    console.log("name:", config.name);
+    console.log("token:", address(config.token));
+    console.log("timelock:", address(timelock));
+    console.log("initialVotingDelay:", config.initialVotingDelay);
+    console.log("initialVotingPeriod:", config.initialVotingPeriod);
+    console.log("initialProposalThreshold:", config.initialProposalThreshold);
+    console.log("initialQuorum:", config.initialQuorum);
+    console.log("hubVotePool:", address(hubVotePool));
+    console.log("wormholeCore:", config.wormholeCore);
+    console.log("governorProposalExtender:", address(extender));
+    console.log("initialVoteWeightWindow:", config.voteWeightWindow);
 
     // Deploy Wormhole governor
     HubGovernor gov = new HubGovernor(hubGovernorParams);
@@ -139,6 +145,17 @@ abstract contract DeployHubContractsBaseImpl is Script {
     timelock.renounceRole(timelock.DEFAULT_ADMIN_ROLE(), wallet.addr);
 
     vm.stopBroadcast();
+
+    console.log("Deployed contracts:");
+    console.log("timelock:", address(timelock));
+    console.log("extender:", address(extender));
+    console.log("gov:", address(gov));
+    console.log("hubProposalMetadata:", address(hubProposalMetadata));
+    console.log("hubMessageDispatcher:", address(hubMessageDispatcher));
+    console.log("hubVotePool:", address(hubVotePool));
+    console.log("hubEvmSpokeAggregateProposer:", address(hubEvmSpokeAggregateProposer));
+    console.log("hubSolanaMessageDispatcher:", address(hubSolanaMessageDispatcher));
+    console.log("hubSolanaSpokeVoteDecoder:", address(hubSolanaSpokeVoteDecoder));
 
     return DeployedContracts({
       timelock: timelock,

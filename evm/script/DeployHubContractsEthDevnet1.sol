@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
+import {console} from "forge-std/console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {DeployHubContractsBaseImpl} from "script/DeployHubContractsBaseImpl.s.sol";
@@ -16,7 +17,11 @@ import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
  */
 contract DeployHubContractsEthDevnet1 is DeployHubContractsBaseImpl {
   function _getDeploymentConfiguration() internal override returns (DeploymentConfiguration memory) {
-    Vm.Wallet memory wallet = _deploymentWallet();
+    string memory mnemonic = vm.envString("ETHDEVNET_MNEMONIC");
+    uint256 privateKey = vm.deriveKey(mnemonic, 0);
+    Vm.Wallet memory wallet = vm.createWallet(privateKey);
+
+    vm.setEnv("DEPLOYER_PRIVATE_KEY", string.concat("0x", vm.toString(privateKey)));
 
     vm.startBroadcast(wallet.privateKey);
 
