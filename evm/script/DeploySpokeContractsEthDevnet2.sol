@@ -73,11 +73,4 @@ contract DeploySpokeContractsEthDevnet2 is DeploySpokeContractsBaseImpl {
       spokeChainId: 4 // EthDevnet2 Wormhole chain ID
     });
   }
-
-  function setUp() public override {
-    // Deal some ETH to the deployer address
-    vm.deal(msg.sender, 100 ether);
-
-    super.setUp();
-  }
 }
