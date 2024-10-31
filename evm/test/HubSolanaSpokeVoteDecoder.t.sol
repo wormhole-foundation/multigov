@@ -238,6 +238,16 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
       * (10 ** (hubSolanaSpokeVoteDecoder.HUB_TOKEN_DECIMALS() - hubSolanaSpokeVoteDecoder.SOLANA_TOKEN_DECIMALS()));
   }
 
+  function _reverse(uint64 input) internal pure returns (uint64 v) {
+    v = input;
+    // swap bytes
+    v = ((v & 0xFF00FF00FF00FF00) >> 8) | ((v & 0x00FF00FF00FF00FF) << 8);
+    // swap 2-byte long pairs
+    v = ((v & 0xFFFF0000FFFF0000) >> 16) | ((v & 0x0000FFFF0000FFFF) << 16);
+    // swap 4-byte long pairs
+    v = (v >> 32) | (v << 32);
+  }
+
   function testFuzz_CorrectlyParseChainResponse(
     uint64 _againstVotes,
     uint64 _forVotes,
@@ -261,9 +271,9 @@ contract Decode is HubSolanaSpokeVoteDecoderTest, ProposalTest {
 
     assertEq(queryVote.proposalId, proposalId, "Proposal ID mismatch");
     assertEq(queryVote.spokeProposalId, keccak256(abi.encode(SPOKE_CHAIN_ID, proposalId)), "Spoke proposal ID mismatch");
-    assertEq(queryVote.proposalVote.abstainVotes, _scale(_abstainVotes), "Abstain votes mismatch");
-    assertEq(queryVote.proposalVote.againstVotes, _scale(_againstVotes), "Against votes mismatch");
-    assertEq(queryVote.proposalVote.forVotes, _scale(_forVotes), "For votes mismatch");
+    assertEq(queryVote.proposalVote.abstainVotes, _scale(_reverse(_abstainVotes)), "Abstain votes mismatch");
+    assertEq(queryVote.proposalVote.againstVotes, _scale(_reverse(_againstVotes)), "Against votes mismatch");
+    assertEq(queryVote.proposalVote.forVotes, _scale(_reverse(_forVotes)), "For votes mismatch");
     assertEq(queryVote.chainId, SPOKE_CHAIN_ID, "Chain ID mismatch");
   }
 

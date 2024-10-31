@@ -156,7 +156,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     // Verify the total length of the data (72 bytes)
     _data.checkLength(_offset);
 
-    return (_proposalIdBytes, _againstVotes, _forVotes, _abstainVotes, _voteStart);
+    return (_proposalIdBytes, _reverse(_againstVotes), _reverse(_forVotes), _reverse(_abstainVotes), _voteStart);
   }
 
   /// @notice Scales an amount from original decimals to target decimals
@@ -169,5 +169,21 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
 
     if (_fromDecimals > _toDecimals) return _amount / (10 ** (_fromDecimals - _toDecimals));
     else return _amount * (10 ** (_toDecimals - _fromDecimals));
+  }
+
+  /// @notice Reverse the endianess of the passed in integer.
+  /// @param _input The integer for which to reverse the endianess.
+  /// @return An integer with the endianess reversed.
+  /// @dev This code was copied from
+  /// https://github.com/wormholelabs-xyz/example-queries-solana-pda/blob/4a01a0a6018b36a1d38d326362bfb672c5061c5f/src/OwnerVerifier.sol#L52.
+  function _reverse(uint64 _input) internal pure returns (uint64) {
+    uint64 v = _input;
+    // swap bytes
+    v = ((v & 0xFF00FF00FF00FF00) >> 8) | ((v & 0x00FF00FF00FF00FF) << 8);
+    // swap 2-byte long pairs
+    v = ((v & 0xFFFF0000FFFF0000) >> 16) | ((v & 0x0000FFFF0000FFFF) << 16);
+    // swap 4-byte long pairs
+    v = (v >> 32) | (v << 32);
+    return v;
   }
 }
