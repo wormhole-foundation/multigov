@@ -18,8 +18,6 @@ import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
 import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
 
 abstract contract DeployHubContractsBaseImpl is Script {
-  string constant DEFAULT_DEPLOY_VERSION = "v1";
-
   // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
   // should be set.
   uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
@@ -96,19 +94,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
       initialVoteWeightWindow: config.voteWeightWindow
     });
 
-    console.log("Deploying HubGovernor with params:");
-    console.log("name:", config.name);
-    console.log("token:", address(config.token));
-    console.log("timelock:", address(timelock));
-    console.log("initialVotingDelay:", config.initialVotingDelay);
-    console.log("initialVotingPeriod:", config.initialVotingPeriod);
-    console.log("initialProposalThreshold:", config.initialProposalThreshold);
-    console.log("initialQuorum:", config.initialQuorum);
-    console.log("hubVotePool:", address(hubVotePool));
-    console.log("wormholeCore:", config.wormholeCore);
-    console.log("governorProposalExtender:", address(extender));
-    console.log("initialVoteWeightWindow:", config.voteWeightWindow);
-
     // Deploy Wormhole governor
     HubGovernor gov = new HubGovernor(hubGovernorParams);
 
@@ -145,17 +130,6 @@ abstract contract DeployHubContractsBaseImpl is Script {
     timelock.renounceRole(timelock.DEFAULT_ADMIN_ROLE(), wallet.addr);
 
     vm.stopBroadcast();
-
-    console.log("Deployed contracts:");
-    console.log("timelock:", address(timelock));
-    console.log("extender:", address(extender));
-    console.log("gov:", address(gov));
-    console.log("hubProposalMetadata:", address(hubProposalMetadata));
-    console.log("hubMessageDispatcher:", address(hubMessageDispatcher));
-    console.log("hubVotePool:", address(hubVotePool));
-    console.log("hubEvmSpokeAggregateProposer:", address(hubEvmSpokeAggregateProposer));
-    console.log("hubSolanaMessageDispatcher:", address(hubSolanaMessageDispatcher));
-    console.log("hubSolanaSpokeVoteDecoder:", address(hubSolanaSpokeVoteDecoder));
 
     return DeployedContracts({
       timelock: timelock,
