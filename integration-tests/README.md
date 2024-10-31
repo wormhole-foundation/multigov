@@ -36,7 +36,7 @@ Wait for the Tilt environment to fully initialize. This may take several minutes
 # Navigate to the evm directory in this project
 cd evm
 
-# Set the ETHDEVNET_MNEMONIC in .env in the evm folder to the one specified in the wormhole repo
+# Set the ETHDEVNET_MNEMONIC in .env in the `evm` and `integration-tests` folders to the one specified in the wormhole repo
 ETHDEVNET_MNEMONIC='blah'
 
 # Deploy hub contracts on EthDevnet1
