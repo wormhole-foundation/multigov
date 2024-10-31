@@ -56,9 +56,11 @@ abstract contract DeployHubContractsBaseImpl is Script {
   function _getDeploymentConfiguration() internal virtual returns (DeploymentConfiguration memory);
 
   function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
-    uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", uint256(0));
-    if (deployerPrivateKey == 0) revert InvalidAddressConfiguration();
-    return vm.createWallet(deployerPrivateKey);
+    uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
+
+    Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
+    if (deployerPrivateKey == DEFAULT_DEPLOYER_PRIVATE_KEY) revert InvalidAddressConfiguration();
+    return wallet;
   }
 
   function run() public virtual returns (DeployedContracts memory) {
