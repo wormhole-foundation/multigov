@@ -18,3 +18,5 @@ lcov.info
 .vscode
 .idea
 
+# Scripts
+evm/abis/
