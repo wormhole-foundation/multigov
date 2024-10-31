@@ -39,6 +39,8 @@ contract SpokeMetadataCollector is QueryResponse {
   error ProposalAlreadyExists(uint256 proposalId);
   /// @notice Thrown if there is more than a single parsed query response.
   error TooManyParsedQueryResponses(uint256 numResults);
+  /// @notice Thrown if the proposal has an invalid vote start time.
+  error InvalidVoteStart(uint256 proposalId, uint256 voteStart);
 
   /// @notice Emitted when a new proposal is created on the spoke.
   event ProposalCreated(uint256 proposalId, uint256 start);
@@ -92,6 +94,7 @@ contract SpokeMetadataCollector is QueryResponse {
   /// @param _proposalId The proposal id of the proposal to create on the spoke.
   /// @param _voteStart The start of the voting period for the proposal.
   function _addProposal(uint256 _proposalId, uint256 _voteStart) internal {
+    if (_voteStart == 0) revert InvalidVoteStart(_proposalId, _voteStart);
     proposals[_proposalId] = Proposal(_voteStart);
     emit ProposalCreated(_proposalId, _voteStart);
   }
