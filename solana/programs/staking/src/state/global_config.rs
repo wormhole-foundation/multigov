@@ -7,6 +7,9 @@ pub struct GlobalConfig {
     pub bump: u8,
     pub freeze: bool,
 
+    // Maximum number of checkpoints that can be stored in a single account
+    pub max_checkpoints_account_limit: u32,
+
     #[cfg(feature = "mock-clock")]
     pub mock_clock_time: i64,
 

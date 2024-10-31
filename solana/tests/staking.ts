@@ -5,26 +5,20 @@ import {
   createTransferInstruction,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
-import {
-  PublicKey,
-  Keypair,
-  Transaction,
-  SystemProgram,
-} from "@solana/web3.js";
-import { expectFail } from "./utils/utils";
+import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import BN from "bn.js";
 import assert from "assert";
 import * as wasm from "@wormhole/staking-wasm";
 import path from "path";
 import {
-  readAnchorConfig,
   ANCHOR_CONFIG_PATH,
-  standardSetup,
+  CustomAbortController,
   getPortNumber,
   makeDefaultConfig,
-  CustomAbortController,
+  readAnchorConfig,
+  standardSetup,
 } from "./utils/before";
-import { StakeConnection, WHTokenBalance } from "../app";
+import { StakeConnection } from "../app"; // When DEBUG is turned on, we turn preflight transaction checking off
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -78,6 +72,7 @@ describe("staking", async () => {
       [
         utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
         owner.toBuffer(),
+        Buffer.from([0]),
       ],
       program.programId,
     )[0];
@@ -87,7 +82,7 @@ describe("staking", async () => {
         anchor.utils.bytes.utf8.encode(
           wasm.Constants.STAKE_ACCOUNT_METADATA_SEED(),
         ),
-        checkpointDataAddress.toBuffer(),
+        owner.toBuffer(),
       ],
       program.programId,
     );
@@ -95,7 +90,7 @@ describe("staking", async () => {
     const [custodyAccount, custodyBump] = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-        checkpointDataAddress.toBuffer(),
+        owner.toBuffer(),
       ],
       program.programId,
     );
@@ -103,7 +98,7 @@ describe("staking", async () => {
     const [authorityAccount, authorityBump] = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.AUTHORITY_SEED()),
-        checkpointDataAddress.toBuffer(),
+        owner.toBuffer(),
       ],
       program.programId,
     );
@@ -132,6 +127,7 @@ describe("staking", async () => {
         recordedVestingBalance: expectedRecordedBalance,
         owner,
         delegate: checkpointDataAddress,
+        stakeAccountCheckpointsLastIndex: 0,
       }),
     );
   });
@@ -140,18 +136,10 @@ describe("staking", async () => {
     const transaction = new Transaction();
     const from_account = userAta;
 
-    const checkpointDataAddress = PublicKey.findProgramAddressSync(
-      [
-        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-        provider.wallet.publicKey.toBuffer(),
-      ],
-      program.programId,
-    )[0];
-
     const toAccount = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-        checkpointDataAddress.toBuffer(),
+        provider.wallet.publicKey.toBuffer(),
       ],
       program.programId,
     )[0];
@@ -170,21 +158,29 @@ describe("staking", async () => {
   });
 
   it("withdraws tokens", async () => {
+    const owner = provider.wallet.publicKey;
     const toAccount = userAta;
 
     const checkpointDataAddress = PublicKey.findProgramAddressSync(
       [
         utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-        provider.wallet.publicKey.toBuffer(),
+        owner.toBuffer(),
+        Buffer.from([0]),
       ],
       program.programId,
     )[0];
 
+    const currentDelegateStakeAccountMetadataOwner = owner;
+    const stakeAccountMetadataOwner = owner;
+
     await program.methods
-      .withdrawTokens(new BN(1))
+      .withdrawTokens(
+        new BN(1),
+        currentDelegateStakeAccountMetadataOwner,
+        stakeAccountMetadataOwner,
+      )
       .accounts({
         currentDelegateStakeAccountCheckpoints: checkpointDataAddress,
-        stakeAccountCheckpoints: checkpointDataAddress,
         destination: toAccount,
       })
       .rpc({ skipPreflight: DEBUG });

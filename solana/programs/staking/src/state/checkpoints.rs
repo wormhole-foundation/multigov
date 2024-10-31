@@ -197,15 +197,52 @@ pub fn push_checkpoint<'info>(
                 )?;
             }
         } // Mutable borrow ends here
-
         let new_checkpoint = calc_new_checkpoint(0, amount_delta, operation, current_timestamp)?;
-
         write_checkpoint_at_index(
             checkpoints_account_info,
             current_index as usize,
             &new_checkpoint,
         )?;
     }
+    Ok(())
+}
+
+pub fn push_checkpoint_init<'info>(
+    checkpoints_loader: &mut AccountLoader<'info, CheckpointData>,
+    checkpoints_account_info: &AccountInfo<'info>,
+    amount_delta: u64,
+    operation: Operation,
+    current_timestamp: u64,
+    payer_account_info: &AccountInfo<'info>,
+    system_program_account_info: &AccountInfo<'info>,
+) -> Result<()> {
+    let current_index = 0;
+
+    let mut checkpoint_data = checkpoints_loader.load_init()?;
+
+    checkpoint_data.next_index += 1;
+
+    let required_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
+        + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
+
+    drop(checkpoint_data);
+
+    if required_size > checkpoints_account_info.data_len() {
+        resize_account(
+            checkpoints_account_info,
+            payer_account_info,
+            system_program_account_info,
+            required_size,
+        )?;
+    }
+
+    let new_checkpoint = calc_new_checkpoint(0, amount_delta, operation, current_timestamp)?;
+
+    write_checkpoint_at_index(
+        checkpoints_account_info,
+        current_index as usize,
+        &new_checkpoint,
+    )?;
 
     Ok(())
 }
@@ -233,6 +270,7 @@ fn calc_new_checkpoint(
 
     Ok(new_checkpoint)
 }
+
 
 pub fn find_checkpoint_le(
     account_info: &AccountInfo,

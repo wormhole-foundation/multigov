@@ -1,18 +1,14 @@
 use crate::context::{CONFIG_SEED, VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
+use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
+use crate::state::global_config::GlobalConfig;
+use crate::state::stake_account::StakeAccountMetadata;
+use crate::{error::{ErrorCode, VestingError}, state::{Vesting, VestingBalance, VestingConfig}};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
 use std::convert::TryInto;
-
-use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
-use crate::state::global_config::GlobalConfig;
-use crate::state::stake_account::StakeAccountMetadata;
-use crate::{
-    error::VestingError,
-    state::{Vesting, VestingBalance, VestingConfig},
-};
 
 #[derive(Accounts)]
 pub struct ClaimVesting<'info> {
@@ -57,6 +53,7 @@ pub struct ClaimVesting<'info> {
     vesting_balance: Account<'info, VestingBalance>,
     /// CheckpointData and StakeAccountMetadata accounts are optional because
     /// in order to be able to claim vests that have not been delegated
+    /// Check if stake account checkpoints is out of bounds
     #[account(mut)]
     pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
     #[account(mut)]
@@ -80,6 +77,14 @@ impl<'info> ClaimVesting<'info> {
                 &mut self.stake_account_metadata,
                 &mut self.stake_account_checkpoints,
             ) {
+                // Check if stake account checkpoints is out of bounds
+                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                require!(
+                        loaded_checkpoints.next_index < self.global_config.max_checkpoints_account_limit.into(),
+                        ErrorCode::TooManyCheckpoints,
+                    );
+                drop(loaded_checkpoints);
+
                 require!(
                     stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
                     VestingError::InvalidStakeAccountCheckpoints
@@ -126,6 +131,12 @@ impl<'info> ClaimVesting<'info> {
                     &self.vester.to_account_info(),
                     &self.system_program.to_account_info(),
                 )?;
+
+                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                if loaded_checkpoints.next_index >= self.global_config.max_checkpoints_account_limit.into() {
+                    stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                }
+                drop(loaded_checkpoints);
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
             }

@@ -1,7 +1,6 @@
 import BN from "bn.js";
 import { randomBytes } from "crypto";
 import {
-  Connection,
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
@@ -10,30 +9,27 @@ import {
 } from "@solana/web3.js";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  MINT_SIZE,
-  TOKEN_PROGRAM_ID,
-  createInitializeMintInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
+  createInitializeMintInstruction,
   createMintToInstruction,
   createTransferCheckedInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
   getMinimumBalanceForRentExemptMint,
+  MINT_SIZE,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import assert from "assert";
 import {
   ANCHOR_CONFIG_PATH,
   getPortNumber,
-  makeDefaultConfig,
+  makeTestConfig,
   newUserStakeConnection,
   readAnchorConfig,
   standardSetup,
-  startValidator,
-  transferSolFromValidatorWallet,
 } from "./utils/before";
 import path from "path";
-import { AnchorError, AnchorProvider, Program } from "@coral-xyz/anchor";
-import * as console from "node:console";
+import { AnchorError, utils } from "@coral-xyz/anchor";
 import { StakeConnection, WHTokenBalance } from "../app";
 import { StakeAccountMetadata } from "../app/StakeConnection";
 import { CheckpointAccount } from "../app/checkpoints";
@@ -61,6 +57,7 @@ describe("vesting", () => {
   let controller;
 
   const NOW = new BN(Math.floor(new Date().getTime() / 1000));
+  const FEW_LATER = NOW.add(new BN(1));
   const LATER = NOW.add(new BN(1000));
   const EVEN_LATER = LATER.add(new BN(1000));
   const EVEN_LATER_AGAIN = EVEN_LATER.add(new BN(1000));
@@ -78,6 +75,7 @@ describe("vesting", () => {
     vestLater,
     vestEvenLaterAgain,
     vestingBalance,
+    vestNowForTransfer,
     vesterStakeConnection;
 
   let fakeAccounts,
@@ -100,7 +98,7 @@ describe("vesting", () => {
       anchorConfig,
       whMintAccount,
       whMintAuthority,
-      makeDefaultConfig(whMintAccount.publicKey, whMintAuthority.publicKey),
+      makeTestConfig(whMintAccount.publicKey, whMintAuthority.publicKey),
       WHTokenBalance.fromString("1000"),
     ));
 
@@ -137,6 +135,16 @@ describe("vesting", () => {
         config.toBuffer(),
         vesterTa.toBuffer(),
         NOW.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId,
+    )[0];
+
+    vestNowForTransfer = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vest"),
+        config.toBuffer(),
+        vesterTa.toBuffer(),
+        FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
     )[0];
@@ -386,6 +394,17 @@ describe("vesting", () => {
       .then(confirm);
   });
 
+  it("Create another matured vest", async () => {
+    await stakeConnection.program.methods
+      .createVesting(FEW_LATER, new BN(1337e6))
+      .accounts({ ...accounts, vest: vestNowForTransfer })
+      .signers([whMintAuthority])
+      .rpc({
+        skipPreflight: true,
+      })
+      .then(confirm);
+  });
+
   it("Create an unmatured vest", async () => {
     await stakeConnection.program.methods
       .createVesting(LATER, new BN(1337e6))
@@ -609,9 +628,14 @@ describe("vesting", () => {
         config,
       );
 
+    let stakeAccountCheckpointsData =
+      await vesterStakeConnection.program.account.checkpointData.fetch(
+        stakeAccountCheckpointsAddress,
+      );
+
     let vesterStakeMetadata: StakeAccountMetadata =
       await vesterStakeConnection.fetchStakeAccountMetadata(
-        stakeAccountCheckpointsAddress,
+        stakeAccountCheckpointsData.owner,
       );
 
     let vesterStakeCheckpoints: CheckpointAccount =
@@ -621,30 +645,34 @@ describe("vesting", () => {
 
     assert.equal(
       vesterStakeMetadata.recordedVestingBalance.toString(),
-      "2674000000",
+      "4011000000",
     );
     assert.equal(
       vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
-      "2674000000",
+      "4011000000",
     );
   });
 
   it("should fail to delegate with uninitialized vestingBalance account", async () => {
-    let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.delegate_with_vest(
-        vesterStakeConnection.userPublicKey(),
-        WHTokenBalance.fromString("0"),
-        true,
-        config,
-      );
+    await vesterStakeConnection.delegate_with_vest(
+      vesterStakeConnection.userPublicKey(),
+      WHTokenBalance.fromString("0"),
+      true,
+      config,
+    );
 
-    let delegateeStakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(
+    let delegateeStakeAccountMetadataAddress =
+      await stakeConnection.getStakeMetadataAddress(
         vesterStakeConnection.userPublicKey(),
+      );
+    let delegateeStakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        delegateeStakeAccountMetadataAddress,
+        false,
       );
 
     let currentDelegateStakeAccountCheckpointsAddress =
-      await stakeConnection.delegates(stakeAccountCheckpointsAddress);
+      await stakeConnection.delegates();
 
     let uninitializedVestingBalanceAccount = PublicKey.findProgramAddressSync(
       [
@@ -655,15 +683,41 @@ describe("vesting", () => {
       stakeConnection.program.programId,
     )[0];
 
+    let currentDelegateStakeAccountCheckpointsData =
+      await stakeConnection.program.account.checkpointData.fetch(
+        currentDelegateStakeAccountCheckpointsAddress,
+      );
+    let delegateeStakeAccountCheckpointsData =
+      await stakeConnection.program.account.checkpointData.fetch(
+        delegateeStakeAccountCheckpointsAddress,
+      );
+
+    let currentDelegateStakeAccountOwner =
+      currentDelegateStakeAccountCheckpointsData.owner;
+    let delegateeStakeAccountOwner = delegateeStakeAccountCheckpointsData.owner;
+
+    let delegateeStakeAccountMetadata =
+      await stakeConnection.getStakeMetadataAddress(delegateeStakeAccountOwner);
+    let currentDelegateStakeAccountMetadataStakeAccountMetadataAddress =
+      await stakeConnection.getStakeMetadataAddress(
+        currentDelegateStakeAccountOwner,
+      );
+
     try {
       await stakeConnection.program.methods
-        .delegate(delegateeStakeAccountCheckpointsAddress)
+        .delegate(
+          delegateeStakeAccountCheckpointsAddress,
+          currentDelegateStakeAccountOwner,
+          delegateeStakeAccountOwner,
+        )
         .accounts({
-          currentDelegateStakeAccountCheckpoints:
-            currentDelegateStakeAccountCheckpointsAddress,
           delegateeStakeAccountCheckpoints:
             delegateeStakeAccountCheckpointsAddress,
-          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          delegateeStakeAccountMetadata: delegateeStakeAccountMetadata,
+          currentDelegateStakeAccountMetadata:
+            currentDelegateStakeAccountMetadataStakeAccountMetadataAddress,
+          currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
           vestingConfig: config,
           vestingBalance: uninitializedVestingBalanceAccount,
           mint: whMintAccount.publicKey,
@@ -680,31 +734,51 @@ describe("vesting", () => {
   });
 
   it("should fail to delegate with vestingBalance account discriminator mismatch", async () => {
-    let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.delegate_with_vest(
-        vesterStakeConnection.userPublicKey(),
-        WHTokenBalance.fromString("0"),
-        true,
-        config,
-      );
+    await vesterStakeConnection.delegate_with_vest(
+      vesterStakeConnection.userPublicKey(),
+      WHTokenBalance.fromString("0"),
+      true,
+      config,
+    );
 
-    let delegateeStakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(
+    let delegateeStakeAccountMetadataAddress =
+      await stakeConnection.getStakeMetadataAddress(
         vesterStakeConnection.userPublicKey(),
+      );
+    let delegateeStakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        delegateeStakeAccountMetadataAddress,
+        false,
       );
 
     let currentDelegateStakeAccountCheckpointsAddress =
-      await stakeConnection.delegates(stakeAccountCheckpointsAddress);
+      await stakeConnection.delegates();
+
+    let currentDelegateStakeAccountCheckpointsData =
+      await stakeConnection.program.account.checkpointData.fetch(
+        currentDelegateStakeAccountCheckpointsAddress,
+      );
+    let delegateeStakeAccountCheckpointsData =
+      await stakeConnection.program.account.checkpointData.fetch(
+        delegateeStakeAccountCheckpointsAddress,
+      );
+
+    let currentDelegateStakeAccountOwner =
+      currentDelegateStakeAccountCheckpointsData.owner;
+    let delegateeStakeAccountOwner = delegateeStakeAccountCheckpointsData.owner;
 
     try {
       await stakeConnection.program.methods
-        .delegate(delegateeStakeAccountCheckpointsAddress)
+        .delegate(
+          delegateeStakeAccountCheckpointsAddress,
+          currentDelegateStakeAccountOwner,
+          delegateeStakeAccountOwner,
+        )
         .accounts({
-          currentDelegateStakeAccountCheckpoints:
-            currentDelegateStakeAccountCheckpointsAddress,
           delegateeStakeAccountCheckpoints:
             delegateeStakeAccountCheckpointsAddress,
-          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
           vestingConfig: config,
           vestingBalance: config,
           mint: whMintAccount.publicKey,
@@ -746,13 +820,9 @@ describe("vesting", () => {
   });
 
   it("should fail to claim without stakeAccountCheckpoints", async () => {
-    let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.getStakeAccountCheckpointsAddress(
-        vesterStakeConnection.userPublicKey(),
-      );
     let stakeAccountMetadataAddress =
       await vesterStakeConnection.getStakeMetadataAddress(
-        stakeAccountCheckpointsAddress,
+        vesterStakeConnection.userPublicKey(),
       );
     try {
       await stakeConnection.program.methods
@@ -778,13 +848,14 @@ describe("vesting", () => {
   });
 
   it("should fail to claim with incorrect stakeAccountMetadata owner", async () => {
-    let incorrectStakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(
+    let incorrectStakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
         stakeConnection.userPublicKey(),
       );
-    let incorrectStakeAccountMetadataAddress =
-      await stakeConnection.getStakeMetadataAddress(
-        incorrectStakeAccountCheckpointsAddress,
+    let incorrectStakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        incorrectStakeAccountMetadataAddress,
+        false,
       );
     try {
       await stakeConnection.program.methods
@@ -810,18 +881,20 @@ describe("vesting", () => {
   });
 
   it("should fail to claim with incorrect stakeAccountCheckpoints ", async () => {
-    let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.getStakeAccountCheckpointsAddress(
-        vesterStakeConnection.userPublicKey(),
-      );
     let stakeAccountMetadataAddress =
       await vesterStakeConnection.getStakeMetadataAddress(
-        stakeAccountCheckpointsAddress,
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let incorrectStakeAccountMetadataAddress =
+      await stakeConnection.getStakeMetadataAddress(
+        stakeConnection.userPublicKey(),
       );
 
     let incorrectStakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(
-        stakeConnection.userPublicKey(),
+      await stakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        incorrectStakeAccountMetadataAddress,
+        false,
       );
     try {
       await stakeConnection.program.methods
@@ -846,15 +919,44 @@ describe("vesting", () => {
     }
   });
 
-  it("should successfully claim staked vest", async () => {
-    let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.getStakeAccountCheckpointsAddress(
-        vesterStakeConnection.userPublicKey(),
-      );
+  it("fails to create a new checkpoints account if the existing checkpoints account is not fully loaded and is used as input", async () => {
     let stakeAccountMetadataAddress =
       await vesterStakeConnection.getStakeMetadataAddress(
-        stakeAccountCheckpointsAddress,
+        vesterStakeConnection.userPublicKey(),
       );
+
+    let notFulledStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        false,
+      );
+    try {
+      await stakeConnection.program.methods
+        .createCheckpoints()
+        .accounts({
+          payer: accounts.vester,
+          stakeAccountCheckpoints: notFulledStakeAccountCheckpointsAddress,
+          stakeAccountMetadata: stakeAccountMetadataAddress,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert.equal(
+        "Program 11111111111111111111111111111111 failed: custom program error: 0x0",
+        e.logs[4],
+      );
+    }
+  });
+
+  it("should successfully claim staked vest", async () => {
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.delegates();
 
     await stakeConnection.program.methods
       .claimVesting()
@@ -871,13 +973,213 @@ describe("vesting", () => {
 
     let vesterStakeMetadata: StakeAccountMetadata =
       await vesterStakeConnection.fetchStakeAccountMetadata(
-        stakeAccountCheckpointsAddress,
+        vesterStakeConnection.userPublicKey(),
       );
 
     let vesterStakeCheckpoints: CheckpointAccount =
       await vesterStakeConnection.fetchCheckpointAccount(
         stakeAccountCheckpointsAddress,
       );
+
+    assert.equal(
+      vesterStakeMetadata.recordedVestingBalance.toString(),
+      "2674000000",
+    );
+    assert.equal(
+      vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "2674000000",
+    );
+  });
+
+  it("should fail to claim if checkpoints account is fulled", async () => {
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let currentDelegateStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.delegates();
+
+    try {
+      await stakeConnection.program.methods
+        .claimVesting()
+        .accounts({
+          ...accounts,
+          vest: vestNowForTransfer,
+          stakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
+          stakeAccountMetadata: stakeAccountMetadataAddress,
+          globalConfig: stakeConnection.configAddress,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "TooManyCheckpoints",
+      );
+    }
+  });
+
+  it("should fail to delegate if checkpoints account is fulled", async () => {
+    let delegateeStakeAccountMetadataAddress =
+      await stakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+    let delegateeStakeAccountCheckpointsAddress =
+      await stakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        delegateeStakeAccountMetadataAddress,
+        true,
+      );
+
+    let currentDelegateStakeAccountCheckpointsAddress =
+      await stakeConnection.delegates();
+
+    let currentDelegateStakeAccountCheckpointsData =
+      await stakeConnection.program.account.checkpointData.fetch(
+        currentDelegateStakeAccountCheckpointsAddress,
+      );
+    let delegateeStakeAccountCheckpointsData =
+      await stakeConnection.program.account.checkpointData.fetch(
+        delegateeStakeAccountCheckpointsAddress,
+      );
+
+    let vestingBalanceAccount = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
+        config.toBuffer(),
+        vesterStakeConnection.userPublicKey().toBuffer(),
+      ],
+      vesterStakeConnection.program.programId,
+    )[0];
+
+    let currentDelegateStakeAccountOwner =
+      currentDelegateStakeAccountCheckpointsData.owner;
+    let delegateeStakeAccountOwner = delegateeStakeAccountCheckpointsData.owner;
+
+    try {
+      await stakeConnection.program.methods
+        .delegate(
+          delegateeStakeAccountCheckpointsAddress,
+          currentDelegateStakeAccountOwner,
+          delegateeStakeAccountOwner,
+        )
+        .accounts({
+          delegateeStakeAccountCheckpoints:
+            delegateeStakeAccountCheckpointsAddress,
+          currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
+          vestingConfig: config,
+          vestingBalance: vestingBalanceAccount,
+          mint: whMintAccount.publicKey,
+        })
+        .rpc()
+        .then(confirm);
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "TooManyCheckpoints",
+      );
+    }
+  });
+
+  it("should successfully create a new checkpoints account", async () => {
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        true,
+      );
+
+    await stakeConnection.program.methods
+      .createCheckpoints()
+      .accounts({
+        payer: accounts.vester,
+        stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+        stakeAccountMetadata: stakeAccountMetadataAddress,
+      })
+      .signers([vester])
+      .rpc({ skipPreflight: true })
+      .then(confirm);
+
+    let previousStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        true,
+      );
+
+    let newStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        false,
+      );
+
+    let previousVesterStakeCheckpoints: CheckpointAccount =
+      await vesterStakeConnection.fetchCheckpointAccount(
+        previousStakeAccountCheckpointsAddress,
+      );
+
+    let newVesterStakeCheckpoints: CheckpointAccount =
+      await vesterStakeConnection.fetchCheckpointAccount(
+        newStakeAccountCheckpointsAddress,
+      );
+
+    assert.equal(
+      new PublicKey(newVesterStakeCheckpoints.checkpointData.owner).toBase58(),
+      vesterStakeConnection.userPublicKey().toBase58(),
+    );
+    assert.equal(
+      previousVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      newVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+    );
+  });
+
+  it("should successfully claim staked vest with created checkpoint account", async () => {
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let currentDelegateStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.delegates();
+
+    let vesterStakeCheckpoints: CheckpointAccount =
+      await vesterStakeConnection.fetchCheckpointAccount(
+        currentDelegateStakeAccountCheckpointsAddress,
+      );
+
+    try {
+      await stakeConnection.program.methods
+        .claimVesting()
+        .accounts({
+          ...accounts,
+          vest: vestNowForTransfer,
+          stakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
+          stakeAccountMetadata: stakeAccountMetadataAddress,
+          globalConfig: stakeConnection.configAddress,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+    } catch (error) {
+      console.error("Transaction failed with error:", error);
+      throw Error(error);
+    }
+
+    let vesterStakeMetadata: StakeAccountMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    console.log("VALUE", vesterStakeMetadata.stakeAccountCheckpointsLastIndex);
+
+    vesterStakeCheckpoints = await vesterStakeConnection.fetchCheckpointAccount(
+      currentDelegateStakeAccountCheckpointsAddress,
+    );
 
     assert.equal(
       vesterStakeMetadata.recordedVestingBalance.toString(),
@@ -1041,29 +1343,52 @@ describe("vesting", () => {
     });
 
     it("should fail to delegate with invalid vesting token", async () => {
-      let stakeAccountCheckpointsAddress =
-        await vesterStakeConnection.delegate_with_vest(
+      await vesterStakeConnection.delegate_with_vest(
+        vesterStakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("0"),
+        true,
+        config,
+      );
+
+      let delegateeStakeAccountMetadataAddress =
+        await stakeConnection.getStakeMetadataAddress(
           vesterStakeConnection.userPublicKey(),
-          WHTokenBalance.fromString("0"),
-          true,
-          config,
         );
       let delegateeStakeAccountCheckpointsAddress =
-        await stakeConnection.getStakeAccountCheckpointsAddress(
-          vesterStakeConnection.userPublicKey(),
+        await stakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          delegateeStakeAccountMetadataAddress,
+          false,
         );
+
       let currentDelegateStakeAccountCheckpointsAddress =
-        await stakeConnection.delegates(stakeAccountCheckpointsAddress);
+        await stakeConnection.delegates();
+
+      let currentDelegateStakeAccountCheckpointsData =
+        await stakeConnection.program.account.checkpointData.fetch(
+          currentDelegateStakeAccountCheckpointsAddress,
+        );
+      let delegateeStakeAccountCheckpointsData =
+        await stakeConnection.program.account.checkpointData.fetch(
+          delegateeStakeAccountCheckpointsAddress,
+        );
+
+      let currentDelegateStakeAccountOwner =
+        currentDelegateStakeAccountCheckpointsData.owner;
+      let delegateeStakeAccountOwner =
+        delegateeStakeAccountCheckpointsData.owner;
 
       try {
         await vesterStakeConnection.program.methods
-          .delegate(delegateeStakeAccountCheckpointsAddress)
+          .delegate(
+            delegateeStakeAccountCheckpointsAddress,
+            currentDelegateStakeAccountOwner,
+            delegateeStakeAccountOwner,
+          )
           .accounts({
-            currentDelegateStakeAccountCheckpoints:
-              currentDelegateStakeAccountCheckpointsAddress,
             delegateeStakeAccountCheckpoints:
               delegateeStakeAccountCheckpointsAddress,
-            stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+            currentDelegateStakeAccountCheckpoints:
+              currentDelegateStakeAccountCheckpointsAddress,
             vestingConfig: fakeConfig,
             vestingBalance: fakeVestingBalanceAccount,
             mint: whMintAccount.publicKey,

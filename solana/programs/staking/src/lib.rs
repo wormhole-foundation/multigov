@@ -10,7 +10,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
 use contexts::*;
-use state::checkpoints::{find_checkpoint_le, push_checkpoint, Operation};
+use state::checkpoints::{find_checkpoint_le, push_checkpoint, push_checkpoint_init, read_checkpoint_at_index, Operation};
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
@@ -70,6 +70,7 @@ pub mod staking {
     /// Creates a global config for the program
     use super::*;
 
+
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
         let config_account = &mut ctx.accounts.config_account;
         config_account.bump = ctx.bumps.config_account;
@@ -77,6 +78,7 @@ pub mod staking {
         config_account.wh_token_mint = global_config.wh_token_mint;
         config_account.freeze = global_config.freeze;
         config_account.vesting_admin = global_config.vesting_admin;
+        config_account.max_checkpoints_account_limit = global_config.max_checkpoints_account_limit;
 
         #[cfg(feature = "mock-clock")]
         {
@@ -116,6 +118,7 @@ pub mod staking {
             ctx.bumps.custody_authority,
             &owner,
             &ctx.accounts.stake_account_checkpoints.key(),
+            0u8,
         );
 
         let stake_account_checkpoints = &mut ctx.accounts.stake_account_checkpoints.load_init()?;
@@ -124,9 +127,71 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey) -> Result<()> {
+    pub fn create_checkpoints(ctx: Context<CreateCheckpoints>) -> Result<()> {
+        let owner = &ctx.accounts.payer.key;
+        let stake_account_metadata = &ctx.accounts.stake_account_metadata;
+
+        require!(**owner == ctx.accounts.stake_account_metadata.owner, VestingError::InvalidStakeAccountOwner);
+
+        let previous_index = if stake_account_metadata.stake_account_checkpoints_last_index == 0 {
+            0
+        } else {
+            stake_account_metadata.stake_account_checkpoints_last_index - 1
+        };
+
+        let expected_stake_account_checkpoints_address = Pubkey::find_program_address(
+            &[CHECKPOINT_DATA_SEED.as_bytes(), owner.as_ref(), previous_index.to_le_bytes().as_ref()],
+            &crate::ID,
+        ).0;
+
+        require!(
+            expected_stake_account_checkpoints_address == ctx.accounts.stake_account_checkpoints.key(),
+            ErrorCode::InvalidStakeAccountCheckpoints
+        );
+
+        let mut new_stake_account_checkpoints = ctx.accounts.new_stake_account_checkpoints.load_init()?;
+        new_stake_account_checkpoints.initialize(&owner);
+        drop(new_stake_account_checkpoints);
+
+        let current_checkpoints_account_info = ctx.accounts.stake_account_checkpoints.to_account_info();
+
+        let checkpoint_data = ctx.accounts.stake_account_checkpoints.load()?;
+        if checkpoint_data.next_index > 0 {
+            let latest_index = checkpoint_data.next_index - 1;
+            let checkpoint =
+                read_checkpoint_at_index(&current_checkpoints_account_info, latest_index as usize)?;
+            let checkpoints_account_info = ctx.accounts.new_stake_account_checkpoints.to_account_info();
+            push_checkpoint_init(
+                &mut ctx.accounts.new_stake_account_checkpoints,
+                &checkpoints_account_info,
+                checkpoint.value,
+                Operation::Add,
+                checkpoint.timestamp,
+                &ctx.accounts.payer.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+            )?;
+        }
+
+        Ok(())
+    }
+
+    pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey, _current_delegate_stake_account_owner: Pubkey,
+                    _delegatee_stake_account_owner: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
         let config = &ctx.accounts.config;
+
+        let delegatee_stake_account_checkpoints = ctx.accounts.delegatee_stake_account_checkpoints.load()?;
+        let current_delegate_stake_account_checkpoints = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
+        require!(
+                delegatee_stake_account_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
+                ErrorCode::TooManyCheckpoints,
+            );
+        require!(
+                current_delegate_stake_account_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
+                ErrorCode::TooManyCheckpoints,
+            );
+        drop(delegatee_stake_account_checkpoints);
+        drop(current_delegate_stake_account_checkpoints);
 
         let prev_recorded_total_balance = stake_account_metadata
             .recorded_balance
@@ -161,7 +226,7 @@ pub mod staking {
             .unwrap();
 
         emit!(DelegateChanged {
-            delegator: ctx.accounts.stake_account_checkpoints.key(),
+            delegator: ctx.accounts.payer.key(),
             from_delegate: current_delegate,
             to_delegate: delegatee,
             total_delegated_votes: total_delegated_votes
@@ -240,11 +305,56 @@ pub mod staking {
             stake_account_metadata.recorded_balance = current_stake_balance;
         }
 
+        let delegatee_stake_account_checkpoints = ctx.accounts.delegatee_stake_account_checkpoints.load()?;
+        let current_delegate_stake_account_checkpoints = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
+
+        if ctx.accounts.delegatee_stake_account_checkpoints.key() ==
+            ctx.accounts.current_delegate_stake_account_checkpoints.key() {
+            if delegatee_stake_account_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
+                ctx.accounts.delegatee_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+            }
+        } else {
+            if delegatee_stake_account_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
+                ctx.accounts.delegatee_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+            }
+            if current_delegate_stake_account_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
+                ctx.accounts.current_delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+            }
+        }
+
         Ok(())
     }
 
-    pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, amount: u64) -> Result<()> {
+    pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, amount: u64,
+                           current_delegate_stake_account_metadata_owner: Pubkey,
+                           stake_account_metadata_owner: Pubkey) -> Result<()> {
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
+
+        let expected_current_delegate_stake_account_metadata_pda = Pubkey::find_program_address(
+            &[
+                STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
+                current_delegate_stake_account_metadata_owner.as_ref(),
+            ],
+            &crate::ID,
+        ).0;
+        require!(
+                    expected_current_delegate_stake_account_metadata_pda ==
+                    ctx.accounts.current_delegate_stake_account_metadata.key(),
+                    ErrorCode::InvalidStakeAccountMetadata
+                );
+
+        let expected_stake_account_metadata_pda = Pubkey::find_program_address(
+            &[
+                STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
+                stake_account_metadata_owner.as_ref(),
+            ],
+            &crate::ID,
+        ).0;
+        require!(
+                    expected_stake_account_metadata_pda == stake_account_metadata.key(),
+                     ErrorCode::InvalidStakeAccountMetadata
+                );
+
 
         let destination_account = &ctx.accounts.destination;
         let signer = &ctx.accounts.payer;
@@ -256,7 +366,7 @@ pub mod staking {
         transfer(
             CpiContext::from(&*ctx.accounts).with_signer(&[&[
                 AUTHORITY_SEED.as_bytes(),
-                ctx.accounts.stake_account_checkpoints.key().as_ref(),
+                ctx.accounts.payer.key().as_ref(),
                 &[stake_account_metadata.authority_bump],
             ]]),
             amount,
@@ -268,6 +378,13 @@ pub mod staking {
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
 
         if stake_account_metadata.delegate != Pubkey::default() {
+            let loaded_checkpoints = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
+            require!(
+                        loaded_checkpoints.next_index < ctx.accounts.config.max_checkpoints_account_limit.into(),
+                        ErrorCode::TooManyCheckpoints,
+                    );
+            drop(loaded_checkpoints);
+
             let current_delegate_account_info = ctx
                 .accounts
                 .current_delegate_stake_account_checkpoints
@@ -293,6 +410,12 @@ pub mod staking {
                 &ctx.accounts.payer.to_account_info(),
                 &ctx.accounts.system_program.to_account_info(),
             )?;
+
+            let loaded_checkpoints = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
+            if loaded_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
+                ctx.accounts.current_delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+            }
+            drop(loaded_checkpoints);
         }
 
         ctx.accounts.stake_account_metadata.recorded_balance = *current_stake_balance;
@@ -355,10 +478,10 @@ pub mod staking {
     }
 
     /** Recovers a user's `stake account` ownership by transferring ownership
-     * from a token account to the `owner` of that token account.
-     *
-     * This functionality addresses the scenario where a user mistakenly
-     * created a stake account using their token account address as the owner.
+                 * from a token account to the `owner` of that token account.
+                 *
+                 * This functionality addresses the scenario where a user mistakenly
+                 * created a stake account using their token account address as the owner.
      */
     pub fn recover_account(ctx: Context<RecoverAccount>) -> Result<()> {
         // Check that there aren't any staked tokens in the account.

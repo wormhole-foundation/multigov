@@ -2,21 +2,19 @@ import { Keypair } from "@solana/web3.js";
 import assert from "assert";
 import { StakeConnection } from "../app/StakeConnection";
 import {
-  standardSetup,
-  readAnchorConfig,
-  getPortNumber,
   ANCHOR_CONFIG_PATH,
+  getPortNumber,
   makeDefaultConfig,
   newUserStakeConnection,
+  readAnchorConfig,
+  standardSetup,
 } from "./utils/before";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import BN from "bn.js";
 import path from "path";
-import { expectFailApi } from "./utils/utils";
 import {
-  assertBalanceMatches,
-  createProposalQueryResponseBytes,
   createNonFinalizedProposalQueryResponseBytes,
+  createProposalQueryResponseBytes,
   createProposalQueryResponseBytesWithInvalidChainSpecificQuery,
   createProposalQueryResponseBytesWithInvalidChainSpecificResponse,
   createProposalQueryResponseBytesWithInvalidFunctionSignature,
@@ -27,7 +25,7 @@ import {
   QueryProxyMock,
   signaturesToSolanaArray,
 } from "@wormhole-foundation/wormhole-query-sdk";
-import { AnchorError, AnchorProvider, Program } from "@coral-xyz/anchor";
+import { AnchorError } from "@coral-xyz/anchor";
 
 const portNumber = getPortNumber(path.basename(__filename));
 
@@ -469,20 +467,18 @@ describe("api", async () => {
   });
 
   it("should change delegate account correctly", async () => {
-    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
-      undefined,
-      WHTokenBalance.fromString("10"),
-    );
+    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("10"));
 
     let user2stakeAccountCheckpointsAddress =
       await user2StakeConnection.delegate(
         undefined,
         WHTokenBalance.fromString("10"),
       );
+    delegate = await stakeConnection.delegates();
 
     await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
+    delegate = await stakeConnection.delegates();
 
-    delegate = await stakeConnection.delegates(stakeAccountCheckpointsAddress);
     assert.equal(
       delegate.toBase58(),
       user2stakeAccountCheckpointsAddress.toBase58(),
@@ -505,14 +501,27 @@ describe("api", async () => {
       WHTokenBalance.fromString("10"),
     );
 
+    let stakeAccountCheckpointsData =
+      await stakeConnection.program.account.checkpointData.fetch(
+        stakeAccountCheckpointsAddress,
+      );
+
+    let user3StakeAccountAddressData =
+      await stakeConnection.program.account.checkpointData.fetch(
+        user3StakeAccountAddress,
+      );
+
     try {
       await stakeConnection.program.methods
-        .delegate(user3StakeAccountAddress)
+        .delegate(
+          user3StakeAccountAddress,
+          stakeAccountCheckpointsData.owner,
+          user3StakeAccountAddressData.owner,
+        )
         .accounts({
           currentDelegateStakeAccountCheckpoints:
             stakeAccountCheckpointsAddress, // Invalid delegate
           delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
-          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
           vestingConfig: null,
           vestingBalance: null,
           mint: stakeConnection.config.whTokenMint,
@@ -528,8 +537,13 @@ describe("api", async () => {
   });
 
   it("withdrawTokens", async () => {
+    let stakeAccountMetadataAddress =
+      await stakeConnection.getStakeMetadataAddress(owner);
     let stakeAccountCheckpointsAddress =
-      await stakeConnection.getStakeAccountCheckpointsAddress(owner);
+      await stakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        false,
+      );
     let stakeAccount = await stakeConnection.loadStakeAccount(
       stakeAccountCheckpointsAddress,
     );
@@ -585,7 +599,6 @@ describe("api", async () => {
         .accounts({
           currentDelegateStakeAccountCheckpoints:
             stakeAccountCheckpointsAddress, // Invalid delegate
-          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
           destination: toAccount,
         })
         .rpc();

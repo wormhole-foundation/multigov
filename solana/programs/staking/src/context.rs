@@ -54,6 +54,7 @@ pub struct InitConfig<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(_delegatee: Pubkey, current_delegate_stake_account_owner: Pubkey, delegatee_stake_account_owner: Pubkey)]
 pub struct Delegate<'info> {
     // Native payer:
     #[account(address = stake_account_metadata.owner)]
@@ -65,41 +66,38 @@ pub struct Delegate<'info> {
         AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_owner.as_ref()],
         bump = current_delegate_stake_account_metadata.metadata_bump
     )]
     pub current_delegate_stake_account_metadata:
         Box<Account<'info, stake_account::StakeAccountMetadata>>,
-
     // Delegatee stake accounts:
     #[account(mut)]
     pub delegatee_stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), delegatee_stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), delegatee_stake_account_owner.as_ref()],
         bump = delegatee_stake_account_metadata.metadata_bump
     )]
     pub delegatee_stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
 
     // User stake account:
-    #[account(mut)]
-    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), payer.key().as_ref()],
         bump = stake_account_metadata.metadata_bump,
         constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
             @ ErrorCode::InvalidCurrentDelegate
     )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
-    #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
+    #[account(seeds = [AUTHORITY_SEED.as_bytes(), payer.key().as_ref()], bump)]
     pub custody_authority: AccountInfo<'info>,
     #[account(
         mut,
         seeds = [
             CUSTODY_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
+            payer.key().as_ref()
         ],
         bump,
         token::mint = mint,
@@ -368,16 +366,22 @@ pub struct CreateStakeAccount<'info> {
     // Stake program accounts:
     #[account(
         init,
-        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref()],
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref(), 0u8.to_le_bytes().as_ref()],
         bump,
         payer = payer,
         space = checkpoints::CheckpointData::LEN,
     )]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-    #[account(init, payer = payer, space = stake_account::StakeAccountMetadata::LEN, seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
+    #[account(
+        init,
+        payer = payer,
+        space = stake_account::StakeAccountMetadata::LEN,
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), payer.key().as_ref()],
+        bump
+    )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
-    #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
+    #[account(seeds = [AUTHORITY_SEED.as_bytes(), payer.key().as_ref()], bump)]
     pub custody_authority: AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Box<Account<'info, global_config::GlobalConfig>>,
@@ -388,7 +392,7 @@ pub struct CreateStakeAccount<'info> {
         init,
         seeds = [
             CUSTODY_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
+            payer.key().as_ref()
         ],
         bump,
         payer = payer,
@@ -401,11 +405,34 @@ pub struct CreateStakeAccount<'info> {
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
+#[derive(Accounts)]
+pub struct CreateCheckpoints<'info> {
+    // Native payer:
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut)]
+    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+    // Stake program accounts:
+    #[account(mut)]
+    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    // Stake program accounts:
+    #[account(
+        init,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref(), stake_account_metadata.stake_account_checkpoints_last_index.to_le_bytes().as_ref()],
+        bump,
+        payer = payer,
+        space = checkpoints::CheckpointData::LEN,
+    )]
+    pub new_stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    // Primitive accounts :
+    pub system_program: Program<'info, System>,
+}
 
 #[derive(Accounts)]
+#[instruction(amount: u64, current_delegate_stake_account_metadata_owner: Pubkey, stake_account_metadata_owner: Pubkey)]
 pub struct WithdrawTokens<'info> {
     // Native payer:
-    #[account( address = stake_account_metadata.owner)]
+    #[account(mut, address = stake_account_metadata.owner)]
     pub payer: Signer<'info>,
 
     // Current delegate stake account:
@@ -414,7 +441,7 @@ pub struct WithdrawTokens<'info> {
         AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_metadata_owner.as_ref()],
         bump = current_delegate_stake_account_metadata.metadata_bump
     )]
     pub current_delegate_stake_account_metadata:
@@ -424,10 +451,9 @@ pub struct WithdrawTokens<'info> {
     #[account(mut)]
     pub destination: Account<'info, TokenAccount>,
     // Stake program accounts:
-    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_metadata_owner.as_ref()],
         bump = stake_account_metadata.metadata_bump,
         constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
             @ ErrorCode::InvalidCurrentDelegate
@@ -435,12 +461,13 @@ pub struct WithdrawTokens<'info> {
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     #[account(
         mut,
-        seeds = [CUSTODY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        seeds = [CUSTODY_SEED.as_bytes(), payer.key().as_ref()],
         bump = stake_account_metadata.custody_bump,
     )]
     pub stake_account_custody: Account<'info, TokenAccount>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
-    #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump = stake_account_metadata.authority_bump)]
+    #[account(seeds = [AUTHORITY_SEED.as_bytes(), payer.key().as_ref()], bump = stake_account_metadata.authority_bump
+    )]
     pub custody_authority: AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,

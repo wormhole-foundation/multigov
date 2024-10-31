@@ -1,27 +1,31 @@
 import { parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
 import {
+  Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
-  Keypair,
-  Transaction,
-  Instruction,
   SystemProgram,
+  Transaction,
 } from "@solana/web3.js";
 import {
-  startValidator,
-  readAnchorConfig,
-  getPortNumber,
   ANCHOR_CONFIG_PATH,
-  requestWHTokenAirdrop,
   getDummyAgreementHash,
+  getPortNumber,
+  readAnchorConfig,
+  requestWHTokenAirdrop,
+  startValidator,
 } from "./utils/before";
-import { expectFail, createMint } from "./utils/utils";
+import { createMint, expectFail } from "./utils/utils";
 import assert from "assert";
 import path from "path";
 import * as wasm from "@wormhole/staking-wasm";
-import { WH_TOKEN_DECIMALS, WHTokenBalance, StakeConnection } from "../app";
-import * as console from "node:console";
+import {
+    CHECK_POINTS_ACCOUNT_LIMIT,
+    StakeConnection, TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+    WH_TOKEN_DECIMALS,
+    WHTokenBalance,
+} from "../app";
 import BN from "bn.js";
+import { StakeAccountMetadata } from "../app/StakeConnection.ts"; // When DEBUG is turned on, we turn preflight transaction checking off
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -87,6 +91,7 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
       })
       .rpc({
         skipPreflight: DEBUG,
@@ -108,6 +113,7 @@ describe("config", async () => {
       JSON.stringify({
         bump,
         freeze: false,
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
@@ -132,6 +138,7 @@ describe("config", async () => {
           vestingAdmin: vestingAdmin,
           agreementHash: getDummyAgreementHash(),
           mockClockTime: new BN(0),
+          maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
         .rpc();
 
@@ -143,6 +150,7 @@ describe("config", async () => {
           vestingAdmin: vestingAdmin,
           agreementHash: getDummyAgreementHash(),
           mockClockTime: new BN(0),
+          maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
         .rpc();
 
@@ -168,6 +176,7 @@ describe("config", async () => {
       JSON.stringify({
         bump,
         freeze: false,
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
@@ -185,17 +194,10 @@ describe("config", async () => {
       .signers([randomUser])
       .rpc();
 
-    const checkpointDataAccountPublicKey = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from(wasm.Constants.CHECKPOINT_DATA_SEED()),
-        randomUser.publicKey.toBuffer(),
-      ],
-      program.programId,
-    )[0];
     const metadataAddress = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()),
-        checkpointDataAccountPublicKey.toBuffer(),
+        randomUser.publicKey.toBuffer(),
       ],
       program.programId,
     )[0];
@@ -265,6 +267,7 @@ describe("config", async () => {
       JSON.stringify({
         bump,
         freeze: false,
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
@@ -283,6 +286,7 @@ describe("config", async () => {
       JSON.stringify({
         bump,
         freeze: false,
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,

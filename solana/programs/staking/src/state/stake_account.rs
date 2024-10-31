@@ -16,6 +16,7 @@ pub struct StakeAccountMetadata {
     pub recorded_vesting_balance: u64,
     pub owner: Pubkey,
     pub delegate: Pubkey,
+    pub stake_account_checkpoints_last_index: u8,
 }
 
 impl StakeAccountMetadata {
@@ -28,12 +29,14 @@ impl StakeAccountMetadata {
         authority_bump: u8,
         owner: &Pubkey,
         delegate: &Pubkey,
+        stake_account_checkpoints_last: u8
     ) {
         self.metadata_bump = metadata_bump;
         self.custody_bump = custody_bump;
         self.authority_bump = authority_bump;
         self.owner = *owner;
         self.delegate = *delegate;
+        self.stake_account_checkpoints_last_index = stake_account_checkpoints_last;
     }
 }
 
