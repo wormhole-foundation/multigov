@@ -156,7 +156,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     // Verify the total length of the data (72 bytes)
     _data.checkLength(_offset);
 
-    return (_proposalIdBytes, _reverse(_againstVotes), _reverse(_forVotes), _reverse(_abstainVotes), _voteStart);
+    return (_proposalIdBytes, _reverse(_againstVotes), _reverse(_forVotes), _reverse(_abstainVotes), _reverse(_voteStart));
   }
 
   /// @notice Scales an amount from original decimals to target decimals
