@@ -56,3 +56,8 @@ filename = "tests/accounts/fee_collector.json"
 [guardian_set_1]
 address = "DS7qfSAgYsonPpKoAjcGhX9VFjXdGkiHjEDkTidf8H2P"
 filename = "tests/accounts/guardian_set_1.json"
+
+### Some external program for executor tests
+[external_program]
+address = "3Pe7YqWdD9Pj8ejb7ex2j7nuKpPhtGR8yktxQGZ8SgQa"
+program = "tests/artifacts/external_program.so"

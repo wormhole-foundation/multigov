@@ -31,6 +31,9 @@ import {
 import { SolanaSendSigner } from "@wormhole-foundation/sdk-solana";
 import { signAndSendWait } from "@wormhole-foundation/sdk-connect";
 import { Chain, contracts } from "@wormhole-foundation/sdk-base";
+import { Program } from "@coral-xyz/anchor";
+import { ExternalProgram } from "./artifacts/external_program.ts";
+import externalProgramIdl from "./artifacts/external_program.json";
 
 // Define the port number for the test
 const portNumber = getPortNumber(path.basename(__filename));
@@ -50,6 +53,7 @@ describe("receive_message", () => {
   let airlockPDA: PublicKey;
   let messageExecutorPDA: PublicKey;
   let messageExecutor: PublicKey;
+  let externalProgram: Program<ExternalProgram>;
 
   before(async () => {
     // Read the Anchor configuration from the specified path
@@ -109,6 +113,11 @@ describe("receive_message", () => {
       })
       .signers([payer])
       .rpc({ skipPreflight: true });
+
+    externalProgram = new Program<ExternalProgram>(
+      externalProgramIdl as any,
+      stakeConnection.provider,
+    );
   });
 
   after(async () => {
@@ -171,6 +180,89 @@ describe("receive_message", () => {
       );
 
     assert.equal(messageReceivedAccount.executed, true);
+  });
+
+  it("should process receive_message with an external program instruction correctly", async () => {
+    // Initialize the config account
+    const [configPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      externalProgram.programId,
+    );
+
+    await externalProgram.methods
+      .initialize(airlockPDA)
+      .accounts({
+        payer: payer.publicKey,
+        config: configPDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([payer])
+      .rpc();
+
+    // Generate the instruction and message payload
+    const { messagePayloadBuffer, remainingAccounts } =
+      await generateExternalProgramInstruction(
+        externalProgram,
+        stakeConnection,
+        airlockPDA,
+      );
+
+    // Generate the VAA
+    const { publicKey, hash } = await postReceiveMessageVaa(
+      stakeConnection.provider.connection,
+      payer,
+      MOCK_GUARDIANS,
+      Array.from(Buffer.alloc(32, "f0", "hex")),
+      BigInt(2),
+      messagePayloadBuffer,
+      { sourceChain: "Ethereum" },
+    );
+
+    // Prepare the seeds
+    const messageReceivedSeed = Buffer.from("message_received");
+    const emitterChainSeed = Buffer.alloc(2);
+    emitterChainSeed.writeUInt16BE(2, 0);
+    const emitterAddressSeed = Buffer.alloc(32, "f0", "hex");
+    const sequenceSeed = Buffer.alloc(8);
+    sequenceSeed.writeBigUInt64BE(BigInt(2), 0);
+
+    // Prepare PDA for message_received
+    const [messageReceivedPDA] = PublicKey.findProgramAddressSync(
+      [messageReceivedSeed, emitterChainSeed, emitterAddressSeed, sequenceSeed],
+      stakeConnection.program.programId,
+    );
+
+    // Invoke receiveMessage instruction
+    await stakeConnection.program.methods
+      .receiveMessage()
+      .accounts({
+        payer: payer.publicKey,
+        messageReceived: messageReceivedPDA,
+        airlock: airlockPDA,
+        messageExecutor: messageExecutorPDA,
+        postedVaa: publicKey,
+        wormholeProgram: CORE_BRIDGE_PID,
+        systemProgram: SystemProgram.programId,
+      })
+      .remainingAccounts(remainingAccounts)
+      .signers([payer])
+      .rpc({ skipPreflight: true });
+
+    // Verify the message_received account
+    const messageReceivedAccount =
+      await stakeConnection.program.account.messageReceived.fetch(
+        messageReceivedPDA,
+      );
+
+    assert.equal(messageReceivedAccount.executed, true);
+
+    // Fetch the config account and verify the counter
+    const configAccount = await externalProgram.account.config.fetch(configPDA);
+    assert.equal(
+      configAccount.counter.toNumber(),
+      1, // Adjust accordingly
+      "Counter did not increment as expected",
+    );
   });
 });
 
@@ -257,6 +349,84 @@ export async function generateTransferInstruction(
   // Include the programId account as well
   remainingAccounts.push({
     pubkey: transferInstruction.programId,
+    isWritable: false,
+    isSigner: false,
+  });
+
+  return { messagePayloadBuffer, remainingAccounts };
+}
+
+export async function generateExternalProgramInstruction(
+  externalProgram: Program,
+  stakeConnection: StakeConnection,
+  airlockPDA: PublicKey,
+): Promise<{ messagePayloadBuffer: Buffer; remainingAccounts: any[] }> {
+  // Derive the config PDA
+  const [configPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("config")],
+    externalProgram.programId,
+  );
+
+  // Create the admin_action instruction
+  const adminActionIx = await externalProgram.methods
+    .adminAction()
+    .accounts({
+      admin: airlockPDA,
+      config: configPDA,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+
+  // Extract programId, accounts, data
+  const accounts = adminActionIx.keys.map((accountMeta) => ({
+    pubkey: "0x" + accountMeta.pubkey.toBuffer().toString("hex"),
+    isSigner: accountMeta.isSigner,
+    isWritable: accountMeta.isWritable,
+  }));
+
+  const instructionData = {
+    programId: "0x" + adminActionIx.programId.toBuffer().toString("hex"),
+    accounts: accounts,
+    data: "0x" + adminActionIx.data.toString("hex"),
+  };
+
+  // Prepare the message
+  const messageId = BigInt(1);
+  const wormholeChainId = BigInt(1);
+  const instructions = [instructionData];
+  const instructionsLength = BigInt(instructions.length);
+
+  // Define the ABI types
+  const SolanaAccountMetaType =
+    "tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
+  const SolanaInstructionType = `tuple(bytes32 programId, ${SolanaAccountMetaType}[] accounts, bytes data)`;
+  const MessageType = `tuple(uint256 messageId, uint256 wormholeChainId,  ${SolanaInstructionType}[] instructions)`;
+
+  // Prepare the message
+  const messageObject = {
+    messageId: messageId,
+    wormholeChainId: wormholeChainId,
+    instructionsLength: instructionsLength,
+    instructions: instructions,
+  };
+
+  // Encode the message
+  const abiCoder = new ethers.AbiCoder();
+  const messagePayloadHex = abiCoder.encode([MessageType], [messageObject]);
+
+  // Convert the encoded message to Buffer
+  const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");
+
+  // Prepare the required accounts for the instruction
+  const remainingAccounts = adminActionIx.keys.map((key) => ({
+    pubkey: key.pubkey,
+    isWritable: key.isWritable,
+    isSigner: key.isSigner,
+  }));
+
+  // Include the programId account as well
+  remainingAccounts.push({
+    pubkey: adminActionIx.programId,
     isWritable: false,
     isSigner: false,
   });

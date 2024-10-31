@@ -175,6 +175,7 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
   --reset \
   --bpf-program ${programAddress.toBase58()} ${binaryPath} \
   --bpf-program ${config.core_bridge_program.address} ${config.core_bridge_program.program} \
+   --bpf-program ${config.external_program.address} ${config.external_program.program} \
   -ud
 `;
 
