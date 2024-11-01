@@ -131,12 +131,12 @@ pub mod staking {
             ctx.bumps.stake_account_metadata,
             ctx.bumps.stake_account_custody,
             ctx.bumps.custody_authority,
-            &owner,
+            owner,
             &ctx.accounts.stake_account_checkpoints.key(),
         );
 
         let stake_account_checkpoints = &mut ctx.accounts.stake_account_checkpoints.load_init()?;
-        stake_account_checkpoints.initialize(&owner);
+        stake_account_checkpoints.initialize(owner);
 
         Ok(())
     }
@@ -181,7 +181,7 @@ pub mod staking {
             delegator:             ctx.accounts.stake_account_checkpoints.key(),
             from_delegate:         current_delegate,
             to_delegate:           delegatee,
-            total_delegated_votes: total_delegated_votes,
+            total_delegated_votes,
         });
 
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
@@ -473,12 +473,10 @@ pub mod staking {
                             } else {
                                 AccountMeta::new_readonly(pubkey, true)
                             }
+                        } else if meta.is_writable {
+                            AccountMeta::new(pubkey, false)
                         } else {
-                            if meta.is_writable {
-                                AccountMeta::new(pubkey, false)
-                            } else {
-                                AccountMeta::new_readonly(pubkey, false)
-                            }
+                            AccountMeta::new_readonly(pubkey, false)
                         }
                     })
                     .collect(),
@@ -599,7 +597,7 @@ pub mod staking {
             );
 
             let proposal_query_request_data =
-                spoke_metadata_collector.parse_proposal_query_request_data(&data)?;
+                spoke_metadata_collector.parse_proposal_query_request_data(data)?;
 
             // The function signature should be
             // bytes4(keccak256(bytes("getProposalMetadata(uint256)")))

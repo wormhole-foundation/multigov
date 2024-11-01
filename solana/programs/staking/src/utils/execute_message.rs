@@ -35,7 +35,7 @@ pub struct Message {
 impl AnchorDeserialize for Message {
     fn deserialize(buf: &mut &[u8]) -> std::result::Result<Message, std::io::Error> {
         msg!("parse_abi_encoded_message...");
-        parse_abi_encoded_message(&buf)
+        parse_abi_encoded_message(buf)
     }
 
     fn deserialize_reader<R: Read>(reader: &mut R) -> std::io::Result<Self> {
@@ -55,7 +55,6 @@ impl AnchorSerialize for Message {
 pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
     msg!("Starting parse_abi_encoded_message...");
     msg!("Data length: {}", data.len());
-    msg!("Data hex: {}", hex::encode(data));
 
 
     let params = vec![ParamType::Tuple(vec![
@@ -82,16 +81,14 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
     })?;
     msg!("Decoded tokens: {:?}", tokens);
 
-    let message_tuple = tokens
-        .get(0)
+    let message_tuple = tokens.first()
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing message tuple"))?
         .clone()
         .into_tuple()
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Failed to convert to tuple"))?;
 
     // Extract message_id
-    let message_id = message_tuple
-        .get(0)
+    let message_id = message_tuple.first()
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing message_id"))?
         .clone()
         .into_uint()
@@ -128,8 +125,7 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
         })?;
 
         // Extract program_id
-        let program_id = instr_tuple
-            .get(0)
+        let program_id = instr_tuple.first()
             .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing program_id"))?
             .clone()
             .into_fixed_bytes()
@@ -155,8 +151,7 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
             })?;
 
             // Extract pubkey
-            let pubkey = account_tuple
-                .get(0)
+            let pubkey = account_tuple.first()
                 .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing pubkey"))?
                 .clone()
                 .into_fixed_bytes()
