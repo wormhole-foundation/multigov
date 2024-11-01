@@ -117,7 +117,7 @@ pub mod staking {
             ctx.bumps.stake_account_custody,
             ctx.bumps.custody_authority,
             &owner,
-            &ctx.accounts.stake_account_checkpoints.key(),
+            &owner,
             0u8,
         );
 
@@ -175,8 +175,7 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey, _current_delegate_stake_account_owner: Pubkey,
-                    _delegatee_stake_account_owner: Pubkey) -> Result<()> {
+    pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey, _current_delegate_stake_account_owner: Pubkey) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
         let config = &ctx.accounts.config;
 

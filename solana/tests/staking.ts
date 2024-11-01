@@ -126,7 +126,7 @@ describe("staking", async () => {
         recordedBalance: expectedRecordedBalance,
         recordedVestingBalance: expectedRecordedBalance,
         owner,
-        delegate: checkpointDataAddress,
+        delegate: owner,
         stakeAccountCheckpointsLastIndex: 0,
       }),
     );

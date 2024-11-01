@@ -467,22 +467,16 @@ describe("api", async () => {
   });
 
   it("should change delegate account correctly", async () => {
-    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("10"));
-
+    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(undefined, WHTokenBalance.fromString("10"));
     let user2stakeAccountCheckpointsAddress =
-      await user2StakeConnection.delegate(
-        undefined,
-        WHTokenBalance.fromString("10"),
-      );
-    delegate = await stakeConnection.delegates();
-
+        await user2StakeConnection.delegate(
+            undefined,
+            WHTokenBalance.fromString("10"),
+        );
     await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
-    delegate = await stakeConnection.delegates();
+    delegate = await stakeConnection.delegates(stakeAccountCheckpointsAddress);
 
-    assert.equal(
-      delegate.toBase58(),
-      user2stakeAccountCheckpointsAddress.toBase58(),
-    );
+    assert.equal(delegate.toBase58(), user2.toBase58());
   });
 
   it("should fail when delegating with an invalid current delegate", async () => {
@@ -514,7 +508,6 @@ describe("api", async () => {
     try {
       await stakeConnection.program.methods
         .delegate(
-          user3StakeAccountAddress,
           stakeAccountCheckpointsData.owner,
           user3StakeAccountAddressData.owner,
         )
@@ -593,9 +586,18 @@ describe("api", async () => {
       true,
     );
 
+    let stakeAccountCheckpointsData =
+      await stakeConnection.program.account.checkpointData.fetch(
+        stakeAccountCheckpointsAddress,
+      );
+
     try {
       await stakeConnection.program.methods
-        .withdrawTokens(WHTokenBalance.fromString("5").toBN())
+        .withdrawTokens(
+          WHTokenBalance.fromString("5").toBN(),
+          stakeAccountCheckpointsData.owner,
+          stakeAccountCheckpointsData.owner,
+        )
         .accounts({
           currentDelegateStakeAccountCheckpoints:
             stakeAccountCheckpointsAddress, // Invalid delegate

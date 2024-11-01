@@ -83,12 +83,14 @@ impl<'info> ClaimVesting<'info> {
                         loaded_checkpoints.next_index < self.global_config.max_checkpoints_account_limit.into(),
                         ErrorCode::TooManyCheckpoints,
                     );
-                drop(loaded_checkpoints);
 
+                // Verify that the actual address matches the expected one
                 require!(
-                    stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
+                    stake_account_metadata.delegate.key() ==  loaded_checkpoints.owner,
                     VestingError::InvalidStakeAccountCheckpoints
                 );
+                drop(loaded_checkpoints);
+
                 require!(
                     self.config.mint == self.global_config.wh_token_mint,
                     // This error can never happen here, because for the condition above
@@ -96,12 +98,6 @@ impl<'info> ClaimVesting<'info> {
                     // to be met, the delegate instruction must be executed.
                     // However, delegate cannot be executed when self.config.mint != self.global_config.wh_token_mint.
                     VestingError::InvalidVestingMint
-                );
-
-                // Verify that the actual address matches the expected one
-                require!(
-                    stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
-                    VestingError::InvalidStakeAccountCheckpoints
                 );
 
                 // Additional checks to ensure the owner matches
@@ -136,7 +132,6 @@ impl<'info> ClaimVesting<'info> {
                 if loaded_checkpoints.next_index >= self.global_config.max_checkpoints_account_limit.into() {
                     stake_account_metadata.stake_account_checkpoints_last_index += 1;
                 }
-                drop(loaded_checkpoints);
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
             }
