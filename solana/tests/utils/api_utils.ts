@@ -49,7 +49,7 @@ export async function assertBalanceMatches(
 }
 
 function getQueryRequestCalldata(proposalIdInput: Uint8Array): EthCallData {
-  const contractAddress = "0x2574802Db8590ee5C9EFC5eBeBFef1E174b712FC"; // HubProposalMetadata address
+  const contractAddress = "0x26c73662633bd0d4a6ba231a1001bbbced8d2b21"; // HubProposalMetadata address
   const encodedSignature = encodeSignature("getProposalMetadata(uint256)");
 
   const calldata: EthCallData = {
@@ -63,7 +63,7 @@ function getQueryRequestCalldata(proposalIdInput: Uint8Array): EthCallData {
 function getQueryRequestCalldataWithInvalidFunctionSignature(
   proposalIdInput: Uint8Array,
 ): EthCallData {
-  const contractAddress = "0x2574802Db8590ee5C9EFC5eBeBFef1E174b712FC"; // HubProposalMetadata address
+  const contractAddress = "0x26c73662633bd0d4a6ba231a1001bbbced8d2b21"; // HubProposalMetadata address
   const encodedSignature = encodeSignature(
     "getInvalidProposalMetadata(uint256)",
   );

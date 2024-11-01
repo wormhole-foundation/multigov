@@ -22,8 +22,8 @@ async function main() {
     governanceAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
     whTokenMint: WORMHOLE_TOKEN,
     agreementHash: Array(32).fill(0),
+    freeze: false,
     vestingAdmin: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
-    maxCheckpointsAccountLimit:  CHECK_POINTS_ACCOUNT_LIMIT
   };
   await program.methods.initConfig(globalConfig).rpc();
 }

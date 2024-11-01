@@ -22,21 +22,22 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalIdHex = "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2"
+    const proposalIdHex =
+      "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2";
     console.log("proposalIdHex:", proposalIdHex);
 
-    const voteStartHex = "00000000000000000000000000000000000000000000000000000000670cd112"
-    const voteStartInt = (new BN(voteStartHex, 16)).toString(10);
+    const voteStartHex =
+      "00000000000000000000000000000000000000000000000000000000670cd112";
+    const voteStartInt = new BN(voteStartHex, 16).toString(10);
     console.log("voteStartInt:", voteStartInt);
 
     const proposalIdArray = Buffer.from(proposalIdHex, "hex");
     const { proposalAccountData } =
       await stakeConnection.fetchProposalAccountData(proposalIdArray);
 
-    const proposalId = new ethers.AbiCoder().decode(
-      ["uint256"],
-      Buffer.from(proposalAccountData.id)
-    )[0].toString();
+    const proposalId = new ethers.AbiCoder()
+      .decode(["uint256"], Buffer.from(proposalAccountData.id))[0]
+      .toString();
 
     console.log("Parse proposalAccountData:");
     console.log("proposalId:", proposalId);

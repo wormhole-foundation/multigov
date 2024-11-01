@@ -31,7 +31,7 @@ pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
-pub const SPOKE_METADATA_COLLECTOR: &str = "spoke_metadata_collector";
+pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
 
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -149,19 +149,37 @@ pub struct CastVote<'info> {
 
 #[derive(Accounts)]
 pub struct InitializeSpokeMetadataCollector<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
 
     #[account(
         init,
-        payer = payer,
+        payer = governance_authority,
         space = SpokeMetadataCollector::LEN,
-        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
         bump
     )]
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
 
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateHubProposalMetadata<'info> {
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
+        bump = spoke_metadata_collector.bump
+    )]
+    pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
 }
 
 #[derive(Accounts)]
@@ -225,7 +243,7 @@ pub struct AddProposal<'info> {
 
     #[account(
         mut,
-        seeds = [SPOKE_METADATA_COLLECTOR.as_bytes()],
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
         bump = spoke_metadata_collector.bump
     )]
     pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
@@ -490,33 +508,6 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
     }
 }
 
-#[derive(Accounts)]
-pub struct RecoverAccount<'info> {
-    // Native payer:
-    #[account(address = config.governance_authority)]
-    pub payer: Signer<'info>,
-
-    // Token account:
-    #[account(address = stake_account_metadata.owner)]
-    pub payer_token_account: Account<'info, TokenAccount>,
-
-    // Stake program accounts:
-    #[account(zero)]
-    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-
-    #[account(
-        mut,
-        seeds = [
-            STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
-        ],
-        bump = stake_account_metadata.metadata_bump
-    )]
-    pub stake_account_metadata: Account<'info, stake_account::StakeAccountMetadata>,
-
-    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Account<'info, global_config::GlobalConfig>,
-}
 #[derive(Accounts)]
 pub struct InitializeSpokeMessageExecutor<'info> {
     #[account(mut)]

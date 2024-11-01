@@ -30,7 +30,7 @@ async function main() {
     await sleep(10000);
 
     const user = provider.wallet.publicKey;
-    console.log("user:", user)
+    console.log("user:", user);
     await stakeConnection.delegate(user, WHTokenBalance.fromString("10"));
   } catch (err) {
     console.error("Error:", err);

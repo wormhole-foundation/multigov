@@ -23,10 +23,8 @@ async function main() {
     );
 
     await program.methods
-      .initializeSpokeMetadataCollector(
-        hubChainId,
-        Array.from(hubProposalMetadata),
-      )
+      .updateHubProposalMetadata(Array.from(hubProposalMetadata))
+      .accounts({ governanceAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey })
       .rpc();
   } catch (err) {
     console.error("Error:", err);

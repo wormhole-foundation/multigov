@@ -35,6 +35,7 @@ describe("staking", async () => {
 
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
+  const governanceAuthority = new Keypair();
 
   let userAta: PublicKey;
   const config = readAnchorConfig(ANCHOR_CONFIG_PATH);
@@ -51,6 +52,7 @@ describe("staking", async () => {
       config,
       whMintAccount,
       whMintAuthority,
+      governanceAuthority,
       makeDefaultConfig(whMintAccount.publicKey),
     ));
     program = stakeConnection.program;

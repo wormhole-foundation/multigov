@@ -21,7 +21,8 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    const proposalIdHex = "89813b2c3ac79b429a4143dc4df617bee40d585d44e5763c64994efc854b05db"
+    const proposalIdHex =
+      "89813b2c3ac79b429a4143dc4df617bee40d585d44e5763c64994efc854b05db";
     const proposalIdArray = Buffer.from(proposalIdHex, "hex");
 
     await user2StakeConnection.castVote(

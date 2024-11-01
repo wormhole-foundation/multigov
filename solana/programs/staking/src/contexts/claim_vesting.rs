@@ -53,7 +53,6 @@ pub struct ClaimVesting<'info> {
     vesting_balance: Account<'info, VestingBalance>,
     /// CheckpointData and StakeAccountMetadata accounts are optional because
     /// in order to be able to claim vests that have not been delegated
-    /// Check if stake account checkpoints is out of bounds
     #[account(mut)]
     pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
     #[account(mut)]

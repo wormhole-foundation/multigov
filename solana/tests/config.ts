@@ -1,4 +1,4 @@
-import { parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
+import {AnchorError, parseIdlErrors, utils, Wallet} from "@coral-xyz/anchor";
 import {
   Keypair,
   LAMPORTS_PER_SOL,
@@ -7,25 +7,28 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
-  ANCHOR_CONFIG_PATH,
-  getDummyAgreementHash,
-  getPortNumber,
-  readAnchorConfig,
-  requestWHTokenAirdrop,
   startValidator,
+  readAnchorConfig,
+  getPortNumber,
+  ANCHOR_CONFIG_PATH,
+  requestWHTokenAirdrop,
 } from "./utils/before";
 import { createMint, expectFail } from "./utils/utils";
 import assert from "assert";
 import path from "path";
 import * as wasm from "@wormhole/staking-wasm";
 import {
-    CHECK_POINTS_ACCOUNT_LIMIT,
     StakeConnection, TEST_CHECKPOINTS_ACCOUNT_LIMIT,
     WH_TOKEN_DECIMALS,
     WHTokenBalance,
 } from "../app";
 import BN from "bn.js";
-import { StakeAccountMetadata } from "../app/StakeConnection.ts"; // When DEBUG is turned on, we turn preflight transaction checking off
+import {
+  hubChainId,
+  hubProposalMetadata,
+  CORE_BRIDGE_ADDRESS,
+} from "../app/constants";
+import {StakeAccountMetadata} from "../app/StakeConnection.ts";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -118,7 +121,6 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
-        agreementHash: getDummyAgreementHash(),
       }),
     );
   });
@@ -136,7 +138,6 @@ describe("config", async () => {
           whTokenMint: whMintAccount.publicKey,
           freeze: false,
           vestingAdmin: vestingAdmin,
-          agreementHash: getDummyAgreementHash(),
           mockClockTime: new BN(0),
           maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
@@ -148,7 +149,6 @@ describe("config", async () => {
           whTokenMint: whMintAccount.publicKey,
           freeze: false,
           vestingAdmin: vestingAdmin,
-          agreementHash: getDummyAgreementHash(),
           mockClockTime: new BN(0),
           maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
@@ -167,6 +167,108 @@ describe("config", async () => {
     }
   });
 
+  it("should fail to initialize SpokeMetadataCollector if the signer is not a valid governance_authority", async () => {
+    try {
+      await program.methods
+        .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
+        .accounts({ governanceAuthority: randomUser.publicKey })
+        .signers([randomUser])
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintAddress");
+    }
+  });
+
+  it("should successfully initialize SpokeMetadataCollector", async () => {
+    const initHubProposalMetadata = new Uint8Array(20);
+
+    await program.methods
+      .initializeSpokeMetadataCollector(hubChainId, initHubProposalMetadata)
+      .accounts({ governanceAuthority: program.provider.wallet.publicKey })
+      .rpc({skipPreflight: true});
+
+    const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(
+            wasm.Constants.SPOKE_METADATA_COLLECTOR_SEED(),
+          ),
+        ],
+        program.programId,
+      );
+
+    const spokeMetadataCollectorAccountData =
+      await program.account.spokeMetadataCollector.fetch(
+        spokeMetadataCollectorAccount,
+      );
+
+    assert.equal(
+      spokeMetadataCollectorAccountData.bump,
+      spokeMetadataCollectorBump,
+    );
+    assert.equal(spokeMetadataCollectorAccountData.hubChainId, hubChainId);
+    assert.equal(
+      spokeMetadataCollectorAccountData.hubProposalMetadata.toString(),
+      initHubProposalMetadata.toString(),
+    );
+    assert.equal(
+      spokeMetadataCollectorAccountData.wormholeCore.toString("hex"),
+      CORE_BRIDGE_ADDRESS.toString("hex"),
+    );
+  });
+
+  it("should fail to update HubProposalMetadata if the signer is not a valid governance_authority", async () => {
+    try {
+      await program.methods
+        .updateHubProposalMetadata(hubProposalMetadata)
+        .accounts({ governanceAuthority: randomUser.publicKey })
+        .signers([randomUser])
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintAddress");
+    }
+  });
+
+  it("should successfully update HubProposalMetadata", async () => {
+    await program.methods
+      .updateHubProposalMetadata(hubProposalMetadata)
+      .accounts({ governanceAuthority: program.provider.wallet.publicKey })
+      .rpc({skipPreflight: true});
+
+    const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(
+            wasm.Constants.SPOKE_METADATA_COLLECTOR_SEED(),
+          ),
+        ],
+        program.programId,
+      );
+
+    const spokeMetadataCollectorAccountData =
+      await program.account.spokeMetadataCollector.fetch(
+        spokeMetadataCollectorAccount,
+      );
+
+    assert.equal(
+      spokeMetadataCollectorAccountData.bump,
+      spokeMetadataCollectorBump,
+    );
+    assert.equal(spokeMetadataCollectorAccountData.hubChainId, hubChainId);
+    assert.equal(
+      spokeMetadataCollectorAccountData.hubProposalMetadata.toString(),
+      hubProposalMetadata.toString(),
+    );
+    assert.equal(
+      spokeMetadataCollectorAccountData.wormholeCore.toString("hex"),
+      CORE_BRIDGE_ADDRESS.toString("hex"),
+    );
+  });
+
   it("create account", async () => {
     const configAccountData =
       await program.account.globalConfig.fetch(configAccount);
@@ -181,7 +283,6 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
-        agreementHash: getDummyAgreementHash(),
       }),
     );
 
@@ -192,7 +293,7 @@ describe("config", async () => {
         payer: randomUser.publicKey,
       })
       .signers([randomUser])
-      .rpc();
+      .rpc({skipPreflight: true});
 
     const metadataAddress = PublicKey.findProgramAddressSync(
       [
@@ -257,7 +358,7 @@ describe("config", async () => {
 
     await vestingAdminConnection.program.methods
       .updateVestingAdmin(program.provider.wallet.publicKey)
-      .rpc();
+      .rpc({skipPreflight: true});
 
     let configAccountData =
       await program.account.globalConfig.fetch(configAccount);
@@ -272,7 +373,6 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: program.provider.wallet.publicKey,
-        agreementHash: getDummyAgreementHash(),
       }),
     );
 
@@ -291,7 +391,6 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
-        agreementHash: getDummyAgreementHash(),
       }),
     );
   });
