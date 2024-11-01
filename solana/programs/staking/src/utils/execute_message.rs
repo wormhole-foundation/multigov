@@ -1,35 +1,27 @@
 use anchor_lang::prelude::*;
-use ethabi::{
-    decode,
-    ParamType,
-};
-use std::io::{
-    Error as IoError,
-    ErrorKind,
-    Read,
-    Write,
-};
+use ethabi::{decode, ParamType};
+use std::io::{Error as IoError, ErrorKind, Read, Write};
 use std::result::Result as StdResult;
 
 #[derive(Clone)]
 pub struct SolanaAccountMeta {
-    pub pubkey:      [u8; 32],
-    pub is_signer:   bool,
+    pub pubkey: [u8; 32],
+    pub is_signer: bool,
     pub is_writable: bool,
 }
 
 #[derive(Clone)]
 pub struct SolanaInstruction {
     pub program_id: [u8; 32],
-    pub accounts:   Vec<SolanaAccountMeta>,
-    pub data:       Vec<u8>,
+    pub accounts: Vec<SolanaAccountMeta>,
+    pub data: Vec<u8>,
 }
 
 #[derive(Clone)]
 pub struct Message {
-    pub message_id:        u64,
+    pub message_id: u64,
     pub wormhole_chain_id: u16,
-    pub instructions:      Vec<SolanaInstruction>,
+    pub instructions: Vec<SolanaInstruction>,
 }
 
 impl AnchorDeserialize for Message {
@@ -55,7 +47,6 @@ impl AnchorSerialize for Message {
 pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
     msg!("Starting parse_abi_encoded_message...");
     msg!("Data length: {}", data.len());
-
 
     let params = vec![ParamType::Tuple(vec![
         ParamType::Uint(256), // messageId
@@ -105,7 +96,6 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
         .into_uint()
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Failed to parse wormhole_chain_id"))?
         .as_u64() as u16;
-
 
     // Extract instructions array
     let instructions_array = message_tuple
@@ -210,14 +200,10 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
     })
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ethabi::{
-        encode,
-        Token,
-    };
+    use ethabi::{encode, Token};
     use hex::decode as hex_decode;
 
     #[test]
@@ -231,16 +217,16 @@ mod tests {
 
         // Create account metas
         let account_meta = SolanaAccountMeta {
-            pubkey:      [0x11; 32], // Example public key
-            is_signer:   true,
+            pubkey: [0x11; 32], // Example public key
+            is_signer: true,
             is_writable: true,
         };
 
         // Create instruction
         let instruction = SolanaInstruction {
             program_id: [0x22; 32], // Example program ID
-            accounts:   vec![account_meta.clone()],
-            data:       vec![0x01, 0x02, 0x03], // Example instruction data
+            accounts: vec![account_meta.clone()],
+            data: vec![0x01, 0x02, 0x03], // Example instruction data
         };
 
         // **Encode accounts properly**

@@ -4,17 +4,17 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Default, Debug, BorshSchema)]
 pub struct SpokeMessageExecutor {
-    pub bump:           u8,
+    pub bump: u8,
     // The hub dispatcher address
     pub hub_dispatcher: Pubkey,
     // The hub chain id
-    pub hub_chain_id:   u16,
+    pub hub_chain_id: u16,
     // The spoke chain id
     pub spoke_chain_id: u16,
     // Wormhole contract handling messages
-    pub wormhole_core:  Pubkey,
+    pub wormhole_core: Pubkey,
     // An account that will execute the cross chain proposal
-    pub airlock:        Pubkey,
+    pub airlock: Pubkey,
 }
 
 #[account]
@@ -32,10 +32,7 @@ impl MessageReceived {
 
 #[cfg(test)]
 pub mod tests {
-    use super::{
-        MessageReceived,
-        SpokeMessageExecutor,
-    };
+    use super::{MessageReceived, SpokeMessageExecutor};
     use anchor_lang::Discriminator;
 
     #[test]

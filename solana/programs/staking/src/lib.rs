@@ -11,37 +11,21 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
 use contexts::*;
-use state::checkpoints::{
-    find_checkpoint_le,
-    push_checkpoint,
-    Operation,
-};
+use state::checkpoints::{find_checkpoint_le, push_checkpoint, Operation};
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
-use wormhole_solana_consts::{
-    CORE_BRIDGE_PROGRAM_ID,
-    SOLANA_CHAIN,
-};
+use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
 
-use anchor_lang::solana_program::instruction::{
-    AccountMeta,
-    Instruction,
-};
+use anchor_lang::solana_program::instruction::{AccountMeta, Instruction};
 use anchor_lang::solana_program::program::invoke_signed;
 
 use wormhole_query_sdk::structs::{
-    ChainSpecificQuery,
-    ChainSpecificResponse,
-    EthCallData,
-    QueryResponse,
+    ChainSpecificQuery, ChainSpecificResponse, EthCallData, QueryResponse,
 };
 
 use crate::error::{
-    ErrorCode,
-    ProposalWormholeMessageError,
-    QueriesSolanaVerifyError,
-    VestingError,
+    ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError,
 };
 use crate::state::GuardianSignatures;
 
@@ -58,28 +42,27 @@ pub mod wasm;
 
 #[event]
 pub struct DelegateChanged {
-    pub delegator:             Pubkey,
-    pub from_delegate:         Pubkey,
-    pub to_delegate:           Pubkey,
+    pub delegator: Pubkey,
+    pub from_delegate: Pubkey,
+    pub to_delegate: Pubkey,
     pub total_delegated_votes: u64,
 }
 
 #[event]
 pub struct VoteCast {
-    pub voter:         Pubkey,
-    pub proposal_id:   [u8; 32],
-    pub weight:        u64,
+    pub voter: Pubkey,
+    pub proposal_id: [u8; 32],
+    pub weight: u64,
     pub against_votes: u64,
-    pub for_votes:     u64,
+    pub for_votes: u64,
     pub abstain_votes: u64,
 }
 
 #[event]
 pub struct ProposalCreated {
     pub proposal_id: [u8; 32],
-    pub vote_start:  u64,
+    pub vote_start: u64,
 }
-
 
 declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
 #[program]
@@ -433,7 +416,6 @@ pub mod staking {
         Ok(())
     }
 
-
     pub fn receive_message(ctx: Context<ReceiveMessage>) -> Result<()> {
         let posted_vaa = &ctx.accounts.posted_vaa;
 
@@ -458,7 +440,7 @@ pub mod staking {
             // Create the instruction.
             let ix = Instruction {
                 program_id: Pubkey::new_from_array(instruction.program_id),
-                accounts:   instruction
+                accounts: instruction
                     .accounts
                     .iter()
                     .map(|meta| {
@@ -476,7 +458,7 @@ pub mod staking {
                         }
                     })
                     .collect(),
-                data:       instruction.data.clone(),
+                data: instruction.data.clone(),
             };
 
             // Use invoke_signed with the correct signer_seeds
@@ -488,7 +470,6 @@ pub mod staking {
 
         Ok(())
     }
-
 
     pub fn set_airlock(ctx: Context<SetAirlock>) -> Result<()> {
         let executor = &mut ctx.accounts.executor;
@@ -513,7 +494,6 @@ pub mod staking {
         airlock.message_executor = message_executor;
         Ok(())
     }
-
 
     //------------------------------------ SPOKE METADATA COLLECTOR
     //------------------------------------ ------------------------------------------------
@@ -636,7 +616,7 @@ pub mod staking {
 
             emit!(ProposalCreated {
                 proposal_id: proposal_data.proposal_id,
-                vote_start:  proposal_data.vote_start,
+                vote_start: proposal_data.vote_start,
             });
         } else {
             return Err(ProposalWormholeMessageError::InvalidChainSpecificResponse.into());

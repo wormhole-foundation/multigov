@@ -4,9 +4,9 @@ use anchor_lang::prelude::*;
 /// It is also used to delegate vesting
 #[account]
 pub struct VestingBalance {
-    pub vester:                 Pubkey,
-    pub total_vesting_balance:  u64,
-    pub bump:                   u8,
+    pub vester: Pubkey,
+    pub total_vesting_balance: u64,
+    pub bump: u8,
     pub stake_account_metadata: Pubkey,
 }
 
@@ -17,10 +17,7 @@ impl Space for VestingBalance {
 #[cfg(test)]
 pub mod tests {
     use super::VestingBalance;
-    use anchor_lang::{
-        Discriminator,
-        Space,
-    };
+    use anchor_lang::{Discriminator, Space};
 
     #[test]
     fn check_size() {

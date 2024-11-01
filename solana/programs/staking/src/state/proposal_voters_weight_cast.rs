@@ -7,8 +7,8 @@ use anchor_lang::prelude::*;
 #[derive(BorshSchema)]
 pub struct ProposalVotersWeightCast {
     pub proposal_id: [u8; 32],
-    pub voter:       Pubkey,
-    pub value:       u64,
+    pub voter: Pubkey,
+    pub value: u64,
 }
 
 impl ProposalVotersWeightCast {

@@ -1,30 +1,20 @@
-use crate::context::{
-    VESTING_BALANCE_SEED,
-    VESTING_CONFIG_SEED,
-};
-use crate::state::{
-    VestingBalance,
-    VestingConfig,
-};
+use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED};
+use crate::state::{VestingBalance, VestingConfig};
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{
-    Mint,
-    TokenAccount,
-    TokenInterface,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 #[derive(Accounts)]
 #[instruction()]
 pub struct CreateVestingBalance<'info> {
     #[account(mut)]
-    admin:           Signer<'info>,
-    mint:            InterfaceAccount<'info, Mint>,
+    admin: Signer<'info>,
+    mint: InterfaceAccount<'info, Mint>,
     #[account(
         mut,
         seeds = [VESTING_CONFIG_SEED.as_bytes(), admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
-    config:          Account<'info, VestingConfig>,
+    config: Account<'info, VestingConfig>,
     #[account(
         init,
         payer = admin,
@@ -37,9 +27,9 @@ pub struct CreateVestingBalance<'info> {
         token::mint = mint,
         token::token_program = token_program
     )]
-    vester_ta:       InterfaceAccount<'info, TokenAccount>,
-    token_program:   Interface<'info, TokenInterface>,
-    system_program:  Program<'info, System>,
+    vester_ta: InterfaceAccount<'info, TokenAccount>,
+    token_program: Interface<'info, TokenInterface>,
+    system_program: Program<'info, System>,
 }
 
 impl<'info> CreateVestingBalance<'info> {

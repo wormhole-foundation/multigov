@@ -1,24 +1,17 @@
-use crate::context::{
-    CONFIG_SEED,
-    VESTING_CONFIG_SEED,
-};
+use crate::context::{CONFIG_SEED, VESTING_CONFIG_SEED};
 use crate::error::VestingError;
 use crate::state::global_config::GlobalConfig;
 use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{
-    Mint,
-    TokenAccount,
-    TokenInterface,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
 pub struct Initialize<'info> {
     #[account(mut)]
-    admin:         Signer<'info>,
-    mint:          InterfaceAccount<'info, Mint>,
+    admin: Signer<'info>,
+    mint: InterfaceAccount<'info, Mint>,
     // Initialize a vault for us to store our money in escrow for vesting
     #[account(
         init,
@@ -27,13 +20,13 @@ pub struct Initialize<'info> {
         associated_token::authority = config,
         associated_token::token_program = token_program
     )]
-    vault:         InterfaceAccount<'info, TokenAccount>,
+    vault: InterfaceAccount<'info, TokenAccount>,
     // Set a recovery address for recovering surplus funds from the contract
     #[account(
         token::mint = mint,
         token::token_program = token_program
     )]
-    recovery:      InterfaceAccount<'info, TokenAccount>,
+    recovery: InterfaceAccount<'info, TokenAccount>,
     // Initialize a vesting config for a specific admin, mint and seed
     #[account(
         init,
@@ -42,7 +35,7 @@ pub struct Initialize<'info> {
         seeds = [VESTING_CONFIG_SEED.as_bytes(), admin.key().as_ref(), mint.key().as_ref(), seed.to_le_bytes().as_ref()],
         bump
     )]
-    config:        Account<'info, VestingConfig>,
+    config: Account<'info, VestingConfig>,
     #[account(
         seeds = [CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
@@ -52,8 +45,8 @@ pub struct Initialize<'info> {
     global_config: Box<Account<'info, GlobalConfig>>,
 
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program:            Interface<'info, TokenInterface>,
-    system_program:           Program<'info, System>,
+    token_program: Interface<'info, TokenInterface>,
+    system_program: Program<'info, System>,
 }
 
 impl<'info> Initialize<'info> {

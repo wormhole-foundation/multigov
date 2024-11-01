@@ -2,11 +2,11 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct Vesting {
-    pub vester_ta:  Pubkey,
-    pub config:     Pubkey,
-    pub amount:     u64,
+    pub vester_ta: Pubkey,
+    pub config: Pubkey,
+    pub amount: u64,
     pub maturation: i64,
-    pub bump:       u8,
+    pub bump: u8,
 }
 
 impl Space for Vesting {
@@ -16,10 +16,7 @@ impl Space for Vesting {
 #[cfg(test)]
 pub mod tests {
     use super::Vesting;
-    use anchor_lang::{
-        Discriminator,
-        Space,
-    };
+    use anchor_lang::{Discriminator, Space};
 
     #[test]
     fn check_size() {

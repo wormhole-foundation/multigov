@@ -9,13 +9,13 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Default, Debug, BorshSchema)]
 pub struct StakeAccountMetadata {
-    pub metadata_bump:            u8,
-    pub custody_bump:             u8,
-    pub authority_bump:           u8,
-    pub recorded_balance:         u64,
+    pub metadata_bump: u8,
+    pub custody_bump: u8,
+    pub authority_bump: u8,
+    pub recorded_balance: u64,
     pub recorded_vesting_balance: u64,
-    pub owner:                    Pubkey,
-    pub delegate:                 Pubkey,
+    pub owner: Pubkey,
+    pub delegate: Pubkey,
 }
 
 impl StakeAccountMetadata {

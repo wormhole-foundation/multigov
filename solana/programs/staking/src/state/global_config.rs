@@ -4,15 +4,15 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Default, Debug, BorshSchema)]
 pub struct GlobalConfig {
-    pub bump:   u8,
+    pub bump: u8,
     pub freeze: bool,
 
     #[cfg(feature = "mock-clock")]
     pub mock_clock_time: i64,
 
     pub governance_authority: Pubkey,
-    pub wh_token_mint:        Pubkey,
-    pub vesting_admin:        Pubkey,
+    pub wh_token_mint: Pubkey,
+    pub vesting_admin: Pubkey,
 }
 
 impl GlobalConfig {

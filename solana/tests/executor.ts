@@ -217,8 +217,7 @@ describe("receive_message", () => {
         .remainingAccounts(remainingAccounts)
         .signers([payer])
         .rpc({ skipPreflight: true });
-    } catch (e) {
-    }
+    } catch (e) {}
   });
 
   it("should process receive_message with an external program instruction correctly", async () => {
