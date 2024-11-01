@@ -527,7 +527,7 @@ pub struct ReceiveMessage<'info> {
 
     /// Stores the state of the message execution to prevent re-execution
     #[account(
-        init_if_needed,
+        init,
         space = MessageReceived::LEN,
         payer = payer,
         seeds = [

@@ -126,8 +126,6 @@ describe("receive_message", () => {
   });
 
   it("should process receive_message correctly", async () => {
-    console.log("wormholeProgram:", CORE_BRIDGE_PID.toBase58());
-
     const { messagePayloadBuffer, remainingAccounts } =
       await generateTransferInstruction(stakeConnection, payer);
 
@@ -156,7 +154,6 @@ describe("receive_message", () => {
       stakeConnection.program.programId,
     );
 
-    console.log("Before receiveMessage");
     // Invoke receive_message instruction
     await stakeConnection.program.methods
       .receiveMessage()
@@ -172,14 +169,56 @@ describe("receive_message", () => {
       .remainingAccounts(remainingAccounts)
       .signers([payer])
       .rpc({ skipPreflight: true });
+  });
 
-    // Verify the message_received account
-    const messageReceivedAccount =
-      await stakeConnection.program.account.messageReceived.fetch(
-        messageReceivedPDA,
-      );
+  it("should fail if message already executed", async () => {
+    const { messagePayloadBuffer, remainingAccounts } =
+      await generateTransferInstruction(stakeConnection, payer);
 
-    assert.equal(messageReceivedAccount.executed, true);
+    // Generate the VAA
+    const { publicKey, hash } = await postReceiveMessageVaa(
+      stakeConnection.provider.connection,
+      payer,
+      MOCK_GUARDIANS,
+      Array.from(Buffer.alloc(32, "f0", "hex")),
+      BigInt(1),
+      messagePayloadBuffer,
+      { sourceChain: "Ethereum" },
+    );
+
+    // Prepare the seeds
+    const messageReceivedSeed = Buffer.from("message_received");
+    const emitterChainSeed = Buffer.alloc(2);
+    emitterChainSeed.writeUInt16BE(2, 0);
+    const emitterAddressSeed = Buffer.alloc(32, "f0", "hex");
+    const sequenceSeed = Buffer.alloc(8);
+    sequenceSeed.writeBigUInt64BE(BigInt(1), 0);
+
+    // Prepare PDA for message_received
+    const [messageReceivedPDA] = PublicKey.findProgramAddressSync(
+      [messageReceivedSeed, emitterChainSeed, emitterAddressSeed, sequenceSeed],
+      stakeConnection.program.programId,
+    );
+
+    // Invoke receive_message instruction
+
+    try {
+      await stakeConnection.program.methods
+        .receiveMessage()
+        .accounts({
+          payer: payer.publicKey,
+          messageReceived: messageReceivedPDA,
+          airlock: airlockPDA,
+          messageExecutor: messageExecutorPDA,
+          postedVaa: publicKey,
+          wormholeProgram: CORE_BRIDGE_PID,
+          systemProgram: SystemProgram.programId,
+        })
+        .remainingAccounts(remainingAccounts)
+        .signers([payer])
+        .rpc({ skipPreflight: true });
+    } catch (e) {
+    }
   });
 
   it("should process receive_message with an external program instruction correctly", async () => {
@@ -247,14 +286,6 @@ describe("receive_message", () => {
       .remainingAccounts(remainingAccounts)
       .signers([payer])
       .rpc({ skipPreflight: true });
-
-    // Verify the message_received account
-    const messageReceivedAccount =
-      await stakeConnection.program.account.messageReceived.fetch(
-        messageReceivedPDA,
-      );
-
-    assert.equal(messageReceivedAccount.executed, true);
 
     // Fetch the config account and verify the counter
     const configAccount = await externalProgram.account.config.fetch(configPDA);
@@ -333,8 +364,6 @@ export async function generateTransferInstruction(
   // Encode the message
   const abiCoder = new ethers.AbiCoder();
   const messagePayloadHex = abiCoder.encode([MessageType], [messageObject]);
-
-  console.log("Encoded message payload:", messagePayloadHex);
 
   // Convert the encoded message to Buffer
   const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");

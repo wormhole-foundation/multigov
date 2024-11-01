@@ -86,6 +86,7 @@ declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
 pub mod staking {
     /// Creates a global config for the program
     use super::*;
+    use crate::state::MessageReceived;
 
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
         let config_account = &mut ctx.accounts.config_account;
@@ -178,9 +179,9 @@ pub mod staking {
             .unwrap();
 
         emit!(DelegateChanged {
-            delegator:             ctx.accounts.stake_account_checkpoints.key(),
-            from_delegate:         current_delegate,
-            to_delegate:           delegatee,
+            delegator: ctx.accounts.stake_account_checkpoints.key(),
+            from_delegate: current_delegate,
+            to_delegate: delegatee,
             total_delegated_votes,
         });
 
@@ -434,16 +435,11 @@ pub mod staking {
 
 
     pub fn receive_message(ctx: Context<ReceiveMessage>) -> Result<()> {
-        let message_received = &mut ctx.accounts.message_received;
-
-        // Check if the message has already been processed.
-        if message_received.executed {
-            msg!("Message already executed, returning error.");
-            return Err(error!(MessageExecutorError::MessageAlreadyExecuted));
-        }
-
         let posted_vaa = &ctx.accounts.posted_vaa;
 
+        ctx.accounts.message_received.set_inner(MessageReceived {
+            bump: ctx.bumps.message_received,
+        });
 
         // Execute the instructions in the message.
         for instruction in posted_vaa.payload.1.instructions.clone() {
@@ -489,9 +485,6 @@ pub mod staking {
 
             invoke_signed(&ix, &account_infos, signer_seeds)?;
         }
-
-        // Mark the message as executed.
-        message_received.executed = true;
 
         Ok(())
     }

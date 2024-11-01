@@ -81,14 +81,16 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
     })?;
     msg!("Decoded tokens: {:?}", tokens);
 
-    let message_tuple = tokens.first()
+    let message_tuple = tokens
+        .first()
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing message tuple"))?
         .clone()
         .into_tuple()
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Failed to convert to tuple"))?;
 
     // Extract message_id
-    let message_id = message_tuple.first()
+    let message_id = message_tuple
+        .first()
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing message_id"))?
         .clone()
         .into_uint()
@@ -125,7 +127,8 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
         })?;
 
         // Extract program_id
-        let program_id = instr_tuple.first()
+        let program_id = instr_tuple
+            .first()
             .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing program_id"))?
             .clone()
             .into_fixed_bytes()
@@ -151,7 +154,8 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
             })?;
 
             // Extract pubkey
-            let pubkey = account_tuple.first()
+            let pubkey = account_tuple
+                .first()
                 .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing pubkey"))?
                 .clone()
                 .into_fixed_bytes()

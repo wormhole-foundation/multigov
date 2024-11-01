@@ -19,8 +19,7 @@ pub struct SpokeMessageExecutor {
 
 #[account]
 pub struct MessageReceived {
-    // Execution status of the message
-    pub executed: bool,
+    pub bump: u8,
 }
 
 impl SpokeMessageExecutor {
