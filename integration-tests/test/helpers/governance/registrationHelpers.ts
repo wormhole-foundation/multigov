@@ -1,4 +1,9 @@
-import { type Address, encodeFunctionData, zeroAddress } from 'viem';
+import {
+  type Address,
+  encodeFunctionData,
+  getAddress,
+  parseEther,
+} from 'viem';
 import {
   HubEvmSpokeAggregateProposerAbi,
   HubGovernorAbi,
@@ -11,6 +16,7 @@ import {
   createProposalData,
 } from './proposalHelpers';
 import { toWormholeFormat } from '../wormhole/wormholeHelpers';
+import type { Client, Wallet } from 'test/config/types';
 
 export const getWhitelistedProposer = async () => {
   const { ethClient } = createClients();
@@ -137,6 +143,10 @@ export const registerSpokeOnHubVotePool = async ({
   chainId: number;
   spokeAddress: Address;
 }) => {
+  const { ethClient } = createClients();
+  const timestamp = (await ethClient.getBlock()).timestamp;
+  const nonce = Math.floor(Math.random() * 1000000);
+
   // Convert the spoke address to Wormhole format before registering
   const spokeAddressBytes32 = toWormholeFormat(spokeAddress);
 
@@ -150,7 +160,7 @@ export const registerSpokeOnHubVotePool = async ({
     targets: [ContractAddresses.HUB_VOTE_POOL],
     values: [0n],
     calldatas: [registerSpokeCalldata],
-    description: `Register spoke for chain ${chainId} at address ${spokeAddressBytes32}`,
+    description: `Register spoke for chain ${chainId} at address ${spokeAddressBytes32} at timestamp ${timestamp} (nonce: ${nonce})`,
   });
 
   const proposalId = await createAndExecuteProposalViaHubGovernor(proposalData);
@@ -189,3 +199,74 @@ export async function registerWhitelistedProposer({
     `Set whitelisted proposer to ${proposerAddress}. Proposal ID: ${proposalId}`,
   );
 }
+
+export const checkContractOwnership = async ({
+  contractAddress,
+  client,
+}: { contractAddress: Address; client: Client | Wallet }) => {
+  return await client.readContract({
+    address: contractAddress,
+    abi: [
+      {
+        inputs: [],
+        name: 'owner',
+        outputs: [{ type: 'address', name: '' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+    ],
+    functionName: 'owner',
+  });
+};
+
+export const handleTransferOwnership = async ({
+  contractAddress,
+  newOwner,
+  wallet,
+  client,
+}: {
+  contractAddress: Address;
+  newOwner: Address;
+  wallet: Wallet;
+  client: Client;
+}) => {
+  const owner = await checkContractOwnership({ contractAddress, client });
+
+  if (owner === getAddress(newOwner)) {
+    return;
+  }
+
+  await client.setBalance({
+    address: owner,
+    value: parseEther('1'),
+  });
+
+  await client.impersonateAccount({
+    address: owner,
+  });
+
+  await wallet.simulateContract({
+    address: contractAddress,
+    abi: HubVotePoolAbi,
+    functionName: 'transferOwnership',
+    args: [newOwner],
+    account: owner,
+  });
+
+  const hash = await wallet.writeContract({
+    address: contractAddress,
+    abi: HubVotePoolAbi,
+    functionName: 'transferOwnership',
+    args: [newOwner],
+    account: owner,
+  });
+
+  await client.stopImpersonatingAccount({
+    address: owner,
+  });
+
+  console.log(`Transferred ownership of ${contractAddress} to ${newOwner}`);
+
+
+  await client.waitForTransactionReceipt({ hash });
+};

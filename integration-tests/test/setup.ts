@@ -1,3 +1,4 @@
+import { HubGovernorAbi } from 'abis';
 import { ContractAddresses } from './config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from './config/chains';
 import { createClients } from './config/clients';
@@ -5,12 +6,13 @@ import { syncTime } from './helpers';
 import {
   handleRegisterSpokeOnAggProposer,
   handleRegisterSpokeOnHubVotePool,
+  handleTransferOwnership,
   registerWhitelistedProposer,
 } from './helpers/governance/registrationHelpers';
 import { delegate, mintTokens } from './helpers/token/tokenHelpers';
 
 export async function setupTestEnvironment() {
-  const { ethClient, eth2Client, account } = createClients();
+  const { ethClient, eth2Client, ethWallet, account } = createClients();
 
   // 1. Ensure both chains are at the same block height
   const hubBlock = await ethClient.getBlockNumber();
@@ -38,15 +40,30 @@ export async function setupTestEnvironment() {
   await delegate({ delegatee: account.address, isHub: true });
   await delegate({ delegatee: account.address, isHub: false });
 
+  // Mine a block to make delegation active
+  await ethClient.mine({ blocks: 1 });
+
+
+
   // 4. Register spoke on hub
   await handleRegisterSpokeOnAggProposer({
     chainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
   });
+
+  // 5. Transfer ownership of HubVotePool to Timelock
+  await handleTransferOwnership({
+    contractAddress: ContractAddresses.HUB_VOTE_POOL,
+    newOwner: ContractAddresses.TIMELOCK_CONTROLLER,
+    wallet: ethWallet,
+    client: ethClient,
+  });
+
+  // 6. Register spoke on HubVotePool
   await handleRegisterSpokeOnHubVotePool({
     chainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
   });
 
-  // 5. Register whitelisted proposer (HubEvmSpokeAggregateProposer)
+  // 7. Register whitelisted proposer (HubEvmSpokeAggregateProposer)
   await registerWhitelistedProposer({
     proposerAddress: ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER,
   });
