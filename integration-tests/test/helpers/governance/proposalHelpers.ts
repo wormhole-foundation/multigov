@@ -1,4 +1,4 @@
-import { encodeFunctionData, keccak256, toBytes } from 'viem';
+import { encodeFunctionData, keccak256, parseEther, toBytes } from 'viem';
 import { HubEvmSpokeAggregateProposerAbi, HubGovernorAbi } from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
@@ -253,38 +253,7 @@ export const createAndExecuteProposalViaHubGovernor = async (
   await passProposal({ proposalId, proposalData });
 
   // Execute proposal
-  const { ethClient, ethWallet } = createClients();
-  const descriptionHash = keccak256(toBytes(proposalData.description));
-  const account = handleNoAccount(ethWallet);
-
-  await ethClient.simulateContract({
-    address: ContractAddresses.HUB_GOVERNOR,
-    abi: HubGovernorAbi,
-    functionName: 'execute',
-    args: [
-      proposalData.targets,
-      proposalData.values,
-      proposalData.calldatas,
-      descriptionHash,
-    ],
-    account,
-  });
-
-  const hash = await ethWallet.writeContract({
-    address: ContractAddresses.HUB_GOVERNOR,
-    abi: HubGovernorAbi,
-    functionName: 'execute',
-    args: [
-      proposalData.targets,
-      proposalData.values,
-      proposalData.calldatas,
-      descriptionHash,
-    ],
-    account,
-    chain: ethWallet.chain,
-  });
-
-  await ethClient.waitForTransactionReceipt({ hash });
+  await executeProposal({ proposalData });
 
   return proposalId;
 };
@@ -292,12 +261,21 @@ export const createAndExecuteProposalViaHubGovernor = async (
 export const executeProposal = async ({
   proposalData,
 }: {
-  proposalId: bigint;
   proposalData: ProposalData;
 }) => {
   const { ethClient, ethWallet } = createClients();
   const descriptionHash = keccak256(toBytes(proposalData.description));
-  const account = handleNoAccount(ethWallet);
+
+  // impersonate timelock
+  await ethClient.setBalance({
+    address: ContractAddresses.TIMELOCK_CONTROLLER,
+    value: parseEther('1'),
+  });
+
+  await ethClient.impersonateAccount({
+    address: ContractAddresses.TIMELOCK_CONTROLLER,
+  });
+
 
   await ethClient.simulateContract({
     address: ContractAddresses.HUB_GOVERNOR,
@@ -309,8 +287,9 @@ export const executeProposal = async ({
       proposalData.calldatas,
       descriptionHash,
     ],
-    account,
+    account: ContractAddresses.TIMELOCK_CONTROLLER,
   });
+
 
   const hash = await ethWallet.writeContract({
     address: ContractAddresses.HUB_GOVERNOR,
@@ -322,13 +301,14 @@ export const executeProposal = async ({
       proposalData.calldatas,
       descriptionHash,
     ],
-    account,
-    chain: ethWallet.chain,
+    account: ContractAddresses.TIMELOCK_CONTROLLER,
+  });
+
+  await ethClient.stopImpersonatingAccount({
+    address: ContractAddresses.TIMELOCK_CONTROLLER,
   });
 
   await ethClient.waitForTransactionReceipt({ hash });
-
-  return hash;
 };
 
 export const createArbitraryProposalData = async () => {
