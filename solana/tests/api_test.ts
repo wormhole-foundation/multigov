@@ -4,7 +4,7 @@ import { StakeConnection } from "../app/StakeConnection";
 import {
   ANCHOR_CONFIG_PATH,
   getPortNumber,
-  makeDefaultConfig,
+  makeTestConfig,
   newUserStakeConnection,
   readAnchorConfig,
   standardSetup,
@@ -84,7 +84,7 @@ describe("api", async () => {
       whMintAccount,
       whMintAuthority,
       governanceAuthority,
-      makeDefaultConfig(whMintAccount.publicKey),
+      makeTestConfig(whMintAccount.publicKey),
       WHTokenBalance.fromString("1000"),
     ));
     owner = stakeConnection.provider.wallet.publicKey;
@@ -469,12 +469,15 @@ describe("api", async () => {
   });
 
   it("should change delegate account correctly", async () => {
-    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(undefined, WHTokenBalance.fromString("10"));
+    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("10"),
+    );
     let user2stakeAccountCheckpointsAddress =
-        await user2StakeConnection.delegate(
-            undefined,
-            WHTokenBalance.fromString("10"),
-        );
+      await user2StakeConnection.delegate(
+        undefined,
+        WHTokenBalance.fromString("10"),
+      );
     await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
     delegate = await stakeConnection.delegates(stakeAccountCheckpointsAddress);
 
@@ -659,6 +662,7 @@ describe("api", async () => {
       new BN(10),
       new BN(20),
       new BN(12),
+      0,
     );
     await user2StakeConnection.castVote(
       proposalIdInput,
@@ -666,6 +670,7 @@ describe("api", async () => {
       new BN(10),
       new BN(10),
       new BN(0),
+      0,
     );
     await user2StakeConnection.castVote(
       proposalIdInput,
@@ -673,6 +678,7 @@ describe("api", async () => {
       new BN(0),
       new BN(7),
       new BN(10),
+      0,
     );
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
@@ -737,6 +743,7 @@ describe("api", async () => {
           new BN(10),
           new BN(20),
           new BN(12),
+          0,
         )
         .accountsPartial({
           proposal: proposalAccount,
@@ -746,7 +753,7 @@ describe("api", async () => {
 
       assert.fail("Expected an error but none was thrown");
     } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "ConstraintHasOne");
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
     }
   });
 });

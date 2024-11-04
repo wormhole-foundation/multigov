@@ -119,7 +119,11 @@ pub struct Delegate<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(proposal_id: [u8; 32])]
+#[instruction(proposal_id: [u8; 32],
+        _against_votes: u64,
+        _for_votes: u64,
+        _abstain_votes: u64,
+        checkpoint_index: u8)]
 pub struct CastVote<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -131,18 +135,26 @@ pub struct CastVote<'info> {
     )]
     pub proposal: Account<'info, proposal::ProposalData>,
 
-    #[account(mut, has_one = owner)]
+    #[account(
+        mut,
+        has_one = owner,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), owner.key().as_ref(), checkpoint_index.to_le_bytes().as_ref()],
+        bump
+    )]
     pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
 
     #[account(
         init_if_needed,
         payer = owner,
         space = proposal_voters_weight_cast::ProposalVotersWeightCast::LEN,
-        seeds = [b"proposal_voters_weight_cast", proposal.key().as_ref(), voter_checkpoints.key().as_ref()],
+        seeds = [b"proposal_voters_weight_cast", proposal.key().as_ref(), owner.key().as_ref()],
         bump
     )]
     pub proposal_voters_weight_cast:
         Account<'info, proposal_voters_weight_cast::ProposalVotersWeightCast>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
 
     pub system_program: Program<'info, System>,
 }
@@ -270,7 +282,7 @@ impl<'info> AddProposal<'info> {
             MESSAGE_PREFIX,
             &solana_program::keccak::hashv(&[bytes]).to_bytes(),
         ]
-        .concat();
+            .concat();
 
         // SECURITY: defense-in-depth, check again that these are the expected length
         require_eq!(
@@ -447,7 +459,8 @@ pub struct CreateCheckpoints<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(amount: u64, current_delegate_stake_account_metadata_owner: Pubkey, stake_account_metadata_owner: Pubkey)]
+#[instruction(amount: u64, current_delegate_stake_account_metadata_owner: Pubkey, stake_account_metadata_owner: Pubkey
+)]
 pub struct WithdrawTokens<'info> {
     // Native payer:
     #[account(mut, address = stake_account_metadata.owner)]
@@ -495,7 +508,7 @@ pub struct WithdrawTokens<'info> {
 }
 
 impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
-    for CpiContext<'a, 'b, 'c, 'info, Transfer<'info>>
+for CpiContext<'a, 'b, 'c, 'info, Transfer<'info>>
 {
     fn from(accounts: &WithdrawTokens<'info>) -> CpiContext<'a, 'b, 'c, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {

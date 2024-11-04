@@ -428,12 +428,17 @@ pub mod staking {
         against_votes: u64,
         for_votes: u64,
         abstain_votes: u64,
+        _checkpoint_index: u8,
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
+        let config = &ctx.accounts.config;
 
         let voter_checkpoints = ctx.accounts.voter_checkpoints.to_account_info();
 
-        if let Some(checkpoint) = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)? {
+        if let Some((index, checkpoint)) = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)? {
+            // Check if checkpoint is not the last in fully loaded checkpoints account
+            require!(config.max_checkpoints_account_limit != index as u32, ErrorCode::CheckpointOutOfBounds);
+
             let total_weight = checkpoint.value;
 
             require!(total_weight > 0, ErrorCode::NoWeight);
@@ -462,7 +467,7 @@ pub mod staking {
             proposal.abstain_votes += abstain_votes;
 
             emit!(VoteCast {
-                voter: ctx.accounts.voter_checkpoints.key(),
+                voter: ctx.accounts.owner.key(),
                 proposal_id,
                 weight: total_weight,
                 against_votes,

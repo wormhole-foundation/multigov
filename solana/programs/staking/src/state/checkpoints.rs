@@ -275,7 +275,7 @@ fn calc_new_checkpoint(
 pub fn find_checkpoint_le(
     account_info: &AccountInfo,
     target_timestamp: u64,
-) -> Result<Option<Checkpoint>> {
+) -> Result<Option<(usize, Checkpoint)>> {
     let data = account_info.try_borrow_data()?;
     let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE;
     let data = &data[header_size..];
@@ -303,7 +303,7 @@ pub fn find_checkpoint_le(
         let checkpoint = read_checkpoint_at_index(account_info, mid)?;
 
         if checkpoint.timestamp <= target_timestamp {
-            result = Some(checkpoint);
+            result = Some((mid, checkpoint));
             low = mid + 1;
         } else {
             high = mid;

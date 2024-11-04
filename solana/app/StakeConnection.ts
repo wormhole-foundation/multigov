@@ -613,13 +613,13 @@ export class StakeConnection {
     againstVotes: BN,
     forVotes: BN,
     abstainVotes: BN,
+    checkpointIndex: number
   ): Promise<void> {
     const instructions: TransactionInstruction[] = [];
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
-
     instructions.push(
       await this.program.methods
-        .castVote(Array.from(proposalId), againstVotes, forVotes, abstainVotes)
+        .castVote(Array.from(proposalId), againstVotes, forVotes, abstainVotes, checkpointIndex)
         .accountsPartial({
           proposal: proposalAccount,
           voterCheckpoints: stakeAccount,
