@@ -4,6 +4,7 @@ import { getProposal } from 'test/helpers/governance/proposalHelpers';
 import { getWhitelistedProposer } from 'test/helpers/governance/registrationHelpers';
 import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
 import { createProposalOnHub } from './helpers';
+import { getAddress } from 'viem';
 
 describe('Create proposal on hub via the HubEvmSpokeAggregateProposer', () => {
   beforeAll(async () => {
@@ -12,7 +13,7 @@ describe('Create proposal on hub via the HubEvmSpokeAggregateProposer', () => {
     const isWhitelisted = await getWhitelistedProposer();
 
     expect(isWhitelisted).toBe(
-      ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER,
+      getAddress(ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER),
     );
   });
 
@@ -29,7 +30,7 @@ describe('Create proposal on hub via the HubEvmSpokeAggregateProposer', () => {
     expect(proposal).toBeDefined();
     expect(proposal.id).toBe(proposalId);
     expect(proposal.proposer).toBe(
-      ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER,
+      getAddress(ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER),
     );
   });
 });
