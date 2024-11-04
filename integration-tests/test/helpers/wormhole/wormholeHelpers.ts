@@ -1,3 +1,4 @@
+import { type NativeAddress, toNative } from '@wormhole-foundation/sdk';
 import {
   EthCallByTimestampQueryRequest,
   type EthCallData,
@@ -5,7 +6,7 @@ import {
   QueryRequest,
   sign,
 } from '@wormhole-foundation/wormhole-query-sdk';
-import { type NativeAddress, toNative } from '@wormhole-foundation/sdk';
+import { DEFAULT_PRIVATE_KEY } from 'test/config/mainAccount';
 import { type Address, encodeFunctionData } from 'viem';
 import { HubEvmSpokeAggregateProposerAbi } from '../../../abis';
 import { SpokeVoteAggregatorAbi } from '../../../abis';
@@ -13,7 +14,6 @@ import { QUERY_URL } from '../../config';
 import { ContractAddresses } from '../../config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from '../../config/chains';
 import { createClients } from '../../config/clients';
-import { getPrivateKeyHex } from '../../config/mainAccount';
 import type { QueryRes } from './types';
 
 /**
@@ -122,7 +122,7 @@ export const getWormholeGetVotesQueryResponse = async ({
   // Serialize the request
   const serialized = request.serialize();
 
-  const privateKeyStr = getPrivateKeyHex().slice(2);
+  const privateKeyStr = DEFAULT_PRIVATE_KEY.slice(2);
 
   // Sign the request
   const signature = sign(

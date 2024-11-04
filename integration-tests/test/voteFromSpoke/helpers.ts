@@ -1,15 +1,15 @@
 import {
+  type EthCallData,
   EthCallWithFinalityQueryRequest,
   PerChainQueryRequest,
   QueryRequest,
   sign,
-  type EthCallData,
 } from '@wormhole-foundation/wormhole-query-sdk';
-import { SpokeVoteAggregatorAbi, HubVotePoolAbi } from 'abis';
+import { HubVotePoolAbi, SpokeVoteAggregatorAbi } from 'abis';
 import { ContractAddresses } from 'test/config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from 'test/config/chains';
 import { createClients } from 'test/config/clients';
-import { getPrivateKeyHex } from 'test/config/mainAccount';
+import { DEFAULT_PRIVATE_KEY } from 'test/config/mainAccount';
 import { VoteType } from 'test/config/types';
 import { sendQueryToWormhole } from 'test/helpers/wormhole/wormholeHelpers';
 import { encodeFunctionData } from 'viem';
@@ -116,7 +116,7 @@ export const getWormholeProposalVotesQueryResponse = async ({
   // Serialize the request
   const serialized = request.serialize();
 
-  const privateKeyStr = getPrivateKeyHex().slice(2);
+  const privateKeyStr = DEFAULT_PRIVATE_KEY.slice(2);
 
   // Sign the request
   const signature = sign(

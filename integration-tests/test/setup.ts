@@ -1,4 +1,3 @@
-import { HubGovernorAbi } from 'abis';
 import { ContractAddresses } from './config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from './config/chains';
 import { createClients } from './config/clients';
@@ -42,8 +41,6 @@ export async function setupTestEnvironment() {
 
   // Mine a block to make delegation active
   await ethClient.mine({ blocks: 1 });
-
-
 
   // 4. Register spoke on hub
   await handleRegisterSpokeOnAggProposer({

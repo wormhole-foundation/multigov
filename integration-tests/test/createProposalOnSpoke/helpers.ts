@@ -10,7 +10,7 @@ import HubProposalMetadataAbi from 'abis/HubProposalMetadataAbi';
 import { ContractAddresses } from 'test/config/addresses';
 import { ETH_DEVNET_WORMHOLE_CHAIN_ID } from 'test/config/chains';
 import { createClients } from 'test/config/clients';
-import { getPrivateKeyHex } from 'test/config/mainAccount';
+import { DEFAULT_PRIVATE_KEY } from 'test/config/mainAccount';
 import {
   createArbitraryProposalData,
   createProposalViaAggregateProposer,
@@ -69,7 +69,7 @@ const getWormholeAddProposalQueryResponse = async ({
   const request = new QueryRequest(1, [hubChainQuery]);
   const serialized = request.serialize();
   const signature = sign(
-    getPrivateKeyHex().slice(2),
+    DEFAULT_PRIVATE_KEY.slice(2),
     QueryRequest.digest('DEVNET', serialized),
   );
 

@@ -1,9 +1,5 @@
-import {
-  type Address,
-  encodeFunctionData,
-  getAddress,
-  parseEther,
-} from 'viem';
+import type { Client, Wallet } from 'test/config/types';
+import { type Address, encodeFunctionData, getAddress, parseEther } from 'viem';
 import {
   HubEvmSpokeAggregateProposerAbi,
   HubGovernorAbi,
@@ -11,12 +7,11 @@ import {
 } from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
+import { toWormholeFormat } from '../wormhole/wormholeHelpers';
 import {
   createAndExecuteProposalViaHubGovernor,
   createProposalData,
 } from './proposalHelpers';
-import { toWormholeFormat } from '../wormhole/wormholeHelpers';
-import type { Client, Wallet } from 'test/config/types';
 
 export const getWhitelistedProposer = async () => {
   const { ethClient } = createClients();
@@ -266,7 +261,6 @@ export const handleTransferOwnership = async ({
   });
 
   console.log(`Transferred ownership of ${contractAddress} to ${newOwner}`);
-
 
   await client.waitForTransactionReceipt({ hash });
 };
