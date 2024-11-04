@@ -29,16 +29,18 @@
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
     "@types/bn.js": "^5.1.5",
     "@types/mocha": "^10.0.7",
     "@types/node": "^22.0.2",
     "@types/shelljs": "^0.8.15",
     "axios": "^1.7.2",
-    "chai": "^5.1.1",
+    "chai": "^5.1.2",
     "dotenv": "^16.4.5",
     "mocha": "^10.7.0",
     "prettier": "^3.3.3",
     "shelljs": "^0.8.5",
+    "ts-jest": "^29.2.5",
     "ts-mocha": "^10.0.0",
     "typescript": "^5.5.4",
     "wasm-pack": "^0.13.0"
