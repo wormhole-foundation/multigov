@@ -1,11 +1,11 @@
 import {
+  type EthCallData,
   EthCallWithFinalityQueryRequest,
   PerChainQueryRequest,
   QueryRequest,
   sign,
-  type EthCallData,
 } from '@wormhole-foundation/wormhole-query-sdk';
-import { SpokeVoteAggregatorAbi, HubVotePoolAbi } from 'abis';
+import { HubVotePoolAbi, SpokeVoteAggregatorAbi } from 'abis';
 import { ContractAddresses } from 'test/config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from 'test/config/chains';
 import { createClients } from 'test/config/clients';

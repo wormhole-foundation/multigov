@@ -1,9 +1,5 @@
-import {
-  type Address,
-  encodeFunctionData,
-  getAddress,
-  parseEther,
-} from 'viem';
+import type { Client, Wallet } from 'test/config/types';
+import { type Address, encodeFunctionData, getAddress, parseEther } from 'viem';
 import {
   HubEvmSpokeAggregateProposerAbi,
   HubGovernorAbi,
@@ -11,12 +7,11 @@ import {
 } from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
+import { toWormholeFormat } from '../wormhole/wormholeHelpers';
 import {
   createAndExecuteProposalViaHubGovernor,
   createProposalData,
 } from './proposalHelpers';
-import { toWormholeFormat } from '../wormhole/wormholeHelpers';
-import type { Client, Wallet } from 'test/config/types';
 
 export const getWhitelistedProposer = async () => {
   const { ethClient } = createClients();
@@ -108,6 +103,9 @@ export const handleRegisterSpokeOnHubVotePool = async ({
   });
 
   if (isRegistered) {
+    console.log(
+      `Spoke for chain ${chainId} at address ${ContractAddresses.SPOKE_VOTE_AGGREGATOR} already registered on HubVotePool`,
+    );
     return;
   }
 
@@ -233,6 +231,7 @@ export const handleTransferOwnership = async ({
   const owner = await checkContractOwnership({ contractAddress, client });
 
   if (owner === getAddress(newOwner)) {
+    console.log(`${contractAddress} already owned by ${newOwner}`);
     return;
   }
 
@@ -266,7 +265,6 @@ export const handleTransferOwnership = async ({
   });
 
   console.log(`Transferred ownership of ${contractAddress} to ${newOwner}`);
-
 
   await client.waitForTransactionReceipt({ hash });
 };

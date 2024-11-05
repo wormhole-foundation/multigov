@@ -88,8 +88,9 @@ const ContractAddressesEnum = {
 
   // Spoke contracts (deployed on EthDevnet2)
   SPOKE_VOTE_AGGREGATOR: spokeAddresses.SpokeVoteAggregator,
-  SPOKE_MESSAGE_EXECUTOR: spokeAddresses.SpokeMessageExecutor,
+  SPOKE_MESSAGE_EXECUTOR: spokeAddresses.ERC1967Proxy,
   SPOKE_METADATA_COLLECTOR: spokeAddresses.SpokeMetadataCollector,
+  WORMHOLE_CORE: '0xC89Ce4735882C9F0f0FE26686c53074E09B0D550' as const,
 } as const;
 
 type AddressesType = typeof ContractAddressesEnum;
