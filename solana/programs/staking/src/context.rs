@@ -482,12 +482,12 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
 
 #[derive(Accounts)]
 pub struct InitializeSpokeMessageExecutor<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
 
     #[account(
         init,
-        payer = payer,
+        payer = governance_authority,
         space = SpokeMessageExecutor::LEN,
         seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
         bump
@@ -495,6 +495,8 @@ pub struct InitializeSpokeMessageExecutor<'info> {
     pub executor: Account<'info, SpokeMessageExecutor>,
     /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     pub system_program: Program<'info, System>,
 }
 
@@ -524,7 +526,7 @@ pub struct ReceiveMessage<'info> {
         constraint = posted_vaa.emitter_chain() == message_executor.hub_chain_id @ MessageExecutorError::InvalidEmitterChain,
         constraint = *posted_vaa.emitter_address() == message_executor.hub_dispatcher.to_bytes() @ MessageExecutorError::InvalidHubDispatcher,
     )]
-    pub posted_vaa: Account<'info, PostedVaa<Message>>,
+    pub posted_vaa: Account<'info, PostedVaa::<Message>>,
 
     #[account(
         seeds = [AIRLOCK_SEED.as_bytes()],

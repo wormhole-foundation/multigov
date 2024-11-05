@@ -62,6 +62,7 @@ describe("receive_message", () => {
     // Generate keypairs for the Wormhole token mint account and its authority
     const whMintAccount = Keypair.generate();
     const whMintAuthority = Keypair.generate();
+    const governanceAuthority = Keypair.generate();
 
     // Use standardSetup to initialize the StakeConnection and related setup
     ({ controller, stakeConnection } = await standardSetup(
@@ -69,6 +70,7 @@ describe("receive_message", () => {
       config,
       whMintAccount,
       whMintAuthority,
+      governanceAuthority,
       makeDefaultConfig(whMintAccount.publicKey),
       WHTokenBalance.fromString("1000"), // Initial balance for testing
     ));
@@ -102,12 +104,13 @@ describe("receive_message", () => {
     await stakeConnection.program.methods
       .initializeSpokeMessageExecutor(2)
       .accounts({
-        payer: payer.publicKey,
+        governanceAuthority: governanceAuthority.publicKey,
         executor: messageExecutorPDA,
+        config: stakeConnection.configAddress,
         hubDispatcher: new PublicKey(Buffer.alloc(32, "f0", "hex")),
         systemProgram: SystemProgram.programId,
       })
-      .signers([payer])
+      .signers([governanceAuthority])
       .rpc({ skipPreflight: true });
 
     externalProgram = new Program<ExternalProgram>(

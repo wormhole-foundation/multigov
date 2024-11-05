@@ -397,6 +397,13 @@ export async function standardSetup(
     program.provider.connection,
   );
 
+  await transferSolFromValidatorWallet(
+      provider,
+      governanceAuthority.publicKey,
+      10000,
+  );
+
+
   globalConfig.governanceAuthority = governanceAuthority.publicKey;
 
   if (globalConfig.vestingAdmin == null) {
