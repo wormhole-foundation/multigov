@@ -172,9 +172,9 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     else return _amount * (10 ** (_toDecimals - _fromDecimals));
   }
 
-  /// @notice Reverse the endianess of the passed in integer.
+  /// @notice Reverse the endianness of the passed in integer.
   /// @param _input The integer for which to reverse the endianess.
-  /// @return An integer with the endianess reversed.
+  /// @return An integer with the endianness reversed.
   /// @dev This code was copied from
   /// https://github.com/wormholelabs-xyz/example-queries-solana-pda/blob/4a01a0a6018b36a1d38d326362bfb672c5061c5f/src/OwnerVerifier.sol#L52.
   function _reverse(uint64 _input) internal pure returns (uint64) {
