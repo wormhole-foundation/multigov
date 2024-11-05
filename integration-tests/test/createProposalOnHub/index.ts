@@ -2,9 +2,9 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { ContractAddresses } from 'test/config/addresses';
 import { getProposal } from 'test/helpers/governance/proposalHelpers';
 import { getWhitelistedProposer } from 'test/helpers/governance/registrationHelpers';
+import { getAddress } from 'viem';
 import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
 import { createProposalOnHub } from './helpers';
-import { getAddress } from 'viem';
 
 describe('Create proposal on hub via the HubEvmSpokeAggregateProposer', () => {
   beforeAll(async () => {
