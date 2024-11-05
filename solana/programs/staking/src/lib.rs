@@ -412,7 +412,6 @@ pub mod staking {
         executor.hub_chain_id = hub_chain_id;
         executor.spoke_chain_id = SOLANA_CHAIN;
         executor.wormhole_core = CORE_BRIDGE_PROGRAM_ID;
-        executor.airlock = ctx.accounts.airlock.key();
         Ok(())
     }
 
@@ -471,27 +470,11 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn set_airlock(ctx: Context<SetAirlock>) -> Result<()> {
-        let executor = &mut ctx.accounts.executor;
-
-        require!(
-            ctx.accounts.payer.key() == executor.airlock,
-            ErrorCode::InvalidSpokeAirlock
-        );
-
-        executor.airlock = ctx.accounts.airlock.key();
-        Ok(())
-    }
-
     //------------------------------------ SPOKE AIRLOCK
     //------------------------------------ ------------------------------------------------
-    pub fn initialize_spoke_airlock(
-        ctx: Context<InitializeSpokeAirlock>,
-        message_executor: Pubkey,
-    ) -> Result<()> {
+    pub fn initialize_spoke_airlock(ctx: Context<InitializeSpokeAirlock>) -> Result<()> {
         let airlock = &mut ctx.accounts.airlock;
         airlock.bump = ctx.bumps.airlock;
-        airlock.message_executor = message_executor;
         Ok(())
     }
 

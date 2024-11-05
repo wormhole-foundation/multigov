@@ -495,8 +495,6 @@ pub struct InitializeSpokeMessageExecutor<'info> {
     pub executor: Account<'info, SpokeMessageExecutor>,
     /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
-    #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
-    pub airlock: Account<'info, SpokeAirlock>,
     pub system_program: Program<'info, System>,
 }
 
@@ -529,16 +527,15 @@ pub struct ReceiveMessage<'info> {
     pub posted_vaa: Account<'info, PostedVaa<Message>>,
 
     #[account(
-        address = message_executor.airlock,
         seeds = [AIRLOCK_SEED.as_bytes()],
         bump = airlock.bump,
     )]
     pub airlock: Box<Account<'info, SpokeAirlock>>,
 
     #[account(
-        address = airlock.message_executor,
         seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
-        bump = message_executor.bump
+        bump = message_executor.bump,
+        constraint = message_executor.wormhole_core == wormhole_program.key() @ MessageExecutorError::InvalidWormholeCoreProgram
     )]
     pub message_executor: Box<Account<'info, SpokeMessageExecutor>>,
 
@@ -549,22 +546,6 @@ pub struct ReceiveMessage<'info> {
 
     /// The system program.
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct SetAirlock<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
-        bump = executor.bump
-    )]
-    pub executor: Account<'info, SpokeMessageExecutor>,
-
-    #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
-    pub airlock: Account<'info, SpokeAirlock>,
 }
 
 #[derive(Accounts)]

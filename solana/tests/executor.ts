@@ -87,12 +87,9 @@ describe("receive_message", () => {
       stakeConnection.program.programId,
     );
 
-    // Determine the message executor public key
-    messageExecutor = messageExecutorPDA;
-
     // Initialize the airlock account
     await stakeConnection.program.methods
-      .initializeSpokeAirlock(messageExecutor)
+      .initializeSpokeAirlock()
       .accounts({
         payer: payer.publicKey,
         airlock: airlockPDA,
@@ -108,7 +105,6 @@ describe("receive_message", () => {
         payer: payer.publicKey,
         executor: messageExecutorPDA,
         hubDispatcher: new PublicKey(Buffer.alloc(32, "f0", "hex")),
-        airlock: airlockPDA,
         systemProgram: SystemProgram.programId,
       })
       .signers([payer])

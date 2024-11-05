@@ -5,11 +5,10 @@ use anchor_lang::prelude::*;
 #[derive(Default, Debug, BorshSchema)]
 pub struct SpokeAirlock {
     pub bump: u8,
-    pub message_executor: Pubkey,
 }
 
 impl SpokeAirlock {
-    pub const LEN: usize = 8 + 1 + 32; // 48
+    pub const LEN: usize = 8 + 1; // 9
 }
 
 #[cfg(test)]

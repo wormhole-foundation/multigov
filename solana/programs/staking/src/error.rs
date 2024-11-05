@@ -137,6 +137,8 @@ pub enum MessageExecutorError {
     InvalidEmitterChain,
     #[msg("Invalid hub dispatcher")]
     InvalidHubDispatcher,
+    #[msg("Invalid wormhole core program")]
+    InvalidWormholeCoreProgram,
     #[msg("Vaa not finalized")]
     VaaNotFinalized,
     #[msg("Missing Remaining account")]

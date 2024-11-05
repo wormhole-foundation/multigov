@@ -13,8 +13,6 @@ pub struct SpokeMessageExecutor {
     pub spoke_chain_id: u16,
     // Wormhole contract handling messages
     pub wormhole_core: Pubkey,
-    // An account that will execute the cross chain proposal
-    pub airlock: Pubkey,
 }
 
 #[account]
@@ -23,7 +21,7 @@ pub struct MessageReceived {
 }
 
 impl SpokeMessageExecutor {
-    pub const LEN: usize = 8 + 2 + 32 + 2 + 2 + 32 + 32; // 116
+    pub const LEN: usize = 8 + 2 + 32 + 2 + 2 + 32; // 84
 }
 
 impl MessageReceived {
