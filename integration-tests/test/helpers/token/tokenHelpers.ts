@@ -88,7 +88,7 @@ export const delegate = async ({
   await client.waitForTransactionReceipt({ hash });
 
   console.log(
-    `Delegated votes from ${account.address} to ${delegatee} on chain ${ethWallet.chain?.name}. Transaction hash: ${hash}`,
+    `Delegated votes from ${account.address} to ${delegatee} on chain ${chain?.name}. Transaction hash: ${hash}`,
   );
   return hash;
 };

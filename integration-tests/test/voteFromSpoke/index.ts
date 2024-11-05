@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
-import { voteFromSpoke } from './helpers';
+import { createClients } from 'test/config/clients';
+import { createProposalOnSpoke } from 'test/createProposalOnSpoke/helpers';
 import {
   getProposalVotes,
   getVotingPower,
   waitForProposalToBeActive,
 } from 'test/helpers';
-import { createClients } from 'test/config/clients';
-import { createProposalOnSpoke } from 'test/createProposalOnSpoke/helpers';
+import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
+import { voteFromSpoke } from './helpers';
 
 describe('Vote from spoke', () => {
   let proposalId: bigint;

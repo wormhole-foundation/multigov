@@ -6,7 +6,7 @@ import { VoteType } from '../../config/types';
 import { mineToTimestamp } from '../time/timeHelpers';
 import { handleNoAccount } from '../wallet/walletHelpers';
 import { getWormholeGetVotesQueryResponse } from '../wormhole/wormholeHelpers';
-import type { ProposalData, ProposalInfo, ProposalVotes } from './types';
+import type { ProposalData, ProposalInfo } from './types';
 import { getVoteEnd, getVoteStart, voteOnProposal } from './votingHelpers';
 
 // Core proposal creation functions
@@ -276,7 +276,6 @@ export const executeProposal = async ({
     address: ContractAddresses.TIMELOCK_CONTROLLER,
   });
 
-
   await ethClient.simulateContract({
     address: ContractAddresses.HUB_GOVERNOR,
     abi: HubGovernorAbi,
@@ -289,7 +288,6 @@ export const executeProposal = async ({
     ],
     account: ContractAddresses.TIMELOCK_CONTROLLER,
   });
-
 
   const hash = await ethWallet.writeContract({
     address: ContractAddresses.HUB_GOVERNOR,

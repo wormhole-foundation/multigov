@@ -1,3 +1,4 @@
+import { type NativeAddress, toNative } from '@wormhole-foundation/sdk';
 import {
   EthCallByTimestampQueryRequest,
   type EthCallData,
@@ -5,7 +6,6 @@ import {
   QueryRequest,
   sign,
 } from '@wormhole-foundation/wormhole-query-sdk';
-import { type NativeAddress, toNative } from '@wormhole-foundation/sdk';
 import { type Address, encodeFunctionData } from 'viem';
 import { HubEvmSpokeAggregateProposerAbi } from '../../../abis';
 import { SpokeVoteAggregatorAbi } from '../../../abis';
