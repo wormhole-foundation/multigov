@@ -45,7 +45,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            size_of::<StakeAccountMetadata>() + StakeAccountMetadata::discriminator().len()
+            size_of::<StakeAccountMetadata>() + StakeAccountMetadata::DISCRIMINATOR.len()
                 == StakeAccountMetadata::LEN
         );
     }

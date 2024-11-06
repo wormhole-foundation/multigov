@@ -1,11 +1,10 @@
 use crate::context::{CONFIG_SEED, VESTING_CONFIG_SEED};
+use crate::error::VestingError;
 use crate::state::global_config::GlobalConfig;
-use crate::{error::VestingError, state::VestingConfig};
+use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token_interface::{Mint, TokenAccount, TokenInterface},
-};
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
@@ -38,7 +37,7 @@ pub struct Initialize<'info> {
     )]
     config: Account<'info, VestingConfig>,
     #[account(
-        seeds = [CONFIG_SEED.as_bytes()], 
+        seeds = [CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
         constraint = global_config.vesting_admin == admin.key()
             @ VestingError::InvalidVestingAdmin

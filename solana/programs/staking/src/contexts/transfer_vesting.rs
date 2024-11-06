@@ -3,17 +3,15 @@ use crate::context::{
     VESTING_CONFIG_SEED, VEST_SEED,
 };
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token_interface::{Mint, TokenAccount, TokenInterface},
-};
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use std::convert::TryInto;
 
+use crate::error::VestingError;
 use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
 use crate::state::global_config::GlobalConfig;
 use crate::state::stake_account::StakeAccountMetadata;
-use crate::state::{VestingBalance, VestingConfig};
-use crate::{error::VestingError, state::Vesting};
+use crate::state::{Vesting, VestingBalance, VestingConfig};
 
 #[derive(Accounts)]
 #[instruction(new_vester: Pubkey)]

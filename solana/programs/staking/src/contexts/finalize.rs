@@ -1,5 +1,6 @@
 use crate::context::VESTING_CONFIG_SEED;
-use crate::{error::VestingError, state::VestingConfig};
+use crate::error::VestingError;
+use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 

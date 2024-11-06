@@ -6,6 +6,7 @@
 // Objects of type Result must be used, otherwise we might
 // call a function that returns a Result and not handle the error
 
+use crate::error::MessageExecutorError;
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
@@ -16,18 +17,17 @@ use std::convert::TryInto;
 
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
 
-use anchor_lang::solana_program::{
-    instruction::AccountMeta, instruction::Instruction, program::invoke_signed,
-};
+use anchor_lang::solana_program::instruction::{AccountMeta, Instruction};
+use anchor_lang::solana_program::program::invoke_signed;
 
 use wormhole_query_sdk::structs::{
     ChainSpecificQuery, ChainSpecificResponse, EthCallData, QueryResponse,
 };
 
-use crate::{
-    error::{ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError},
-    state::GuardianSignatures,
+use crate::error::{
+    ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError,
 };
+use crate::state::GuardianSignatures;
 
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
@@ -69,6 +69,7 @@ declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
 pub mod staking {
     /// Creates a global config for the program
     use super::*;
+    use crate::state::MessageReceived;
 
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
         let config_account = &mut ctx.accounts.config_account;
@@ -114,12 +115,12 @@ pub mod staking {
             ctx.bumps.stake_account_metadata,
             ctx.bumps.stake_account_custody,
             ctx.bumps.custody_authority,
-            &owner,
+            owner,
             &ctx.accounts.stake_account_checkpoints.key(),
         );
 
         let stake_account_checkpoints = &mut ctx.accounts.stake_account_checkpoints.load_init()?;
-        stake_account_checkpoints.initialize(&owner);
+        stake_account_checkpoints.initialize(owner);
 
         Ok(())
     }
@@ -164,7 +165,7 @@ pub mod staking {
             delegator: ctx.accounts.stake_account_checkpoints.key(),
             from_delegate: current_delegate,
             to_delegate: delegatee,
-            total_delegated_votes: total_delegated_votes
+            total_delegated_votes,
         });
 
         let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
@@ -398,7 +399,8 @@ pub mod staking {
         ctx.accounts.withdraw_surplus()
     }
 
-    //------------------------------------ SPOKE MESSAGE EXECUTOR ------------------------------------------------
+    //------------------------------------ SPOKE MESSAGE EXECUTOR
+    //------------------------------------ ------------------------------------------------
     // Initialize and setting a spoke message executor
     pub fn initialize_spoke_message_executor(
         ctx: Context<InitializeSpokeMessageExecutor>,
@@ -410,77 +412,74 @@ pub mod staking {
         executor.hub_chain_id = hub_chain_id;
         executor.spoke_chain_id = SOLANA_CHAIN;
         executor.wormhole_core = CORE_BRIDGE_PROGRAM_ID;
-        executor.airlock = ctx.accounts.airlock.key();
         Ok(())
     }
 
-    pub fn set_message_received(
-        ctx: Context<SetMessageReceived>,
-        _message_hash: [u8; 32],
-    ) -> Result<()> {
-        let message_received = &mut ctx.accounts.message_received;
-        message_received.executed = true;
+    pub fn receive_message(ctx: Context<ReceiveMessage>) -> Result<()> {
+        let posted_vaa = &ctx.accounts.posted_vaa;
+
+        ctx.accounts.message_received.set_inner(MessageReceived {
+            bump: ctx.bumps.message_received,
+        });
+
+        // Execute the instructions in the message.
+        for instruction in posted_vaa.payload.1.instructions.clone() {
+            // Prepare AccountInfo vector for the instruction.
+            let mut account_infos = vec![];
+
+            for meta in &instruction.accounts {
+                let meta_pubkey = Pubkey::new_from_array(meta.pubkey);
+                let account_info = ctx
+                    .remaining_accounts
+                    .iter()
+                    .find(|a| a.key == &meta_pubkey)
+                    .ok_or_else(|| error!(MessageExecutorError::MissedRemainingAccount))?;
+                account_infos.push(account_info.clone());
+            }
+            // Create the instruction.
+            let ix = Instruction {
+                program_id: Pubkey::new_from_array(instruction.program_id),
+                accounts: instruction
+                    .accounts
+                    .iter()
+                    .map(|meta| {
+                        let pubkey = Pubkey::new_from_array(meta.pubkey);
+                        if meta.is_signer {
+                            if meta.is_writable {
+                                AccountMeta::new(pubkey, true)
+                            } else {
+                                AccountMeta::new_readonly(pubkey, true)
+                            }
+                        } else if meta.is_writable {
+                            AccountMeta::new(pubkey, false)
+                        } else {
+                            AccountMeta::new_readonly(pubkey, false)
+                        }
+                    })
+                    .collect(),
+                data: instruction.data.clone(),
+            };
+
+            // Use invoke_signed with the correct signer_seeds
+            let signer_seeds: &[&[&[u8]]] =
+                &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
+
+            invoke_signed(&ix, &account_infos, signer_seeds)?;
+        }
+
         Ok(())
     }
 
-    pub fn set_airlock(ctx: Context<SetAirlock>) -> Result<()> {
-        let executor = &mut ctx.accounts.executor;
-
-        require!(
-            ctx.accounts.payer.key() == executor.airlock,
-            ErrorCode::InvalidSpokeAirlock
-        );
-
-        executor.airlock = ctx.accounts.airlock.key();
-        Ok(())
-    }
-
-    //------------------------------------ SPOKE AIRLOCK ------------------------------------------------
-    pub fn initialize_spoke_airlock(
-        ctx: Context<InitializeSpokeAirlock>,
-        message_executor: Pubkey,
-    ) -> Result<()> {
+    //------------------------------------ SPOKE AIRLOCK
+    //------------------------------------ ------------------------------------------------
+    pub fn initialize_spoke_airlock(ctx: Context<InitializeSpokeAirlock>) -> Result<()> {
         let airlock = &mut ctx.accounts.airlock;
         airlock.bump = ctx.bumps.airlock;
-        airlock.message_executor = message_executor;
         Ok(())
     }
 
-    pub fn execute_operation<'info>(
-        ctx: Context<'_, '_, '_, 'info, ExecuteOperation<'info>>,
-        cpi_target_program_id: Pubkey,
-        instruction_data: Vec<u8>,
-        _value: u64,
-    ) -> Result<()> {
-        let airlock = &ctx.accounts.airlock;
-        require!(
-            ctx.accounts.payer.key() == airlock.message_executor,
-            ErrorCode::InvalidMessageExecutor
-        );
-
-        let mut all_account_infos = ctx.accounts.to_account_infos();
-        all_account_infos.extend_from_slice(ctx.remaining_accounts);
-
-        let account_metas = all_account_infos
-            .clone()
-            .into_iter()
-            .map(|account| AccountMeta::new(*account.key, false))
-            .collect();
-
-        let instruction = Instruction {
-            program_id: cpi_target_program_id,
-            accounts: account_metas,
-            data: instruction_data,
-        };
-
-        let signer_seeds: &[&[&[u8]]] = &[&[b"airlock", &[airlock.bump]]];
-
-        invoke_signed(&instruction, &all_account_infos, signer_seeds)?;
-
-        Ok(())
-    }
-
-    //------------------------------------ SPOKE METADATA COLLECTOR ------------------------------------------------
+    //------------------------------------ SPOKE METADATA COLLECTOR
+    //------------------------------------ ------------------------------------------------
     // Initialize and setting a spoke metadata collector
     pub fn initialize_spoke_metadata_collector(
         ctx: Context<InitializeSpokeMetadataCollector>,
@@ -554,9 +553,10 @@ pub mod staking {
             );
 
             let proposal_query_request_data =
-                spoke_metadata_collector.parse_proposal_query_request_data(&data)?;
+                spoke_metadata_collector.parse_proposal_query_request_data(data)?;
 
-            // The function signature should be bytes4(keccak256(bytes("getProposalMetadata(uint256)")))
+            // The function signature should be
+            // bytes4(keccak256(bytes("getProposalMetadata(uint256)")))
             require!(
                 proposal_query_request_data.signature == [0xeb, 0x9b, 0x98, 0x38],
                 ProposalWormholeMessageError::InvalidFunctionSignature
@@ -599,7 +599,7 @@ pub mod staking {
 
             emit!(ProposalCreated {
                 proposal_id: proposal_data.proposal_id,
-                vote_start: proposal_data.vote_start
+                vote_start: proposal_data.vote_start,
             });
         } else {
             return Err(ProposalWormholeMessageError::InvalidChainSpecificResponse.into());
@@ -612,13 +612,16 @@ pub mod staking {
 /// Creates or appends to a GuardianSignatures account for subsequent use by verify_query.
 /// This is necessary as the Wormhole query response (220 bytes)
 /// and 13 guardian signatures (a quorum of the current 19 mainnet guardians, 66 bytes each)
-/// alongside the required accounts is larger than the transaction size limit on Solana (1232 bytes).
+/// alongside the required accounts is larger than the transaction size limit on Solana (1232
+/// bytes).
 ///
-/// This instruction allows for the initial payer to append additional signatures to the account by calling the instruction again.
-/// This may be necessary if a quorum of signatures from the current guardian set grows larger than can fit into a single transaction.
+/// This instruction allows for the initial payer to append additional signatures to the account by
+/// calling the instruction again. This may be necessary if a quorum of signatures from the current
+/// guardian set grows larger than can fit into a single transaction.
 ///
-/// The GuardianSignatures account can be closed by anyone with a successful update_root_with_query instruction
-/// or by the initial payer via close_signatures, either of which will refund the initial payer.
+/// The GuardianSignatures account can be closed by anyone with a successful update_root_with_query
+/// instruction or by the initial payer via close_signatures, either of which will refund the
+/// initial payer.
 fn _post_signatures(
     ctx: Context<PostSignatures>,
     mut guardian_signatures: Vec<[u8; 66]>,

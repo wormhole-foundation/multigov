@@ -126,3 +126,21 @@ pub enum ProposalWormholeMessageError {
     #[msg("Proposal not initialized since start is zero")]
     ProposalNotInitialized,
 }
+
+#[error_code]
+pub enum MessageExecutorError {
+    #[msg("Message already executed")]
+    MessageAlreadyExecuted,
+    #[msg("Failed parse VAA")]
+    FailedParseVaa,
+    #[msg("Invalid Emitter Chain")]
+    InvalidEmitterChain,
+    #[msg("Invalid hub dispatcher")]
+    InvalidHubDispatcher,
+    #[msg("Invalid wormhole core program")]
+    InvalidWormholeCoreProgram,
+    #[msg("Vaa not finalized")]
+    VaaNotFinalized,
+    #[msg("Missing Remaining account")]
+    MissedRemainingAccount,
+}

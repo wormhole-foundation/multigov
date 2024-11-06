@@ -50,9 +50,7 @@ pub mod tests {
 
     #[test]
     fn check_size() {
-        assert!(
-            size_of::<ProposalData>() + ProposalData::discriminator().len() == ProposalData::LEN
-        );
+        assert!(size_of::<ProposalData>() + ProposalData::DISCRIMINATOR.len() == ProposalData::LEN);
     }
 
     #[test]

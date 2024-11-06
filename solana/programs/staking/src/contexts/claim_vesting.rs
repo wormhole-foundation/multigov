@@ -1,18 +1,16 @@
 use crate::context::{CONFIG_SEED, VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{
+    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
 use std::convert::TryInto;
 
+use crate::error::VestingError;
 use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
 use crate::state::global_config::GlobalConfig;
 use crate::state::stake_account::StakeAccountMetadata;
-use crate::{
-    error::VestingError,
-    state::{Vesting, VestingBalance, VestingConfig},
-};
+use crate::state::{Vesting, VestingBalance, VestingConfig};
 
 #[derive(Accounts)]
 pub struct ClaimVesting<'info> {
@@ -62,7 +60,7 @@ pub struct ClaimVesting<'info> {
     #[account(mut)]
     pub stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
     #[account(
-        seeds = [CONFIG_SEED.as_bytes()], 
+        seeds = [CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
@@ -74,7 +72,8 @@ pub struct ClaimVesting<'info> {
 
 impl<'info> ClaimVesting<'info> {
     pub fn close_vesting(&mut self) -> Result<()> {
-        // If vesting_balance.stake_account_metadata is not set it means that vester has not delegated his vests
+        // If vesting_balance.stake_account_metadata is not set it means that vester has not
+        // delegated his vests
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
             if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
                 &mut self.stake_account_metadata,
@@ -85,7 +84,8 @@ impl<'info> ClaimVesting<'info> {
                     // This error can never happen here, because for the condition above
                     // (self.vesting_balance.stake_account_metadata != Pubkey::default())
                     // to be met, the delegate instruction must be executed.
-                    // However, delegate cannot be executed when self.config.mint != self.global_config.wh_token_mint.
+                    // However, delegate cannot be executed when self.config.mint !=
+                    // self.global_config.wh_token_mint.
                     VestingError::InvalidVestingMint
                 );
 
