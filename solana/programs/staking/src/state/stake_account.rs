@@ -29,7 +29,7 @@ impl StakeAccountMetadata {
         authority_bump: u8,
         owner: &Pubkey,
         delegate: &Pubkey,
-        stake_account_checkpoints_last: u8
+        stake_account_checkpoints_last: u8,
     ) {
         self.metadata_bump = metadata_bump;
         self.custody_bump = custody_bump;

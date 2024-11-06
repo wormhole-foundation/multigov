@@ -282,7 +282,7 @@ impl<'info> AddProposal<'info> {
             MESSAGE_PREFIX,
             &solana_program::keccak::hashv(&[bytes]).to_bytes(),
         ]
-            .concat();
+        .concat();
 
         // SECURITY: defense-in-depth, check again that these are the expected length
         require_eq!(
@@ -508,7 +508,7 @@ pub struct WithdrawTokens<'info> {
 }
 
 impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
-for CpiContext<'a, 'b, 'c, 'info, Transfer<'info>>
+    for CpiContext<'a, 'b, 'c, 'info, Transfer<'info>>
 {
     fn from(accounts: &WithdrawTokens<'info>) -> CpiContext<'a, 'b, 'c, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {

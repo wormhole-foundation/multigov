@@ -10,7 +10,9 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
 use contexts::*;
-use state::checkpoints::{find_checkpoint_le, push_checkpoint, push_checkpoint_init, read_checkpoint_at_index, Operation};
+use state::checkpoints::{
+    find_checkpoint_le, push_checkpoint, push_checkpoint_init, read_checkpoint_at_index, Operation,
+};
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
@@ -70,7 +72,6 @@ pub mod staking {
     /// Creates a global config for the program
     use super::*;
 
-
     pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
         let config_account = &mut ctx.accounts.config_account;
         config_account.bump = ctx.bumps.config_account;
@@ -125,7 +126,10 @@ pub mod staking {
         let owner = &ctx.accounts.payer.key;
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
 
-        require!(**owner == ctx.accounts.stake_account_metadata.owner, VestingError::InvalidStakeAccountOwner);
+        require!(
+            **owner == ctx.accounts.stake_account_metadata.owner,
+            VestingError::InvalidStakeAccountOwner
+        );
 
         let previous_index = if stake_account_metadata.stake_account_checkpoints_last_index == 0 {
             0
@@ -134,27 +138,36 @@ pub mod staking {
         };
 
         let expected_stake_account_checkpoints_address = Pubkey::find_program_address(
-            &[CHECKPOINT_DATA_SEED.as_bytes(), owner.as_ref(), previous_index.to_le_bytes().as_ref()],
+            &[
+                CHECKPOINT_DATA_SEED.as_bytes(),
+                owner.as_ref(),
+                previous_index.to_le_bytes().as_ref(),
+            ],
             &crate::ID,
-        ).0;
+        )
+        .0;
 
         require!(
-            expected_stake_account_checkpoints_address == ctx.accounts.stake_account_checkpoints.key(),
+            expected_stake_account_checkpoints_address
+                == ctx.accounts.stake_account_checkpoints.key(),
             ErrorCode::InvalidStakeAccountCheckpoints
         );
 
-        let mut new_stake_account_checkpoints = ctx.accounts.new_stake_account_checkpoints.load_init()?;
+        let mut new_stake_account_checkpoints =
+            ctx.accounts.new_stake_account_checkpoints.load_init()?;
         new_stake_account_checkpoints.initialize(&owner);
         drop(new_stake_account_checkpoints);
 
-        let current_checkpoints_account_info = ctx.accounts.stake_account_checkpoints.to_account_info();
+        let current_checkpoints_account_info =
+            ctx.accounts.stake_account_checkpoints.to_account_info();
 
         let checkpoint_data = ctx.accounts.stake_account_checkpoints.load()?;
         if checkpoint_data.next_index > 0 {
             let latest_index = checkpoint_data.next_index - 1;
             let checkpoint =
                 read_checkpoint_at_index(&current_checkpoints_account_info, latest_index as usize)?;
-            let checkpoints_account_info = ctx.accounts.new_stake_account_checkpoints.to_account_info();
+            let checkpoints_account_info =
+                ctx.accounts.new_stake_account_checkpoints.to_account_info();
             push_checkpoint_init(
                 &mut ctx.accounts.new_stake_account_checkpoints,
                 &checkpoints_account_info,
@@ -169,20 +182,30 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn delegate(ctx: Context<Delegate>, delegatee: Pubkey, _current_delegate_stake_account_owner: Pubkey) -> Result<()> {
+    pub fn delegate(
+        ctx: Context<Delegate>,
+        delegatee: Pubkey,
+        _current_delegate_stake_account_owner: Pubkey,
+    ) -> Result<()> {
         let stake_account_metadata = &mut ctx.accounts.stake_account_metadata;
         let config = &ctx.accounts.config;
 
-        let delegatee_stake_account_checkpoints = ctx.accounts.delegatee_stake_account_checkpoints.load()?;
-        let current_delegate_stake_account_checkpoints = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
+        let delegatee_stake_account_checkpoints =
+            ctx.accounts.delegatee_stake_account_checkpoints.load()?;
+        let current_delegate_stake_account_checkpoints = ctx
+            .accounts
+            .current_delegate_stake_account_checkpoints
+            .load()?;
         require!(
-                delegatee_stake_account_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
-                ErrorCode::TooManyCheckpoints,
-            );
+            delegatee_stake_account_checkpoints.next_index
+                < config.max_checkpoints_account_limit.into(),
+            ErrorCode::TooManyCheckpoints,
+        );
         require!(
-                current_delegate_stake_account_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
-                ErrorCode::TooManyCheckpoints,
-            );
+            current_delegate_stake_account_checkpoints.next_index
+                < config.max_checkpoints_account_limit.into(),
+            ErrorCode::TooManyCheckpoints,
+        );
         drop(delegatee_stake_account_checkpoints);
         drop(current_delegate_stake_account_checkpoints);
 
@@ -298,29 +321,52 @@ pub mod staking {
             stake_account_metadata.recorded_balance = current_stake_balance;
         }
 
-        let delegatee_stake_account_checkpoints = ctx.accounts.delegatee_stake_account_checkpoints.load()?;
-        let current_delegate_stake_account_checkpoints = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
+        let delegatee_stake_account_checkpoints =
+            ctx.accounts.delegatee_stake_account_checkpoints.load()?;
+        let current_delegate_stake_account_checkpoints = ctx
+            .accounts
+            .current_delegate_stake_account_checkpoints
+            .load()?;
 
-        if ctx.accounts.delegatee_stake_account_checkpoints.key() ==
-            ctx.accounts.current_delegate_stake_account_checkpoints.key() {
-            if delegatee_stake_account_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
-                ctx.accounts.delegatee_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+        if ctx.accounts.delegatee_stake_account_checkpoints.key()
+            == ctx
+                .accounts
+                .current_delegate_stake_account_checkpoints
+                .key()
+        {
+            if delegatee_stake_account_checkpoints.next_index
+                >= config.max_checkpoints_account_limit.into()
+            {
+                ctx.accounts
+                    .delegatee_stake_account_metadata
+                    .stake_account_checkpoints_last_index += 1;
             }
         } else {
-            if delegatee_stake_account_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
-                ctx.accounts.delegatee_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+            if delegatee_stake_account_checkpoints.next_index
+                >= config.max_checkpoints_account_limit.into()
+            {
+                ctx.accounts
+                    .delegatee_stake_account_metadata
+                    .stake_account_checkpoints_last_index += 1;
             }
-            if current_delegate_stake_account_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
-                ctx.accounts.current_delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+            if current_delegate_stake_account_checkpoints.next_index
+                >= config.max_checkpoints_account_limit.into()
+            {
+                ctx.accounts
+                    .current_delegate_stake_account_metadata
+                    .stake_account_checkpoints_last_index += 1;
             }
         }
 
         Ok(())
     }
 
-    pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, amount: u64,
-                           current_delegate_stake_account_metadata_owner: Pubkey,
-                           stake_account_metadata_owner: Pubkey) -> Result<()> {
+    pub fn withdraw_tokens(
+        ctx: Context<WithdrawTokens>,
+        amount: u64,
+        current_delegate_stake_account_metadata_owner: Pubkey,
+        stake_account_metadata_owner: Pubkey,
+    ) -> Result<()> {
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
 
         let expected_current_delegate_stake_account_metadata_pda = Pubkey::find_program_address(
@@ -329,12 +375,13 @@ pub mod staking {
                 current_delegate_stake_account_metadata_owner.as_ref(),
             ],
             &crate::ID,
-        ).0;
+        )
+        .0;
         require!(
-                    expected_current_delegate_stake_account_metadata_pda ==
-                    ctx.accounts.current_delegate_stake_account_metadata.key(),
-                    ErrorCode::InvalidStakeAccountMetadata
-                );
+            expected_current_delegate_stake_account_metadata_pda
+                == ctx.accounts.current_delegate_stake_account_metadata.key(),
+            ErrorCode::InvalidStakeAccountMetadata
+        );
 
         let expected_stake_account_metadata_pda = Pubkey::find_program_address(
             &[
@@ -342,12 +389,12 @@ pub mod staking {
                 stake_account_metadata_owner.as_ref(),
             ],
             &crate::ID,
-        ).0;
+        )
+        .0;
         require!(
-                    expected_stake_account_metadata_pda == stake_account_metadata.key(),
-                     ErrorCode::InvalidStakeAccountMetadata
-                );
-
+            expected_stake_account_metadata_pda == stake_account_metadata.key(),
+            ErrorCode::InvalidStakeAccountMetadata
+        );
 
         let destination_account = &ctx.accounts.destination;
         let signer = &ctx.accounts.payer;
@@ -372,11 +419,14 @@ pub mod staking {
 
         if stake_account_metadata.delegate != Pubkey::default() {
             let config = &ctx.accounts.config;
-            let loaded_checkpoints = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
+            let loaded_checkpoints = ctx
+                .accounts
+                .current_delegate_stake_account_checkpoints
+                .load()?;
             require!(
-                        loaded_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
-                        ErrorCode::TooManyCheckpoints,
-                    );
+                loaded_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
+                ErrorCode::TooManyCheckpoints,
+            );
             drop(loaded_checkpoints);
 
             let current_delegate_account_info = ctx
@@ -405,9 +455,14 @@ pub mod staking {
                 &ctx.accounts.system_program.to_account_info(),
             )?;
 
-            let loaded_checkpoints = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
+            let loaded_checkpoints = ctx
+                .accounts
+                .current_delegate_stake_account_checkpoints
+                .load()?;
             if loaded_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
-                ctx.accounts.current_delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                ctx.accounts
+                    .current_delegate_stake_account_metadata
+                    .stake_account_checkpoints_last_index += 1;
             }
             drop(loaded_checkpoints);
         }
@@ -430,9 +485,14 @@ pub mod staking {
 
         let voter_checkpoints = ctx.accounts.voter_checkpoints.to_account_info();
 
-        if let Some((index, checkpoint)) = find_checkpoint_le(&voter_checkpoints, proposal.vote_start)? {
+        if let Some((index, checkpoint)) =
+            find_checkpoint_le(&voter_checkpoints, proposal.vote_start)?
+        {
             // Check if checkpoint is not the last in fully loaded checkpoints account
-            require!(config.max_checkpoints_account_limit != index as u32, ErrorCode::CheckpointOutOfBounds);
+            require!(
+                config.max_checkpoints_account_limit != index as u32,
+                ErrorCode::CheckpointOutOfBounds
+            );
 
             let total_weight = checkpoint.value;
 

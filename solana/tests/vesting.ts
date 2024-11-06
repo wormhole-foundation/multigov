@@ -112,7 +112,11 @@ describe("vesting", () => {
       whMintAccount,
       whMintAuthority,
       governanceAuthority,
-      makeTestConfig(whMintAccount.publicKey, whMintAuthority.publicKey, TINY_CHECKPOINTS_ACCOUNT_LIMIT),
+      makeTestConfig(
+        whMintAccount.publicKey,
+        whMintAuthority.publicKey,
+        TINY_CHECKPOINTS_ACCOUNT_LIMIT,
+      ),
       WHTokenBalance.fromString("1000"),
     ));
 
@@ -1292,10 +1296,7 @@ describe("vesting", () => {
         false,
       );
 
-    assert.equal(
-      currentStakeAccountCheckpointsAddress,
-      undefined,
-    );
+    assert.equal(currentStakeAccountCheckpointsAddress, undefined);
 
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(

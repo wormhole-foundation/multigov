@@ -271,7 +271,6 @@ fn calc_new_checkpoint(
     Ok(new_checkpoint)
 }
 
-
 pub fn find_checkpoint_le(
     account_info: &AccountInfo,
     target_timestamp: u64,

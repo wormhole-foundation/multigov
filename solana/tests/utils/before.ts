@@ -27,7 +27,7 @@ import {
   WHTokenBalance,
   WH_TOKEN_DECIMALS,
   CHECKPOINTS_ACCOUNT_LIMIT,
-  TEST_CHECKPOINTS_ACCOUNT_LIMIT
+  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
 } from "../../app";
 import { GlobalConfig } from "../../app/StakeConnection";
 import { createMint, initAddressLookupTable } from "./utils";
@@ -277,14 +277,14 @@ export async function initConfig(
 export function makeTestConfig(
   whMint: PublicKey,
   vestingAdmin: PublicKey = PublicKey.unique(),
-  maxCheckpointsAccountLimit: number = TEST_CHECKPOINTS_ACCOUNT_LIMIT
+  maxCheckpointsAccountLimit: number = TEST_CHECKPOINTS_ACCOUNT_LIMIT,
 ): GlobalConfig {
   return {
     bump: 0,
     governanceAuthority: null,
     whTokenMint: whMint,
     vestingAdmin: vestingAdmin,
-    maxCheckpointsAccountLimit: maxCheckpointsAccountLimit
+    maxCheckpointsAccountLimit: maxCheckpointsAccountLimit,
   };
 }
 

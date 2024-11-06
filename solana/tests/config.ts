@@ -1,4 +1,4 @@
-import {AnchorError, parseIdlErrors, utils, Wallet} from "@coral-xyz/anchor";
+import { AnchorError, parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
 import {
   Keypair,
   LAMPORTS_PER_SOL,
@@ -18,9 +18,10 @@ import assert from "assert";
 import path from "path";
 import * as wasm from "@wormhole/staking-wasm";
 import {
-    StakeConnection, TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-    WH_TOKEN_DECIMALS,
-    WHTokenBalance,
+  StakeConnection,
+  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+  WH_TOKEN_DECIMALS,
+  WHTokenBalance,
 } from "../app";
 import BN from "bn.js";
 import {
@@ -28,7 +29,7 @@ import {
   hubProposalMetadata,
   CORE_BRIDGE_ADDRESS,
 } from "../app/constants";
-import {StakeAccountMetadata} from "../app/StakeConnection.ts";
+import { StakeAccountMetadata } from "../app/StakeConnection.ts";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -179,7 +180,7 @@ describe("config", async () => {
     await program.methods
       .initializeSpokeMetadataCollector(hubChainId, initHubProposalMetadata)
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
-      .rpc({skipPreflight: true});
+      .rpc({ skipPreflight: true });
 
     const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
       PublicKey.findProgramAddressSync(
@@ -229,7 +230,7 @@ describe("config", async () => {
     await program.methods
       .updateHubProposalMetadata(hubProposalMetadata)
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
-      .rpc({skipPreflight: true});
+      .rpc({ skipPreflight: true });
 
     const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
       PublicKey.findProgramAddressSync(
@@ -283,7 +284,7 @@ describe("config", async () => {
         payer: randomUser.publicKey,
       })
       .signers([randomUser])
-      .rpc({skipPreflight: true});
+      .rpc({ skipPreflight: true });
 
     const metadataAddress = PublicKey.findProgramAddressSync(
       [
@@ -348,7 +349,7 @@ describe("config", async () => {
 
     await vestingAdminConnection.program.methods
       .updateVestingAdmin(program.provider.wallet.publicKey)
-      .rpc({skipPreflight: true});
+      .rpc({ skipPreflight: true });
 
     let configAccountData =
       await program.account.globalConfig.fetch(configAccount);
