@@ -67,7 +67,7 @@ export function readAnchorConfig(pathToAnchorToml: string): AnchorConfig {
   return config;
 }
 
-function sleep(ms) {
+export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 

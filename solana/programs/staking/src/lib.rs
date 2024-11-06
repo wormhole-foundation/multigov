@@ -337,24 +337,49 @@ pub mod staking {
             if delegatee_stake_account_checkpoints.next_index
                 >= config.max_checkpoints_account_limit.into()
             {
-                ctx.accounts
-                    .delegatee_stake_account_metadata
-                    .stake_account_checkpoints_last_index += 1;
+                if ctx.accounts.delegatee_stake_account_metadata.key()
+                    == ctx.accounts.stake_account_metadata.key()
+                {
+                    ctx.accounts
+                        .stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                } else {
+                    ctx.accounts
+                        .delegatee_stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                }
             }
         } else {
             if delegatee_stake_account_checkpoints.next_index
                 >= config.max_checkpoints_account_limit.into()
             {
-                ctx.accounts
-                    .delegatee_stake_account_metadata
-                    .stake_account_checkpoints_last_index += 1;
+                if ctx.accounts.delegatee_stake_account_metadata.key()
+                    == ctx.accounts.stake_account_metadata.key()
+                {
+                    ctx.accounts
+                        .stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                } else {
+                    ctx.accounts
+                        .delegatee_stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                }
             }
+
             if current_delegate_stake_account_checkpoints.next_index
                 >= config.max_checkpoints_account_limit.into()
             {
-                ctx.accounts
-                    .current_delegate_stake_account_metadata
-                    .stake_account_checkpoints_last_index += 1;
+                if ctx.accounts.current_delegate_stake_account_metadata.key()
+                    == ctx.accounts.stake_account_metadata.key()
+                {
+                    ctx.accounts
+                        .stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                } else {
+                    ctx.accounts
+                        .current_delegate_stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                }
             }
         }
 
