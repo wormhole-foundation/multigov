@@ -282,9 +282,7 @@ export function makeDefaultConfig(
     bump: 0,
     governanceAuthority: null,
     whTokenMint: whMint,
-    freeze: true,
     vestingAdmin: vestingAdmin,
-    mockClockTime: new BN(10),
     maxCheckpointsAccountLimit:  CHECK_POINTS_ACCOUNT_LIMIT
   };
 }
@@ -297,9 +295,7 @@ export function makeTestConfig(
     bump: 0,
     governanceAuthority: null,
     whTokenMint: whMint,
-    freeze: true,
     vestingAdmin: vestingAdmin,
-    mockClockTime: new BN(10),
     maxCheckpointsAccountLimit:  TEST_CHECKPOINTS_ACCOUNT_LIMIT
   };
 }

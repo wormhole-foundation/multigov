@@ -329,21 +329,12 @@ export class StakeConnection {
 
   /** Gets the current unix time, as would be perceived by the on-chain program */
   public async getTime(): Promise<BN> {
-    // This is a hack, we are using this deprecated flag to flag whether we are using the mock clock or not
-    if (this.config.freeze) {
-      // On chain program using mock clock, so get that time
-      const updatedConfig = await this.program.account.globalConfig.fetch(
-        this.configAddress,
+    // Using Sysvar clock
+    const clockBuf =
+      await this.program.provider.connection.getAccountInfo(
+        SYSVAR_CLOCK_PUBKEY,
       );
-      return updatedConfig.mockClockTime;
-    } else {
-      // Using Sysvar clock
-      const clockBuf =
-        await this.program.provider.connection.getAccountInfo(
-          SYSVAR_CLOCK_PUBKEY,
-        );
-      return new BN(wasm.getUnixTime(clockBuf!.data).toString());
-    }
+    return new BN(wasm.getUnixTime(clockBuf!.data).toString());
   }
 
   public async createStakeAccount(): Promise<void> {

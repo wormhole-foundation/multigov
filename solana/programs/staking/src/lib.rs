@@ -76,14 +76,8 @@ pub mod staking {
         config_account.bump = ctx.bumps.config_account;
         config_account.governance_authority = global_config.governance_authority;
         config_account.wh_token_mint = global_config.wh_token_mint;
-        config_account.freeze = global_config.freeze;
         config_account.vesting_admin = global_config.vesting_admin;
         config_account.max_checkpoints_account_limit = global_config.max_checkpoints_account_limit;
-
-        #[cfg(feature = "mock-clock")]
-        {
-            config_account.mock_clock_time = global_config.mock_clock_time;
-        }
 
         Ok(())
     }
@@ -231,7 +225,7 @@ pub mod staking {
             total_delegated_votes: total_delegated_votes
         });
 
-        let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
+        let current_timestamp: u64 = utils::clock::get_current_time().try_into().unwrap();
 
         if current_delegate != delegatee {
             if prev_recorded_total_balance > 0 {
@@ -377,9 +371,10 @@ pub mod staking {
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
 
         if stake_account_metadata.delegate != Pubkey::default() {
+            let config = &ctx.accounts.config;
             let loaded_checkpoints = ctx.accounts.current_delegate_stake_account_checkpoints.load()?;
             require!(
-                        loaded_checkpoints.next_index < ctx.accounts.config.max_checkpoints_account_limit.into(),
+                        loaded_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
                         ErrorCode::TooManyCheckpoints,
                     );
             drop(loaded_checkpoints);
@@ -388,8 +383,8 @@ pub mod staking {
                 .accounts
                 .current_delegate_stake_account_checkpoints
                 .to_account_info();
-            let config = &ctx.accounts.config;
-            let current_timestamp: u64 = utils::clock::get_current_time(config).try_into().unwrap();
+
+            let current_timestamp: u64 = utils::clock::get_current_time().try_into().unwrap();
 
             let (amount_delta, operation) = if current_stake_balance > recorded_balance {
                 (current_stake_balance - recorded_balance, Operation::Add)

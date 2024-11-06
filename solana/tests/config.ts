@@ -89,8 +89,6 @@ describe("config", async () => {
 
     await program.methods
       .initConfig({
-        freeze: false,
-        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
@@ -115,9 +113,7 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
-        freeze: false,
         maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
@@ -136,9 +132,7 @@ describe("config", async () => {
         .initConfig({
           governanceAuthority: program.provider.wallet.publicKey,
           whTokenMint: whMintAccount.publicKey,
-          freeze: false,
           vestingAdmin: vestingAdmin,
-          mockClockTime: new BN(0),
           maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
         .rpc();
@@ -147,9 +141,7 @@ describe("config", async () => {
         .initConfig({
           governanceAuthority: program.provider.wallet.publicKey,
           whTokenMint: whMintAccount.publicKey,
-          freeze: false,
           vestingAdmin: vestingAdmin,
-          mockClockTime: new BN(0),
           maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
         .rpc();
@@ -277,9 +269,7 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
-        freeze: false,
         maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
@@ -367,9 +357,7 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
-        freeze: false,
         maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: program.provider.wallet.publicKey,
@@ -385,9 +373,7 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
-        freeze: false,
         maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
