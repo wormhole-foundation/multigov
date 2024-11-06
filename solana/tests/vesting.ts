@@ -64,6 +64,8 @@ describe("vesting", () => {
   const EVEN_LATER = LATER.add(new BN(1000));
   const EVEN_LATER_AGAIN = EVEN_LATER.add(new BN(1000));
 
+  const TINY_CHECKPOINTS_ACCOUNT_LIMIT = 2;
+
   const vester = Keypair.generate();
   const newVester = Keypair.generate();
   const vesterWithoutAccount = Keypair.generate();
@@ -110,7 +112,7 @@ describe("vesting", () => {
       whMintAccount,
       whMintAuthority,
       governanceAuthority,
-      makeTestConfig(whMintAccount.publicKey, whMintAuthority.publicKey),
+      makeTestConfig(whMintAccount.publicKey, whMintAuthority.publicKey, TINY_CHECKPOINTS_ACCOUNT_LIMIT),
       WHTokenBalance.fromString("1000"),
     ));
 
@@ -736,7 +738,7 @@ describe("vesting", () => {
 
   it("should successfully delegate with vest", async () => {
     let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.delegate_with_vest(
+      await vesterStakeConnection.delegateWithVest(
         vesterStakeConnection.userPublicKey(),
         WHTokenBalance.fromString("0"),
         true,
@@ -770,7 +772,7 @@ describe("vesting", () => {
 
   it("should fail to delegate with uninitialized vestingBalance account", async () => {
     let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.delegate_with_vest(
+      await vesterStakeConnection.delegateWithVest(
         vesterStakeConnection.userPublicKey(),
         WHTokenBalance.fromString("0"),
         true,
@@ -842,7 +844,7 @@ describe("vesting", () => {
 
   it("should fail to delegate with vestingBalance account discriminator mismatch", async () => {
     let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.delegate_with_vest(
+      await vesterStakeConnection.delegateWithVest(
         vesterStakeConnection.userPublicKey(),
         WHTokenBalance.fromString("0"),
         true,
@@ -1049,6 +1051,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert.equal(
         "Program 11111111111111111111111111111111 failed: custom program error: 0x0",
@@ -1148,6 +1152,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "TooManyCheckpoints",
@@ -1207,6 +1213,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "TooManyCheckpoints",
@@ -1262,6 +1270,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -1276,11 +1286,32 @@ describe("vesting", () => {
         vesterStakeConnection.userPublicKey(),
       );
 
+    let currentStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        false,
+      );
+
+    assert.equal(
+      currentStakeAccountCheckpointsAddress,
+      undefined,
+    );
+
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         stakeAccountMetadataAddress,
         true,
       );
+
+    let vesterStakeCheckpoints: CheckpointAccount =
+      await vesterStakeConnection.fetchCheckpointAccount(
+        stakeAccountCheckpointsAddress,
+      );
+
+    assert.equal(
+      vesterStakeCheckpoints.getCheckpointCount(),
+      TINY_CHECKPOINTS_ACCOUNT_LIMIT,
+    );
 
     await stakeConnection.program.methods
       .createCheckpoints()
@@ -1471,6 +1502,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -1520,6 +1553,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -1564,6 +1599,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -1603,6 +1640,8 @@ describe("vesting", () => {
         .signers([vester])
         .rpc()
         .then(confirm);
+
+      assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
@@ -1945,7 +1984,7 @@ describe("vesting", () => {
 
     it("should fail to delegate with invalid vesting token", async () => {
       let stakeAccountCheckpointsAddress =
-        await vesterStakeConnection.delegate_with_vest(
+        await vesterStakeConnection.delegateWithVest(
           vesterStakeConnection.userPublicKey(),
           WHTokenBalance.fromString("0"),
           true,

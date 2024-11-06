@@ -220,7 +220,7 @@ async function main() {
     .then(confirm);
 
   let stakeAccountCheckpointsAddress =
-    await vesterStakeConnection.delegate_with_vest(
+    await vesterStakeConnection.delegateWithVest(
       vester.publicKey,
       WHTokenBalance.fromString("0"),
       true,

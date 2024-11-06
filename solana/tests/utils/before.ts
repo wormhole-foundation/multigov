@@ -26,7 +26,7 @@ import {
   StakeConnection,
   WHTokenBalance,
   WH_TOKEN_DECIMALS,
-  CHECK_POINTS_ACCOUNT_LIMIT,
+  CHECKPOINTS_ACCOUNT_LIMIT,
   TEST_CHECKPOINTS_ACCOUNT_LIMIT
 } from "../../app";
 import { GlobalConfig } from "../../app/StakeConnection";
@@ -274,30 +274,25 @@ export async function initConfig(
   });
 }
 
+export function makeTestConfig(
+  whMint: PublicKey,
+  vestingAdmin: PublicKey = PublicKey.unique(),
+  maxCheckpointsAccountLimit: number = TEST_CHECKPOINTS_ACCOUNT_LIMIT
+): GlobalConfig {
+  return {
+    bump: 0,
+    governanceAuthority: null,
+    whTokenMint: whMint,
+    vestingAdmin: vestingAdmin,
+    maxCheckpointsAccountLimit: maxCheckpointsAccountLimit
+  };
+}
+
 export function makeDefaultConfig(
   whMint: PublicKey,
   vestingAdmin: PublicKey = PublicKey.unique(),
 ): GlobalConfig {
-  return {
-    bump: 0,
-    governanceAuthority: null,
-    whTokenMint: whMint,
-    vestingAdmin: vestingAdmin,
-    maxCheckpointsAccountLimit:  CHECK_POINTS_ACCOUNT_LIMIT
-  };
-}
-
-export function makeTestConfig(
-    whMint: PublicKey,
-    vestingAdmin: PublicKey = PublicKey.unique(),
-): GlobalConfig {
-  return {
-    bump: 0,
-    governanceAuthority: null,
-    whTokenMint: whMint,
-    vestingAdmin: vestingAdmin,
-    maxCheckpointsAccountLimit:  TEST_CHECKPOINTS_ACCOUNT_LIMIT
-  };
+  return makeTestConfig(whMint, vestingAdmin, CHECKPOINTS_ACCOUNT_LIMIT);
 }
 
 /**

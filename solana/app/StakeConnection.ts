@@ -403,7 +403,7 @@ export class StakeConnection {
     return ix;
   }
 
-  public async delegate_with_vest(
+  public async delegateWithVest(
     delegatee: PublicKey,
     amount: WHTokenBalance,
     include_vest: boolean,
