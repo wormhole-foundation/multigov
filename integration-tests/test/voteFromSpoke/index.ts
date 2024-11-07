@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { createClients } from 'test/config/clients';
 import { createProposalOnSpoke } from 'test/createProposalOnSpoke/helpers';
 import {
@@ -9,16 +9,9 @@ import {
 import { voteFromSpoke } from './helpers';
 
 describe('Vote from spoke', () => {
-  let proposalId: bigint;
-
-  beforeAll(async () => {
-    proposalId = await createProposalOnSpoke();
-    console.log('Waiting for proposal to be active...');
-    await waitForProposalToBeActive(proposalId);
-    console.log('Proposal is now active');
-  });
-
   test('should successfully vote from spoke and bridge to hub', async () => {
+    const proposalId = await createProposalOnSpoke();
+    await waitForProposalToBeActive(proposalId);
     const { account, ethClient } = createClients();
 
     console.log('Getting initial vote weight and votes...');
