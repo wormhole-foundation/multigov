@@ -7,6 +7,9 @@
     "@types/bun": "latest"
   },
   "scripts": {
+    "clean": "cd ../evm && forge clean",
+    "build:contracts": "cd ../evm && forge build -vvv --via-ir",
+    "generate:artifacts": "bun run clean && bun run build:contracts && bun run scripts/generateArtifacts.ts",
     "test": "bun test",
     "lint": "tsc --noEmit && biome lint --write",
     "format": "biome format --write",
@@ -20,6 +23,6 @@
     "@wormhole-foundation/sdk": "^0.15.0",
     "@wormhole-foundation/wormhole-query-sdk": "^0.0.13",
     "dotenv": "^16.4.5",
-    "viem": "^2.18.7"
+    "viem": "^2.21.42"
   }
 }

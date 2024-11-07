@@ -13,11 +13,6 @@ export default [
         internalType: 'address',
       },
       {
-        name: '_expectedProgramId',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
-      {
         name: '_solanaTokenDecimals',
         type: 'uint8',
         internalType: 'uint8',
@@ -34,19 +29,6 @@ export default [
         name: '',
         type: 'uint256',
         internalType: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'EXPECTED_PROGRAM_ID',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'bytes32',
-        internalType: 'bytes32',
       },
     ],
     stateMutability: 'view',
@@ -73,6 +55,19 @@ export default [
         name: '',
         type: 'address',
         internalType: 'contract HubVotePool',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'PROPOSAL_DISCRIMINATOR',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'bytes8',
+        internalType: 'bytes8',
       },
     ],
     stateMutability: 'view',
@@ -170,26 +165,13 @@ export default [
   },
   {
     type: 'function',
-    name: 'SOLANA_CHAIN_ID',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'uint16',
-        internalType: 'uint16',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     name: 'SOLANA_COMMITMENT_LEVEL',
     inputs: [],
     outputs: [
       {
         name: '',
-        type: 'bytes12',
-        internalType: 'bytes12',
+        type: 'bytes9',
+        internalType: 'bytes9',
       },
     ],
     stateMutability: 'view',
@@ -1230,6 +1212,11 @@ export default [
   },
   {
     type: 'error',
+    name: 'InvalidDiscriminator',
+    inputs: [],
+  },
+  {
+    type: 'error',
     name: 'InvalidFunctionSignature',
     inputs: [],
   },
@@ -1263,7 +1250,18 @@ export default [
   {
     type: 'error',
     name: 'InvalidProposalIdSeed',
-    inputs: [],
+    inputs: [
+      {
+        name: 'expected',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+      {
+        name: 'actual',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
     type: 'error',
@@ -1325,6 +1323,11 @@ export default [
   {
     type: 'error',
     name: 'RequestTypeMismatch',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'SpokeNotRegistered',
     inputs: [],
   },
   {

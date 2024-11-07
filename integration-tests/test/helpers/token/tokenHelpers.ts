@@ -28,12 +28,18 @@ export const mintTokens = async ({
   amount: bigint;
   isHub: boolean;
 }) => {
+  console.log(
+    `\n💰 Minting ${amount} tokens for ${recipientAddress} on ${isHub ? 'hub' : 'spoke'} chain`,
+  );
   const { ethWallet, eth2Wallet, account } = createClients();
   const client = isHub ? ethWallet : eth2Wallet;
   const chain = isHub ? ethWallet.chain : eth2Wallet.chain;
+  const tokenAddress = isHub
+    ? ContractAddresses.HUB_VOTING_TOKEN
+    : ContractAddresses.SPOKE_VOTING_TOKEN;
 
   const hash = await client.writeContract({
-    address: ContractAddresses.TOKEN,
+    address: tokenAddress,
     abi: [
       {
         name: 'mint',
@@ -50,11 +56,9 @@ export const mintTokens = async ({
     account,
     chain,
   });
-  console.log(
-    `Minted ${amount} tokens for account ${recipientAddress} on chain ${chain.name}. Transaction hash: ${hash}`,
-  );
 
   await client.waitForTransactionReceipt({ hash });
+  console.log('✅ Tokens minted successfully');
   return hash;
 };
 
@@ -65,12 +69,18 @@ export const delegate = async ({
   delegatee: Address;
   isHub: boolean;
 }) => {
+  console.log(
+    `\n📊 Delegating votes to ${delegatee} on ${isHub ? 'hub' : 'spoke'} chain`,
+  );
   const { ethWallet, eth2Wallet, account } = createClients();
   const client = isHub ? ethWallet : eth2Wallet;
   const chain = isHub ? ethWallet.chain : eth2Wallet.chain;
+  const tokenAddress = isHub
+    ? ContractAddresses.HUB_VOTING_TOKEN
+    : ContractAddresses.SPOKE_VOTING_TOKEN;
 
   const hash = await client.writeContract({
-    address: ContractAddresses.TOKEN,
+    address: tokenAddress,
     abi: [
       {
         name: 'delegate',
@@ -86,9 +96,6 @@ export const delegate = async ({
   });
 
   await client.waitForTransactionReceipt({ hash });
-
-  console.log(
-    `Delegated votes from ${account.address} to ${delegatee} on chain ${chain?.name}. Transaction hash: ${hash}`,
-  );
+  console.log('✅ Delegation complete');
   return hash;
 };

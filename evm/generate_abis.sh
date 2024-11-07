@@ -16,6 +16,9 @@ main_contracts=(
     "SpokeMetadataCollector"
     "SpokeVoteAggregator"
     "WormholeDispatcher"
+    "ERC20VotesFake"
+    "TimelockController"
+    "ERC1967Proxy"
 )
 
 # Create a directory for the ABIs if it doesn't exist
