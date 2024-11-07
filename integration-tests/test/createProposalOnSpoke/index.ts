@@ -1,17 +1,8 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { getProposal, getVoteStart } from 'test/helpers';
-import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
 import { createProposalOnSpoke, getProposalOnSpoke } from './helpers';
 
 describe('Create proposal on spoke', () => {
-  beforeAll(async () => {
-    await setupTestEnvironment();
-  });
-
-  afterAll(async () => {
-    await teardownTestEnvironment();
-  });
-
   test('should create proposal on spoke', async () => {
     const proposalId = await createProposalOnSpoke();
     const spokeProposalData = await getProposalOnSpoke(proposalId);

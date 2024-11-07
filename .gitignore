@@ -4,8 +4,6 @@ out/
 evm/cache/
 evm/out/
 
-
-
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*/31337/
@@ -22,3 +20,5 @@ lcov.info
 .vscode
 .idea
 
+# Artifacts
+artifacts/
