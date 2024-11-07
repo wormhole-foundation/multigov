@@ -1,6 +1,5 @@
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { createClients } from 'test/config/clients';
-import { setupTestEnvironment } from 'test/setup';
 import { parseEther } from 'viem';
 import {
   createAndExecuteCrossChainProposal,
@@ -9,10 +8,6 @@ import {
 } from './helpers';
 
 describe('Execute Cross Chain', () => {
-  beforeAll(async () => {
-    await setupTestEnvironment();
-  });
-
   test('should successfully perform cross-chain execution of ETH transfer from spoke airlock to recipient', async () => {
     const { eth2Client } = createClients();
     const AMOUNT_TO_TRANSFER_FROM_AIRLOCK = parseEther('0.1');

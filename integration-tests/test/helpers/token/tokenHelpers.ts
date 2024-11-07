@@ -63,6 +63,7 @@ export const mintTokens = async ({
   );
 
   await client.waitForTransactionReceipt({ hash });
+  console.log('✅ Tokens minted successfully');
   return hash;
 };
 

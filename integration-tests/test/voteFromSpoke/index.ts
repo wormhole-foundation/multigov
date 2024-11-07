@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { beforeAll, describe, expect, test } from 'bun:test';
 import { createClients } from 'test/config/clients';
 import { createProposalOnSpoke } from 'test/createProposalOnSpoke/helpers';
 import {
@@ -6,22 +6,16 @@ import {
   getVotingPower,
   waitForProposalToBeActive,
 } from 'test/helpers';
-import { setupTestEnvironment, teardownTestEnvironment } from '../setup';
 import { voteFromSpoke } from './helpers';
 
 describe('Vote from spoke', () => {
   let proposalId: bigint;
 
   beforeAll(async () => {
-    await setupTestEnvironment();
     proposalId = await createProposalOnSpoke();
     console.log('Waiting for proposal to be active...');
     await waitForProposalToBeActive(proposalId);
     console.log('Proposal is now active');
-  });
-
-  afterAll(async () => {
-    await teardownTestEnvironment();
   });
 
   test('should successfully vote from spoke and bridge to hub', async () => {
