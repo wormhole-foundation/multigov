@@ -621,7 +621,7 @@ describe("api", async () => {
   it("castVote", async () => {
     let user2StakeAccountCheckpointsAddress =
       await user2StakeConnection.delegate(
-        undefined,
+        user2,
         WHTokenBalance.fromString("150"),
       );
 
@@ -649,11 +649,6 @@ describe("api", async () => {
       ethProposalResponseBytes,
       signaturesKeypair.publicKey,
       mockGuardianSetIndex,
-    );
-
-    await user2StakeConnection.delegate(
-      undefined,
-      WHTokenBalance.fromString("200"),
     );
 
     await user2StakeConnection.castVote(

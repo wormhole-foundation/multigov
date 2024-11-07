@@ -38,7 +38,7 @@ import * as wasm from "@wormhole/staking-wasm";
 
 const portNumber = getPortNumber(path.basename(__filename));
 
-describe("vesting, () => {
+describe("vesting", () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
   const governanceAuthority = new Keypair();
@@ -742,7 +742,7 @@ describe("vesting, () => {
   });
 
   it("should successfully delegate with vest", async () => {
-    await sleep(4000)
+    await sleep(2000)
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.delegateWithVest(
         vesterStakeConnection.userPublicKey(),
@@ -777,7 +777,7 @@ describe("vesting, () => {
   });
 
   it("should fail to delegate with uninitialized vestingBalance account", async () => {
-    await sleep(4000)
+    await sleep(2000)
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.delegateWithVest(
         vesterStakeConnection.userPublicKey(),
@@ -850,7 +850,7 @@ describe("vesting, () => {
   });
 
   it("should fail to delegate with vestingBalance account discriminator mismatch", async () => {
-    await sleep(4000)
+    await sleep(2000)
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.delegateWithVest(
         vesterStakeConnection.userPublicKey(),
@@ -1105,6 +1105,8 @@ describe("vesting, () => {
         delegateStakeAccountMetadataAddress,
         false,
       );
+
+    await sleep(2000)
     await stakeConnection.program.methods
       .claimVesting()
       .accounts({
@@ -1168,15 +1170,24 @@ describe("vesting, () => {
       TINY_CHECKPOINTS_ACCOUNT_LIMIT - 2,
     );
 
+    assert.equal(
+      vesterStakeAccountMetadata.recordedVestingBalance.toString(),
+      "4011000000",
+    );
+    assert.equal(
+      currentStakeAccountCheckpoints.getLastCheckpoint().value.toString(),
+      "4011000000",
+    );
+
     // filling the checkpoint account to the limit
-    await sleep(4000)
+    await sleep(2000)
     await vesterStakeConnection.delegateWithVest(
       vesterStakeConnection.userPublicKey(),
       WHTokenBalance.fromString("10"),
       true,
       config,
     );
-    await sleep(4000)
+    await sleep(2000)
     await vesterStakeConnection.delegateWithVest(
       vesterStakeConnection.userPublicKey(),
       WHTokenBalance.fromString("10"),
@@ -1219,13 +1230,8 @@ describe("vesting, () => {
       TINY_CHECKPOINTS_ACCOUNT_LIMIT,
     );
 
-    let stakeAccountMetadataData =
-      await vesterStakeConnection.fetchStakeAccountMetadata(
-        vesterStakeConnection.userPublicKey(),
-      );
-
     let delegateStakeAccountCheckpointsOwner =
-      stakeAccountMetadataData.delegate;
+      vesterStakeAccountMetadata.delegate;
     let delegateStakeAccountMetadataAddress =
       await vesterStakeConnection.getStakeMetadataAddress(
         delegateStakeAccountCheckpointsOwner,
@@ -1236,6 +1242,19 @@ describe("vesting, () => {
         delegateStakeAccountMetadataAddress,
         true,
       );
+
+    assert.equal(
+      vesterStakeAccountMetadata.recordedVestingBalance.toString(),
+      "4011000000",
+    );
+    assert.equal(
+      vesterStakeAccountMetadata.recordedBalance.toString(),
+      "20000000",
+    );
+    assert.equal(
+      previousVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "4031000000",
+    );
 
     try {
       await stakeConnection.program.methods
@@ -1416,6 +1435,25 @@ describe("vesting, () => {
       TINY_CHECKPOINTS_ACCOUNT_LIMIT,
     );
 
+    let vesterStakeMetadata: StakeAccountMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    assert.equal(
+      vesterStakeMetadata.recordedVestingBalance.toString(),
+      "4011000000",
+    );
+    assert.equal(
+      vesterStakeMetadata.recordedBalance.toString(),
+      "20000000",
+    );
+    assert.equal(
+      vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "4031000000",
+    );
+
+    await sleep(2000)
     await stakeConnection.program.methods
       .createCheckpoints()
       .accounts({
@@ -1457,6 +1495,24 @@ describe("vesting, () => {
       previousVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
       newVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
     );
+
+    vesterStakeMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    assert.equal(
+      vesterStakeMetadata.recordedVestingBalance.toString(),
+      "4011000000",
+    );
+    assert.equal(
+      vesterStakeMetadata.recordedBalance.toString(),
+      "20000000",
+    );
+    assert.equal(
+      newVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "4031000000",
+    );
   });
 
   it("should successfully claim staked vest with created checkpoint account", async () => {
@@ -1482,6 +1538,7 @@ describe("vesting, () => {
         false,
       );
 
+    await sleep(2000)
     await stakeConnection.program.methods
       .claimVesting()
       .accounts({
@@ -1494,6 +1551,7 @@ describe("vesting, () => {
       .signers([vester])
       .rpc({ skipPreflight: true })
       .then(confirm);
+
     let vesterStakeMetadata: StakeAccountMetadata =
       await vesterStakeConnection.fetchStakeAccountMetadata(
         vesterStakeConnection.userPublicKey(),
@@ -1507,6 +1565,10 @@ describe("vesting, () => {
     assert.equal(
       vesterStakeMetadata.recordedVestingBalance.toString(),
       "2674000000",
+    );
+    assert.equal(
+      vesterStakeMetadata.recordedBalance.toString(),
+      "20000000",
     );
     assert.equal(
       vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
@@ -1535,14 +1597,14 @@ describe("vesting, () => {
     );
 
     // filling the checkpoint account to the limit
-    await sleep(4000)
+    await sleep(2000)
     await vesterStakeConnection.delegateWithVest(
       vesterStakeConnection.userPublicKey(),
       WHTokenBalance.fromString("10"),
       true,
       config,
     );
-    await sleep(4000)
+    await sleep(2000)
     await vesterStakeConnection.delegateWithVest(
       vesterStakeConnection.userPublicKey(),
       WHTokenBalance.fromString("10"),
@@ -1591,6 +1653,19 @@ describe("vesting, () => {
         true,
       );
 
+    assert.equal(
+      vesterStakeAccountMetadata.recordedVestingBalance.toString(),
+      "2674000000",
+    );
+    assert.equal(
+      vesterStakeAccountMetadata.recordedBalance.toString(),
+      "40000000",
+    );
+    assert.equal(
+      previousVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "2714000000",
+    );
+
     await stakeConnection.program.methods
       .createCheckpoints()
       .accounts({
@@ -1601,6 +1676,11 @@ describe("vesting, () => {
       .signers([vester])
       .rpc({ skipPreflight: true })
       .then(confirm);
+
+    vesterStakeAccountMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        vesterStakeConnection.userPublicKey(),
+      );
 
     previousStakeAccountCheckpointsAddress =
       await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
@@ -1631,6 +1711,19 @@ describe("vesting, () => {
     assert.equal(
       previousVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
       newVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+    );
+
+    assert.equal(
+      vesterStakeAccountMetadata.recordedVestingBalance.toString(),
+      "2674000000",
+    );
+    assert.equal(
+      vesterStakeAccountMetadata.recordedBalance.toString(),
+      "40000000",
+    );
+    assert.equal(
+      newVesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "2714000000",
     );
   });
 
@@ -1889,7 +1982,7 @@ describe("vesting, () => {
       stakeConnection.program.programId,
     )[0];
 
-    await sleep(4000)
+    await sleep(2000)
     await newVesterStakeConnection.delegateWithVest(
       newVesterStakeConnection.userPublicKey(),
       WHTokenBalance.fromString("10"),
@@ -1897,6 +1990,25 @@ describe("vesting, () => {
       config,
     );
 
+    let updatedVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        vestingBalance,
+      );
+
+    let updatedNewVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        newVestingBalance,
+      );
+
+    assert.equal(
+      updatedVestingBalance.totalVestingBalance.toString(),
+      "2674000000",
+    );
+    assert.equal(
+      updatedNewVestingBalance.totalVestingBalance.toString(),
+      "1337000000",
+    );
+    
     await stakeConnection.program.methods
       .transferVesting()
       .accounts({
@@ -1914,22 +2026,12 @@ describe("vesting, () => {
       .rpc({ skipPreflight: true })
       .then(confirm);
 
-    let vesterStakeMetadata: StakeAccountMetadata =
-      await vesterStakeConnection.fetchStakeAccountMetadata(
-        vesterStakeConnection.userPublicKey(),
-      );
-
-    let vesterStakeCheckpoints: CheckpointAccount =
-      await vesterStakeConnection.fetchCheckpointAccount(
-        stakeAccountCheckpointsAddress,
-      );
-
-    let updatedVestingBalance =
+    updatedVestingBalance =
       await stakeConnection.program.account.vestingBalance.fetch(
         vestingBalance,
       );
 
-    let updatedNewVestingBalance =
+    updatedNewVestingBalance =
       await stakeConnection.program.account.vestingBalance.fetch(
         newVestingBalance,
       );
@@ -1942,9 +2044,24 @@ describe("vesting, () => {
       updatedNewVestingBalance.totalVestingBalance.toString(),
       "2674000000",
     );
+
+    let vesterStakeMetadata: StakeAccountMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let vesterStakeCheckpoints: CheckpointAccount =
+      await vesterStakeConnection.fetchCheckpointAccount(
+        stakeAccountCheckpointsAddress,
+      );
+
     assert.equal(
       vesterStakeMetadata.recordedVestingBalance.toString(),
       "1337000000",
+    );
+    assert.equal(
+      vesterStakeMetadata.recordedBalance.toString(),
+      "40000000",
     );
     assert.equal(
       vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
@@ -2000,21 +2117,21 @@ describe("vesting, () => {
   });
 
   it("should successfully create vesting balance and transfer vest to another vester without balance", async () => {
-    let stakeAccountMetadataAddress =
-      await vesterStakeConnection.getStakeMetadataAddress(
-        vesterStakeConnection.userPublicKey(),
+    let newVesterStakeAccountMetadataAddress =
+      await newVesterStakeConnection.getStakeMetadataAddress(
+        newVesterStakeConnection.userPublicKey(),
       );
-    let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
-        stakeAccountMetadataAddress,
+    let newVesterStakeAccountCheckpointsAddress =
+      await newVesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        newVesterStakeAccountMetadataAddress,
         false,
       );
-
-    let vesterStakeAccountMetadata =
-      await vesterStakeConnection.fetchStakeAccountMetadata(
-        vesterStakeConnection.userPublicKey(),
+    let newVesterStakeAccountMetadata =
+      await newVesterStakeConnection.fetchStakeAccountMetadata(
+        newVesterStakeConnection.userPublicKey(),
       );
 
+    // transfer vestLaterForTransfer from newVester to vesterWithoutAccount
     await stakeConnection.program.methods
       .transferVesting()
       .accounts({
@@ -2023,16 +2140,20 @@ describe("vesting, () => {
         vesterTa: newVesterTa,
         vestingBalance: newVestingBalance,
         vest: vestLaterForTransfer,
-        stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
-        stakeAccountMetadata: stakeAccountMetadataAddress,
-        newStakeAccountCheckpoints: null,
-        newStakeAccountMetadata: null,
+        stakeAccountCheckpoints: newVesterStakeAccountCheckpointsAddress,
+        stakeAccountMetadata: newVesterStakeAccountMetadataAddress,
+        // Instead of null we pass any existing CheckpointData and StakeAccountMetadata accounts, 
+        // because otherwise we have an error
+        // "Access violation in unknown section at address 0x8 of size 8"
+        // related to the lack of memory on the stack
+        newStakeAccountCheckpoints: newVesterStakeAccountCheckpointsAddress,
+        newStakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         newVestingBalance: vestingBalanceWithoutAccount,
         newVesterTa: vesterTaWithoutAccount,
         globalConfig: stakeConnection.configAddress,
       })
       .signers([newVester])
-      .rpc()
+      .rpc({ skipPreflight: true })
       .then(confirm);
 
     let updatedVestingBalance =
@@ -2204,7 +2325,7 @@ describe("vesting, () => {
     });
 
     it("should fail to delegate with invalid vesting token", async () => {
-      await sleep(4000)
+      await sleep(2000)
       let stakeAccountCheckpointsAddress =
         await vesterStakeConnection.delegateWithVest(
           vesterStakeConnection.userPublicKey(),
