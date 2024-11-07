@@ -38,7 +38,7 @@ import * as wasm from "@wormhole/staking-wasm";
 
 const portNumber = getPortNumber(path.basename(__filename));
 
-describe("vesting", () => {
+describe("vesting, () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
   const governanceAuthority = new Keypair();
@@ -742,7 +742,7 @@ describe("vesting", () => {
   });
 
   it("should successfully delegate with vest", async () => {
-    await sleep(3000)
+    await sleep(4000)
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.delegateWithVest(
         vesterStakeConnection.userPublicKey(),
@@ -777,7 +777,7 @@ describe("vesting", () => {
   });
 
   it("should fail to delegate with uninitialized vestingBalance account", async () => {
-    await sleep(3000)
+    await sleep(4000)
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.delegateWithVest(
         vesterStakeConnection.userPublicKey(),
@@ -850,7 +850,7 @@ describe("vesting", () => {
   });
 
   it("should fail to delegate with vestingBalance account discriminator mismatch", async () => {
-    await sleep(3000)
+    await sleep(4000)
     let stakeAccountCheckpointsAddress =
       await vesterStakeConnection.delegateWithVest(
         vesterStakeConnection.userPublicKey(),
@@ -1169,14 +1169,14 @@ describe("vesting", () => {
     );
 
     // filling the checkpoint account to the limit
-    await sleep(3000)
+    await sleep(4000)
     await vesterStakeConnection.delegateWithVest(
       vesterStakeConnection.userPublicKey(),
       WHTokenBalance.fromString("10"),
       true,
       config,
     );
-    await sleep(3000)
+    await sleep(4000)
     await vesterStakeConnection.delegateWithVest(
       vesterStakeConnection.userPublicKey(),
       WHTokenBalance.fromString("10"),
@@ -1361,7 +1361,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting(newVester.publicKey)
+        .transferVesting()
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -1381,7 +1381,7 @@ describe("vesting", () => {
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
-          "InvalidStakeAccountCheckpointsPDA",
+          "TooManyCheckpoints",
       );
     }
   });
@@ -1535,14 +1535,14 @@ describe("vesting", () => {
     );
 
     // filling the checkpoint account to the limit
-    await sleep(3000)
+    await sleep(4000)
     await vesterStakeConnection.delegateWithVest(
       vesterStakeConnection.userPublicKey(),
       WHTokenBalance.fromString("10"),
       true,
       config,
     );
-    await sleep(3000)
+    await sleep(4000)
     await vesterStakeConnection.delegateWithVest(
       vesterStakeConnection.userPublicKey(),
       WHTokenBalance.fromString("10"),
@@ -1656,7 +1656,7 @@ describe("vesting", () => {
       );
     try {
       await stakeConnection.program.methods
-        .transferVesting(newVester.publicKey)
+        .transferVesting()
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -1707,7 +1707,7 @@ describe("vesting", () => {
       );
     try {
       await stakeConnection.program.methods
-        .transferVesting(newVester.publicKey)
+        .transferVesting()
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -1753,7 +1753,7 @@ describe("vesting", () => {
       );
     try {
       await stakeConnection.program.methods
-        .transferVesting(newVester.publicKey)
+        .transferVesting()
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -1794,7 +1794,7 @@ describe("vesting", () => {
       );
     try {
       await stakeConnection.program.methods
-        .transferVesting(newVester.publicKey)
+        .transferVesting()
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -1814,6 +1814,46 @@ describe("vesting", () => {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
           "ErrorOfStakeAccountParsing",
+      );
+    }
+  });
+
+  it("should fail to transfer vest to myself", async () => {
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        false,
+      );
+
+    try {
+      await stakeConnection.program.methods
+        .transferVesting()
+        .accounts({
+          ...accounts,
+          vest: vestNowForTransfer,
+          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          stakeAccountMetadata: stakeAccountMetadataAddress,
+          newStakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          newStakeAccountMetadata: stakeAccountMetadataAddress,
+          vesterTa: vesterTa,
+          newVesterTa: vesterTa,
+          newVest: vestNowForTransfer,
+          newVestingBalance: vestingBalance,
+          globalConfig: stakeConnection.configAddress,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code ===
+          "TransferVestToMyself",
       );
     }
   });
@@ -1849,8 +1889,16 @@ describe("vesting", () => {
       stakeConnection.program.programId,
     )[0];
 
+    await sleep(4000)
+    await newVesterStakeConnection.delegateWithVest(
+      newVesterStakeConnection.userPublicKey(),
+      WHTokenBalance.fromString("10"),
+      true,
+      config,
+    );
+
     await stakeConnection.program.methods
-      .transferVesting(newVester.publicKey)
+      .transferVesting()
       .accounts({
         ...accounts,
         vest: vestNowForTransfer,
@@ -1863,7 +1911,7 @@ describe("vesting", () => {
         globalConfig: stakeConnection.configAddress,
       })
       .signers([vester])
-      .rpc()
+      .rpc({ skipPreflight: true })
       .then(confirm);
 
     let vesterStakeMetadata: StakeAccountMetadata =
@@ -1962,8 +2010,13 @@ describe("vesting", () => {
         false,
       );
 
+    let vesterStakeAccountMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        vesterStakeConnection.userPublicKey(),
+      );
+
     await stakeConnection.program.methods
-      .transferVesting(vesterTaWithoutAccount.publicKey)
+      .transferVesting()
       .accounts({
         ...accounts,
         vester: newVester.publicKey,
@@ -2151,7 +2204,7 @@ describe("vesting", () => {
     });
 
     it("should fail to delegate with invalid vesting token", async () => {
-      await sleep(3000)
+      await sleep(4000)
       let stakeAccountCheckpointsAddress =
         await vesterStakeConnection.delegateWithVest(
           vesterStakeConnection.userPublicKey(),

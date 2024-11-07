@@ -16,7 +16,6 @@ use crate::state::{VestingBalance, VestingConfig};
 use crate::{error::ErrorCode, error::VestingError, state::Vesting};
 
 #[derive(Accounts)]
-#[instruction(new_vester: Pubkey)]
 pub struct TransferVesting<'info> {
     #[account(mut)]
     vester: Signer<'info>,
@@ -91,7 +90,7 @@ pub struct TransferVesting<'info> {
 }
 
 impl<'info> crate::contexts::TransferVesting<'info> {
-    pub fn transfer_vesting(&mut self, new_vester: Pubkey, bump: u8) -> Result<()> {
+    pub fn transfer_vesting(&mut self, bump: u8) -> Result<()> {
         fn update_balance(balance: &mut u64, amount: u64, is_subtract: bool) -> Result<()> {
             if is_subtract {
                 *balance = balance.checked_sub(amount).ok_or(VestingError::Underflow)?;
@@ -99,6 +98,10 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 *balance = balance.checked_add(amount).ok_or(VestingError::Underflow)?;
             }
             Ok(())
+        }
+
+        if self.new_vester_ta.owner.key() == self.vester_ta.owner.key() {
+            return err!(VestingError::TransferVestToMyself);
         }
 
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
@@ -204,7 +207,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     Pubkey::find_program_address(
                         &[
                             CHECKPOINT_DATA_SEED.as_bytes(),
-                            new_vester.as_ref(),
+                            self.new_vester_ta.owner.key().as_ref(),
                             new_stake_account_metadata
                                 .stake_account_checkpoints_last_index
                                 .to_le_bytes()
@@ -222,7 +225,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 let (expected_stake_account_metadata_vester_pda, _) = Pubkey::find_program_address(
                     &[
                         STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                        new_vester.key().as_ref(),
+                        self.new_vester_ta.owner.key().as_ref(),
                     ],
                     &crate::ID,
                 );
