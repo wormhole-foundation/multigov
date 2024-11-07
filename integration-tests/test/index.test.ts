@@ -8,8 +8,7 @@ describe('MultiGov Tests', () => {
 });
 
 // Import all test files
-import './proposeFromSpoke';
+import './createProposalOnHub';
 import './createProposalOnSpoke';
 import './voteFromSpoke';
 import './executeCrossChain';
-import './createProposalOnHub';
