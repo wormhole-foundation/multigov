@@ -26,6 +26,7 @@ export const createAndExecuteCrossChainProposal = async (
 
 // Create a proposal that will be dispatched via the HubMessageDispatcher
 const createProposalWithDispatcher = async (proposalData: ProposalData) => {
+  console.log('🔍 Creating proposal with dispatch...');
   const { ethClient } = createClients();
   const messageFee = await ethClient.readContract({
     address: ContractAddresses.WORMHOLE_CORE,
@@ -50,6 +51,8 @@ const createProposalWithDispatcher = async (proposalData: ProposalData) => {
   );
 
   // Create proposal to call dispatch on HubMessageDispatcher
+  const nonce = Math.floor(Math.random() * 1000000);
+
   const hubProposalData = createProposalData({
     targets: [ContractAddresses.HUB_MESSAGE_DISPATCHER],
     values: [messageFee],
@@ -60,18 +63,19 @@ const createProposalWithDispatcher = async (proposalData: ProposalData) => {
         args: [payload],
       }),
     ],
-    description: 'Cross-chain execution via HubMessageDispatcher',
+    description: `Cross-chain execution via HubMessageDispatcher with nonce ${nonce}`,
   });
 
   const proposalId =
     await createAndExecuteProposalViaHubGovernor(hubProposalData);
   const sequence = await getMessageSequence();
-
+  console.log('✅ Proposal with dispatch created');
   return { proposalId, sequence };
 };
 
 // Fetch the signed VAA from the Wormhole guardian
 const fetchSignedVAA = async (sequence: bigint): Promise<`0x${string}`> => {
+  console.log('🔍 Fetching signed VAA...');
   const emitterAddress = toWormholeFormat(
     ContractAddresses.HUB_MESSAGE_DISPATCHER,
   ).slice(2);
@@ -96,6 +100,7 @@ const fetchSignedVAA = async (sequence: bigint): Promise<`0x${string}`> => {
       const { vaaBytes } = (await response.json()) as { vaaBytes: string };
       if (!vaaBytes) throw new Error('VAA bytes missing from response');
 
+      console.log('✅ Signed VAA fetched');
       return `0x${Buffer.from(vaaBytes, 'base64').toString('hex')}` as const;
     } catch (error) {
       if (i === MAX_RETRIES - 1)
@@ -109,6 +114,7 @@ const fetchSignedVAA = async (sequence: bigint): Promise<`0x${string}`> => {
 
 // Execute the VAA on the spoke chain
 const executeVAAOnSpoke = async (vaa: `0x${string}`) => {
+  console.log('🔍 Executing VAA on spoke...');
   const { eth2Client, eth2Wallet } = createClients();
 
   const hash = await eth2Wallet.writeContract({
@@ -119,10 +125,12 @@ const executeVAAOnSpoke = async (vaa: `0x${string}`) => {
   });
 
   await eth2Client.waitForTransactionReceipt({ hash });
+  console.log('✅ VAA executed on spoke');
 };
 
 // Get the sequence number from the latest Wormhole message
 const getMessageSequence = async () => {
+  console.log('🔍 Getting message sequence...');
   const { ethClient } = createClients();
 
   const logs = await ethClient.getLogs({
@@ -142,6 +150,8 @@ const getMessageSequence = async () => {
 
   // Wait for guardian to process
   await new Promise((resolve) => setTimeout(resolve, 5000));
+
+  console.log('✅ Message sequence fetched');
 
   return log.args.sequence;
 };
