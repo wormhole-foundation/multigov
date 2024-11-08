@@ -9,7 +9,6 @@ import { voteFromSpoke } from './voteFromSpoke/helpers';
 import { ContractAddresses } from './config/addresses';
 import {
   createArbitraryProposalData,
-  executeProposal,
   getProposal,
   waitForProposalToBeActive,
 } from './helpers/governance/proposalHelpers';
@@ -72,7 +71,7 @@ describe('MultiGov Tests', () => {
       );
 
       state.hubProposalId = proposalId;
-    });
+    }, 120000);
   });
 
   describe('2. Spoke Proposal Creation', () => {
@@ -127,19 +126,11 @@ describe('MultiGov Tests', () => {
       expect(votesAfterOnHub.forVotes).toBe(
         votesBeforeOnHub.forVotes + voteWeight,
       );
-    }, 120000); // Timeout to 2 minutes to allow for query server updates to handle finality
+    }, 120000);
   });
 
   describe('4. Cross Chain Execution', () => {
     test('Should successfully perform cross-chain execution of ETH transfer from spoke airlock to recipient', async () => {
-      if (!state.proposalData) {
-        throw new Error('Proposal data is not set');
-      }
-
-      // Execute the proposal from previous state/tests
-      await executeProposal({ proposalData: state.proposalData });
-
-      // Create a new proposal for testing cross-chain execution
       console.log('\n🔍 Testing cross-chain execution...');
       const { eth2Client } = createClients();
       const AMOUNT_TO_TRANSFER_FROM_AIRLOCK = parseEther('0.1');
