@@ -7,10 +7,12 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "clean": "cd ../evm && forge clean",
-    "build:contracts": "cd ../evm && forge build -vvv --via-ir",
-    "generate:artifacts": "bun run clean && bun run build:contracts && bun run scripts/generateArtifacts.ts",
-    "test": "bun test",
+    "forge:clean": "cd ../evm && forge clean",
+    "forge:build": "cd ../evm && forge build --via-ir",
+    "generate:artifacts": "bun run scripts/generateArtifacts.ts",
+    "build": "bun run forge:clean && bun run forge:build && bun run generate:artifacts",
+    "test": "bun run build && bun test",
+    "test:only": "bun test",
     "lint": "tsc --noEmit && biome lint --write",
     "format": "biome format --write",
     "check": "tsc --noEmit && biome check --write",
