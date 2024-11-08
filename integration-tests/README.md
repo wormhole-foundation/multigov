@@ -30,27 +30,15 @@ tilt up -- --evm2=true --query_server=true
 
 Wait for the Tilt environment to fully initialize. This may take several minutes as it sets up multiple chains and services.
 
-3. Deploy the contracts:
-
-```bash
-# Navigate to the evm directory in this project
-cd evm
-
-# Set the ETHDEVNET_MNEMONIC in .env in the `evm` and `integration-tests` folders to the one specified in the wormhole repo
-ETHDEVNET_MNEMONIC='blah'
-
-# Deploy hub contracts on EthDevnet1
-forge script script/DeployHubContractsEthDevnet1.sol:DeployHubContractsEthDevnet1 --rpc-url http://localhost:8545 --broadcast --via-ir
-
-# Deploy spoke contracts on EthDevnet2
-forge script script/DeploySpokeContractsEthDevnet2.sol:DeploySpokeContractsEthDevnet2 --rpc-url http://localhost:8546 --broadcast --via-ir
-```
-
-Note: For fresh deployments in the devnet environment, simply restart the relevant process.
-
 ## Running Tests
 
-To run all integration tests:
+The tests set up the tilt environment for cross-chain governance testing:
+
+1. Deploys all contracts
+2. Sets up the deployer account with delegated tokens
+3. Handles any registrations
+
+To run all integration tests when running locally:
 
 ```bash
 bun test
@@ -63,5 +51,3 @@ The integration tests verify:
 - Cross-chain proposal creation
 - Vote aggregation across chains
 - Cross-chain execution of passed proposals
-
-This project uses [Bun](https://bun.sh) as the JavaScript runtime.
