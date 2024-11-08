@@ -3,11 +3,10 @@ import { getAddress } from 'viem';
 import { ContractAddresses } from '../config/addresses';
 import { getProposal } from '../helpers/governance/proposalHelpers';
 import { getWhitelistedProposer } from '../helpers/governance/registrationHelpers';
-import { setupSuccessful } from '../testContext';
 import { createProposalOnHub } from './helpers';
 
 describe('Create proposal on hub via the HubEvmSpokeAggregateProposer', () => {
-  test.if(setupSuccessful)('Should create proposal on hub', async () => {
+  test('Should create proposal on hub', async () => {
     const isWhitelisted = await getWhitelistedProposer();
 
     expect(isWhitelisted).toBe(
