@@ -1,9 +1,13 @@
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const EVM_OUT_DIR = '../evm/out';
-const ARTIFACTS_DIR = './artifacts';
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const projectRoot = join(__dirname, '../..');
+
+const EVM_OUT_DIR = join(projectRoot, 'evm', 'out');
+const ARTIFACTS_DIR = join(projectRoot, 'integration-tests', 'artifacts');
 
 console.log('\n🏗️  Starting artifact generation...');
 
@@ -17,7 +21,7 @@ if (!existsSync(EVM_OUT_DIR)) {
   console.log('\n🔨 No out directory found, compiling contracts...');
   try {
     console.log('   Running forge build with verbose output...');
-    execSync('cd ../evm && forge clean && forge build -vvv --via-ir', {
+    execSync('cd ../evm && forge build -vvv --via-ir', {
       stdio: 'inherit',
       timeout: 300000, // 5 minute timeout
     });
