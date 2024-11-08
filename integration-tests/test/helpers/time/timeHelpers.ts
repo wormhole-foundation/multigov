@@ -10,35 +10,19 @@ export const syncTime = async () => {
     hubTimestamp > spokeTimestamp ? hubTimestamp : spokeTimestamp;
   const timestampToUse = newTimestamp + 1n;
 
-  await ethClient.setNextBlockTimestamp({ timestamp: timestampToUse });
-  await eth2Client.setNextBlockTimestamp({ timestamp: timestampToUse });
-  await ethClient.mine({ blocks: 1 });
-  await eth2Client.mine({ blocks: 1 });
+  await mineToTimestamp({
+    client: ethClient,
+    timestamp: timestampToUse,
+  });
+
+  await mineToTimestamp({
+    client: eth2Client,
+    timestamp: timestampToUse,
+  });
 
   console.log(
     `✅ Time synchronized: ${timestampToUse} (hub: ${hubTimestamp}, spoke: ${spokeTimestamp})`,
   );
-};
-
-export const syncBlocks = async () => {
-  const { ethClient, eth2Client } = createClients();
-  // 1. Ensure both chains are at the same block height
-  const hubBlock = await ethClient.getBlockNumber();
-  const spokeBlock = await eth2Client.getBlockNumber();
-  const targetBlock = Math.max(Number(hubBlock), Number(spokeBlock));
-  if (hubBlock < targetBlock) {
-    console.log(
-      `   Mining ${targetBlock - Number(hubBlock)} blocks on hub chain`,
-    );
-    await ethClient.mine({ blocks: targetBlock - Number(hubBlock) });
-  }
-  if (spokeBlock < targetBlock) {
-    console.log(
-      `   Mining ${targetBlock - Number(spokeBlock)} blocks on spoke chain`,
-    );
-    await eth2Client.mine({ blocks: targetBlock - Number(spokeBlock) });
-  }
-  console.log('✅ Chains synchronized');
 };
 
 export const mineToTimestamp = async ({
@@ -49,5 +33,4 @@ export const mineToTimestamp = async ({
   await client.setNextBlockTimestamp({ timestamp });
   await client.mine({ blocks: 1 });
   console.log('✅ Mined to timestamp');
-  await syncTime();
 };

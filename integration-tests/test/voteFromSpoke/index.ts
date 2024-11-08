@@ -6,45 +6,40 @@ import {
   getVotingPower,
   waitForProposalToBeActive,
 } from 'test/helpers';
-import { setupSuccessful } from 'test/testContext';
 import { voteFromSpoke } from './helpers';
 
 describe('Vote from spoke', () => {
-  test.if(setupSuccessful)(
-    'should successfully vote from spoke and bridge to hub',
-    async () => {
-      const proposalId = await createProposalOnSpoke();
-      await waitForProposalToBeActive(proposalId);
-      const { account, ethClient } = createClients();
+  test('should successfully vote from spoke and bridge to hub', async () => {
+    const proposalId = await createProposalOnSpoke();
+    await waitForProposalToBeActive(proposalId);
+    const { account, ethClient } = createClients();
 
-      console.log('Getting initial vote weight and votes...');
-      const voteWeight = await getVotingPower({
-        account: account.address,
-        isHub: true,
-        timestamp: (await ethClient.getBlock()).timestamp,
-      });
+    console.log('Getting initial vote weight and votes...');
+    const voteWeight = await getVotingPower({
+      account: account.address,
+      isHub: true,
+      timestamp: (await ethClient.getBlock()).timestamp,
+    });
 
-      const votesBeforeOnHub = await getProposalVotes({
-        proposalId,
-        isHub: true,
-      });
-      console.log('Initial votes on hub:', votesBeforeOnHub);
+    const votesBeforeOnHub = await getProposalVotes({
+      proposalId,
+      isHub: true,
+    });
+    console.log('Initial votes on hub:', votesBeforeOnHub);
 
-      console.log('Voting from spoke and bridging...');
-      await voteFromSpoke(proposalId);
-      console.log('Vote and bridge completed');
+    console.log('Voting from spoke and bridging...');
+    await voteFromSpoke(proposalId);
+    console.log('Vote and bridge completed');
 
-      console.log('Getting final votes...');
-      const votesAfterOnHub = await getProposalVotes({
-        proposalId,
-        isHub: true,
-      });
-      console.log('Final votes on hub:', votesAfterOnHub);
+    console.log('Getting final votes...');
+    const votesAfterOnHub = await getProposalVotes({
+      proposalId,
+      isHub: true,
+    });
+    console.log('Final votes on hub:', votesAfterOnHub);
 
-      expect(votesAfterOnHub.forVotes).toBe(
-        votesBeforeOnHub.forVotes + voteWeight,
-      );
-    },
-    120000,
-  ); // Timeout to 2 minutes to allow for query server updates to handle finality
+    expect(votesAfterOnHub.forVotes).toBe(
+      votesBeforeOnHub.forVotes + voteWeight,
+    );
+  }, 120000); // Timeout to 2 minutes to allow for query server updates to handle finality
 });

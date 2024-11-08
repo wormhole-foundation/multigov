@@ -2,7 +2,7 @@ import { ERC20VotesFakeAbi } from 'abis';
 import { addressStore } from './config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from './config/chains';
 import { createClients } from './config/clients';
-import { mineToTimestamp, syncBlocks, syncTime } from './helpers';
+import { mineToTimestamp, syncTime } from './helpers';
 import {
   deployHubContracts,
   deploySpokeContracts,
@@ -22,9 +22,6 @@ export async function setupTestEnvironment() {
   // Deploy contracts
   await deployHubContracts();
   await deploySpokeContracts();
-
-  // Sync blocks
-  await syncBlocks();
 
   // Mint tokens
   const TOKEN_AMOUNT = 1_000_000_000_000_000_000_000_000n; // 1M tokens
