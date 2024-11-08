@@ -1,11 +1,10 @@
-import { parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
+import { AnchorError, parseIdlErrors, utils, Wallet } from "@coral-xyz/anchor";
 import {
+  Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
-  Keypair,
-  Transaction,
-  Instruction,
   SystemProgram,
+  Transaction,
 } from "@solana/web3.js";
 import {
   startValidator,
@@ -14,18 +13,23 @@ import {
   ANCHOR_CONFIG_PATH,
   requestWHTokenAirdrop,
 } from "./utils/before";
-import { expectFail, createMint } from "./utils/utils";
+import { createMint, expectFail } from "./utils/utils";
 import assert from "assert";
 import path from "path";
 import * as wasm from "@wormhole/staking-wasm";
-import { WH_TOKEN_DECIMALS, WHTokenBalance, StakeConnection } from "../app";
-import * as console from "node:console";
+import {
+  StakeConnection,
+  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+  WH_TOKEN_DECIMALS,
+  WHTokenBalance,
+} from "../app";
 import BN from "bn.js";
 import {
   hubChainId,
   hubProposalMetadata,
   CORE_BRIDGE_ADDRESS,
 } from "../app/constants";
+import { StakeAccountMetadata } from "../app/StakeConnection.ts";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -86,11 +90,10 @@ describe("config", async () => {
 
     await program.methods
       .initConfig({
-        freeze: false,
-        mockClockTime: new BN(0),
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
       })
       .rpc({
         skipPreflight: DEBUG,
@@ -111,8 +114,7 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
-        freeze: false,
-        mockClockTime: new BN(0),
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
@@ -131,9 +133,8 @@ describe("config", async () => {
         .initConfig({
           governanceAuthority: program.provider.wallet.publicKey,
           whTokenMint: whMintAccount.publicKey,
-          freeze: false,
           vestingAdmin: vestingAdmin,
-          mockClockTime: new BN(0),
+          maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
         .rpc();
 
@@ -141,9 +142,8 @@ describe("config", async () => {
         .initConfig({
           governanceAuthority: program.provider.wallet.publicKey,
           whTokenMint: whMintAccount.publicKey,
-          freeze: false,
           vestingAdmin: vestingAdmin,
-          mockClockTime: new BN(0),
+          maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
         .rpc();
 
@@ -180,7 +180,7 @@ describe("config", async () => {
     await program.methods
       .initializeSpokeMetadataCollector(hubChainId, initHubProposalMetadata)
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
-      .rpc();
+      .rpc({ skipPreflight: true });
 
     const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
       PublicKey.findProgramAddressSync(
@@ -230,7 +230,7 @@ describe("config", async () => {
     await program.methods
       .updateHubProposalMetadata(hubProposalMetadata)
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
-      .rpc();
+      .rpc({ skipPreflight: true });
 
     const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
       PublicKey.findProgramAddressSync(
@@ -270,8 +270,7 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
-        freeze: false,
-        mockClockTime: new BN(0),
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
@@ -285,19 +284,12 @@ describe("config", async () => {
         payer: randomUser.publicKey,
       })
       .signers([randomUser])
-      .rpc();
+      .rpc({ skipPreflight: true });
 
-    const checkpointDataAccountPublicKey = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from(wasm.Constants.CHECKPOINT_DATA_SEED()),
-        randomUser.publicKey.toBuffer(),
-      ],
-      program.programId,
-    )[0];
     const metadataAddress = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.STAKE_ACCOUNT_METADATA_SEED()),
-        checkpointDataAccountPublicKey.toBuffer(),
+        randomUser.publicKey.toBuffer(),
       ],
       program.programId,
     )[0];
@@ -357,7 +349,7 @@ describe("config", async () => {
 
     await vestingAdminConnection.program.methods
       .updateVestingAdmin(program.provider.wallet.publicKey)
-      .rpc();
+      .rpc({ skipPreflight: true });
 
     let configAccountData =
       await program.account.globalConfig.fetch(configAccount);
@@ -366,8 +358,7 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
-        freeze: false,
-        mockClockTime: new BN(0),
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: program.provider.wallet.publicKey,
@@ -383,8 +374,7 @@ describe("config", async () => {
       JSON.stringify(configAccountData),
       JSON.stringify({
         bump,
-        freeze: false,
-        mockClockTime: new BN(0),
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         governanceAuthority: program.provider.wallet.publicKey,
         whTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,

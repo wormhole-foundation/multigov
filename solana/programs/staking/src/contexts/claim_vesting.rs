@@ -5,12 +5,13 @@ use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
 use std::convert::TryInto;
-
-use crate::error::VestingError;
+use crate::{
+    error::{ErrorCode, VestingError},
+    state::{Vesting, VestingBalance, VestingConfig},
+};
 use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
 use crate::state::global_config::GlobalConfig;
 use crate::state::stake_account::StakeAccountMetadata;
-use crate::state::{Vesting, VestingBalance, VestingConfig};
 
 #[derive(Accounts)]
 pub struct ClaimVesting<'info> {
@@ -79,6 +80,21 @@ impl<'info> ClaimVesting<'info> {
                 &mut self.stake_account_metadata,
                 &mut self.stake_account_checkpoints,
             ) {
+                // Check if stake account checkpoints is out of bounds
+                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                require!(
+                    loaded_checkpoints.next_index
+                        < self.global_config.max_checkpoints_account_limit.into(),
+                    ErrorCode::TooManyCheckpoints,
+                );
+
+                // Verify that the actual address matches the expected one
+                require!(
+                    stake_account_metadata.delegate.key() == loaded_checkpoints.owner,
+                    VestingError::InvalidStakeAccountCheckpoints
+                );
+                drop(loaded_checkpoints);
+
                 require!(
                     self.config.mint == self.global_config.wh_token_mint,
                     // This error can never happen here, because for the condition above
@@ -87,12 +103,6 @@ impl<'info> ClaimVesting<'info> {
                     // However, delegate cannot be executed when self.config.mint !=
                     // self.global_config.wh_token_mint.
                     VestingError::InvalidVestingMint
-                );
-
-                // Verify that the actual address matches the expected one
-                require!(
-                    stake_account_metadata.delegate.key() == stake_account_checkpoints.key(),
-                    VestingError::InvalidStakeAccountCheckpoints
                 );
 
                 // Additional checks to ensure the owner matches
@@ -122,6 +132,13 @@ impl<'info> ClaimVesting<'info> {
                     &self.vester.to_account_info(),
                     &self.system_program.to_account_info(),
                 )?;
+
+                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                if loaded_checkpoints.next_index
+                    >= self.global_config.max_checkpoints_account_limit.into()
+                {
+                    stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                }
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
             }

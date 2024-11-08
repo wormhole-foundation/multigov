@@ -22,7 +22,13 @@ import BN from "bn.js";
 import toml from "toml";
 import path from "path";
 import os from "os";
-import { StakeConnection, WHTokenBalance, WH_TOKEN_DECIMALS } from "../../app";
+import {
+  StakeConnection,
+  WHTokenBalance,
+  WH_TOKEN_DECIMALS,
+  CHECKPOINTS_ACCOUNT_LIMIT,
+  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+} from "../../app";
 import { GlobalConfig } from "../../app/StakeConnection";
 import { createMint, initAddressLookupTable } from "./utils";
 import { loadKeypair } from "./keys";
@@ -61,7 +67,7 @@ export function readAnchorConfig(pathToAnchorToml: string): AnchorConfig {
   return config;
 }
 
-function sleep(ms) {
+export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -282,18 +288,25 @@ export async function initConfig(
   });
 }
 
-export function makeDefaultConfig(
+export function makeTestConfig(
   whMint: PublicKey,
   vestingAdmin: PublicKey = PublicKey.unique(),
+  maxCheckpointsAccountLimit: number = TEST_CHECKPOINTS_ACCOUNT_LIMIT,
 ): GlobalConfig {
   return {
     bump: 0,
     governanceAuthority: null,
     whTokenMint: whMint,
-    freeze: true,
     vestingAdmin: vestingAdmin,
-    mockClockTime: new BN(10),
+    maxCheckpointsAccountLimit: maxCheckpointsAccountLimit,
   };
+}
+
+export function makeDefaultConfig(
+  whMint: PublicKey,
+  vestingAdmin: PublicKey = PublicKey.unique(),
+): GlobalConfig {
+  return makeTestConfig(whMint, vestingAdmin, CHECKPOINTS_ACCOUNT_LIMIT);
 }
 
 /**

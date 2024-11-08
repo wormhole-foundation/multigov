@@ -35,6 +35,10 @@ pub enum ErrorCode {
     InvalidSpokeAirlock,
     #[msg("Invalid current delegate")]
     InvalidCurrentDelegate,
+    #[msg("Invalid stake account metadata")]
+    InvalidStakeAccountMetadata,
+    #[msg("Invalid stake account checkpoints provided")]
+    InvalidStakeAccountCheckpoints,
     #[msg("Other")]
     Other,
 }
@@ -69,6 +73,8 @@ pub enum VestingError {
     InvalidStakeAccountMetadataPDA,
     #[msg("Invalid stake account checkpoints PDA")]
     InvalidStakeAccountCheckpointsPDA,
+    #[msg("Transfer vest to myself")]
+    TransferVestToMyself,
 }
 
 #[error_code]

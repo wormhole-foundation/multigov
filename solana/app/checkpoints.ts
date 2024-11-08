@@ -81,6 +81,10 @@ export class CheckpointAccount {
 
     return `${this.checkpointData.toString()}\nCheckpoints:\n${checkpointsStr || "No valid checkpoints available."}`;
   }
+
+  getCheckpointCount(): number {
+    return this.checkpoints.length;
+  }
 }
 
 export async function readCheckpoints(

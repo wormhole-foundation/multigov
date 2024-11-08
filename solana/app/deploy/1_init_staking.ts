@@ -1,7 +1,7 @@
 import { Wallet, AnchorProvider, Program } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { DEPLOYER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
-import { STAKING_ADDRESS } from "../constants";
+import { CHECKPOINTS_ACCOUNT_LIMIT, STAKING_ADDRESS } from "../constants";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
 
@@ -18,10 +18,10 @@ async function main() {
 
   const globalConfig = {
     bump: 255,
-    freeze: false,
     governanceAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
     whTokenMint: WORMHOLE_TOKEN,
     vestingAdmin: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
+    maxCheckpointsAccountLimit: CHECKPOINTS_ACCOUNT_LIMIT,
   };
   await program.methods.initConfig(globalConfig).rpc();
 }
