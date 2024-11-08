@@ -1,3 +1,4 @@
+import { ERC20VotesFakeAbi } from 'abis';
 import { addressStore } from './config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from './config/chains';
 import { createClients } from './config/clients';
@@ -16,64 +17,77 @@ import { delegate, mintTokens } from './helpers/token/tokenHelpers';
 
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
-  const { ethClient, ethWallet, account } = createClients();
+  const { ethClient, eth2Client, ethWallet, account } = createClients();
 
+  // Deploy contracts
   await deployHubContracts();
   await deploySpokeContracts();
+
+  // Sync blocks
   await syncBlocks();
 
-  // Mint tokens for the test account on both chains
-  const tokenAmount = 1000000000000000000000n; // 1000 tokens
+  // Mint tokens
+  const TOKEN_AMOUNT = 1_000_000_000_000_000_000_000_000n; // 1M tokens
+  console.log('\n💰 Minting tokens...');
+  await Promise.all([
+    mintTokens({
+      recipientAddress: account.address,
+      amount: TOKEN_AMOUNT,
+      isHub: true,
+    }),
+    mintTokens({
+      recipientAddress: account.address,
+      amount: TOKEN_AMOUNT,
+      isHub: false,
+    }),
+  ]);
 
-  await mintTokens({
-    recipientAddress: account.address,
-    amount: tokenAmount,
-    isHub: true,
+  // Delegate tokens
+  console.log('\n📊 Delegating votes...');
+  await Promise.all([
+    delegate({ delegatee: account.address, isHub: true }),
+    delegate({ delegatee: account.address, isHub: false }),
+  ]);
+
+  // Mine blocks to make delegation active
+  console.log('\n⛓️  Mining blocks to activate delegation...');
+  await Promise.all([
+    ethClient.mine({ blocks: 2 }),
+    eth2Client.mine({ blocks: 2 }),
+  ]);
+
+  // Verify voting power
+  const votingPower = await ethClient.readContract({
+    address: addressStore.getAddress('HUB_VOTING_TOKEN'),
+    abi: ERC20VotesFakeAbi,
+    functionName: 'getVotes',
+    args: [account.address],
   });
+  console.log(`   Voting power: ${votingPower}`);
 
-  await mintTokens({
-    recipientAddress: account.address,
-    amount: tokenAmount,
-    isHub: false,
-  });
+  await Promise.all([
+    handleRegisterSpokeOnAggProposer({
+      chainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
+    }),
+    handleTransferOwnership({
+      contractAddress: addressStore.getAddress('HUB_VOTE_POOL'),
+      newOwner: addressStore.getAddress('TIMELOCK_CONTROLLER'),
+      wallet: ethWallet,
+      client: ethClient,
+    }),
+  ]);
 
-  // Delegate tokens to self
-  await delegate({ delegatee: account.address, isHub: true });
-  await delegate({ delegatee: account.address, isHub: false });
-
-  // Mine a block to make delegation active
-  await ethClient.mine({ blocks: 1 });
-
-  // Register spoke on hub
-  await handleRegisterSpokeOnAggProposer({
-    chainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
-  });
-
-  // Transfer ownership of HubVotePool to Timelock
-  await handleTransferOwnership({
-    contractAddress: addressStore.getAddress('HUB_VOTE_POOL'),
-    newOwner: addressStore.getAddress('TIMELOCK_CONTROLLER'),
-    wallet: ethWallet,
-    client: ethClient,
-  });
-
-  // Register spoke on HubVotePool
-  await handleRegisterSpokeOnHubVotePool({
-    chainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
-  });
-
-  // Register whitelisted proposer
-  await registerWhitelistedProposer({
-    proposerAddress: addressStore.getAddress(
-      'HUB_EVM_SPOKE_AGGREGATE_PROPOSER',
-    ),
-  });
+  await Promise.all([
+    handleRegisterSpokeOnHubVotePool({
+      chainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
+    }),
+    await registerWhitelistedProposer({
+      proposerAddress: addressStore.getAddress(
+        'HUB_EVM_SPOKE_AGGREGATE_PROPOSER',
+      ),
+    }),
+  ]);
 
   await syncTime();
   console.log('\n🎉 Test environment setup completed!\n');
-}
-
-export async function teardownTestEnvironment() {
-  console.log('\n🧹 Cleaning up test environment...');
-  console.log('✅ Test environment teardown completed\n');
 }
