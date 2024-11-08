@@ -8,20 +8,29 @@ import {
   deploySpokeContracts,
 } from './helpers/deployment/deployContracts';
 import {
+  getWhitelistedProposer,
   handleRegisterSpokeOnAggProposer,
   handleRegisterSpokeOnHubVotePool,
   handleTransferOwnership,
   registerWhitelistedProposer,
 } from './helpers/governance/registrationHelpers';
 import { delegate, mintTokens } from './helpers/token/tokenHelpers';
+import {
+  loadDeploymentCache,
+  saveDeploymentCache,
+} from './helpers/deployment/deploymentCache';
+import type { DeployedAddresses } from './config/addresses';
 
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
-  const { ethClient, ethWallet } = createClients();
 
-  // Deploy contracts
-  await deployHubContracts();
-  await deploySpokeContracts();
+  await handleDeployContracts();
+
+  if (await isSetupComplete()) {
+    return;
+  }
+
+  const { ethClient, ethWallet } = createClients();
 
   // Mint tokens
   const TOKEN_AMOUNT = 1_000_000_000_000_000_000_000_000n; // 1M tokens
@@ -102,4 +111,47 @@ const mintTokensOnBothChains = async (amount: bigint) => {
     mintTokens({ recipientAddress: account.address, amount, isHub: true }),
     mintTokens({ recipientAddress: account.address, amount, isHub: false }),
   ]);
+};
+
+const handleDeployContracts = async () => {
+  // Try to load cached deployment
+  const cachedAddresses = process.env.CI ? null : loadDeploymentCache();
+
+  if (cachedAddresses) {
+    // Use cached addresses
+    for (const [key, value] of Object.entries(cachedAddresses)) {
+      addressStore.setAddress(key as keyof DeployedAddresses, value);
+    }
+
+    // Check if setup is already complete
+    if (!process.env.CI && (await isSetupComplete())) {
+      return;
+    }
+  }
+
+  // Deploy new contracts
+  await deployHubContracts();
+  await deploySpokeContracts();
+
+  // Save deployment cache (skip in CI)
+  if (!process.env.CI) {
+    saveDeploymentCache(addressStore.getAllAddresses());
+  }
+};
+
+const isSetupComplete = async () => {
+  console.log('\n🔍 Checking if setup is complete...');
+
+  const whitelistedProposer = await getWhitelistedProposer();
+
+  const isComplete =
+    whitelistedProposer ===
+    addressStore.getAddress('HUB_EVM_SPOKE_AGGREGATE_PROPOSER');
+
+  if (isComplete) {
+    console.log('✅ Setup is already complete');
+  } else {
+    console.log('⚠️  Setup is incomplete');
+  }
+  return isComplete;
 };
