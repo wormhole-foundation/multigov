@@ -134,6 +134,7 @@ pub struct CastVote<'info> {
     )]
     pub proposal: Account<'info, proposal::ProposalData>,
 
+    /// CheckpointData account that contains the checkpoint for the timestamp vote_start - vote_weight_window_length
     #[account(
         mut,
         has_one = owner,
@@ -141,6 +142,10 @@ pub struct CastVote<'info> {
         bump
     )]
     pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+
+    /// Next CheckpointData account if it exists
+    /// Necessary for handle the case when the vote window contains checkpoints stored on two accounts
+    pub voter_checkpoints_next: Option<AccountLoader<'info, checkpoints::CheckpointData>>,
 
     #[account(
         init_if_needed,

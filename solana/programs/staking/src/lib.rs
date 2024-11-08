@@ -509,18 +509,144 @@ pub mod staking {
         let proposal = &mut ctx.accounts.proposal;
         let config = &ctx.accounts.config;
 
-        let voter_checkpoints = ctx.accounts.voter_checkpoints.to_account_info();
+        let vote_weight_window_length = 2000u64; // Example value
 
-        if let Some((index, checkpoint)) =
-            find_checkpoint_le(&voter_checkpoints, proposal.vote_start)?
-        {
+        let window_start = proposal.vote_start - vote_weight_window_length;
+        let vote_start = proposal.vote_start;
+
+        // Use the AccountInfo directly from ctx.accounts without storing in a variable
+        if let Some((window_start_checkpoint_index, window_start_checkpoint)) = find_checkpoint_le(
+            &ctx.accounts.voter_checkpoints.to_account_info(),
+            window_start,
+        )? {
             // Check if checkpoint is not the last in fully loaded checkpoints account
             require!(
-                config.max_checkpoints_account_limit != (index as u32) + 1,
+                config.max_checkpoints_account_limit != (window_start_checkpoint_index as u32) + 1,
                 ErrorCode::CheckpointOutOfBounds
             );
 
-            let total_weight = checkpoint.value;
+            let mut total_weight = window_start_checkpoint.value;
+
+            let mut checkpoint_index = window_start_checkpoint_index;
+            let mut checkpoint_timestamp = window_start_checkpoint.timestamp;
+
+            let mut reading_from_next_account = false;
+
+            while checkpoint_timestamp < vote_start {
+                checkpoint_index += 1;
+
+                if !reading_from_next_account
+                    && (checkpoint_index as u32) == config.max_checkpoints_account_limit
+                {
+                    // Switch to the next account
+                    if let Some(voter_checkpoints_next_loader) =
+                        &ctx.accounts.voter_checkpoints_next
+                    {
+                        // Handle duplication of the last checkpoint
+                        let last_checkpoint_current_account = read_checkpoint_at_index(
+                            &ctx.accounts.voter_checkpoints.to_account_info(),
+                            checkpoint_index - 1,
+                        )?;
+
+                        // Reset checkpoint_index for the next account
+                        checkpoint_index = 0;
+
+                        // Load the next account's checkpoint data
+                        let voter_checkpoints_next = voter_checkpoints_next_loader.load()?;
+                        let next_account_next_index = voter_checkpoints_next.next_index;
+
+                        if next_account_next_index == 0 {
+                            // No checkpoints in the next account
+                            break;
+                        }
+
+                        // Read the first checkpoint in the next account
+                        let mut checkpoint = read_checkpoint_at_index(
+                            &voter_checkpoints_next_loader.to_account_info(),
+                            checkpoint_index,
+                        )?;
+                        checkpoint_timestamp = checkpoint.timestamp;
+
+                        // Check for duplication
+                        if checkpoint.timestamp == last_checkpoint_current_account.timestamp
+                            && checkpoint.value == last_checkpoint_current_account.value
+                        {
+                            // Duplicate checkpoint, skip it
+                            checkpoint_index += 1;
+
+                            if checkpoint_index >= next_account_next_index as usize {
+                                // No more checkpoints
+                                break;
+                            }
+
+                            checkpoint = read_checkpoint_at_index(
+                                &voter_checkpoints_next_loader.to_account_info(),
+                                checkpoint_index,
+                            )?;
+                            checkpoint_timestamp = checkpoint.timestamp;
+                        }
+
+                        // Update total_weight if necessary
+                        if checkpoint_timestamp >= vote_start {
+                            break;
+                        }
+
+                        if checkpoint.value < total_weight {
+                            total_weight = checkpoint.value;
+                        }
+
+                        // Now reading from the next account
+                        reading_from_next_account = true;
+                        // Continue to next iteration to read further checkpoints from the next account
+                        continue;
+                    } else {
+                        // No next checkpoint account provided
+                        break;
+                    }
+                } else {
+                    // Read from the current or next account based on reading_from_next_account
+                    let checkpoint = if reading_from_next_account {
+                        let voter_checkpoints_next_loader =
+                            ctx.accounts.voter_checkpoints_next.as_ref().unwrap();
+                        let voter_checkpoints_next = voter_checkpoints_next_loader.load()?;
+                        let next_account_next_index = voter_checkpoints_next.next_index;
+
+                        if checkpoint_index >= next_account_next_index as usize {
+                            // No more checkpoints in the next account
+                            break;
+                        }
+
+                        read_checkpoint_at_index(
+                            &voter_checkpoints_next_loader.to_account_info(),
+                            checkpoint_index,
+                        )?
+                    } else {
+                        let voter_checkpoints_loader = &ctx.accounts.voter_checkpoints;
+                        let voter_checkpoints_data = voter_checkpoints_loader.load()?;
+                        let current_account_next_index = voter_checkpoints_data.next_index;
+
+                        if checkpoint_index >= current_account_next_index as usize {
+                            // No more checkpoints in the current account (shouldn't reach here)
+                            break;
+                        }
+
+                        read_checkpoint_at_index(
+                            &voter_checkpoints_loader.to_account_info(),
+                            checkpoint_index,
+                        )?
+                    };
+
+                    checkpoint_timestamp = checkpoint.timestamp;
+
+                    if checkpoint_timestamp >= vote_start {
+                        break;
+                    }
+
+                    if checkpoint.value < total_weight {
+                        total_weight = checkpoint.value;
+                    }
+                }
+            }
 
             require!(total_weight > 0, ErrorCode::NoWeight);
 
@@ -536,16 +662,28 @@ pub mod staking {
                 ErrorCode::AllWeightCast
             );
 
-            let new_weight =
-                against_votes + for_votes + abstain_votes + proposal_voters_weight_cast.value;
+            let new_weight = against_votes
+                .checked_add(for_votes)
+                .and_then(|v| v.checked_add(abstain_votes))
+                .and_then(|v| v.checked_add(proposal_voters_weight_cast.value))
+                .ok_or(ErrorCode::VoteWouldExceedWeight)?;
 
             require!(new_weight <= total_weight, ErrorCode::VoteWouldExceedWeight);
 
             proposal_voters_weight_cast.set(new_weight);
 
-            proposal.against_votes += against_votes;
-            proposal.for_votes += for_votes;
-            proposal.abstain_votes += abstain_votes;
+            proposal.against_votes = proposal
+                .against_votes
+                .checked_add(against_votes)
+                .ok_or(ErrorCode::GenericOverflow)?;
+            proposal.for_votes = proposal
+                .for_votes
+                .checked_add(for_votes)
+                .ok_or(ErrorCode::GenericOverflow)?;
+            proposal.abstain_votes = proposal
+                .abstain_votes
+                .checked_add(abstain_votes)
+                .ok_or(ErrorCode::GenericOverflow)?;
 
             emit!(VoteCast {
                 voter: ctx.accounts.owner.key(),
