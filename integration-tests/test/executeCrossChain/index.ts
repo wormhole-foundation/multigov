@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { createClients } from 'test/config/clients';
+import { setupSuccessful } from 'test/testContext';
 import { parseEther } from 'viem';
 import {
   createAndExecuteCrossChainProposal,
   createArbitraryProposalDataForSpokeExecution,
   getSpokeAirlock,
 } from './helpers';
-import { setupSuccessful } from 'test/testContext';
 
 describe('Execute Cross Chain', () => {
   test.if(setupSuccessful)(
