@@ -60,7 +60,9 @@ export const mineToTimestamp = async ({
   client,
   timestamp,
 }: { client: Client; timestamp: bigint }) => {
+  console.log(`   Mining to timestamp ${timestamp}...`);
   await client.setNextBlockTimestamp({ timestamp });
   await client.mine({ blocks: 1 });
+  console.log('✅ Mined to timestamp');
   await syncTime();
 };
