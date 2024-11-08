@@ -10,11 +10,12 @@ import { voteFromSpoke } from './helpers';
 
 describe('Vote from spoke', () => {
   test('should successfully vote from spoke and bridge to hub', async () => {
+    console.log('\n🔍 Testing vote from spoke...');
+
     const proposalId = await createProposalOnSpoke();
     await waitForProposalToBeActive(proposalId);
     const { account, ethClient } = createClients();
 
-    console.log('Getting initial vote weight and votes...');
     const voteWeight = await getVotingPower({
       account: account.address,
       isHub: true,
@@ -25,21 +26,17 @@ describe('Vote from spoke', () => {
       proposalId,
       isHub: true,
     });
-    console.log('Initial votes on hub:', votesBeforeOnHub);
 
-    console.log('Voting from spoke and bridging...');
     await voteFromSpoke(proposalId);
-    console.log('Vote and bridge completed');
 
-    console.log('Getting final votes...');
     const votesAfterOnHub = await getProposalVotes({
       proposalId,
       isHub: true,
     });
-    console.log('Final votes on hub:', votesAfterOnHub);
 
     expect(votesAfterOnHub.forVotes).toBe(
       votesBeforeOnHub.forVotes + voteWeight,
     );
+    console.log('✅ Vote from spoke test passed');
   }, 120000); // Timeout to 2 minutes to allow for query server updates to handle finality
 });

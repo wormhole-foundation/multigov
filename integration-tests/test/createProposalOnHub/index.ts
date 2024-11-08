@@ -7,6 +7,7 @@ import { createProposalOnHub } from './helpers';
 
 describe('Create proposal on hub via the HubEvmSpokeAggregateProposer', () => {
   test('Should create proposal on hub', async () => {
+    console.log('\n🔍 Testing hub proposal creation...');
     const isWhitelisted = await getWhitelistedProposer();
 
     expect(isWhitelisted).toBe(
@@ -23,5 +24,7 @@ describe('Create proposal on hub via the HubEvmSpokeAggregateProposer', () => {
     expect(proposal.proposer).toBe(
       getAddress(ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER),
     );
+
+    console.log('✅ Hub proposal creation test passed');
   });
 });

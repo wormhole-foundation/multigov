@@ -20,6 +20,7 @@ import type { WormholeQueryResponse } from 'test/helpers/wormhole/types';
 import { encodeFunctionData } from 'viem';
 
 export const createProposalOnSpoke = async () => {
+  console.log('Creating proposal on spoke...');
   // 1. Create proposal on hub via aggregate proposer
   const proposalData = await createArbitraryProposalData();
   const proposalId = await createProposalViaAggregateProposer({ proposalData });
@@ -35,6 +36,8 @@ export const createProposalOnSpoke = async () => {
   // 3. Add proposal to spoke using the queried metadata
   await addProposalToSpoke(queryResponse);
 
+  console.log('✅ Proposal created on spoke');
+
   return proposalId;
 };
 
@@ -45,6 +48,7 @@ const getWormholeAddProposalQueryResponse = async ({
   proposalId: bigint;
   proposalCreatedBlock: bigint;
 }): Promise<WormholeQueryResponse> => {
+  console.log('Getting wormhole add proposal query response...');
   const blockNumberHex = `0x${proposalCreatedBlock.toString(16)}`;
 
   const hubProposalMetadataCall: EthCallData = {
@@ -72,7 +76,7 @@ const getWormholeAddProposalQueryResponse = async ({
     getPrivateKeyHex().slice(2),
     QueryRequest.digest('DEVNET', serialized),
   );
-
+  console.log('Sending query to wormhole...');
   return await sendQueryToWormhole({
     serialized,
     signature,
@@ -82,6 +86,7 @@ const getWormholeAddProposalQueryResponse = async ({
 export const addProposalToSpoke = async (
   queryResponse: WormholeQueryResponse,
 ) => {
+  console.log('Adding proposal to spoke...');
   const { eth2Client, eth2Wallet } = createClients();
 
   const hash = await eth2Wallet.writeContract({
@@ -95,6 +100,7 @@ export const addProposalToSpoke = async (
   });
 
   await eth2Client.waitForTransactionReceipt({ hash });
+  console.log('✅ Proposal added to spoke');
 };
 
 export const getProposalOnSpoke = async (proposalId: bigint) => {
