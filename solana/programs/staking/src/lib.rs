@@ -515,7 +515,7 @@ pub mod staking {
         {
             // Check if checkpoint is not the last in fully loaded checkpoints account
             require!(
-                config.max_checkpoints_account_limit != index as u32,
+                config.max_checkpoints_account_limit != (index as u32) + 1,
                 ErrorCode::CheckpointOutOfBounds
             );
 
