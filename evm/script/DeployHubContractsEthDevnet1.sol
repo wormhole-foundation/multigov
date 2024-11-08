@@ -19,8 +19,7 @@ contract DeployHubContractsEthDevnet1 is DeployHubContractsBaseImpl {
 
     vm.startBroadcast(wallet.privateKey);
 
-    string memory version = vm.envOr("DEPLOY_VERSION", DEFAULT_DEPLOY_VERSION);
-    bytes32 salt = keccak256(abi.encodePacked("WormholeGovernanceHubContracts", version));
+    bytes32 salt = keccak256(abi.encodePacked("WormholeGovernanceHubContracts"));
     bytes memory bytecode =
       abi.encodePacked(type(ERC20VotesFake).creationCode, abi.encode("MultiGov Governance Token", "MGT", 18));
     address tokenAddress = Create2.deploy(0, salt, bytecode);
