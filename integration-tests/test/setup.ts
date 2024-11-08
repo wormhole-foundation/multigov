@@ -12,6 +12,8 @@ import {
   handleRegisterSpokeOnAggProposer,
   handleRegisterSpokeOnHubVotePool,
   handleTransferOwnership,
+  isSpokeRegisteredOnAggProposer,
+  isSpokeRegisteredOnHubVotePool,
   registerWhitelistedProposer,
 } from './helpers/governance/registrationHelpers';
 import { delegate, mintTokens } from './helpers/token/tokenHelpers';
@@ -20,6 +22,7 @@ import {
   saveDeploymentCache,
 } from './helpers/deployment/deploymentCache';
 import type { DeployedAddresses } from './config/addresses';
+import { getAddress } from 'viem';
 
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
@@ -122,36 +125,47 @@ const handleDeployContracts = async () => {
     for (const [key, value] of Object.entries(cachedAddresses)) {
       addressStore.setAddress(key as keyof DeployedAddresses, value);
     }
+  }
 
-    // Check if setup is already complete
-    if (!process.env.CI && (await isSetupComplete())) {
-      return;
-    }
+  // Save deployment cache (skip in CI)
+  if (!process.env.CI) {
+    return saveDeploymentCache(addressStore.getAllAddresses());
   }
 
   // Deploy new contracts
   await deployHubContracts();
   await deploySpokeContracts();
-
-  // Save deployment cache (skip in CI)
-  if (!process.env.CI) {
-    saveDeploymentCache(addressStore.getAllAddresses());
-  }
 };
 
 const isSetupComplete = async () => {
   console.log('\n🔍 Checking if setup is complete...');
 
   const whitelistedProposer = await getWhitelistedProposer();
+  const isWhitelistedProposerCorrect =
+    getAddress(whitelistedProposer) ===
+    getAddress(addressStore.getAddress('HUB_EVM_SPOKE_AGGREGATE_PROPOSER'));
+
+  const isSpokeRegisteredOnAggProposerCorrect =
+    await isSpokeRegisteredOnAggProposer({
+      chainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
+    });
+
+  const isSpokeRegisteredOnHubVotePoolCorrect =
+    await isSpokeRegisteredOnHubVotePool({
+      chainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
+      spokeAddress: addressStore.getAddress('HUB_EVM_SPOKE_AGGREGATE_PROPOSER'),
+    });
 
   const isComplete =
-    whitelistedProposer ===
-    addressStore.getAddress('HUB_EVM_SPOKE_AGGREGATE_PROPOSER');
+    isWhitelistedProposerCorrect &&
+    isSpokeRegisteredOnAggProposerCorrect &&
+    isSpokeRegisteredOnHubVotePoolCorrect;
 
   if (isComplete) {
     console.log('✅ Setup is already complete');
   } else {
     console.log('⚠️  Setup is incomplete');
   }
+
   return isComplete;
 };
