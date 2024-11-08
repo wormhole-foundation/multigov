@@ -1,9 +1,10 @@
 use crate::context::VESTING_CONFIG_SEED;
-use crate::{error::VestingError, state::VestingConfig};
+use crate::error::VestingError;
+use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{
+    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
 
 #[derive(Accounts)]

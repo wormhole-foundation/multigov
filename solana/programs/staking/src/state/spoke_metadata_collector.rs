@@ -120,7 +120,7 @@ mod tests {
     fn check_spoke_metadata_collector_size() {
         assert!(
             std::mem::size_of::<SpokeMetadataCollector>()
-                + SpokeMetadataCollector::discriminator().len()
+                + SpokeMetadataCollector::DISCRIMINATOR.len()
                 == SpokeMetadataCollector::LEN
         );
     }

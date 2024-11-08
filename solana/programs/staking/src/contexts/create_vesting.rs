@@ -2,11 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
-use crate::state::VestingBalance;
-use crate::{
-    error::VestingError,
-    state::{Vesting, VestingConfig},
-};
+use crate::error::VestingError;
+use crate::state::{Vesting, VestingBalance, VestingConfig};
 
 #[derive(Accounts)]
 #[instruction(maturation: i64)]

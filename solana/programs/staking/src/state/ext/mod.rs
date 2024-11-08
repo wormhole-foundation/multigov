@@ -25,8 +25,8 @@ impl Owner for WormholeGuardianSet {
 
 // workaround for anchor 0.30.1
 // https://github.com/coral-xyz/anchor/blob/e6d7dafe12da661a36ad1b4f3b5970e8986e5321/spl/src/idl_build.rs#L11
-impl anchor_lang::Discriminator for WormholeGuardianSet {
-    const DISCRIMINATOR: [u8; 8] = [0; 8];
+impl Discriminator for WormholeGuardianSet {
+    const DISCRIMINATOR: &'static [u8] = &[];
 }
 
 impl AccountSerialize for WormholeGuardianSet {}

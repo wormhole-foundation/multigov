@@ -13,18 +13,15 @@ pub struct SpokeMessageExecutor {
     pub spoke_chain_id: u16,
     // Wormhole contract handling messages
     pub wormhole_core: Pubkey,
-    // An account that will execute the cross chain proposal
-    pub airlock: Pubkey,
 }
 
 #[account]
 pub struct MessageReceived {
-    // Execution status of the message
-    pub executed: bool,
+    pub bump: u8,
 }
 
 impl SpokeMessageExecutor {
-    pub const LEN: usize = 8 + 2 + 32 + 2 + 2 + 32 + 32; // 116
+    pub const LEN: usize = 8 + 2 + 32 + 2 + 2 + 32; // 84
 }
 
 impl MessageReceived {
@@ -33,15 +30,13 @@ impl MessageReceived {
 
 #[cfg(test)]
 pub mod tests {
-    use super::MessageReceived;
-    use super::SpokeMessageExecutor;
+    use super::{MessageReceived, SpokeMessageExecutor};
     use anchor_lang::Discriminator;
 
     #[test]
     fn check_spoke_message_executor_size() {
         assert!(
-            std::mem::size_of::<SpokeMessageExecutor>()
-                + SpokeMessageExecutor::discriminator().len()
+            std::mem::size_of::<SpokeMessageExecutor>() + SpokeMessageExecutor::DISCRIMINATOR.len()
                 == SpokeMessageExecutor::LEN
         );
     }
@@ -49,7 +44,7 @@ pub mod tests {
     #[test]
     fn check_message_received_size() {
         assert!(
-            std::mem::size_of::<MessageReceived>() + MessageReceived::discriminator().len()
+            std::mem::size_of::<MessageReceived>() + MessageReceived::DISCRIMINATOR.len()
                 == MessageReceived::LEN
         );
     }
