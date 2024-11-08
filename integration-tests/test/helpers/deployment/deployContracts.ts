@@ -18,15 +18,8 @@ import {
   ETH2_DEVNET_WORMHOLE_CHAIN_ID,
   ETH_DEVNET_WORMHOLE_CHAIN_ID,
 } from 'test/config/chains';
-import type { Client, Wallet } from 'test/config/types';
-import {
-  type Address,
-  getContract,
-  keccak256,
-  parseEther,
-  toHex,
-  zeroAddress,
-} from 'viem';
+import type { Wallet } from 'test/config/types';
+import { type Address, keccak256, parseEther, toHex, zeroAddress } from 'viem';
 import { deployContract } from 'viem/actions';
 import {
   ERC20VotesFakeBytecode,
@@ -44,17 +37,9 @@ import {
   SpokeVoteAggregatorBytecode,
   TimelockControllerBytecode,
 } from '../../../artifacts';
-import { ContractAddresses, addressStore } from '../../config/addresses';
+import { addressStore } from '../../config/addresses';
 import { createClients } from '../../config/clients';
-
-const PROPOSER_ROLE = keccak256(toHex('PROPOSER_ROLE'));
-const EXECUTOR_ROLE = keccak256(toHex('EXECUTOR_ROLE'));
-const CANCELLER_ROLE = keccak256(toHex('CANCELLER_ROLE'));
-const DEFAULT_ADMIN_ROLE =
-  '0x0000000000000000000000000000000000000000000000000000000000000000';
-
-// High gas limit for large contract deployments
-const HIGH_GAS_LIMIT = 30_000_000n;
+import { toWormholeFormat } from '../wormhole/wormholeHelpers';
 
 async function deployToken(wallet: Wallet) {
   const hash = await wallet.deployContract({
@@ -73,59 +58,12 @@ async function deployToken(wallet: Wallet) {
   return token;
 }
 
-async function isHubDeployed(client: Client) {
-  try {
-    // Try to read from HubGovernor contract
-    const hubGovernor = getContract({
-      abi: HubGovernorAbi,
-      address: ContractAddresses.HUB_GOVERNOR,
-      client,
-    });
-
-    // Try to call a view function
-    await hubGovernor.read.name();
-
-    // If we get here, the contract exists and responds
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function isSpokeDeployed(client: Client) {
-  try {
-    // Try to read from SpokeVoteAggregator contract
-    const spokeAggregator = getContract({
-      abi: SpokeVoteAggregatorAbi,
-      address: ContractAddresses.SPOKE_VOTE_AGGREGATOR,
-      client,
-    });
-
-    // Try to call a view function
-    await spokeAggregator.read.owner();
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export async function deployHubContracts() {
   const { ethClient, ethWallet } = createClients();
 
-  // Check if already deployed
-  const isDeployed = await isHubDeployed(ethClient);
-  if (isDeployed) {
-    console.log('Hub contracts already deployed');
-    return {
-      token: ContractAddresses.HUB_VOTING_TOKEN,
-      timelock: ContractAddresses.TIMELOCK_CONTROLLER,
-      governor: ContractAddresses.HUB_GOVERNOR,
-    };
-  }
-
   console.log('\n🪙  Deploying token...');
   const token = await deployToken(ethWallet);
+
   console.log(`✅ Token deployed to: ${token}`);
   addressStore.setAddress('HUB_VOTING_TOKEN', token);
 
@@ -154,7 +92,6 @@ export async function deployHubContracts() {
     account: ethWallet.account,
     bytecode: TimelockControllerBytecode,
     args: [deploymentConfig.minDelay, [], [], ethWallet.account.address],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const timelockReceipt = await ethClient.waitForTransactionReceipt({
@@ -182,7 +119,6 @@ export async function deployHubContracts() {
       ethWallet.account.address,
       Number(deploymentConfig.minimumExtensionTime),
     ],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const proposalExtenderReceipt = await ethClient.waitForTransactionReceipt({
@@ -194,6 +130,7 @@ export async function deployHubContracts() {
     throw new Error('Failed to deploy HubProposalExtender');
   }
 
+  console.log(`✅ HubProposalExtender deployed to: ${proposalExtender}`);
   addressStore.setAddress('HUB_PROPOSAL_EXTENDER', proposalExtender);
 
   console.log('\n🪙  Deploying HubVotePool...');
@@ -207,7 +144,6 @@ export async function deployHubContracts() {
       zeroAddress,
       ethWallet.account.address,
     ],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const hubVotePoolReceipt = await ethClient.waitForTransactionReceipt({
@@ -219,9 +155,11 @@ export async function deployHubContracts() {
     throw new Error('Failed to deploy HubVotePool');
   }
 
+  console.log(`✅ HubVotePool deployed to: ${hubVotePool}`);
   addressStore.setAddress('HUB_VOTE_POOL', hubVotePool);
 
   console.log('\n🪙  Deploying HubGovernor...');
+
   // Deploy HubGovernor
   const governorHash = await deployContract(ethClient, {
     abi: HubGovernorAbi,
@@ -244,13 +182,18 @@ export async function deployHubContracts() {
         initialVoteWeightWindow: Number(deploymentConfig.voteWeightWindow),
       },
     ],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const governorReceipt = await ethClient.waitForTransactionReceipt({
     hash: governorHash,
   });
-  const governor = governorReceipt.contractAddress as Address;
+
+  if (!governorReceipt.contractAddress) {
+    throw new Error('Failed to deploy HubGovernor');
+  }
+
+  const governor = governorReceipt.contractAddress;
+  console.log(`✅ HubGovernor deployed to: ${governor}`);
   addressStore.setAddress('HUB_GOVERNOR', governor);
 
   console.log('\n🪙  Setting HubGovernor on HubVotePool...');
@@ -264,6 +207,7 @@ export async function deployHubContracts() {
   });
 
   await ethClient.waitForTransactionReceipt({ hash: setGovernorTx });
+  console.log('\n✅ HubGovernor set on HubVotePool');
 
   console.log('\n🪙  Deploying SolanaSpokeVoteDecoder...');
   // Deploy SolanaSpokeVoteDecoder
@@ -276,7 +220,6 @@ export async function deployHubContracts() {
       hubVotePool,
       Number(deploymentConfig.solanaTokenDecimals),
     ],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const solanaSpokeVoteDecoderReceipt =
@@ -289,6 +232,9 @@ export async function deployHubContracts() {
     throw new Error('Failed to deploy SolanaSpokeVoteDecoder');
   }
 
+  console.log(
+    `✅ SolanaSpokeVoteDecoder deployed to: ${solanaSpokeVoteDecoder}`,
+  );
   addressStore.setAddress(
     'HUB_SOLANA_SPOKE_VOTE_DECODER',
     solanaSpokeVoteDecoder,
@@ -305,6 +251,7 @@ export async function deployHubContracts() {
   });
 
   await ethClient.waitForTransactionReceipt({ hash: registerQueryTypeTx });
+  console.log('\n✅ Solana vote decoder registered');
 
   console.log('\n🪙  Deploying HubProposalMetadata...');
   // Deploy HubProposalMetadata
@@ -313,7 +260,6 @@ export async function deployHubContracts() {
     account: ethWallet.account,
     bytecode: HubProposalMetadataBytecode,
     args: [governor],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const hubProposalMetadataReceipt = await ethClient.waitForTransactionReceipt({
@@ -325,6 +271,7 @@ export async function deployHubContracts() {
     throw new Error('Failed to deploy HubProposalMetadata');
   }
 
+  console.log(`✅ HubProposalMetadata deployed to: ${hubProposalMetadata}`);
   addressStore.setAddress('HUB_PROPOSAL_METADATA', hubProposalMetadata);
 
   console.log('\n🪙  Deploying HubMessageDispatcher...');
@@ -338,11 +285,12 @@ export async function deployHubContracts() {
       deploymentConfig.wormholeCore,
       Number(deploymentConfig.consistencyLevel),
     ],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const hubMessageDispatcherReceipt = await ethClient.waitForTransactionReceipt(
-    { hash: hubMessageDispatcherHash },
+    {
+      hash: hubMessageDispatcherHash,
+    },
   );
   const hubMessageDispatcher = hubMessageDispatcherReceipt.contractAddress;
 
@@ -350,6 +298,7 @@ export async function deployHubContracts() {
     throw new Error('Failed to deploy HubMessageDispatcher');
   }
 
+  console.log(`✅ HubMessageDispatcher deployed to: ${hubMessageDispatcher}`);
   addressStore.setAddress('HUB_MESSAGE_DISPATCHER', hubMessageDispatcher);
 
   console.log('\n🪙  Deploying HubSolanaMessageDispatcher...');
@@ -363,7 +312,6 @@ export async function deployHubContracts() {
       deploymentConfig.wormholeCore,
       Number(deploymentConfig.consistencyLevel),
     ],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const hubSolanaMessageDispatcherReceipt =
@@ -377,6 +325,9 @@ export async function deployHubContracts() {
     throw new Error('Failed to deploy HubSolanaMessageDispatcher');
   }
 
+  console.log(
+    `✅ HubSolanaMessageDispatcher deployed to: ${hubSolanaMessageDispatcher}`,
+  );
   addressStore.setAddress(
     'HUB_SOLANA_MESSAGE_DISPATCHER',
     hubSolanaMessageDispatcher,
@@ -393,7 +344,6 @@ export async function deployHubContracts() {
       governor,
       Number(deploymentConfig.initialMaxQueryTimestampOffset),
     ],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const hubEvmSpokeAggregateProposerReceipt =
@@ -407,6 +357,9 @@ export async function deployHubContracts() {
     throw new Error('Failed to deploy HubEvmSpokeAggregateProposer');
   }
 
+  console.log(
+    `✅ HubEvmSpokeAggregateProposer deployed to: ${hubEvmSpokeAggregateProposer}`,
+  );
   addressStore.setAddress(
     'HUB_EVM_SPOKE_AGGREGATE_PROPOSER',
     hubEvmSpokeAggregateProposer,
@@ -425,9 +378,10 @@ export async function deployHubContracts() {
   await ethClient.waitForTransactionReceipt({
     hash: initializeProposalExtenderTx,
   });
+  console.log('\n✅ HubProposalExtender initialized');
 
   // Grant roles
-  await grantRoles({ wallet: ethWallet, timelock, governor });
+  await grantRoles({ timelock, governor });
 
   console.log('\n✅ Hub contracts deployed');
   return {
@@ -437,79 +391,87 @@ export async function deployHubContracts() {
   };
 }
 
-const grantRoles = async ({
-  wallet,
+async function grantRoles({
   timelock,
   governor,
 }: {
-  wallet: Wallet;
   timelock: Address;
   governor: Address;
-}) => {
+}) {
+  const { ethWallet: wallet } = createClients();
   console.log('\n🪙  Granting roles...');
-  const [
-    grantProposerRoleTx,
-    grantExecutorRoleTx,
-    grantCancellorRoleTx,
-    grantDefaultAdminRoleTx,
-    renounceDefaultAdminRoleTx,
-  ] = await Promise.all([
-    wallet.writeContract({
-      abi: TimelockControllerAbi,
-      address: timelock,
-      functionName: 'grantRole',
-      args: [PROPOSER_ROLE, governor],
-    }),
-    wallet.writeContract({
-      abi: TimelockControllerAbi,
-      address: timelock,
-      functionName: 'grantRole',
-      args: [EXECUTOR_ROLE, governor],
-    }),
-    wallet.writeContract({
-      abi: TimelockControllerAbi,
-      address: timelock,
-      functionName: 'grantRole',
-      args: [CANCELLER_ROLE, governor],
-    }),
-    wallet.writeContract({
-      abi: TimelockControllerAbi,
-      address: timelock,
-      functionName: 'grantRole',
-      args: [DEFAULT_ADMIN_ROLE, timelock],
-    }),
-    wallet.writeContract({
-      abi: TimelockControllerAbi,
-      address: timelock,
-      functionName: 'renounceRole',
-      args: [DEFAULT_ADMIN_ROLE, wallet.account.address],
-    }),
-  ]);
 
-  await Promise.all([
-    wallet.waitForTransactionReceipt({ hash: grantProposerRoleTx }),
-    wallet.waitForTransactionReceipt({ hash: grantExecutorRoleTx }),
-    wallet.waitForTransactionReceipt({ hash: grantCancellorRoleTx }),
-    wallet.waitForTransactionReceipt({ hash: grantDefaultAdminRoleTx }),
-    wallet.waitForTransactionReceipt({ hash: renounceDefaultAdminRoleTx }),
-  ]);
+  const PROPOSER_ROLE = keccak256(toHex('PROPOSER_ROLE'));
+  const EXECUTOR_ROLE = keccak256(toHex('EXECUTOR_ROLE'));
+  const CANCELLER_ROLE = keccak256(toHex('CANCELLER_ROLE'));
+  const DEFAULT_ADMIN_ROLE =
+    '0x0000000000000000000000000000000000000000000000000000000000000000';
 
-  console.log('\n✅ Hub roles granted');
-};
+  // Grant PROPOSER_ROLE
+  console.log('   Granting PROPOSER_ROLE to governor');
+  let hash = await wallet.writeContract({
+    address: timelock,
+    abi: TimelockControllerAbi,
+    functionName: 'grantRole',
+    args: [PROPOSER_ROLE, governor],
+    account: wallet.account,
+  });
+  await wallet.waitForTransactionReceipt({ hash });
+  console.log('   ✅ PROPOSER_ROLE granted');
+
+  // Grant EXECUTOR_ROLE
+  console.log('   Granting EXECUTOR_ROLE to governor');
+  hash = await wallet.writeContract({
+    address: timelock,
+    abi: TimelockControllerAbi,
+    functionName: 'grantRole',
+    args: [EXECUTOR_ROLE, governor],
+    account: wallet.account,
+  });
+  await wallet.waitForTransactionReceipt({ hash });
+  console.log('   ✅ EXECUTOR_ROLE granted');
+
+  // Grant CANCELLER_ROLE
+  console.log('   Granting CANCELLER_ROLE to governor');
+  hash = await wallet.writeContract({
+    address: timelock,
+    abi: TimelockControllerAbi,
+    functionName: 'grantRole',
+    args: [CANCELLER_ROLE, governor],
+    account: wallet.account,
+  });
+  await wallet.waitForTransactionReceipt({ hash });
+  console.log('   ✅ CANCELLER_ROLE granted');
+
+  // Grant DEFAULT_ADMIN_ROLE to timelock
+  console.log('   Granting DEFAULT_ADMIN_ROLE to timelock');
+  hash = await wallet.writeContract({
+    address: timelock,
+    abi: TimelockControllerAbi,
+    functionName: 'grantRole',
+    args: [DEFAULT_ADMIN_ROLE, timelock],
+    account: wallet.account,
+  });
+  await wallet.waitForTransactionReceipt({ hash });
+  console.log('   ✅ DEFAULT_ADMIN_ROLE granted');
+
+  // Renounce DEFAULT_ADMIN_ROLE
+  console.log('   Renouncing DEFAULT_ADMIN_ROLE');
+  hash = await wallet.writeContract({
+    address: timelock,
+    abi: TimelockControllerAbi,
+    functionName: 'renounceRole',
+    args: [DEFAULT_ADMIN_ROLE, wallet.account.address],
+    account: wallet.account,
+  });
+  await wallet.waitForTransactionReceipt({ hash });
+  console.log('   ✅ DEFAULT_ADMIN_ROLE renounced');
+
+  console.log('✅ All roles granted');
+}
 
 export async function deploySpokeContracts() {
   const { eth2Client, eth2Wallet } = createClients();
-
-  // Check if already deployed
-  const isDeployed = await isSpokeDeployed(eth2Client);
-  if (isDeployed) {
-    console.log('Spoke contracts already deployed');
-    return {
-      executor: ContractAddresses.SPOKE_MESSAGE_EXECUTOR,
-      metadataCollector: ContractAddresses.SPOKE_METADATA_COLLECTOR,
-      aggregator: ContractAddresses.SPOKE_VOTE_AGGREGATOR,
-    };
-  }
 
   console.log('\n🪙  Deploying Spoke contracts...');
 
@@ -519,7 +481,9 @@ export async function deploySpokeContracts() {
     hubProposalMetadata: addressStore.getAddress('HUB_PROPOSAL_METADATA'),
     votingToken: addressStore.getAddress('HUB_VOTING_TOKEN'),
     voteWeightWindow: 600n, // 10 minutes
-    hubDispatcher: addressStore.getAddress('HUB_MESSAGE_DISPATCHER'),
+    hubDispatcher: toWormholeFormat(
+      addressStore.getAddress('HUB_MESSAGE_DISPATCHER'),
+    ),
     spokeChainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
   };
 
@@ -527,6 +491,7 @@ export async function deploySpokeContracts() {
   console.log('\n🪙  Deploying Spoke voting token...');
   const token = await deployToken(eth2Wallet);
   addressStore.setAddress('SPOKE_VOTING_TOKEN', token);
+  console.log(`✅ Spoke voting token deployed to: ${token}`);
 
   // Deploy SpokeMessageExecutor implementation
   console.log('\n🪙  Deploying SpokeMessageExecutor implementation...');
@@ -535,7 +500,6 @@ export async function deploySpokeContracts() {
     account: eth2Wallet.account,
     bytecode: SpokeMessageExecutorBytecode,
     args: [eth2Wallet.account.address],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const spokeMessageExecutorImplReceipt =
@@ -548,6 +512,10 @@ export async function deploySpokeContracts() {
   if (!spokeMessageExecutorImpl) {
     throw new Error('Failed to deploy SpokeMessageExecutor implementation');
   }
+
+  console.log(
+    `✅ SpokeMessageExecutor implementation deployed to: ${spokeMessageExecutorImpl}`,
+  );
 
   // Deploy SpokeMessageExecutor proxy
   console.log('\n🪙  Deploying SpokeMessageExecutor proxy...');
@@ -567,6 +535,7 @@ export async function deploySpokeContracts() {
     throw new Error('Failed to deploy ERC1967Proxy');
   }
 
+  console.log(`✅ SpokeMessageExecutor proxy deployed to: ${proxy}`);
   addressStore.setAddress('SPOKE_MESSAGE_EXECUTOR', proxy);
 
   console.log('\n🪙  Initializing SpokeMessageExecutor...');
@@ -584,13 +553,17 @@ export async function deploySpokeContracts() {
   });
 
   await eth2Client.waitForTransactionReceipt({ hash: initializeTx });
+  console.log('\n✅ SpokeMessageExecutor initialized');
 
   // Get the airlock address from the executor
+
   const airlock = await eth2Client.readContract({
     abi: SpokeMessageExecutorAbi,
     address: proxy,
     functionName: 'airlock',
   });
+
+  console.log(`✅ Airlock address: ${airlock}`);
 
   console.log('\n🪙  Deploying SpokeMetadataCollector...');
   // Deploy SpokeMetadataCollector
@@ -603,7 +576,6 @@ export async function deploySpokeContracts() {
       deploymentConfig.hubChainId,
       deploymentConfig.hubProposalMetadata,
     ],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const spokeMetadataCollectorReceipt =
@@ -618,6 +590,10 @@ export async function deploySpokeContracts() {
 
   addressStore.setAddress('SPOKE_METADATA_COLLECTOR', spokeMetadataCollector);
 
+  console.log(
+    `✅ SpokeMetadataCollector deployed to: ${spokeMetadataCollector}`,
+  );
+
   console.log('\n🪙  Deploying SpokeVoteAggregator...');
   // Deploy SpokeVoteAggregator
   const spokeVoteAggregatorHash = await deployContract(eth2Client, {
@@ -630,7 +606,6 @@ export async function deploySpokeContracts() {
       airlock,
       Number(deploymentConfig.voteWeightWindow),
     ],
-    gas: HIGH_GAS_LIMIT,
   });
 
   const spokeVoteAggregatorReceipt = await eth2Client.waitForTransactionReceipt(
@@ -645,6 +620,8 @@ export async function deploySpokeContracts() {
   }
 
   addressStore.setAddress('SPOKE_VOTE_AGGREGATOR', spokeVoteAggregator);
+
+  console.log(`✅ SpokeVoteAggregator deployed to: ${spokeVoteAggregator}`);
 
   console.log('\n✅ Spoke contracts deployed');
 
