@@ -9,6 +9,7 @@
   "scripts": {
     "forge:clean": "cd ../evm && forge clean",
     "forge:build": "cd ../evm && forge build --via-ir",
+    "generate:abis": "cd ../evm && forge build && ./generate_abis.sh",
     "generate:artifacts": "bun run scripts/generateArtifacts.ts",
     "build": "bun run forge:clean && bun run forge:build && bun run generate:artifacts",
     "test": "bun run build && bun test",
