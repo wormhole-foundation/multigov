@@ -19,12 +19,12 @@ contract DeployHubContractsEthDevnet1 is DeployHubContractsBaseImpl {
 
     vm.startBroadcast(wallet.privateKey);
 
-    // Deploy ERC20VotesFake using CREATE2
     string memory version = vm.envOr("DEPLOY_VERSION", DEFAULT_DEPLOY_VERSION);
     bytes32 salt = keccak256(abi.encodePacked("WormholeGovernanceHubContracts", version));
     bytes memory bytecode =
       abi.encodePacked(type(ERC20VotesFake).creationCode, abi.encode("MultiGov Governance Token", "MGT", 18));
     address tokenAddress = Create2.deploy(0, salt, bytecode);
+    // Deploy ERC20VotesFake using CREATE2
     ERC20VotesFake token = ERC20VotesFake(tokenAddress);
 
     uint256 initialSupply = 1_000_000_000e18; // 1 billion tokens
