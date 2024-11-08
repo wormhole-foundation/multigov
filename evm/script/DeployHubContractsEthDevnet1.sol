@@ -6,14 +6,13 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {DeployHubContractsBaseImpl} from "script/DeployHubContractsBaseImpl.s.sol";
 import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 
-/**
- * @notice Deploy the hub contracts for EthDevnet1 when using the Wormhole Tilt testing environment (Devnet).
- * @dev Set the environment variable ETHDEVNET_MNEMONIC to the mnemonic of the account that will be used to deploy the
- * contracts.
- * @dev Deploy with:
- * @dev forge script script/DeployHubContractsEthDevnet1.sol:DeployHubContractsEthDevnet1 --rpc-url
- * http://localhost:8545 --broadcast --via-ir
- */
+/// @notice Deploy the hub contracts for EthDevnet1 when using the Wormhole Tilt testing environment (Devnet).
+/// @dev Set the environment variable DEPLOYER_PRIVATE_KEY to the private key of the account that will be used to deploy
+/// the
+/// contracts.
+/// @dev Deploy with:
+/// forge script script/DeployHubContractsEthDevnet1.sol:DeployHubContractsEthDevnet1 --rpc-url
+/// http://localhost:8545 --broadcast --via-ir
 contract DeployHubContractsEthDevnet1 is DeployHubContractsBaseImpl {
   function _getDeploymentConfiguration() internal override returns (DeploymentConfiguration memory) {
     Vm.Wallet memory wallet = _deploymentWallet();
