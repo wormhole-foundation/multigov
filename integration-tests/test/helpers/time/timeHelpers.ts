@@ -2,6 +2,7 @@ import type { Client } from 'test/config/types';
 import { createClients } from '../../config/clients';
 
 export const syncTime = async () => {
+  console.log('\n⏱️  Synchronizing time between chains...');
   const { ethClient, eth2Client } = createClients();
   const hubTimestamp = (await ethClient.getBlock()).timestamp;
   const spokeTimestamp = (await eth2Client.getBlock()).timestamp;
@@ -13,6 +14,10 @@ export const syncTime = async () => {
   await eth2Client.setNextBlockTimestamp({ timestamp: timestampToUse });
   await ethClient.mine({ blocks: 1 });
   await eth2Client.mine({ blocks: 1 });
+
+  console.log(
+    `✅ Time synchronized: ${timestampToUse} (hub: ${hubTimestamp}, spoke: ${spokeTimestamp})`,
+  );
 };
 
 export const syncBlocks = async () => {
@@ -40,7 +45,9 @@ export const mineToTimestamp = async ({
   client,
   timestamp,
 }: { client: Client; timestamp: bigint }) => {
+  console.log(`   Mining to timestamp ${timestamp}...`);
   await client.setNextBlockTimestamp({ timestamp });
   await client.mine({ blocks: 1 });
+  console.log('✅ Mined to timestamp');
   await syncTime();
 };

@@ -43,8 +43,10 @@ export const handleRegisterSpokeOnAggProposer = async ({
 }: {
   chainId: number;
 }) => {
+  console.log('\n🔍 Checking if spoke is registered on AggProposer...');
   const isRegistered = await isSpokeRegisteredOnAggProposer({ chainId });
   if (isRegistered) {
+    console.log('✅ Spoke is already registered on AggProposer');
     return;
   }
 
@@ -61,6 +63,10 @@ const registerSpokeOnAggProposer = async ({
   chainId: number;
   spokeAddress: Address;
 }) => {
+  console.log('\n📝 Registering spoke on AggProposer...');
+  console.log(`   Chain ID: ${chainId}`);
+  console.log(`   Spoke Address: ${spokeAddress}`);
+
   const { ethClient, ethWallet } = createClients();
 
   await ethClient.setBalance({
@@ -87,9 +93,7 @@ const registerSpokeOnAggProposer = async ({
 
   await ethClient.waitForTransactionReceipt({ hash });
 
-  console.log(
-    `Registered spoke for chain ${chainId} at address ${spokeAddress} on the HubEvmSpokeAggregateProposer. Transaction hash: ${hash}`,
-  );
+  console.log('✅ Spoke registered successfully on AggProposer');
 };
 
 export const handleRegisterSpokeOnHubVotePool = async ({
@@ -97,15 +101,14 @@ export const handleRegisterSpokeOnHubVotePool = async ({
 }: {
   chainId: number;
 }) => {
+  console.log('\n🔍 Checking if spoke is registered on HubVotePool...');
   const isRegistered = await isSpokeRegisteredOnHubVotePool({
     chainId,
     spokeAddress: ContractAddresses.SPOKE_VOTE_AGGREGATOR,
   });
 
   if (isRegistered) {
-    console.log(
-      `Spoke for chain ${chainId} at address ${ContractAddresses.SPOKE_VOTE_AGGREGATOR} already registered on HubVotePool`,
-    );
+    console.log('✅ Spoke already registered on HubVotePool');
     return;
   }
 
@@ -141,6 +144,7 @@ export const registerSpokeOnHubVotePool = async ({
   chainId: number;
   spokeAddress: Address;
 }) => {
+  console.log('\n📝 Registering spoke on HubVotePool...');
   const { ethClient } = createClients();
   const timestamp = (await ethClient.getBlock()).timestamp;
   const nonce = Math.floor(Math.random() * 1000000);
@@ -161,11 +165,11 @@ export const registerSpokeOnHubVotePool = async ({
     description: `Register spoke for chain ${chainId} at address ${spokeAddressBytes32} at timestamp ${timestamp} (nonce: ${nonce})`,
   });
 
+  // Add gas price to proposal creation
   const proposalId = await createAndExecuteProposalViaHubGovernor(proposalData);
 
-  console.log(
-    `Registered spoke for chain ${chainId} at address ${spokeAddress} on the HubVotePool. Proposal ID: ${proposalId}`,
-  );
+  console.log('✅ Spoke registration proposal created');
+  console.log(`   Proposal ID: ${proposalId}`);
   return proposalId;
 };
 
@@ -228,12 +232,18 @@ export const handleTransferOwnership = async ({
   wallet: Wallet;
   client: Client;
 }) => {
+  console.log('\n👑 Checking ownership...');
+  console.log(`   Contract: ${contractAddress}`);
+  console.log(`   New Owner: ${newOwner}`);
+
   const owner = await checkContractOwnership({ contractAddress, client });
 
   if (owner === getAddress(newOwner)) {
-    console.log(`${contractAddress} already owned by ${newOwner}`);
+    console.log('✅ Ownership already correct');
     return;
   }
+
+  console.log('\n📝 Transferring ownership...');
 
   await client.setBalance({
     address: owner,
@@ -264,7 +274,7 @@ export const handleTransferOwnership = async ({
     address: owner,
   });
 
-  console.log(`Transferred ownership of ${contractAddress} to ${newOwner}`);
+  console.log('✅ Ownership transferred successfully');
 
   await client.waitForTransactionReceipt({ hash });
 };
