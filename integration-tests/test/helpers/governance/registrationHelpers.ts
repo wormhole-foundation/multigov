@@ -5,7 +5,7 @@ import {
   HubGovernorAbi,
   HubVotePoolAbi,
 } from '../../../abis';
-import { addressStore, ContractAddresses } from '../../config/addresses';
+import { ContractAddresses, addressStore } from '../../config/addresses';
 import { createClients } from '../../config/clients';
 import { toWormholeFormat } from '../wormhole/wormholeHelpers';
 import {

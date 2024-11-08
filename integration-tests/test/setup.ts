@@ -1,5 +1,7 @@
 import { ERC20VotesFakeAbi } from 'abis';
+import { getAddress } from 'viem';
 import { addressStore } from './config/addresses';
+import type { DeployedAddresses } from './config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from './config/chains';
 import { createClients } from './config/clients';
 import { mineToTimestamp, syncTime } from './helpers';
@@ -7,6 +9,10 @@ import {
   deployHubContracts,
   deploySpokeContracts,
 } from './helpers/deployment/deployContracts';
+import {
+  loadDeploymentCache,
+  saveDeploymentCache,
+} from './helpers/deployment/deploymentCache';
 import {
   getWhitelistedProposer,
   handleRegisterSpokeOnAggProposer,
@@ -17,12 +23,6 @@ import {
   registerWhitelistedProposer,
 } from './helpers/governance/registrationHelpers';
 import { delegate, mintTokens } from './helpers/token/tokenHelpers';
-import {
-  loadDeploymentCache,
-  saveDeploymentCache,
-} from './helpers/deployment/deploymentCache';
-import type { DeployedAddresses } from './config/addresses';
-import { getAddress } from 'viem';
 
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
