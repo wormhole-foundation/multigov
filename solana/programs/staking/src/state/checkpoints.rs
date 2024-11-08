@@ -117,15 +117,15 @@ pub fn push_checkpoint<'info>(
     system_program_account_info: &AccountInfo<'info>,
 ) -> Result<()> {
     // Step 1: Immutable borrow to get latest_index and latest_checkpoint
-    let (current_index, latest_checkpoint) = {
+    let (current_index, latest_checkpoint, owner) = {
         let checkpoint_data = checkpoints_loader.load()?;
         if checkpoint_data.next_index == 0 {
-            (0, None) // If next_index is 0, set both to None
+            (0, None, checkpoint_data.owner) // If next_index is 0, set both to None
         } else {
             let latest_index = checkpoint_data.next_index - 1;
             let checkpoint =
                 read_checkpoint_at_index(checkpoints_account_info, latest_index as usize)?;
-            (checkpoint_data.next_index, Some(checkpoint))
+            (checkpoint_data.next_index, Some(checkpoint), checkpoint_data.owner)
         }
     };
     if let Some(ref latest_checkpoint) = latest_checkpoint {
@@ -162,6 +162,11 @@ pub fn push_checkpoint<'info>(
                 current_index as usize,
                 &new_checkpoint,
             )?;
+            emit!(DelegateVotesChanged {
+                delegate: owner,
+                previous_balance: latest_checkpoint.value,
+                new_balance: new_checkpoint.value
+            });
         } else {
             let new_checkpoint = calc_new_checkpoint(
                 latest_checkpoint.value,
@@ -176,6 +181,11 @@ pub fn push_checkpoint<'info>(
                 current_index as usize - 1,
                 &new_checkpoint,
             )?;
+            emit!(DelegateVotesChanged {
+                delegate: owner,
+                previous_balance: latest_checkpoint.value,
+                new_balance: new_checkpoint.value
+            });
         }
     } else {
         // write first checkpoint
@@ -203,6 +213,11 @@ pub fn push_checkpoint<'info>(
             current_index as usize,
             &new_checkpoint,
         )?;
+        emit!(DelegateVotesChanged {
+            delegate: owner,
+            previous_balance: 0,
+            new_balance: new_checkpoint.value
+        });
     }
     Ok(())
 }
