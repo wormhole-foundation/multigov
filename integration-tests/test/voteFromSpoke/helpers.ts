@@ -194,8 +194,6 @@ export const voteOnSpoke = async (proposalId: bigint) => {
 
   const receipt = await eth2Client.waitForTransactionReceipt({ hash });
 
-  console.log('voted on spoke');
-
   return receipt.blockNumber;
 };
 
@@ -240,6 +238,7 @@ export const getWormholeProposalVotesQueryResponse = async ({
   proposalId: bigint;
   votedAtBlock: bigint;
 }) => {
+  console.log('Getting wormhole proposal votes query response...');
   const blockNumberHex = `0x${votedAtBlock.toString(16)}`;
 
   const spokeProposalVotesCall: EthCallData = {
@@ -276,8 +275,38 @@ export const getWormholeProposalVotesQueryResponse = async ({
     QueryRequest.digest('DEVNET', serialized),
   );
 
+  console.log('Sending query to wormhole...');
   return await sendQueryToWormhole({
     serialized,
     signature,
   });
+};
+
+export const waitForProposalActive = async (proposalId: bigint) => {
+  console.log('\nWaiting for proposal to be active...');
+  const { ethClient, eth2Client } = createClients();
+
+  // Get vote start from both chains
+  const [hubVoteStart, spokeVoteStart] = await Promise.all([
+    getVoteStart({ proposalId, isHub: true }),
+    getVoteStart({ proposalId, isHub: false }),
+  ]);
+
+  // Use the later start time
+  const voteStart = BigInt(
+    Math.max(Number(hubVoteStart), Number(spokeVoteStart)),
+  );
+  console.log('Vote start:', voteStart);
+
+  // Move both chains forward
+  await Promise.all([
+    mineToTimestamp({ client: ethClient, timestamp: voteStart }),
+    mineToTimestamp({ client: eth2Client, timestamp: voteStart }),
+  ]);
+
+  const currentTimestampHub = (await ethClient.getBlock()).timestamp;
+  const currentTimestampSpoke = (await eth2Client.getBlock()).timestamp;
+  console.log('Current timestamp:', currentTimestampHub, currentTimestampSpoke);
+
+  console.log('✅ Proposal is active');
 };
