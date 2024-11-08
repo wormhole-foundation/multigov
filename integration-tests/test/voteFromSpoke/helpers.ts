@@ -15,6 +15,7 @@ import { getVoteStart } from 'test/helpers';
 import { guardiansCertifyWormholeQuery } from 'test/helpers/wormhole/wormholeHelpers';
 import { encodeFunctionData } from 'viem';
 import { mineToTimestamp } from '../helpers/time/timeHelpers';
+import { HubGovernorAbi, SpokeMetadataCollectorAbi } from '../../abis';
 
 // Votes on the spoke via the `SpokeVoteAggregator` contract and bridges the votes to the hub
 export const voteFromSpoke = async (proposalId: bigint) => {
@@ -292,21 +293,29 @@ export const waitForProposalActive = async (proposalId: bigint) => {
     getVoteStart({ proposalId, isHub: false }),
   ]);
 
-  // Use the later start time
-  const voteStart = BigInt(
-    Math.max(Number(hubVoteStart), Number(spokeVoteStart)),
-  );
-  console.log('Vote start:', voteStart);
-
-  // Move both chains forward
-  await Promise.all([
-    mineToTimestamp({ client: ethClient, timestamp: voteStart }),
-    mineToTimestamp({ client: eth2Client, timestamp: voteStart }),
+  // Get current timestamps
+  const [hubBlock, spokeBlock] = await Promise.all([
+    ethClient.getBlock(),
+    eth2Client.getBlock(),
   ]);
 
-  const currentTimestampHub = (await ethClient.getBlock()).timestamp;
-  const currentTimestampSpoke = (await eth2Client.getBlock()).timestamp;
-  console.log('Current timestamp:', currentTimestampHub, currentTimestampSpoke);
+  // Use the latest timestamp of all values
+  const voteStart = BigInt(
+    Math.max(
+      Number(hubVoteStart),
+      Number(spokeVoteStart),
+      Number(hubBlock.timestamp),
+      Number(spokeBlock.timestamp),
+    ) + 1, // Add 1 to ensure we're moving forward
+  );
+
+  console.log('Vote start:', voteStart);
+  console.log('Current hub timestamp:', hubBlock.timestamp);
+  console.log('Current spoke timestamp:', spokeBlock.timestamp);
+
+  // Move both chains forward sequentially
+  await mineToTimestamp({ client: ethClient, timestamp: voteStart });
+  await mineToTimestamp({ client: eth2Client, timestamp: voteStart });
 
   console.log('✅ Proposal is active');
 };
