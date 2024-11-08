@@ -348,13 +348,25 @@ export const createArbitraryProposalData = async () => {
 export const waitForProposalToBeActive = async (proposalId: bigint) => {
   console.log('Waiting for proposal to be active...');
   const { ethClient, eth2Client } = createClients();
+
+  const currentTimestampHub = (await ethClient.getBlock()).timestamp;
+  const currentTimestampSpoke = (await eth2Client.getBlock()).timestamp;
+
   const voteStartHub = await getVoteStart({ proposalId, isHub: true });
   const voteStartSpoke = await getVoteStart({ proposalId, isHub: false });
-  const timestamp =
-    BigInt(Math.max(Number(voteStartHub), Number(voteStartSpoke))) + 1n;
 
-  await mineToTimestamp({ client: ethClient, timestamp });
-  await mineToTimestamp({ client: eth2Client, timestamp });
+  const timestampToUse =
+    BigInt(
+      Math.max(
+        Number(voteStartHub),
+        Number(voteStartSpoke),
+        Number(currentTimestampHub),
+        Number(currentTimestampSpoke),
+      ),
+    ) + 1n;
+
+  await mineToTimestamp({ client: ethClient, timestamp: timestampToUse });
+  await mineToTimestamp({ client: eth2Client, timestamp: timestampToUse });
 
   console.log('✅ Proposal is active');
 };
