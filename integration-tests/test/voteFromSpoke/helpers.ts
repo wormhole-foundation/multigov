@@ -15,7 +15,6 @@ import { getVoteStart } from 'test/helpers';
 import { sendQueryToWormhole } from 'test/helpers/wormhole/wormholeHelpers';
 import { encodeFunctionData } from 'viem';
 import { mineToTimestamp } from '../helpers/time/timeHelpers';
-import { HubGovernorAbi, SpokeMetadataCollectorAbi } from '../../abis';
 
 // Votes on the spoke via the `SpokeVoteAggregator` contract and bridges the votes to the hub
 export const voteFromSpoke = async (proposalId: bigint) => {

@@ -1,31 +1,31 @@
-import { expect, beforeAll, describe, test } from 'bun:test';
-import { setupTestEnvironment } from './setup';
+import { beforeAll, describe, expect, test } from 'bun:test';
+import { getAddress, parseEther } from 'viem';
+import { ContractAddresses } from './config/addresses';
+import { createClients } from './config/clients';
 import { createProposalOnHub } from './createProposalOnHub/helpers';
 import {
   createProposalOnSpoke,
   getProposalOnSpoke,
 } from './createProposalOnSpoke/helpers';
-import { voteFromSpoke } from './voteFromSpoke/helpers';
-import { ContractAddresses } from './config/addresses';
+import {
+  createAndExecuteCrossChainProposal,
+  createArbitraryProposalDataForSpokeExecution,
+  getSpokeAirlock,
+} from './executeCrossChain/helpers';
 import {
   createArbitraryProposalData,
   getProposal,
   waitForProposalToBeActive,
 } from './helpers/governance/proposalHelpers';
 import { getWhitelistedProposer } from './helpers/governance/registrationHelpers';
-import { getAddress, parseEther } from 'viem';
+import type { ProposalData } from './helpers/governance/types';
 import {
   getProposalVotes,
   getVoteStart,
   getVotingPower,
 } from './helpers/governance/votingHelpers';
-import { createClients } from './config/clients';
-import {
-  createAndExecuteCrossChainProposal,
-  createArbitraryProposalDataForSpokeExecution,
-  getSpokeAirlock,
-} from './executeCrossChain/helpers';
-import type { ProposalData } from './helpers/governance/types';
+import { setupTestEnvironment } from './setup';
+import { voteFromSpoke } from './voteFromSpoke/helpers';
 
 // Store shared state between tests 1-3
 type ProposalTestState = {
