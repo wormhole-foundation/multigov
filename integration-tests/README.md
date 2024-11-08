@@ -30,6 +30,25 @@ tilt up -- --evm2=true --query_server=true
 
 Wait for the Tilt environment to fully initialize. This may take several minutes as it sets up multiple chains and services.
 
+## Contract ABIs
+
+The integration tests require up-to-date ABIs from the smart contracts. To generate/update the ABIs:
+
+```bash
+# From the project root
+cd integration-tests/
+bun run generate-abis
+```
+
+This will:
+
+- Read the contract artifacts from `evm/out/`
+- Generate json ABI files in `evm/abis/`
+
+You will then need to update the `integration-tests/abis` folder with all of these files, updating them to be .ts files and exporting each abi as default and `as const`.
+
+Remember to regenerate ABIs whenever you make changes to the smart contracts.
+
 ## Running Tests
 
 The tests set up the tilt environment for cross-chain governance testing:
