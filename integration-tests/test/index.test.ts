@@ -8,6 +8,8 @@ import {
 import { voteFromSpoke } from './voteFromSpoke/helpers';
 import { ContractAddresses } from './config/addresses';
 import {
+  createArbitraryProposalData,
+  executeProposal,
   getProposal,
   waitForProposalToBeActive,
 } from './helpers/governance/proposalHelpers';
@@ -24,16 +26,16 @@ import {
   createArbitraryProposalDataForSpokeExecution,
   getSpokeAirlock,
 } from './executeCrossChain/helpers';
+import type { ProposalData } from './helpers/governance/types';
 
 // Store shared state between tests 1-3
-type TestState = {
+type ProposalTestState = {
+  proposalData?: ProposalData;
   hubProposalId?: bigint;
   spokeProposalId?: bigint;
-  voteReceipt?: `0x${string}`;
-  executionReceipt?: `0x${string}`;
 };
 
-const state: TestState = {};
+const state: ProposalTestState = {};
 
 describe('MultiGov Tests', () => {
   beforeAll(async () => {
@@ -55,7 +57,10 @@ describe('MultiGov Tests', () => {
         getAddress(ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER),
       );
 
-      const proposalId = await createProposalOnHub();
+      const proposalData = await createArbitraryProposalData();
+      state.proposalData = proposalData;
+
+      const proposalId = await createProposalOnHub(proposalData);
       expect(proposalId).toBeDefined();
 
       // check it exists in the governor
@@ -127,6 +132,14 @@ describe('MultiGov Tests', () => {
 
   describe('4. Cross Chain Execution', () => {
     test('Should successfully perform cross-chain execution of ETH transfer from spoke airlock to recipient', async () => {
+      if (!state.proposalData) {
+        throw new Error('Proposal data is not set');
+      }
+
+      // Execute the proposal from previous state/tests
+      await executeProposal({ proposalData: state.proposalData });
+
+      // Create a new proposal for testing cross-chain execution
       console.log('\n🔍 Testing cross-chain execution...');
       const { eth2Client } = createClients();
       const AMOUNT_TO_TRANSFER_FROM_AIRLOCK = parseEther('0.1');
