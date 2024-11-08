@@ -5,7 +5,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {toWormholeFormat} from "wormhole-sdk/Utils.sol";
 import {DeploySpokeContractsBaseImpl} from "./DeploySpokeContractsBaseImpl.sol";
-import {ERC20VotesFake} from "../test/fakes/ERC20VotesFake.sol";
+import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 
 /// @notice Deploy the spoke contracts for EthDevnet2 when using the Wormhole Tilt testing environment (Devnet).
 /// @dev Set the environment variable DEPLOYER_PRIVATE_KEY to the private key of the account that will be used to deploy
@@ -17,7 +17,7 @@ import {ERC20VotesFake} from "../test/fakes/ERC20VotesFake.sol";
 contract DeploySpokeContractsEthDevnet2 is DeploySpokeContractsBaseImpl {
   error ContractNotFound(string contractName);
 
-  function _findContractAddress(string memory json, string memory contractName) internal view returns (address) {
+  function _findContractAddress(string memory json, string memory contractName) internal pure returns (address) {
     // First get the transactions array from the broadcast object
     bytes[] memory txs = abi.decode(vm.parseJson(json, "$.transactions"), (bytes[]));
     uint256 length = txs.length;
