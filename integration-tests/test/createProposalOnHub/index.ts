@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
+import { getAddress } from 'viem';
 import { ContractAddresses } from '../config/addresses';
 import { getProposal } from '../helpers/governance/proposalHelpers';
 import { getWhitelistedProposer } from '../helpers/governance/registrationHelpers';
-import { getAddress } from 'viem';
-import { createProposalOnHub } from './helpers';
 import { setupSuccessful } from '../testContext';
+import { createProposalOnHub } from './helpers';
 
 describe('Create proposal on hub via the HubEvmSpokeAggregateProposer', () => {
   test.if(setupSuccessful)('Should create proposal on hub', async () => {
