@@ -1,11 +1,8 @@
-import {
-  createArbitraryProposalData,
-  createProposalViaAggregateProposer,
-} from 'test/helpers';
+import { createProposalViaAggregateProposer } from 'test/helpers';
+import type { ProposalData } from 'test/helpers/governance/types';
 
-export const createProposalOnHub = async () => {
+export const createProposalOnHub = async (proposalData: ProposalData) => {
   console.log('Creating proposal on hub...');
-  const proposalData = await createArbitraryProposalData();
   const proposalId = await createProposalViaAggregateProposer({
     proposalData,
   });
