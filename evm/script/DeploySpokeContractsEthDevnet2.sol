@@ -7,7 +7,6 @@ import {toWormholeFormat} from "wormhole-sdk/Utils.sol";
 import {DeploySpokeContractsBaseImpl} from "./DeploySpokeContractsBaseImpl.sol";
 import {ERC20VotesFake} from "../test/fakes/ERC20VotesFake.sol";
 
-
 /// @notice Deploy the spoke contracts for EthDevnet2 when using the Wormhole Tilt testing environment (Devnet).
 /// @dev Set the environment variable DEPLOYER_PRIVATE_KEY to the private key of the account that will be used to deploy
 /// the
@@ -15,7 +14,6 @@ import {ERC20VotesFake} from "../test/fakes/ERC20VotesFake.sol";
 /// @dev Deploy with:
 /// forge script script/DeploySpokeContractsEthDevnet2.sol:DeploySpokeContractsEthDevnet2 --rpc-url
 /// http://localhost:8546 --broadcast --via-ir
-contract DeploySpokeContractsEthDevnet2 is DeploySpokeContractsBaseImpl {
 contract DeploySpokeContractsEthDevnet2 is DeploySpokeContractsBaseImpl {
   error ContractNotFound(string contractName);
 
