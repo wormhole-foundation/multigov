@@ -11,21 +11,12 @@ import { ContractAddresses } from 'test/config/addresses';
 import { ETH_DEVNET_WORMHOLE_CHAIN_ID } from 'test/config/chains';
 import { createClients } from 'test/config/clients';
 import { getPrivateKeyHex } from 'test/config/mainAccount';
-import {
-  createArbitraryProposalData,
-  createProposalViaAggregateProposer,
-  sendQueryToWormhole,
-} from 'test/helpers';
+import { sendQueryToWormhole } from 'test/helpers';
 import type { WormholeQueryResponse } from 'test/helpers/wormhole/types';
 import { encodeFunctionData } from 'viem';
 
-export const createProposalOnSpoke = async () => {
-  console.log('Creating proposal on spoke...');
-  // 1. Create proposal on hub via aggregate proposer
-  const proposalData = await createArbitraryProposalData();
-  const proposalId = await createProposalViaAggregateProposer({ proposalData });
-
-  // 2. Get Wormhole query response containing proposal metadata
+export const createProposalOnSpoke = async (proposalId: bigint) => {
+  // Get Wormhole query response containing proposal metadata
   const { ethClient } = createClients();
   const currentBlock = await ethClient.getBlock();
   const queryResponse = await getWormholeAddProposalQueryResponse({
@@ -33,7 +24,7 @@ export const createProposalOnSpoke = async () => {
     proposalCreatedBlock: currentBlock.number,
   });
 
-  // 3. Add proposal to spoke using the queried metadata
+  // Add proposal to spoke using the queried metadata
   await addProposalToSpoke(queryResponse);
 
   console.log('✅ Proposal created on spoke');

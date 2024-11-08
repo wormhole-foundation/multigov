@@ -35,7 +35,10 @@ export const isSpokeRegisteredOnAggProposer = async ({
     args: [chainId],
   });
 
-  return spokeAddress === ContractAddresses.SPOKE_VOTE_AGGREGATOR;
+  return (
+    getAddress(spokeAddress) ===
+    getAddress(ContractAddresses.SPOKE_VOTE_AGGREGATOR)
+  );
 };
 
 export const handleRegisterSpokeOnAggProposer = async ({
@@ -134,7 +137,10 @@ export const isSpokeRegisteredOnHubVotePool = async ({
     args: [chainId, timestamp],
   });
 
-  return registeredAddress === toWormholeFormat(spokeAddress);
+  return (
+    registeredAddress.toLowerCase() ===
+    toWormholeFormat(spokeAddress).toLowerCase()
+  );
 };
 
 export const registerSpokeOnHubVotePool = async ({
