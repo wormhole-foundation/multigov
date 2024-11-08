@@ -28,6 +28,7 @@ import {
   saveDeploymentCache,
 } from './helpers/deployment/deploymentCache';
 import type { DeployedAddresses } from './config/addresses';
+import { getAddress } from 'viem';
 
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
@@ -146,11 +147,6 @@ const handleDeployContracts = async () => {
   // Deploy new contracts
   await deployHubContracts();
   await deploySpokeContracts();
-
-  // Save deployment cache (skip in CI)
-  if (!process.env.CI) {
-    saveDeploymentCache(addressStore.getAllAddresses());
-  }
 };
 
 const isSetupComplete = async () => {
