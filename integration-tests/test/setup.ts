@@ -153,7 +153,7 @@ const isSetupComplete = async () => {
   const isSpokeRegisteredOnHubVotePoolCorrect =
     await isSpokeRegisteredOnHubVotePool({
       chainId: ETH2_DEVNET_WORMHOLE_CHAIN_ID,
-      spokeAddress: addressStore.getAddress('HUB_EVM_SPOKE_AGGREGATE_PROPOSER'),
+      spokeAddress: addressStore.getAddress('SPOKE_VOTE_AGGREGATOR'),
     });
 
   const isComplete =
