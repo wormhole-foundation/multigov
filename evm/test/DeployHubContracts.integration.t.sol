@@ -21,8 +21,6 @@ contract DeployHubContractsBase is Test, TestConstants {
   function setUp() public {
     (deployer, deployerKey) = makeAddrAndKey("deployer");
     vm.setEnv("DEPLOYER_PRIVATE_KEY", vm.toString(deployerKey));
-    // Set to empty string to avoid since we aren't testing the devnet deployment
-    vm.setEnv("ETHDEVNET_MNEMONIC", "");
   }
 }
 
