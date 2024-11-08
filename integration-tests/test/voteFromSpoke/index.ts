@@ -6,8 +6,8 @@ import {
   getVotingPower,
   waitForProposalToBeActive,
 } from 'test/helpers';
-import { voteFromSpoke } from './helpers';
 import { setupSuccessful } from 'test/testContext';
+import { voteFromSpoke } from './helpers';
 
 describe('Vote from spoke', () => {
   test.if(setupSuccessful)(

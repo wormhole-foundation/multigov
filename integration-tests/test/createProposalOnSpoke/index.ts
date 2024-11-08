@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { getProposal, getVoteStart } from 'test/helpers';
-import { createProposalOnSpoke, getProposalOnSpoke } from './helpers';
 import { setupSuccessful } from 'test/testContext';
+import { createProposalOnSpoke, getProposalOnSpoke } from './helpers';
 describe('Create proposal on spoke', () => {
   test.if(setupSuccessful)(
     'should create proposal on spoke',
