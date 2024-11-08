@@ -5,7 +5,7 @@ import {
   HubGovernorAbi,
   HubVotePoolAbi,
 } from '../../../abis';
-import { ContractAddresses } from '../../config/addresses';
+import { addressStore, ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
 import { toWormholeFormat } from '../wormhole/wormholeHelpers';
 import {
@@ -131,7 +131,7 @@ export const isSpokeRegisteredOnHubVotePool = async ({
   const { ethClient } = createClients();
   const timestamp = (await ethClient.getBlock()).timestamp;
   const registeredAddress = await ethClient.readContract({
-    address: ContractAddresses.HUB_VOTE_POOL,
+    address: addressStore.getAddress('HUB_VOTE_POOL'),
     abi: HubVotePoolAbi,
     functionName: 'getSpoke',
     args: [chainId, timestamp],
