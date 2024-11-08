@@ -1,6 +1,6 @@
 {
-  "name": "eth-call-w-timestamp",
-  "module": "index.ts",
+  "name": "integration-tests",
+  "module": "index.test.ts",
   "type": "module",
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
