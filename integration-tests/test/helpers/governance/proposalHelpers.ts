@@ -661,9 +661,9 @@ export const waitForProposalToBeActive = async (proposalId: bigint) => {
   const { ethClient, eth2Client } = createClients();
   const voteStartHub = await getVoteStart({ proposalId, isHub: true });
   const voteStartSpoke = await getVoteStart({ proposalId, isHub: false });
-  const timestamp = BigInt(
-    Math.max(Number(voteStartHub), Number(voteStartSpoke)),
-  );
+  const timestamp =
+    BigInt(Math.max(Number(voteStartHub), Number(voteStartSpoke))) + 1n;
+
   await mineToTimestamp({ client: ethClient, timestamp });
   await mineToTimestamp({ client: eth2Client, timestamp });
 

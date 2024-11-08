@@ -23,6 +23,11 @@ import {
   registerWhitelistedProposer,
 } from './helpers/governance/registrationHelpers';
 import { delegate, mintTokens } from './helpers/token/tokenHelpers';
+import {
+  loadDeploymentCache,
+  saveDeploymentCache,
+} from './helpers/deployment/deploymentCache';
+import type { DeployedAddresses } from './config/addresses';
 
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
