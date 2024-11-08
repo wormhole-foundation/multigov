@@ -15,6 +15,7 @@ export const createProposalViaAggregateProposer = async ({
 }: {
   proposalData: ProposalData;
 }) => {
+  console.log('Creating proposal via aggregate proposer...');
   const { ethClient, ethWallet, account } = createClients();
   const timestamp = (await ethClient.getBlock()).timestamp - 300n; // 5 minutes ago
 
@@ -56,12 +57,14 @@ export const createProposalViaAggregateProposer = async ({
   });
 
   await ethWallet.waitForTransactionReceipt({ hash });
+  console.log('✅ Proposal created via aggregate proposer');
   return proposalId;
 };
 
 export const createProposalViaHubGovernor = async (
   proposalData: ProposalData,
 ) => {
+  console.log('Creating proposal via hub governor...');
   const { ethClient, ethWallet } = createClients();
   const account = handleNoAccount(ethWallet);
 
@@ -93,6 +96,7 @@ export const createProposalViaHubGovernor = async (
   });
 
   await ethClient.waitForTransactionReceipt({ hash });
+  console.log('✅ Proposal created via hub governor');
   return proposalId;
 };
 
@@ -106,7 +110,7 @@ export const passProposal = async ({
 }) => {
   const { ethClient } = createClients();
 
-  const voteStart = await getVoteStart({ proposalId });
+  const voteStart = await getVoteStart({ proposalId, isHub: true });
 
   await mineToTimestamp({ client: ethClient, timestamp: voteStart });
   await voteOnProposal({ proposalId, isHub: true, voteType: VoteType.FOR });
@@ -246,6 +250,7 @@ const queueProposal = async ({
 export const createAndExecuteProposalViaHubGovernor = async (
   proposalData: ProposalData,
 ) => {
+  console.log('Creating and executing proposal via hub governor...');
   // Create proposal
   const proposalId = await createProposalViaHubGovernor(proposalData);
 
@@ -255,6 +260,7 @@ export const createAndExecuteProposalViaHubGovernor = async (
   // Execute proposal
   await executeProposal({ proposalData });
 
+  console.log('✅ Proposal created and executed');
   return proposalId;
 };
 
@@ -340,7 +346,15 @@ export const createArbitraryProposalData = async () => {
 };
 
 export const waitForProposalToBeActive = async (proposalId: bigint) => {
-  const { ethClient } = createClients();
-  const voteStart = await getVoteStart({ proposalId });
-  await mineToTimestamp({ client: ethClient, timestamp: voteStart });
+  console.log('Waiting for proposal to be active...');
+  const { ethClient, eth2Client } = createClients();
+  const voteStartHub = await getVoteStart({ proposalId, isHub: true });
+  const voteStartSpoke = await getVoteStart({ proposalId, isHub: false });
+  const timestamp = BigInt(
+    Math.max(Number(voteStartHub), Number(voteStartSpoke)),
+  );
+  await mineToTimestamp({ client: ethClient, timestamp });
+  await mineToTimestamp({ client: eth2Client, timestamp });
+
+  console.log('✅ Proposal is active');
 };

@@ -1,5 +1,9 @@
 import type { Address } from 'viem';
-import { HubGovernorAbi, SpokeVoteAggregatorAbi } from '../../../abis';
+import {
+  HubGovernorAbi,
+  SpokeMetadataCollectorAbi,
+  SpokeVoteAggregatorAbi,
+} from '../../../abis';
 import { ContractAddresses } from '../../config/addresses';
 import { createClients } from '../../config/clients';
 import type { VoteType } from '../../config/types';
@@ -137,16 +141,30 @@ export const getProposalVotes = async ({
   };
 };
 
-// Get the vote start for a proposal on the hub
-export const getVoteStart = async ({ proposalId }: { proposalId: bigint }) => {
-  const { ethClient } = createClients();
-
-  return await ethClient.readContract({
-    address: ContractAddresses.HUB_GOVERNOR,
-    abi: HubGovernorAbi,
-    functionName: 'proposalSnapshot',
+// Get the vote start for a proposal on the hub or spoke
+export const getVoteStart = async ({
+  proposalId,
+  isHub,
+}: {
+  proposalId: bigint;
+  isHub: boolean;
+}) => {
+  const { ethClient, eth2Client } = createClients();
+  if (isHub) {
+    return await ethClient.readContract({
+      address: ContractAddresses.HUB_GOVERNOR,
+      abi: HubGovernorAbi,
+      functionName: 'proposalSnapshot',
+      args: [proposalId],
+    });
+  }
+  const { voteStart } = await eth2Client.readContract({
+    address: ContractAddresses.SPOKE_METADATA_COLLECTOR,
+    abi: SpokeMetadataCollectorAbi,
+    functionName: 'getProposal',
     args: [proposalId],
   });
+  return voteStart;
 };
 
 // Get the vote end for a proposal on the hub

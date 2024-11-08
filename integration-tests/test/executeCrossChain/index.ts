@@ -9,6 +9,7 @@ import {
 
 describe('Execute Cross Chain', () => {
   test('should successfully perform cross-chain execution of ETH transfer from spoke airlock to recipient', async () => {
+    console.log('\n🔍 Testing cross-chain execution...');
     const { eth2Client } = createClients();
     const AMOUNT_TO_TRANSFER_FROM_AIRLOCK = parseEther('0.1');
 
@@ -52,5 +53,7 @@ describe('Execute Cross Chain', () => {
     expect(finalRecipientBalance - initialRecipientBalance).toBe(
       AMOUNT_TO_TRANSFER_FROM_AIRLOCK,
     );
-  }, 100000);
+
+    console.log('✅ Cross-chain execution test passed');
+  }, 120000);
 });

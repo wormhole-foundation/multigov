@@ -15,10 +15,12 @@ import { encodeAbiParameters, encodeFunctionData, parseAbiItem } from 'viem';
 export const createAndExecuteCrossChainProposal = async (
   proposalData: ProposalData,
 ) => {
+  console.log('Creating and executing cross-chain proposal...');
   const { proposalId, sequence } =
     await createProposalWithDispatcher(proposalData);
   const vaaBytes = await fetchSignedVAA(sequence);
   await executeVAAOnSpoke(vaaBytes);
+  console.log('✅ Cross-chain proposal executed');
   return proposalId;
 };
 
