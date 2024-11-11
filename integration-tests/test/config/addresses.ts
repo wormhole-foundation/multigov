@@ -26,6 +26,28 @@ export type DeployedAddresses = {
   SPOKE_METADATA_COLLECTOR: Address;
 };
 
+// Create a const array of all possible address keys
+export const ADDRESS_KEYS = [
+  'WORMHOLE_CORE',
+  'HUB_GOVERNOR',
+  'HUB_MESSAGE_DISPATCHER',
+  'HUB_VOTE_POOL',
+  'HUB_VOTING_TOKEN',
+  'TIMELOCK_CONTROLLER',
+  'HUB_PROPOSAL_METADATA',
+  'HUB_PROPOSAL_EXTENDER',
+  'HUB_EVM_SPOKE_AGGREGATE_PROPOSER',
+  'HUB_SOLANA_MESSAGE_DISPATCHER',
+  'HUB_SOLANA_SPOKE_VOTE_DECODER',
+  'SPOKE_VOTING_TOKEN',
+  'SPOKE_VOTE_AGGREGATOR',
+  'SPOKE_MESSAGE_EXECUTOR',
+  'SPOKE_METADATA_COLLECTOR',
+] as const;
+
+// Type-safe way to get the number of addresses
+export const ADDRESS_COUNT = ADDRESS_KEYS.length;
+
 // Create a mutable store for addresses that will be populated during deployment
 class AddressStore {
   private static instance: AddressStore;

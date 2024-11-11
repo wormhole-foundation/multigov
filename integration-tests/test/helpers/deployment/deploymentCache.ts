@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Address } from 'viem';
-import type { DeployedAddresses } from '../../config/addresses';
+import { ADDRESS_COUNT, type DeployedAddresses } from '../../config/addresses';
 
 const CACHE_FILE = join(process.cwd(), '.deployment-cache.json');
 
@@ -31,6 +31,12 @@ export const loadDeploymentCache = (): Partial<
     }
 
     const cache: DeploymentCache = JSON.parse(readFileSync(CACHE_FILE, 'utf8'));
+
+    // Check if cache has all addresses
+    if (Object.keys(cache.addresses).length !== ADDRESS_COUNT) {
+      console.log('⚠️  Deployment cache is missing some addresses');
+      return null;
+    }
 
     console.log('📂 Using cached deployment');
     return cache.addresses;
