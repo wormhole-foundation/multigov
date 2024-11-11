@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { ERC20VotesFakeAbi } from 'abis';
 import { getAddress } from 'viem';
 import { addressStore } from './config/addresses';
@@ -23,7 +24,6 @@ import {
   registerWhitelistedProposer,
 } from './helpers/governance/registrationHelpers';
 import { delegate, mintTokens } from './helpers/token/tokenHelpers';
-import { existsSync } from 'node:fs';
 
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
