@@ -28,22 +28,14 @@ import { delegate, mintTokens } from './helpers/token/tokenHelpers';
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
 
-  // Check if we should skip deployment
-  const skipDeployment =
-    process.env.SKIP_DEPLOYMENT === 'true' &&
-    existsSync('.deployment-cache.json');
+  // Load cached deployment
+  const cachedAddresses = loadDeploymentCache();
 
-  if (skipDeployment) {
-    console.log('Using cached deployment...');
-    // Load cached deployment
-    await loadDeploymentCache();
-    // Verify contracts are accessible
-    if (await isSetupComplete()) {
-      return;
+  if (cachedAddresses) {
+    // Use cached addresses
+    for (const [key, value] of Object.entries(cachedAddresses)) {
+      addressStore.setAddress(key as keyof DeployedAddresses, value);
     }
-    console.log(
-      'Cached deployment verification failed, proceeding with fresh deployment',
-    );
   }
 
   await handleDeployContracts();

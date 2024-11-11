@@ -2,7 +2,6 @@ import { beforeAll, describe, expect, test } from 'bun:test';
 import { getAddress, parseEther } from 'viem';
 import { ContractAddresses } from './config/addresses';
 import { createClients } from './config/clients';
-import { createProposalOnHub } from './createProposalOnHub/helpers';
 import {
   createProposalOnSpoke,
   getProposalOnSpoke,
@@ -14,6 +13,7 @@ import {
 } from './executeCrossChain/helpers';
 import {
   createArbitraryProposalData,
+  createProposalViaAggregateProposer,
   getProposal,
   waitForProposalToBeActive,
 } from './helpers/governance/proposalHelpers';
@@ -59,7 +59,9 @@ describe('MultiGov Tests', () => {
       const proposalData = await createArbitraryProposalData();
       state.proposalData = proposalData;
 
-      const proposalId = await createProposalOnHub(proposalData);
+      const proposalId = await createProposalViaAggregateProposer({
+        proposalData,
+      });
       expect(proposalId).toBeDefined();
 
       // check it exists in the governor
