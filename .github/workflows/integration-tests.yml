@@ -21,9 +21,9 @@ jobs:
     #   cancel-in-progress: true
 
     steps:
-      - name: Clear repository
-        run: |
-          rm -rf $GITHUB_WORKSPACE && mkdir $GITHUB_WORKSPACE
+      # - name: Clear repository
+      #   run: |
+      #     rm -rf $GITHUB_WORKSPACE && mkdir $GITHUB_WORKSPACE
       - uses: actions/checkout@v4
         with:
           submodules: recursive
