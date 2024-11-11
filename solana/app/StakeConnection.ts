@@ -594,26 +594,29 @@ export class StakeConnection {
 
   public async castVote(
     proposalId: Buffer,
-    stakeAccount: PublicKey,
     againstVotes: BN,
     forVotes: BN,
     abstainVotes: BN,
-    checkpointIndex: number,
+    checkpointIndex: number = 0,
   ): Promise<void> {
+    let voterStakeAccountCheckpointsAddress =
+      await this.getStakeAccountCheckpointsAddress(this.userPublicKey());
+
     const instructions: TransactionInstruction[] = [];
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
+
     instructions.push(
       await this.program.methods
         .castVote(
           Array.from(proposalId),
           againstVotes,
           forVotes,
-          abstainVotes,
+          abstainVotes, 
           checkpointIndex,
         )
         .accountsPartial({
           proposal: proposalAccount,
-          voterCheckpoints: stakeAccount,
+          voterCheckpoints: voterStakeAccountCheckpointsAddress,
         })
         .instruction(),
     );

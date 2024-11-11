@@ -646,11 +646,10 @@ describe("api", async () => {
 
   it("castVote", async () => {
     await sleep(2000)
-    let user2StakeAccountCheckpointsAddress =
-      await user2StakeConnection.delegate(
-        user2,
-        WHTokenBalance.fromString("150"),
-      );
+    await user2StakeConnection.delegate(
+      user2,
+      WHTokenBalance.fromString("150"),
+    );
 
     const proposalIdInput = crypto
       .createHash("sha256")
@@ -680,7 +679,6 @@ describe("api", async () => {
 
     await user2StakeConnection.castVote(
       proposalIdInput,
-      user2StakeAccountCheckpointsAddress,
       new BN(10),
       new BN(20),
       new BN(12),
@@ -688,7 +686,6 @@ describe("api", async () => {
     );
     await user2StakeConnection.castVote(
       proposalIdInput,
-      user2StakeAccountCheckpointsAddress,
       new BN(10),
       new BN(10),
       new BN(0),
@@ -696,7 +693,6 @@ describe("api", async () => {
     );
     await user2StakeConnection.castVote(
       proposalIdInput,
-      user2StakeAccountCheckpointsAddress,
       new BN(0),
       new BN(7),
       new BN(10),
@@ -846,11 +842,10 @@ describe("api", async () => {
       .then(confirm);
 
     await sleep(2000)
-    user2StakeAccountCheckpointsAddress =
-      await user2StakeConnection.delegate(
-        user2,
-        WHTokenBalance.fromString("150"),
-      );
+    await user2StakeConnection.delegate(
+      user2,
+      WHTokenBalance.fromString("150"),
+    );
 
     const proposalIdInput = crypto
       .createHash("sha256")
@@ -880,7 +875,6 @@ describe("api", async () => {
 
     await user2StakeConnection.castVote(
       proposalIdInput,
-      user2StakeAccountCheckpointsAddress,
       new BN(10),
       new BN(20),
       new BN(12),
