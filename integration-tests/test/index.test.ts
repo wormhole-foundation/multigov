@@ -18,7 +18,7 @@ import {
   waitForProposalToBeActive,
 } from './helpers/governance/proposalHelpers';
 import { getWhitelistedProposer } from './helpers/governance/registrationHelpers';
-import { ProposalState, type ProposalData } from './helpers/governance/types';
+import { type ProposalData, ProposalState } from './helpers/governance/types';
 import {
   getProposalVotes,
   getVoteStart,
