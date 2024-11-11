@@ -33,7 +33,7 @@ pub mod tests {
     #[test]
     fn check_size() {
         assert!(
-            size_of::<ProposalVotersWeightCast>() + ProposalVotersWeightCast::discriminator().len()
+            size_of::<ProposalVotersWeightCast>() + ProposalVotersWeightCast::DISCRIMINATOR.len()
                 <= ProposalVotersWeightCast::LEN
         );
     }

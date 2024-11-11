@@ -17,13 +17,12 @@ impl Space for VestingBalance {
 #[cfg(test)]
 pub mod tests {
     use super::VestingBalance;
-    use anchor_lang::Discriminator;
-    use anchor_lang::Space;
+    use anchor_lang::{Discriminator, Space};
 
     #[test]
     fn check_size() {
         assert!(
-            size_of::<VestingBalance>() + VestingBalance::discriminator().len()
+            size_of::<VestingBalance>() + VestingBalance::DISCRIMINATOR.len()
                 == VestingBalance::INIT_SPACE
         );
     }

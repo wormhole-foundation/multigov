@@ -22,7 +22,13 @@ import BN from "bn.js";
 import toml from "toml";
 import path from "path";
 import os from "os";
-import { StakeConnection, WHTokenBalance, WH_TOKEN_DECIMALS } from "../../app";
+import {
+  StakeConnection,
+  WHTokenBalance,
+  WH_TOKEN_DECIMALS,
+  CHECKPOINTS_ACCOUNT_LIMIT,
+  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+} from "../../app";
 import { GlobalConfig } from "../../app/StakeConnection";
 import { createMint, initAddressLookupTable } from "./utils";
 import { loadKeypair } from "./keys";
@@ -61,7 +67,7 @@ export function readAnchorConfig(pathToAnchorToml: string): AnchorConfig {
   return config;
 }
 
-function sleep(ms) {
+export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -103,6 +109,11 @@ export async function startValidatorRaw(portNumber: number, otherArgs: string) {
   const internalController: AbortController = new AbortController();
   const { signal } = internalController;
 
+  console.log(
+    `solana-test-validator --ledger ${ledgerDir} --rpc-port ${portNumber} --faucet-port ${
+      portNumber + 101
+    } ${otherArgs}`,
+  );
   exec(
     `solana-test-validator --ledger ${ledgerDir} --rpc-port ${portNumber} --faucet-port ${
       portNumber + 101
@@ -161,9 +172,18 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
 
   const user = loadKeypair(config.provider.wallet);
 
-  const otherArgs = `--account ${config.guardian_set_0.address} ${config.guardian_set_0.filename} --account ${config.guardian_set_5.address} ${config.guardian_set_5.filename} --mint ${
-    user.publicKey
-  } --reset --bpf-program ${programAddress.toBase58()} ${binaryPath} -ud`;
+  const otherArgs = `--account ${config.guardian_set_0.address} ${config.guardian_set_0.filename} \
+  --account ${config.guardian_set_1.address} ${config.guardian_set_1.filename} \
+  --account ${config.config.address} ${config.config.filename}  \
+  --account ${config.fee_collector.address} ${config.fee_collector.filename} \
+  --account ${config.guardian_set_5.address} ${config.guardian_set_5.filename} \
+  --mint ${user.publicKey}  \
+  --reset \
+  --bpf-program ${programAddress.toBase58()} ${binaryPath} \
+  --bpf-program ${config.core_bridge_program.address} ${config.core_bridge_program.program} \
+   --bpf-program ${config.external_program.address} ${config.external_program.program} \
+  -ud
+`;
 
   const { controller, connection } = await startValidatorRaw(
     portNumber,
@@ -268,18 +288,25 @@ export async function initConfig(
   });
 }
 
-export function makeDefaultConfig(
+export function makeTestConfig(
   whMint: PublicKey,
   vestingAdmin: PublicKey = PublicKey.unique(),
+  maxCheckpointsAccountLimit: number = TEST_CHECKPOINTS_ACCOUNT_LIMIT,
 ): GlobalConfig {
   return {
     bump: 0,
     governanceAuthority: null,
     whTokenMint: whMint,
-    freeze: true,
     vestingAdmin: vestingAdmin,
-    mockClockTime: new BN(10),
+    maxCheckpointsAccountLimit: maxCheckpointsAccountLimit,
   };
+}
+
+export function makeDefaultConfig(
+  whMint: PublicKey,
+  vestingAdmin: PublicKey = PublicKey.unique(),
+): GlobalConfig {
+  return makeTestConfig(whMint, vestingAdmin, CHECKPOINTS_ACCOUNT_LIMIT);
 }
 
 /**
@@ -382,6 +409,13 @@ export async function standardSetup(
     amount ? amount : WHTokenBalance.fromString("200"),
     program.provider.connection,
   );
+
+  await transferSolFromValidatorWallet(
+      provider,
+      governanceAuthority.publicKey,
+      10000,
+  );
+
 
   globalConfig.governanceAuthority = governanceAuthority.publicKey;
 

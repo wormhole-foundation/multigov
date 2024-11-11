@@ -55,8 +55,6 @@ contract HubProposalMetadataTest is Test, ProposalTest {
     });
 
     governor = new HubGovernorHarness(params);
-    vm.prank(address(timelock));
-    hubVotePool.setGovernor(address(governor));
 
     vm.prank(initialOwner);
     timelock.grantRole(keccak256("PROPOSER_ROLE"), address(governor));

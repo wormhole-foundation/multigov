@@ -31,7 +31,33 @@ binary_path = "./target/deploy/staking.so"
 address = "dxZtypiKT5D9LYzdPxjvSZER9MgYfeRVU5qpMTMTRs4"
 filename = "tests/accounts/guardian_set_0.json"
 
+
+### Wormhole Core Bridge Program
+[core_bridge_program]
+address = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5"
+program = "tests/artifacts/devnet_core_bridge.so"
+
 ### Wormhole Core Bridge Guardian Set 5 (mock)
 [guardian_set_5]
 address = "7uZXwew7N7oKqNNUmoXWa5GBQPWGHd8vzJVtWivALLAJ"
 filename = "tests/accounts/guardian_set_5_mock.json"
+
+### Wormhole Core Bridge -- Config
+[config]
+address = "2yVjuQwpsvdsrywzsJJVs9Ueh4zayyo5DYJbBNc3DDpn"
+filename = "tests/accounts/config.json"
+
+### Wormhole Core Bridge -- Fee Collector
+[fee_collector]
+address = "9bFNrXNb2WTx8fMHXCheaZqkLZ3YCCaiqTftHxeintHy"
+filename = "tests/accounts/fee_collector.json"
+
+### Wormhole Core Bridge -- Guardian Set 1
+[guardian_set_1]
+address = "DS7qfSAgYsonPpKoAjcGhX9VFjXdGkiHjEDkTidf8H2P"
+filename = "tests/accounts/guardian_set_1.json"
+
+### Some external program for executor tests
+[external_program]
+address = "3Pe7YqWdD9Pj8ejb7ex2j7nuKpPhtGR8yktxQGZ8SgQa"
+program = "tests/artifacts/external_program.so"

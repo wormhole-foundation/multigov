@@ -16,3 +16,6 @@ export const hubProposalMetadata = new Uint8Array([
 
 /// Wormhole Hub Chain ID
 export const hubChainId = 10002;
+
+export const CHECKPOINTS_ACCOUNT_LIMIT = 654998;
+export const TEST_CHECKPOINTS_ACCOUNT_LIMIT = 10;

@@ -3,20 +3,16 @@ use crate::context::{
     VESTING_CONFIG_SEED, VEST_SEED,
 };
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token_interface::{Mint, TokenAccount, TokenInterface},
-};
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use std::convert::TryInto;
-
 use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
 use crate::state::global_config::GlobalConfig;
 use crate::state::stake_account::StakeAccountMetadata;
-use crate::state::{VestingBalance, VestingConfig};
-use crate::{error::VestingError, state::Vesting};
+use crate::{error::ErrorCode, error::VestingError};
+use crate::state::{Vesting, VestingBalance, VestingConfig};
 
 #[derive(Accounts)]
-#[instruction(new_vester: Pubkey)]
 pub struct TransferVesting<'info> {
     #[account(mut)]
     vester: Signer<'info>,
@@ -91,7 +87,7 @@ pub struct TransferVesting<'info> {
 }
 
 impl<'info> crate::contexts::TransferVesting<'info> {
-    pub fn transfer_vesting(&mut self, new_vester: Pubkey, bump: u8) -> Result<()> {
+    pub fn transfer_vesting(&mut self, bump: u8) -> Result<()> {
         fn update_balance(balance: &mut u64, amount: u64, is_subtract: bool) -> Result<()> {
             if is_subtract {
                 *balance = balance.checked_sub(amount).ok_or(VestingError::Underflow)?;
@@ -101,11 +97,24 @@ impl<'info> crate::contexts::TransferVesting<'info> {
             Ok(())
         }
 
+        if self.new_vester_ta.owner.key() == self.vester_ta.owner.key() {
+            return err!(VestingError::TransferVestToMyself);
+        }
+
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
             if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
                 &mut self.stake_account_metadata,
                 &mut self.stake_account_checkpoints,
             ) {
+                // Check if stake account checkpoints is out of bounds
+                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                require!(
+                    loaded_checkpoints.next_index
+                        < self.global_config.max_checkpoints_account_limit.into(),
+                    ErrorCode::TooManyCheckpoints,
+                );
+                drop(loaded_checkpoints);
+
                 // Additional checks to ensure the owner matches
                 require!(
                     stake_account_metadata.owner == self.vesting_balance.vester,
@@ -113,7 +122,14 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 );
 
                 let (expected_stake_account_checkpoints_pda, _) = Pubkey::find_program_address(
-                    &[CHECKPOINT_DATA_SEED.as_bytes(), self.vester.key().as_ref()],
+                    &[
+                        CHECKPOINT_DATA_SEED.as_bytes(),
+                        self.vester.key().as_ref(),
+                        stake_account_metadata
+                            .stake_account_checkpoints_last_index
+                            .to_le_bytes()
+                            .as_ref(),
+                    ],
                     &crate::ID,
                 );
                 require!(
@@ -124,7 +140,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 let (expected_stake_account_metadata_pda, _) = Pubkey::find_program_address(
                     &[
                         STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                        stake_account_checkpoints.key().as_ref(),
+                        self.vester.key().as_ref(),
                     ],
                     &crate::ID,
                 );
@@ -154,6 +170,12 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     &self.vester.to_account_info(),
                     &self.system_program.to_account_info(),
                 )?;
+                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                if loaded_checkpoints.next_index
+                    >= self.global_config.max_checkpoints_account_limit.into()
+                {
+                    stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                }
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
             }
@@ -164,6 +186,15 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 &mut self.new_stake_account_metadata,
                 &mut self.new_stake_account_checkpoints,
             ) {
+                // Check if stake account checkpoints is out of bounds
+                let loaded_checkpoints = new_stake_account_checkpoints.load()?;
+                require!(
+                    loaded_checkpoints.next_index
+                        < self.global_config.max_checkpoints_account_limit.into(),
+                    ErrorCode::TooManyCheckpoints,
+                );
+                drop(loaded_checkpoints);
+
                 require!(
                     new_stake_account_metadata.owner == self.new_vesting_balance.vester,
                     VestingError::InvalidStakeAccountOwner
@@ -171,7 +202,14 @@ impl<'info> crate::contexts::TransferVesting<'info> {
 
                 let (expected_stake_account_checkpoints_vester_pda, _) =
                     Pubkey::find_program_address(
-                        &[CHECKPOINT_DATA_SEED.as_bytes(), new_vester.as_ref()],
+                        &[
+                            CHECKPOINT_DATA_SEED.as_bytes(),
+                            self.new_vester_ta.owner.key().as_ref(),
+                            new_stake_account_metadata
+                                .stake_account_checkpoints_last_index
+                                .to_le_bytes()
+                                .as_ref(),
+                        ],
                         &crate::ID,
                     );
 
@@ -184,7 +222,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 let (expected_stake_account_metadata_vester_pda, _) = Pubkey::find_program_address(
                     &[
                         STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                        new_stake_account_checkpoints.key().as_ref(),
+                        self.new_vester_ta.owner.key().as_ref(),
                     ],
                     &crate::ID,
                 );
@@ -214,6 +252,13 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     &self.vester.to_account_info(),
                     &self.system_program.to_account_info(),
                 )?;
+
+                let loaded_checkpoints = new_stake_account_checkpoints.load()?;
+                if loaded_checkpoints.next_index
+                    >= self.global_config.max_checkpoints_account_limit.into()
+                {
+                    new_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                }
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
             }

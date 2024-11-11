@@ -117,15 +117,15 @@ pub fn push_checkpoint<'info>(
     system_program_account_info: &AccountInfo<'info>,
 ) -> Result<()> {
     // Step 1: Immutable borrow to get latest_index and latest_checkpoint
-    let (current_index, latest_checkpoint) = {
+    let (current_index, latest_checkpoint, owner) = {
         let checkpoint_data = checkpoints_loader.load()?;
         if checkpoint_data.next_index == 0 {
-            (0, None) // If next_index is 0, set both to None
+            (0, None, checkpoint_data.owner) // If next_index is 0, set both to None
         } else {
             let latest_index = checkpoint_data.next_index - 1;
             let checkpoint =
                 read_checkpoint_at_index(checkpoints_account_info, latest_index as usize)?;
-            (checkpoint_data.next_index, Some(checkpoint))
+            (checkpoint_data.next_index, Some(checkpoint), checkpoint_data.owner)
         }
     };
     if let Some(ref latest_checkpoint) = latest_checkpoint {
@@ -162,6 +162,11 @@ pub fn push_checkpoint<'info>(
                 current_index as usize,
                 &new_checkpoint,
             )?;
+            emit!(DelegateVotesChanged {
+                delegate: owner,
+                previous_balance: latest_checkpoint.value,
+                new_balance: new_checkpoint.value
+            });
         } else {
             let new_checkpoint = calc_new_checkpoint(
                 latest_checkpoint.value,
@@ -176,6 +181,11 @@ pub fn push_checkpoint<'info>(
                 current_index as usize - 1,
                 &new_checkpoint,
             )?;
+            emit!(DelegateVotesChanged {
+                delegate: owner,
+                previous_balance: latest_checkpoint.value,
+                new_balance: new_checkpoint.value
+            });
         }
     } else {
         // write first checkpoint
@@ -197,15 +207,57 @@ pub fn push_checkpoint<'info>(
                 )?;
             }
         } // Mutable borrow ends here
-
         let new_checkpoint = calc_new_checkpoint(0, amount_delta, operation, current_timestamp)?;
-
         write_checkpoint_at_index(
             checkpoints_account_info,
             current_index as usize,
             &new_checkpoint,
         )?;
+        emit!(DelegateVotesChanged {
+            delegate: owner,
+            previous_balance: 0,
+            new_balance: new_checkpoint.value
+        });
     }
+    Ok(())
+}
+
+pub fn push_checkpoint_init<'info>(
+    checkpoints_loader: &mut AccountLoader<'info, CheckpointData>,
+    checkpoints_account_info: &AccountInfo<'info>,
+    amount_delta: u64,
+    operation: Operation,
+    current_timestamp: u64,
+    payer_account_info: &AccountInfo<'info>,
+    system_program_account_info: &AccountInfo<'info>,
+) -> Result<()> {
+    let current_index = 0;
+
+    let mut checkpoint_data = checkpoints_loader.load_init()?;
+
+    checkpoint_data.next_index += 1;
+
+    let required_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
+        + (checkpoint_data.next_index as usize) * CheckpointData::CHECKPOINT_SIZE;
+
+    drop(checkpoint_data);
+
+    if required_size > checkpoints_account_info.data_len() {
+        resize_account(
+            checkpoints_account_info,
+            payer_account_info,
+            system_program_account_info,
+            required_size,
+        )?;
+    }
+
+    let new_checkpoint = calc_new_checkpoint(0, amount_delta, operation, current_timestamp)?;
+
+    write_checkpoint_at_index(
+        checkpoints_account_info,
+        current_index as usize,
+        &new_checkpoint,
+    )?;
 
     Ok(())
 }
@@ -237,7 +289,7 @@ fn calc_new_checkpoint(
 pub fn find_checkpoint_le(
     account_info: &AccountInfo,
     target_timestamp: u64,
-) -> Result<Option<Checkpoint>> {
+) -> Result<Option<(usize, Checkpoint)>> {
     let data = account_info.try_borrow_data()?;
     let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE;
     let data = &data[header_size..];
@@ -265,7 +317,7 @@ pub fn find_checkpoint_le(
         let checkpoint = read_checkpoint_at_index(account_info, mid)?;
 
         if checkpoint.timestamp <= target_timestamp {
-            result = Some(checkpoint);
+            result = Some((mid, checkpoint));
             low = mid + 1;
         } else {
             high = mid;

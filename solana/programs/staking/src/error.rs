@@ -35,6 +35,10 @@ pub enum ErrorCode {
     InvalidSpokeAirlock,
     #[msg("Invalid current delegate")]
     InvalidCurrentDelegate,
+    #[msg("Invalid stake account metadata")]
+    InvalidStakeAccountMetadata,
+    #[msg("Invalid stake account checkpoints provided")]
+    InvalidStakeAccountCheckpoints,
     #[msg("Other")]
     Other,
 }
@@ -69,6 +73,8 @@ pub enum VestingError {
     InvalidStakeAccountMetadataPDA,
     #[msg("Invalid stake account checkpoints PDA")]
     InvalidStakeAccountCheckpointsPDA,
+    #[msg("Transfer vest to myself")]
+    TransferVestToMyself,
 }
 
 #[error_code]
@@ -125,4 +131,22 @@ pub enum ProposalWormholeMessageError {
     InvalidFunctionSignature,
     #[msg("Proposal not initialized since start is zero")]
     ProposalNotInitialized,
+}
+
+#[error_code]
+pub enum MessageExecutorError {
+    #[msg("Message already executed")]
+    MessageAlreadyExecuted,
+    #[msg("Failed parse VAA")]
+    FailedParseVaa,
+    #[msg("Invalid Emitter Chain")]
+    InvalidEmitterChain,
+    #[msg("Invalid hub dispatcher")]
+    InvalidHubDispatcher,
+    #[msg("Invalid wormhole core program")]
+    InvalidWormholeCoreProgram,
+    #[msg("Vaa not finalized")]
+    VaaNotFinalized,
+    #[msg("Missing Remaining account")]
+    MissedRemainingAccount,
 }

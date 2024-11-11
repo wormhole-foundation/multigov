@@ -74,7 +74,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
 
     uint256 nextMessageId = dispatcher.nextMessageId();
     bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
-    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions.length, instructions);
+    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
 
     dispatcher.dispatch(payload);
 
@@ -99,7 +99,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
 
     uint256 nextMessageId = dispatcher.nextMessageId();
     bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
-    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions.length, instructions);
+    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
 
     dispatcher.dispatch(payload);
 
@@ -121,7 +121,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
 
     uint256 nextMessageId = dispatcher.nextMessageId();
     bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
-    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions.length, instructions);
+    bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
 
     vm.expectEmit();
     emit IMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);

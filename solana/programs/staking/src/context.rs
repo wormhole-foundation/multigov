@@ -1,23 +1,22 @@
 use crate::state::*;
-use anchor_lang::{
-    prelude::*,
-    solana_program::{
-        self, keccak, program_memory::sol_memcpy, secp256k1_recover::secp256k1_recover,
-    },
-};
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program_memory::sol_memcpy;
+use anchor_lang::solana_program::secp256k1_recover::secp256k1_recover;
+use anchor_lang::solana_program::{self, keccak};
 use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
 use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 
-use crate::{
-    error::ErrorCode,
-    error::QueriesSolanaVerifyError,
-    state::{GuardianSignatures, WormholeGuardianSet},
-};
-
+use crate::error::{ErrorCode, QueriesSolanaVerifyError};
+use crate::state::{GuardianSignatures, WormholeGuardianSet};
+use anchor_lang::prelude::Clock;
+use wormhole_anchor_sdk::wormhole::PostedVaa;
 use wormhole_query_sdk::{MESSAGE_PREFIX, QUERY_MESSAGE_LEN};
 
-use wormhole_raw_vaas::{utils::quorum, GuardianSetSig};
+use crate::utils::execute_message::Message;
+use crate::MessageExecutorError;
+use wormhole_raw_vaas::utils::quorum;
+use wormhole_raw_vaas::GuardianSetSig;
 
 pub const AUTHORITY_SEED: &str = "authority";
 pub const CUSTODY_SEED: &str = "custody";
@@ -28,7 +27,7 @@ pub const PROPOSAL_SEED: &str = "proposal";
 pub const VESTING_CONFIG_SEED: &str = "vesting_config";
 pub const VEST_SEED: &str = "vest";
 pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
-pub const SPOKE_MESSAGE_EXECUTOR: &str = "spoke_message_executor";
+pub const SPOKE_MESSAGE_EXECUTOR_SEED: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
 pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
@@ -54,6 +53,7 @@ pub struct InitConfig<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(delegatee: Pubkey, current_delegate_stake_account_owner: Pubkey)]
 pub struct Delegate<'info> {
     // Native payer:
     #[account(address = stake_account_metadata.owner)]
@@ -65,41 +65,38 @@ pub struct Delegate<'info> {
         AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_owner.as_ref()],
         bump = current_delegate_stake_account_metadata.metadata_bump
     )]
     pub current_delegate_stake_account_metadata:
         Box<Account<'info, stake_account::StakeAccountMetadata>>,
-
     // Delegatee stake accounts:
     #[account(mut)]
     pub delegatee_stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), delegatee_stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), delegatee.as_ref()],
         bump = delegatee_stake_account_metadata.metadata_bump
     )]
     pub delegatee_stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
 
     // User stake account:
-    #[account(mut)]
-    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), payer.key().as_ref()],
         bump = stake_account_metadata.metadata_bump,
-        constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
+        constraint = stake_account_metadata.delegate == current_delegate_stake_account_owner
             @ ErrorCode::InvalidCurrentDelegate
     )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
-    #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
+    #[account(seeds = [AUTHORITY_SEED.as_bytes(), payer.key().as_ref()], bump)]
     pub custody_authority: AccountInfo<'info>,
     #[account(
         mut,
         seeds = [
             CUSTODY_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
+            payer.key().as_ref()
         ],
         bump,
         token::mint = mint,
@@ -121,7 +118,11 @@ pub struct Delegate<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(proposal_id: [u8; 32])]
+#[instruction(proposal_id: [u8; 32],
+        _against_votes: u64,
+        _for_votes: u64,
+        _abstain_votes: u64,
+        checkpoint_index: u8)]
 pub struct CastVote<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -133,18 +134,26 @@ pub struct CastVote<'info> {
     )]
     pub proposal: Account<'info, proposal::ProposalData>,
 
-    #[account(mut, has_one = owner)]
+    #[account(
+        mut,
+        has_one = owner,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), owner.key().as_ref(), checkpoint_index.to_le_bytes().as_ref()],
+        bump
+    )]
     pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
 
     #[account(
         init_if_needed,
         payer = owner,
         space = proposal_voters_weight_cast::ProposalVotersWeightCast::LEN,
-        seeds = [b"proposal_voters_weight_cast", proposal.key().as_ref(), voter_checkpoints.key().as_ref()],
+        seeds = [b"proposal_voters_weight_cast", proposal.key().as_ref(), owner.key().as_ref()],
         bump
     )]
     pub proposal_voters_weight_cast:
         Account<'info, proposal_voters_weight_cast::ProposalVotersWeightCast>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
 
     pub system_program: Program<'info, System>,
 }
@@ -386,16 +395,22 @@ pub struct CreateStakeAccount<'info> {
     // Stake program accounts:
     #[account(
         init,
-        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref()],
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref(), 0u8.to_le_bytes().as_ref()],
         bump,
         payer = payer,
         space = checkpoints::CheckpointData::LEN,
     )]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-    #[account(init, payer = payer, space = stake_account::StakeAccountMetadata::LEN, seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
+    #[account(
+        init,
+        payer = payer,
+        space = stake_account::StakeAccountMetadata::LEN,
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), payer.key().as_ref()],
+        bump
+    )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
-    #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump)]
+    #[account(seeds = [AUTHORITY_SEED.as_bytes(), payer.key().as_ref()], bump)]
     pub custody_authority: AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Box<Account<'info, global_config::GlobalConfig>>,
@@ -406,7 +421,7 @@ pub struct CreateStakeAccount<'info> {
         init,
         seeds = [
             CUSTODY_SEED.as_bytes(),
-            stake_account_checkpoints.key().as_ref()
+            payer.key().as_ref()
         ],
         bump,
         payer = payer,
@@ -419,11 +434,35 @@ pub struct CreateStakeAccount<'info> {
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
+#[derive(Accounts)]
+pub struct CreateCheckpoints<'info> {
+    // Native payer:
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut)]
+    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+    // Stake program accounts:
+    #[account(mut)]
+    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    // Stake program accounts:
+    #[account(
+        init,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref(), stake_account_metadata.stake_account_checkpoints_last_index.to_le_bytes().as_ref()],
+        bump,
+        payer = payer,
+        space = checkpoints::CheckpointData::LEN,
+    )]
+    pub new_stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    // Primitive accounts :
+    pub system_program: Program<'info, System>,
+}
 
 #[derive(Accounts)]
+#[instruction(amount: u64, current_delegate_stake_account_metadata_owner: Pubkey, stake_account_metadata_owner: Pubkey
+)]
 pub struct WithdrawTokens<'info> {
     // Native payer:
-    #[account( address = stake_account_metadata.owner)]
+    #[account(mut, address = stake_account_metadata.owner)]
     pub payer: Signer<'info>,
 
     // Current delegate stake account:
@@ -432,7 +471,7 @@ pub struct WithdrawTokens<'info> {
         AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_metadata_owner.as_ref()],
         bump = current_delegate_stake_account_metadata.metadata_bump
     )]
     pub current_delegate_stake_account_metadata:
@@ -442,23 +481,23 @@ pub struct WithdrawTokens<'info> {
     #[account(mut)]
     pub destination: Account<'info, TokenAccount>,
     // Stake program accounts:
-    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_metadata_owner.as_ref()],
         bump = stake_account_metadata.metadata_bump,
-        constraint = stake_account_metadata.delegate == current_delegate_stake_account_checkpoints.key()
+        constraint = stake_account_metadata.delegate == current_delegate_stake_account_metadata_owner
             @ ErrorCode::InvalidCurrentDelegate
     )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
     #[account(
         mut,
-        seeds = [CUSTODY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()],
+        seeds = [CUSTODY_SEED.as_bytes(), payer.key().as_ref()],
         bump = stake_account_metadata.custody_bump,
     )]
     pub stake_account_custody: Account<'info, TokenAccount>,
     /// CHECK : This AccountInfo is safe because it's a checked PDA
-    #[account(seeds = [AUTHORITY_SEED.as_bytes(), stake_account_checkpoints.key().as_ref()], bump = stake_account_metadata.authority_bump)]
+    #[account(seeds = [AUTHORITY_SEED.as_bytes(), payer.key().as_ref()], bump = stake_account_metadata.authority_bump
+    )]
     pub custody_authority: AccountInfo<'info>,
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,
@@ -483,56 +522,72 @@ impl<'a, 'b, 'c, 'info> From<&WithdrawTokens<'info>>
 
 #[derive(Accounts)]
 pub struct InitializeSpokeMessageExecutor<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
 
     #[account(
         init,
-        payer = payer,
+        payer = governance_authority,
         space = SpokeMessageExecutor::LEN,
-        seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
+        seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
         bump
     )]
     pub executor: Account<'info, SpokeMessageExecutor>,
     /// CHECK: `hub_dispatcher` is safe to use
     pub hub_dispatcher: AccountInfo<'info>,
-    #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
-    pub airlock: Account<'info, SpokeAirlock>,
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-#[instruction(message_hash: [u8; 32])]
-pub struct SetMessageReceived<'info> {
+pub struct ReceiveMessage<'info> {
+    /// The payer of the transaction fees
     #[account(mut)]
     pub payer: Signer<'info>,
 
+    /// Stores the state of the message execution to prevent re-execution
     #[account(
-        init_if_needed,
-        payer = payer,
+        init,
         space = MessageReceived::LEN,
-        seeds = [MESSAGE_RECEIVED.as_bytes(), &message_hash],
+        payer = payer,
+        seeds = [
+            MESSAGE_RECEIVED.as_bytes(),
+            posted_vaa.emitter_chain().to_be_bytes().as_ref(),
+            posted_vaa.emitter_address().as_ref(),
+            posted_vaa.sequence().to_be_bytes().as_ref()
+        ],
         bump
     )]
-    pub message_received: Account<'info, MessageReceived>,
+    pub message_received: Box<Account<'info, MessageReceived>>,
 
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct SetAirlock<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
+    /// The verified Wormhole VAA account containing the message
+    #[account(
+        constraint = posted_vaa.emitter_chain() == message_executor.hub_chain_id @ MessageExecutorError::InvalidEmitterChain,
+        constraint = *posted_vaa.emitter_address() == message_executor.hub_dispatcher.to_bytes() @ MessageExecutorError::InvalidHubDispatcher,
+    )]
+    pub posted_vaa: Account<'info, PostedVaa::<Message>>,
 
     #[account(
-        mut,
-        seeds = [SPOKE_MESSAGE_EXECUTOR.as_bytes()],
-        bump = executor.bump
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        bump = airlock.bump,
     )]
-    pub executor: Account<'info, SpokeMessageExecutor>,
+    pub airlock: Box<Account<'info, SpokeAirlock>>,
 
-    #[account(seeds = [AIRLOCK_SEED.as_bytes()], bump = airlock.bump)]
-    pub airlock: Account<'info, SpokeAirlock>,
+    #[account(
+        seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
+        bump = message_executor.bump,
+        constraint = message_executor.wormhole_core == wormhole_program.key() @ MessageExecutorError::InvalidWormholeCoreProgram
+    )]
+    pub message_executor: Box<Account<'info, SpokeMessageExecutor>>,
+
+    /// The Wormhole Core Bridge program.
+    /// CHECK: Ensures the correct program is used for PDA derivation
+    #[account(address = CORE_BRIDGE_PROGRAM_ID)]
+    pub wormhole_program: AccountInfo<'info>,
+
+    /// The system program.
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -549,17 +604,4 @@ pub struct InitializeSpokeAirlock<'info> {
     )]
     pub airlock: Account<'info, SpokeAirlock>,
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct ExecuteOperation<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [AIRLOCK_SEED.as_bytes()],
-        bump = airlock.bump
-    )]
-    pub airlock: Account<'info, SpokeAirlock>,
 }

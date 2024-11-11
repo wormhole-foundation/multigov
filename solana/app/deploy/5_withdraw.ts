@@ -38,7 +38,6 @@ async function main() {
       .withdrawTokens(new BN(1))
       .accounts({
         currentDelegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress,
-        stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
         destination: toAccount,
       })
       .rpc({ skipPreflight: DEBUG });
