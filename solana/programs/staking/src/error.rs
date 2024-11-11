@@ -39,6 +39,8 @@ pub enum ErrorCode {
     InvalidStakeAccountMetadata,
     #[msg("Invalid stake account checkpoints provided")]
     InvalidStakeAccountCheckpoints,
+    #[msg("Window length not found")]
+    WindowLengthNotFound,
     #[msg("Other")]
     Other,
 }

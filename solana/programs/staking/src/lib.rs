@@ -30,6 +30,7 @@ use crate::error::{
     ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError,
 };
 use crate::state::GuardianSignatures;
+use crate::state::{find_window_length_le, push_new_window_length};
 
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
@@ -509,10 +510,15 @@ pub mod staking {
         let proposal = &mut ctx.accounts.proposal;
         let config = &ctx.accounts.config;
 
-        let vote_weight_window_length = 2000u64; // Example value
-
-        let window_start = proposal.vote_start - vote_weight_window_length;
         let vote_start = proposal.vote_start;
+
+        let (_, window_length) = find_window_length_le(
+            &ctx.accounts.voter_checkpoints.to_account_info(),
+            vote_start,
+        )?
+        .ok_or(ErrorCode::WindowLengthNotFound)?;
+
+        let window_start = proposal.vote_start - window_length.value;
 
         // Use the AccountInfo directly from ctx.accounts without storing in a variable
         if let Some((window_start_checkpoint_index, window_start_checkpoint)) = find_checkpoint_le(
@@ -848,6 +854,44 @@ pub mod staking {
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
         let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);
 
+        Ok(())
+    }
+
+    pub fn initialize_vote_weight_window_length(
+        ctx: Context<InitializeVoteWeightWindowLengths>,
+        initial_window_length: u64,
+    ) -> Result<()> {
+        let vote_weight_window_length = &mut ctx.accounts.vote_weight_window_lengths;
+        let vote_weight_window_length_account_info = vote_weight_window_length.to_account_info();
+        let current_timestamp: u64 = utils::clock::get_current_time().try_into()?;
+
+        push_new_window_length(
+            vote_weight_window_length,
+            &vote_weight_window_length_account_info,
+            current_timestamp,
+            initial_window_length,
+            &ctx.accounts.governance_authority.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+        )?;
+        Ok(())
+    }
+
+    pub fn update_vote_weight_window_length(
+        ctx: Context<UpdateVoteWeightWindowLength>,
+        new_window_length: u64,
+    ) -> Result<()> {
+        let vote_weight_window_length = &mut ctx.accounts.vote_weight_window_lengths;
+        let vote_weight_window_length_account_info = vote_weight_window_length.to_account_info();
+        let current_timestamp: u64 = utils::clock::get_current_time().try_into()?;
+
+        push_new_window_length(
+            vote_weight_window_length,
+            &vote_weight_window_length_account_info,
+            current_timestamp,
+            new_window_length,
+            &ctx.accounts.governance_authority.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+        )?;
         Ok(())
     }
 
