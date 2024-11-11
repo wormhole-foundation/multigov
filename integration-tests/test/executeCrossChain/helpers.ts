@@ -1,4 +1,8 @@
-import { HubMessageDispatcherAbi, SpokeMessageExecutorAbi } from 'abis';
+import {
+  HubMessageDispatcherAbi,
+  SpokeMessageExecutorAbi,
+  ERC20VotesFakeAbi,
+} from 'abis';
 import WormholeCoreAbi from 'abis/WormholeCoreAbi';
 import { ContractAddresses } from 'test/config/addresses';
 import { ETH2_DEVNET_WORMHOLE_CHAIN_ID } from 'test/config/chains';
@@ -156,27 +160,28 @@ const getMessageSequence = async () => {
   return log.args.sequence;
 };
 
-// Helper to create proposal data for ETH transfer
-export const createArbitraryProposalDataForSpokeExecution = ({
+// Helper to create proposal data for token minting
+export const createTokenMintProposalData = ({
   recipient,
   amount,
+  tokenAddress,
 }: {
   recipient: `0x${string}`;
   amount: bigint;
-}) =>
-  createProposalData({
-    targets: [recipient],
-    values: [amount],
-    calldatas: ['0x'],
-    description: 'Arbitrary proposal data for spoke execution',
-  });
+  tokenAddress: `0x${string}`;
+}) => {
+  const nonce = Math.floor(Math.random() * 1000000);
 
-// Get the SpokeAirlock address
-export const getSpokeAirlock = async () => {
-  const { eth2Client } = createClients();
-  return await eth2Client.readContract({
-    address: ContractAddresses.SPOKE_MESSAGE_EXECUTOR,
-    abi: SpokeMessageExecutorAbi,
-    functionName: 'airlock',
+  return createProposalData({
+    targets: [tokenAddress],
+    values: [0n], // No ETH value needed for minting
+    calldatas: [
+      encodeFunctionData({
+        abi: ERC20VotesFakeAbi,
+        functionName: 'mint',
+        args: [recipient, amount],
+      }),
+    ],
+    description: `Cross-chain token mint proposal with nonce ${nonce}`,
   });
 };

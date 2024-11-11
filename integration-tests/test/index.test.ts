@@ -8,8 +8,7 @@ import {
 } from './createProposalOnSpoke/helpers';
 import {
   createAndExecuteCrossChainProposal,
-  createArbitraryProposalDataForSpokeExecution,
-  getSpokeAirlock,
+  createTokenMintProposalData,
 } from './executeCrossChain/helpers';
 import {
   createArbitraryProposalData,
@@ -26,6 +25,8 @@ import {
 } from './helpers/governance/votingHelpers';
 import { setupTestEnvironment } from './setup';
 import { voteFromSpoke } from './voteFromSpoke/helpers';
+import { ERC20VotesFakeAbi } from 'abis';
+import { getVotingTokenBalance } from './helpers';
 
 // Store shared state between tests 1-3
 type ProposalTestState = {
@@ -133,52 +134,34 @@ describe('MultiGov Tests', () => {
   });
 
   describe('4. Cross Chain Execution', () => {
-    test('Should successfully perform cross-chain execution of ETH transfer from spoke airlock to recipient', async () => {
-      console.log('\n🔍 Testing cross-chain execution...');
-      const { eth2Client } = createClients();
-      const AMOUNT_TO_TRANSFER_FROM_AIRLOCK = parseEther('0.1');
+    test('Should successfully perform cross-chain token mint', async () => {
+      const { eth2Client, account } = createClients();
 
-      // Set up test addresses
-      const recipient = '0x1234000000000000000000000000000000000000' as const;
-      const airlock = await getSpokeAirlock();
+      const mintAmount = parseEther('1000'); // 1000 tokens (token is 18 decimals)
 
-      // Set up initial balances
-      await eth2Client.setBalance({
-        address: airlock,
-        value: AMOUNT_TO_TRANSFER_FROM_AIRLOCK,
-      });
-      await eth2Client.setBalance({ address: recipient, value: 0n });
-
-      // Get initial balances for verification
-      const initialAirlockBalance = await eth2Client.getBalance({
-        address: airlock,
-      });
-      const initialRecipientBalance = await eth2Client.getBalance({
-        address: recipient,
+      const balanceBefore = await getVotingTokenBalance({
+        account: account.address,
+        client: eth2Client,
+        tokenAddress: ContractAddresses.SPOKE_VOTING_TOKEN,
       });
 
-      // Create and execute the cross-chain transfer
-      const proposalData = createArbitraryProposalDataForSpokeExecution({
-        recipient,
-        amount: AMOUNT_TO_TRANSFER_FROM_AIRLOCK,
+      const proposalData = createTokenMintProposalData({
+        recipient: account.address,
+        amount: mintAmount,
+        tokenAddress: ContractAddresses.SPOKE_VOTING_TOKEN,
       });
 
+      // Create and execute proposal for token minting
       await createAndExecuteCrossChainProposal(proposalData);
 
-      // Verify the transfer
-      const finalAirlockBalance = await eth2Client.getBalance({
-        address: airlock,
-      });
-      const finalRecipientBalance = await eth2Client.getBalance({
-        address: recipient,
+      const balanceAfter = await getVotingTokenBalance({
+        account: account.address,
+        client: eth2Client,
+        tokenAddress: ContractAddresses.SPOKE_VOTING_TOKEN,
       });
 
-      expect(initialAirlockBalance - finalAirlockBalance).toBe(
-        AMOUNT_TO_TRANSFER_FROM_AIRLOCK,
-      );
-      expect(finalRecipientBalance - initialRecipientBalance).toBe(
-        AMOUNT_TO_TRANSFER_FROM_AIRLOCK,
-      );
+      // Verify the mint was successful
+      expect(balanceAfter).toBe(balanceBefore + mintAmount);
     }, 120000);
   });
 });
