@@ -128,7 +128,7 @@ const handleDeployContracts = async () => {
   }
 
   // Save deployment cache (skip in CI)
-  if (!process.env.CI) {
+  if (!process.env.CI && !!cachedAddresses) {
     return saveDeploymentCache(addressStore.getAllAddresses());
   }
 
