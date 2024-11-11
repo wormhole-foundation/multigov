@@ -18,7 +18,7 @@ import {
   waitForProposalToBeActive,
 } from './helpers/governance/proposalHelpers';
 import { getWhitelistedProposer } from './helpers/governance/registrationHelpers';
-import type { ProposalData } from './helpers/governance/types';
+import { ProposalState, type ProposalData } from './helpers/governance/types';
 import {
   getProposalVotes,
   getVoteStart,
@@ -71,6 +71,7 @@ describe('MultiGov Tests', () => {
       expect(proposal.proposer).toBe(
         getAddress(ContractAddresses.HUB_EVM_SPOKE_AGGREGATE_PROPOSER),
       );
+      expect(proposal.state).toEqual(ProposalState.Pending);
 
       state.hubProposalId = proposalId;
     }, 120000);
