@@ -32,13 +32,6 @@ export const loadDeploymentCache = (): Partial<
 
     const cache: DeploymentCache = JSON.parse(readFileSync(CACHE_FILE, 'utf8'));
 
-    // Optional: Check if cache is too old
-    const ONE_DAY = 24 * 60 * 60 * 1000;
-    if (Date.now() - cache.timestamp > ONE_DAY) {
-      console.log('⚠️  Deployment cache is older than 24 hours');
-      return null;
-    }
-
     console.log('📂 Using cached deployment');
     return cache.addresses;
   } catch (error) {
