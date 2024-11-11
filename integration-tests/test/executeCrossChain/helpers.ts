@@ -1,7 +1,7 @@
 import {
+  ERC20VotesFakeAbi,
   HubMessageDispatcherAbi,
   SpokeMessageExecutorAbi,
-  ERC20VotesFakeAbi,
 } from 'abis';
 import WormholeCoreAbi from 'abis/WormholeCoreAbi';
 import { ContractAddresses } from 'test/config/addresses';

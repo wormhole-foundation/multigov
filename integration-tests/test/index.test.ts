@@ -10,6 +10,7 @@ import {
   createAndExecuteCrossChainProposal,
   createTokenMintProposalData,
 } from './executeCrossChain/helpers';
+import { getVotingTokenBalance } from './helpers';
 import {
   createArbitraryProposalData,
   createProposalViaAggregateProposer,
@@ -25,8 +26,6 @@ import {
 } from './helpers/governance/votingHelpers';
 import { setupTestEnvironment } from './setup';
 import { voteFromSpoke } from './voteFromSpoke/helpers';
-import { ERC20VotesFakeAbi } from 'abis';
-import { getVotingTokenBalance } from './helpers';
 
 // Store shared state between tests 1-3
 type ProposalTestState = {
