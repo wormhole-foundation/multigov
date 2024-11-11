@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { ERC20VotesFakeAbi } from 'abis';
 import { getAddress } from 'viem';
 import { addressStore } from './config/addresses';
