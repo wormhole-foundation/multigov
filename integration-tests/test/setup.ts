@@ -23,9 +23,28 @@ import {
   registerWhitelistedProposer,
 } from './helpers/governance/registrationHelpers';
 import { delegate, mintTokens } from './helpers/token/tokenHelpers';
+import { existsSync } from 'fs';
 
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
+
+  // Check if we should skip deployment
+  const skipDeployment =
+    process.env.SKIP_DEPLOYMENT === 'true' &&
+    existsSync('.deployment-cache.json');
+
+  if (skipDeployment) {
+    console.log('Using cached deployment...');
+    // Load cached deployment
+    await loadDeploymentCache();
+    // Verify contracts are accessible
+    if (await isSetupComplete()) {
+      return;
+    }
+    console.log(
+      'Cached deployment verification failed, proceeding with fresh deployment',
+    );
+  }
 
   await handleDeployContracts();
 
@@ -117,24 +136,25 @@ const mintTokensOnBothChains = async (amount: bigint) => {
 };
 
 const handleDeployContracts = async () => {
-  // Try to load cached deployment
-  const cachedAddresses = process.env.CI ? null : loadDeploymentCache();
+  // Only try to load cache if not in CI
+  const cachedAddresses = !process.env.CI ? loadDeploymentCache() : null;
 
   if (cachedAddresses) {
     // Use cached addresses
     for (const [key, value] of Object.entries(cachedAddresses)) {
       addressStore.setAddress(key as keyof DeployedAddresses, value);
     }
-  }
-
-  // Save deployment cache (skip in CI)
-  if (!process.env.CI && !!cachedAddresses) {
-    return saveDeploymentCache(addressStore.getAllAddresses());
+    return;
   }
 
   // Deploy new contracts
   await deployHubContracts();
   await deploySpokeContracts();
+
+  // Save deployment cache (skip in CI)
+  if (!process.env.CI) {
+    saveDeploymentCache(addressStore.getAllAddresses());
+  }
 };
 
 const isSetupComplete = async () => {
