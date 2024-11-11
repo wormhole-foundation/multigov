@@ -19,7 +19,7 @@ export const createProposalOnSpoke = async (proposalId: bigint) => {
   // Get Wormhole query response containing proposal metadata
   const { ethClient } = createClients();
   const currentBlock = await ethClient.getBlock();
-  const queryResponse = await getWormholeAddProposalQueryResponse({
+  const queryResponse = await queryHubProposalMetadata({
     proposalId,
     proposalCreatedBlock: currentBlock.number,
   });
@@ -32,7 +32,7 @@ export const createProposalOnSpoke = async (proposalId: bigint) => {
   return proposalId;
 };
 
-const getWormholeAddProposalQueryResponse = async ({
+const queryHubProposalMetadata = async ({
   proposalId,
   proposalCreatedBlock,
 }: {
