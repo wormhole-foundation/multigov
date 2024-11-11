@@ -12,7 +12,7 @@ import { createClients } from 'test/config/clients';
 import { getPrivateKeyHex } from 'test/config/mainAccount';
 import { VoteType } from 'test/config/types';
 import { getVoteStart } from 'test/helpers';
-import { sendQueryToWormhole } from 'test/helpers/wormhole/wormholeHelpers';
+import { guardiansCertifyWormholeQuery } from 'test/helpers/wormhole/wormholeHelpers';
 import { encodeFunctionData } from 'viem';
 import { mineToTimestamp } from '../helpers/time/timeHelpers';
 
@@ -129,7 +129,7 @@ export const getWormholeProposalVotesQueryResponse = async ({
   );
 
   console.log('Sending query to wormhole...');
-  return await sendQueryToWormhole({
+  return await guardiansCertifyWormholeQuery({
     serialized,
     signature,
   });

@@ -11,7 +11,7 @@ import { ContractAddresses } from 'test/config/addresses';
 import { ETH_DEVNET_WORMHOLE_CHAIN_ID } from 'test/config/chains';
 import { createClients } from 'test/config/clients';
 import { getPrivateKeyHex } from 'test/config/mainAccount';
-import { sendQueryToWormhole } from 'test/helpers';
+import { guardiansCertifyWormholeQuery } from 'test/helpers';
 import type { WormholeQueryResponse } from 'test/helpers/wormhole/types';
 import { encodeFunctionData } from 'viem';
 
@@ -68,7 +68,7 @@ const queryHubProposalMetadata = async ({
     QueryRequest.digest('DEVNET', serialized),
   );
   console.log('Sending query to wormhole...');
-  return await sendQueryToWormhole({
+  return await guardiansCertifyWormholeQuery({
     serialized,
     signature,
   });

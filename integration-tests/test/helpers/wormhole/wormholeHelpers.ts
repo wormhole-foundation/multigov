@@ -26,7 +26,7 @@ export const toWormholeFormat = (address: Address): `0x${string}` => {
   return ethAddress.toUniversalAddress().toString() as `0x${string}`;
 };
 
-export const sendQueryToWormhole = async ({
+export const guardiansCertifyWormholeQuery = async ({
   serialized,
 }: {
   signature: string;
@@ -131,7 +131,7 @@ export const getWormholeGetVotesQueryResponse = async ({
   );
 
   const { queryResponseBytes, queryResponseSignatures } =
-    await sendQueryToWormhole({
+    await guardiansCertifyWormholeQuery({
       serialized,
       signature,
     });
