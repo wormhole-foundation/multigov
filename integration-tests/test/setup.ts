@@ -138,6 +138,11 @@ const handleDeployContracts = async () => {
   // Deploy new contracts
   await deployHubContracts();
   await deploySpokeContracts();
+
+  // Save deployment cache (skip in CI)
+  if (!process.env.CI) {
+    saveDeploymentCache(addressStore.getAllAddresses());
+  }
 };
 
 const isSetupComplete = async () => {
