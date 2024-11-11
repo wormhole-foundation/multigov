@@ -1,108 +1,42 @@
-name: Integration Tests
+name: Tilt CI
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
   pull_request:
-    branches: [main]
+  push:
+    branches:
+      - main
 
 jobs:
-  integration-tests:
-    runs-on: ubuntu-latest
+  tilt:
+    runs-on: tilt-kube-public
+
+    # Cancel previous builds on the same branch/ref. Full runs are expensive
+    # and capacity is limited, so we want to avoid running multiple builds
+    # in parallel even if it means skipping CI runs on permanent branches
+    # (unfortunately, we can't differentiate between temporary and permanent
+    # refs without duplicating the entire logic).
+    concurrency:
+      group: ${{ github.workflow }}-tilt-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
+      - name: Clear repository
+        run: |
+          rm -rf $GITHUB_WORKSPACE && mkdir $GITHUB_WORKSPACE
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Expand for link to Tilt dashboard (only available during build)
+        run: >
+          echo "Tilt progress dashboard: https://$DASHBOARD_URL"
+      - run: |
+          kubectl config set-context ci --namespace=$DEPLOY_NS
+          kubectl config use-context ci
 
-      # Install system dependencies
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl make gcc g++
+      - run: tilt ci -- --evm2 --generic_relayer --solana_watcher --wormchain --guardiand_loglevel=warn --namespace=$DEPLOY_NS
+        timeout-minutes: 30
 
-      # Install Go
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.21.9"
-
-      # Install Foundry
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-
-      # Install Bun
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      # Install Tilt
-      - name: Install Tilt
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
-
-      # Clone Wormhole repo
-      - name: Clone Wormhole
-        run: |
-          git clone https://github.com/wormhole-foundation/wormhole.git
-          cd wormhole
-          git submodule update --init
-
-      # Cache dependencies
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-            node_modules
-            ~/.foundry
-            ~/.bun/install/cache
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/go.sum', '**/package.json', '**/foundry.toml') }}
-
-      # Start Tilt environment
-      - name: Start Tilt environment
-        run: |
-          cd wormhole/testing
-          tilt up --stream --file Tiltfile -- --evm2=true --query_server=true &
-          # Wait for environment to be ready
-          timeout 300 bash -c 'until curl -s http://localhost:8545 > /dev/null; do sleep 5; done'
-
-      # Install project dependencies
-      - name: Install dependencies
-        run: |
-          cd integration-tests
-          bun install
-
-      # Generate artifacts
-      - name: Generate artifacts
-        run: |
-          cd integration-tests
-          bun run generate:artifacts
-
-      # Run integration tests (always with fresh deployment in CI)
-      - name: Run integration tests
-        run: |
-          cd integration-tests
-          CI=true bun test  # CI flag will force fresh deployment
-        env:
-          WORMHOLE_API_KEY: "my_secret_key_3"
-          ETHDEVNET_MNEMONIC: "myth like bonus scare over problem client lizard pioneer submit female collect"
-
-      # Upload test results (but not deployment cache)
-      - name: Upload test results
+      # Clean up k8s resources
+      - run: kubectl delete --namespace=$DEPLOY_NS service,statefulset,configmap,pod,job --all
         if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-results
-          path: integration-tests/test-results/**
-
-      # Cleanup
-      - name: Cleanup
-        if: always()
-        run: |
-          cd wormhole/testing
-          tilt down
