@@ -9,10 +9,7 @@ import {
   deployHubContracts,
   deploySpokeContracts,
 } from './helpers/deployment/deployContracts';
-import {
-  loadDeploymentCache,
-  saveDeploymentCache,
-} from './helpers/deployment/deploymentCache';
+import { loadDeploymentCache } from './helpers/deployment/deploymentCache';
 import {
   getWhitelistedProposer,
   handleRegisterSpokeOnAggProposer,
