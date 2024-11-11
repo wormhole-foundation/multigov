@@ -23,7 +23,7 @@ import {
   registerWhitelistedProposer,
 } from './helpers/governance/registrationHelpers';
 import { delegate, mintTokens } from './helpers/token/tokenHelpers';
-import { existsSync } from 'fs';
+import { existsSync } from 'node:fs';
 
 export async function setupTestEnvironment() {
   console.log('\n🚀 Starting test environment setup...');
