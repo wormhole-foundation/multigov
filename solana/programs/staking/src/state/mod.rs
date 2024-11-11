@@ -28,3 +28,6 @@ pub use guardian_signatures::*;
 
 pub mod spoke_metadata_collector;
 pub use spoke_metadata_collector::*;
+
+pub mod vote_weight_window_lengths;
+pub use vote_weight_window_lengths::*;

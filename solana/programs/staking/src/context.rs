@@ -31,6 +31,7 @@ pub const SPOKE_MESSAGE_EXECUTOR_SEED: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
 pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
+pub const VOTE_WEIGHT_WINDOW_LENGTHS_SEED: &str = "vote_weight_window_lengths";
 
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -156,6 +157,13 @@ pub struct CastVote<'info> {
     )]
     pub proposal_voters_weight_cast:
         Account<'info, proposal_voters_weight_cast::ProposalVotersWeightCast>,
+
+    #[account(
+        mut,
+        seeds = [VOTE_WEIGHT_WINDOW_LENGTHS_SEED.as_bytes()],
+        bump
+    )]
+    pub vote_weight_window_lengths: AccountLoader<'info, VoteWeightWindowLengths>,
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Box<Account<'info, global_config::GlobalConfig>>,
@@ -571,7 +579,7 @@ pub struct ReceiveMessage<'info> {
         constraint = posted_vaa.emitter_chain() == message_executor.hub_chain_id @ MessageExecutorError::InvalidEmitterChain,
         constraint = *posted_vaa.emitter_address() == message_executor.hub_dispatcher.to_bytes() @ MessageExecutorError::InvalidHubDispatcher,
     )]
-    pub posted_vaa: Account<'info, PostedVaa::<Message>>,
+    pub posted_vaa: Account<'info, PostedVaa<Message>>,
 
     #[account(
         seeds = [AIRLOCK_SEED.as_bytes()],
@@ -608,5 +616,43 @@ pub struct InitializeSpokeAirlock<'info> {
         bump
     )]
     pub airlock: Account<'info, SpokeAirlock>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(initial_window_length: u64)]
+pub struct InitializeVoteWeightWindowLengths<'info> {
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
+
+    #[account(
+        init,
+        payer = governance_authority,
+        space = VoteWeightWindowLengths::LEN,
+        seeds = [VOTE_WEIGHT_WINDOW_LENGTHS_SEED.as_bytes()],
+        bump
+    )]
+    pub vote_weight_window_lengths: AccountLoader<'info, VoteWeightWindowLengths>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(new_window_length: u64)]
+pub struct UpdateVoteWeightWindowLength<'info> {
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [VOTE_WEIGHT_WINDOW_LENGTHS_SEED.as_bytes()],
+        bump
+    )]
+    pub vote_weight_window_lengths: AccountLoader<'info, VoteWeightWindowLengths>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     pub system_program: Program<'info, System>,
 }
