@@ -8,8 +8,7 @@ import {ERC20VotesFake} from "test/fakes/ERC20VotesFake.sol";
 
 /// @notice Deploy the hub contracts for EthDevnet1 when using the Wormhole Tilt testing environment (Devnet).
 /// @dev Set the environment variable DEPLOYER_PRIVATE_KEY to the private key of the account that will be used to deploy
-/// the
-/// contracts.
+/// the contracts.
 /// @dev Deploy with:
 /// forge script script/DeployHubContractsEthDevnet1.sol:DeployHubContractsEthDevnet1 --rpc-url
 /// http://localhost:8545 --broadcast --via-ir
