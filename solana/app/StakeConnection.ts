@@ -456,7 +456,7 @@ export class StakeConnection {
       currentDelegateStakeAccountOwner = this.userPublicKey();
     } else {
       currentDelegateStakeAccountOwner = await this.delegates(
-        stakeAccountCheckpointsAddress,
+        this.userPublicKey(),
       );
       let currentDelegateStakeAccountMetadataAddress =
         await this.getStakeMetadataAddress(currentDelegateStakeAccountOwner);
@@ -554,7 +554,7 @@ export class StakeConnection {
       currentDelegateStakeAccountOwner = this.userPublicKey();
     } else {
       currentDelegateStakeAccountOwner = await this.delegates(
-        stakeAccountCheckpointsAddress,
+        this.userPublicKey(),
       );
       let currentDelegateStakeAccountMetadataAddress =
         await this.getStakeMetadataAddress(currentDelegateStakeAccountOwner);
@@ -723,14 +723,12 @@ export class StakeConnection {
     }
   }
 
-  /** Gets the current delegate's stake account associated with the specified stake account. */
+  /** Gets the current delegate's public key associated with the user public key */
   public async delegates(
-    stakeAccountCheckpoints: PublicKey,
+    user: PublicKey,
   ): Promise<PublicKey> {
-    const stakeAccountCheckpointsData =
-      await this.program.account.checkpointData.fetch(stakeAccountCheckpoints);
     const stakeAccountMetadata = await this.fetchStakeAccountMetadata(
-      stakeAccountCheckpointsData.owner,
+      user,
     );
     return stakeAccountMetadata.delegate;
   }
@@ -762,8 +760,11 @@ export class StakeConnection {
       );
     }
 
+    let stakeAccountCheckpointsData =
+      await this.program.account.checkpointData.fetch(stakeAccount.address);
+    
     let currentDelegateStakeAccountCheckpointsOwner = await this.delegates(
-      stakeAccount.address,
+      stakeAccountCheckpointsData.owner,
     );
     let currentDelegateStakeAccountMetadataAddress =
       await this.getStakeMetadataAddress(
@@ -774,9 +775,6 @@ export class StakeConnection {
         currentDelegateStakeAccountMetadataAddress,
         false,
       );
-
-    let stakeAccountCheckpointsData =
-      await this.program.account.checkpointData.fetch(stakeAccount.address);
 
     instructions.push(
       await this.program.methods

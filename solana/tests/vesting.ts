@@ -778,13 +778,12 @@ describe("vesting", () => {
 
   it("should fail to delegate with uninitialized vestingBalance account", async () => {
     await sleep(2000);
-    let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.delegateWithVest(
-        vesterStakeConnection.userPublicKey(),
-        WHTokenBalance.fromString("0"),
-        true,
-        config,
-      );
+    await vesterStakeConnection.delegateWithVest(
+      vesterStakeConnection.userPublicKey(),
+      WHTokenBalance.fromString("0"),
+      true,
+      config,
+    );
 
     let delegateeStakeAccountMetadataAddress =
       await stakeConnection.getStakeMetadataAddress(
@@ -797,7 +796,7 @@ describe("vesting", () => {
       );
 
     let currentDelegateStakeAccountOwner = await stakeConnection.delegates(
-      stakeAccountCheckpointsAddress,
+      vesterStakeConnection.userPublicKey(),
     );
     let currentDelegateStakeAccountMetadataAddress =
       await stakeConnection.getStakeMetadataAddress(
@@ -851,13 +850,12 @@ describe("vesting", () => {
 
   it("should fail to delegate with vestingBalance account discriminator mismatch", async () => {
     await sleep(2000);
-    let stakeAccountCheckpointsAddress =
-      await vesterStakeConnection.delegateWithVest(
-        vesterStakeConnection.userPublicKey(),
-        WHTokenBalance.fromString("0"),
-        true,
-        config,
-      );
+    await vesterStakeConnection.delegateWithVest(
+      vesterStakeConnection.userPublicKey(),
+      WHTokenBalance.fromString("0"),
+      true,
+      config,
+    );
 
     let delegateeStakeAccountMetadataAddress =
       await stakeConnection.getStakeMetadataAddress(
@@ -870,7 +868,7 @@ describe("vesting", () => {
       );
 
     let currentDelegateStakeAccountOwner = await stakeConnection.delegates(
-      stakeAccountCheckpointsAddress,
+      vesterStakeConnection.userPublicKey(),
     );
     let currentDelegateStakeAccountMetadataAddress =
       await stakeConnection.getStakeMetadataAddress(
@@ -2312,13 +2310,12 @@ describe("vesting", () => {
 
     it("should fail to delegate with invalid vesting token", async () => {
       await sleep(2000);
-      let stakeAccountCheckpointsAddress =
-        await vesterStakeConnection.delegateWithVest(
-          vesterStakeConnection.userPublicKey(),
-          WHTokenBalance.fromString("0"),
-          true,
-          config,
-        );
+      await vesterStakeConnection.delegateWithVest(
+        vesterStakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("0"),
+        true,
+        config,
+      );
 
       let delegateeStakeAccountMetadataAddress =
         await stakeConnection.getStakeMetadataAddress(
@@ -2331,7 +2328,7 @@ describe("vesting", () => {
         );
 
       let currentDelegateStakeAccountOwner = await stakeConnection.delegates(
-        stakeAccountCheckpointsAddress,
+        vesterStakeConnection.userPublicKey(),
       );
 
       let currentDelegateStakeAccountMetadataAddress =
