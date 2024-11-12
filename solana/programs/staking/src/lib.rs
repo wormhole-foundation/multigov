@@ -513,7 +513,7 @@ pub mod staking {
         let vote_start = proposal.vote_start;
 
         let (_, window_length) = find_window_length_le(
-            &ctx.accounts.voter_checkpoints.to_account_info(),
+            &ctx.accounts.vote_weight_window_lengths.to_account_info(),
             vote_start,
         )?
         .ok_or(ErrorCode::WindowLengthNotFound)?;
