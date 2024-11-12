@@ -9,13 +9,14 @@ pub struct VoteWeightWindowLengths {
 }
 
 impl VoteWeightWindowLengths {
-    pub const WINDOW_LENGTH_SIZE: usize = 16; // 8 + 8 (timestamp + value)
-    pub const VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE: usize = 16; // 8 + 8 (discriminator  + next_index)
+    pub const VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE: usize = 8 + 8; // 16 (discriminator + next_index)
+    pub const WINDOW_LENGTH_SIZE: usize = 8 + 8; // 16 (timestamp + value)
 
-    pub const LEN: usize = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE; // 48 (header)
+    pub const LEN: usize = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE +
+        VoteWeightWindowLengths::WINDOW_LENGTH_SIZE; // 32 (header + checkpoint)
 
     pub fn initialize(&mut self) {
-        self.next_index = 0;
+        self.next_index = 1;
     }
 }
 
@@ -62,6 +63,24 @@ pub fn read_window_length_at_index(
     let window_length = WindowLength::try_from_slice(window_length_bytes)
         .map_err(|_| ProgramError::InvalidAccountData)?;
     Ok(window_length)
+}
+
+pub fn init_window_length<'info>(
+    vote_weight_window_length_account_info: &AccountInfo<'info>,
+    current_timestamp: u64,
+    window_length_value: u64,
+) -> Result<()> {
+    let window_length = WindowLength {
+        timestamp: current_timestamp,
+        value: window_length_value,
+    };
+    write_window_length_at_index(
+        vote_weight_window_length_account_info,
+        0,
+        &window_length,
+    )?;
+
+    Ok(())
 }
 
 pub fn push_new_window_length<'info>(

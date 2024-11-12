@@ -109,11 +109,6 @@ export async function startValidatorRaw(portNumber: number, otherArgs: string) {
   const internalController: AbortController = new AbortController();
   const { signal } = internalController;
 
-  console.log(
-    `solana-test-validator --ledger ${ledgerDir} --rpc-port ${portNumber} --faucet-port ${
-      portNumber + 101
-    } ${otherArgs}`,
-  );
   exec(
     `solana-test-validator --ledger ${ledgerDir} --rpc-port ${portNumber} --faucet-port ${
       portNumber + 101
@@ -437,6 +432,11 @@ export async function standardSetup(
 
   await program.methods
     .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
+    .accounts({ governance_authority: user })
+    .rpc();
+
+  await program.methods
+    .initializeVoteWeightWindowLengths(new BN(3))
     .accounts({ governance_authority: user })
     .rpc();
 

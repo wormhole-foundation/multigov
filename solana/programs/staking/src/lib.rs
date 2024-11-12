@@ -30,7 +30,7 @@ use crate::error::{
     ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError,
 };
 use crate::state::GuardianSignatures;
-use crate::state::{find_window_length_le, push_new_window_length};
+use crate::state::{find_window_length_le, push_new_window_length, init_window_length};
 
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
@@ -857,27 +857,29 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn initialize_vote_weight_window_length(
+    pub fn initialize_vote_weight_window_lengths(
         ctx: Context<InitializeVoteWeightWindowLengths>,
         initial_window_length: u64,
     ) -> Result<()> {
         let vote_weight_window_length = &mut ctx.accounts.vote_weight_window_lengths;
+
+        let mut vote_weight_window_length_data = vote_weight_window_length.load_init()?;
+        vote_weight_window_length_data.initialize();
+        drop(vote_weight_window_length_data);
+
         let vote_weight_window_length_account_info = vote_weight_window_length.to_account_info();
         let current_timestamp: u64 = utils::clock::get_current_time().try_into()?;
 
-        push_new_window_length(
-            vote_weight_window_length,
+        init_window_length(
             &vote_weight_window_length_account_info,
             current_timestamp,
             initial_window_length,
-            &ctx.accounts.governance_authority.to_account_info(),
-            &ctx.accounts.system_program.to_account_info(),
         )?;
         Ok(())
     }
 
-    pub fn update_vote_weight_window_length(
-        ctx: Context<UpdateVoteWeightWindowLength>,
+    pub fn update_vote_weight_window_lengths(
+        ctx: Context<UpdateVoteWeightWindowLengths>,
         new_window_length: u64,
     ) -> Result<()> {
         let vote_weight_window_length = &mut ctx.accounts.vote_weight_window_lengths;

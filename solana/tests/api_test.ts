@@ -24,6 +24,7 @@ import {
   WHTokenBalance,
   TEST_CHECKPOINTS_ACCOUNT_LIMIT,
 } from "../app";
+import { CheckpointAccount } from "../app/checkpoints";
 import crypto from "crypto";
 import {
   QueryProxyMock,
@@ -644,316 +645,390 @@ describe("api", async () => {
     }
   });
 
-  it("castVote", async () => {
-    await sleep(2000)
-    await user2StakeConnection.delegate(
-      user2,
-      WHTokenBalance.fromString("150"),
-    );
-
-    const proposalIdInput = crypto
-      .createHash("sha256")
-      .update("proposalId4")
-      .digest();
-    const voteStart = Math.floor(Date.now() / 1000);
-
-    const ethProposalResponseBytes = createProposalQueryResponseBytes(
-      proposalIdInput,
-      voteStart,
-    );
-    const signaturesKeypair = Keypair.generate();
-    const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(ethProposalResponseBytes);
-    await user2StakeConnection.postSignatures(
-      mockSignatures,
-      signaturesKeypair,
-    );
-    const mockGuardianSetIndex = 5;
-
-    await user2StakeConnection.addProposal(
-      proposalIdInput,
-      ethProposalResponseBytes,
-      signaturesKeypair.publicKey,
-      mockGuardianSetIndex,
-    );
-
-    await user2StakeConnection.castVote(
-      proposalIdInput,
-      new BN(10),
-      new BN(20),
-      new BN(12),
-      0,
-    );
-    await user2StakeConnection.castVote(
-      proposalIdInput,
-      new BN(10),
-      new BN(10),
-      new BN(0),
-      0,
-    );
-    await user2StakeConnection.castVote(
-      proposalIdInput,
-      new BN(0),
-      new BN(7),
-      new BN(10),
-      0,
-    );
-
-    const { proposalId, againstVotes, forVotes, abstainVotes } =
-      await user2StakeConnection.proposalVotes(proposalIdInput);
-
-    assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
-    assert.equal(againstVotes.toString(), "20");
-    assert.equal(forVotes.toString(), "37");
-    assert.equal(abstainVotes.toString(), "22");
-  });
-
-  it("should fail to castVote if the wanted checkpoint is the last one in the filled account", async () => {
-    let stakeAccountMetadataAddress =
-      await user2StakeConnection.getStakeMetadataAddress(
-        user2StakeConnection.userPublicKey(),
-      );
-    let currentStakeAccountCheckpointsAddress =
-      await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
-        stakeAccountMetadataAddress,
-        false,
-      );
-    let currentStakeAccountCheckpoints: CheckpointAccount =
-      await user2StakeConnection.fetchCheckpointAccount(
-        currentStakeAccountCheckpointsAddress,
-      );
-    // current checkpoint account not fully filled out
-    assert.equal(
-      currentStakeAccountCheckpoints.getCheckpointCount(),
-      TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1,
-    );
-
-    // filling the checkpoint account to the limit
-    await sleep(2000)
-    await user2StakeConnection.delegate(
-      user2,
-      WHTokenBalance.fromString("5"),
-    );
-
-    let user2StakeAccountMetadata =
-      await user2StakeConnection.fetchStakeAccountMetadata(
-        user2StakeConnection.userPublicKey(),
-      );
-    // a new checkpoint account must be created 
-    assert.equal(
-      user2StakeAccountMetadata.stakeAccountCheckpointsLastIndex,
-      1,
-    );
-
-    currentStakeAccountCheckpointsAddress =
-      await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
-        stakeAccountMetadataAddress,
-        false,
-      );
-    // current checkpoint account does not exist
-    assert.equal(currentStakeAccountCheckpointsAddress, undefined);
-
-    let previousStakeAccountCheckpointsAddress =
-      await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
-        stakeAccountMetadataAddress,
-        true,
-      );
-
-    let previousVesterStakeCheckpoints: CheckpointAccount =
-      await user2StakeConnection.fetchCheckpointAccount(
-        previousStakeAccountCheckpointsAddress,
-      );
-
-    // previous checkpoint account is filled
-    assert.equal(
-      previousVesterStakeCheckpoints.getCheckpointCount(),
-      TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-    );
-
-    const proposalIdInput = crypto
-      .createHash("sha256")
-      .update("proposalId24")
-      .digest();
-    const voteStart = Math.floor(Date.now() / 1000);
-
-    const ethProposalResponseBytes = createProposalQueryResponseBytes(
-      proposalIdInput,
-      voteStart,
-    );
-    const signaturesKeypair = Keypair.generate();
-    const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(ethProposalResponseBytes);
-    await user2StakeConnection.postSignatures(
-      mockSignatures,
-      signaturesKeypair,
-    );
-    const mockGuardianSetIndex = 5;
-
-    await user2StakeConnection.addProposal(
-      proposalIdInput,
-      ethProposalResponseBytes,
-      signaturesKeypair.publicKey,
-      mockGuardianSetIndex,
-    );
-
-    const { proposalAccount } =
-      await user2StakeConnection.fetchProposalAccount(proposalIdInput);
-
-    try {
-      await user2StakeConnection.program.methods
-        .castVote(
-          Array.from(proposalIdInput),
-          new BN(10),
-          new BN(20),
-          new BN(12),
-          0,
-        )
-        .accountsPartial({
-          proposal: proposalAccount,
-          voterCheckpoints: previousStakeAccountCheckpointsAddress,
-        })
-        .rpc();
-
-      assert.fail("Expected an error but none was thrown");
-    } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "CheckpointOutOfBounds");
-    }
-  });
-
-  it("should successfully castVote with created checkpoint account", async () => {
-    let user2StakeAccountMetadataAddress =
-      await user2StakeConnection.getStakeMetadataAddress(
-        user2StakeConnection.userPublicKey(),
-      );
-    let user2StakeAccountCheckpointsAddress =
-      await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
-        user2StakeAccountMetadataAddress,
-        true,
-      );
-
-    await sleep(2000)
-    await user2StakeConnection.program.methods
-      .createCheckpoints()
-      .accounts({
-        stakeAccountCheckpoints: user2StakeAccountCheckpointsAddress,
-        stakeAccountMetadata: user2StakeAccountMetadataAddress,
-      })
-      .rpc({ skipPreflight: true })
-      .then(confirm);
-
-    await sleep(2000)
-    await user2StakeConnection.delegate(
-      user2,
-      WHTokenBalance.fromString("150"),
-    );
-
-    const proposalIdInput = crypto
-      .createHash("sha256")
-      .update("proposalId25")
-      .digest();
-    const voteStart = Math.floor(Date.now() / 1000);
-
-    const ethProposalResponseBytes = createProposalQueryResponseBytes(
-      proposalIdInput,
-      voteStart,
-    );
-    const signaturesKeypair = Keypair.generate();
-    const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(ethProposalResponseBytes);
-    await user2StakeConnection.postSignatures(
-      mockSignatures,
-      signaturesKeypair,
-    );
-    const mockGuardianSetIndex = 5;
-
-    await user2StakeConnection.addProposal(
-      proposalIdInput,
-      ethProposalResponseBytes,
-      signaturesKeypair.publicKey,
-      mockGuardianSetIndex,
-    );
-
-    await user2StakeConnection.castVote(
-      proposalIdInput,
-      new BN(10),
-      new BN(20),
-      new BN(12),
-      1,
-    );
-
-    const { proposalId, againstVotes, forVotes, abstainVotes } =
-      await user2StakeConnection.proposalVotes(proposalIdInput);
-
-    assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
-    assert.equal(againstVotes.toString(), "10");
-    assert.equal(forVotes.toString(), "20");
-    assert.equal(abstainVotes.toString(), "12");
-  });
-
-  it("should fail when castVote with an invalid voter checkpoints", async () => {
-    let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
-      undefined,
-      WHTokenBalance.fromString("150"),
-    );
-
-    let user2StakeAccountCheckpointsAddress =
+  describe("addProposal", () => {
+    it("should fail to castVote if votes were added in the voteWeightWindow", async () => {
+      await sleep(2000)
       await user2StakeConnection.delegate(
+        user2,
+        WHTokenBalance.fromString("150"),
+      );
+
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId44")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
+
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await user2StakeConnection.postSignatures(
+        mockSignatures,
+        signaturesKeypair,
+      );
+      const mockGuardianSetIndex = 5;
+
+      await user2StakeConnection.addProposal(
+        proposalIdInput,
+        ethProposalResponseBytes,
+        signaturesKeypair.publicKey,
+        mockGuardianSetIndex,
+      );
+
+      let stakeAccountMetadataAddress =
+        await user2StakeConnection.getStakeMetadataAddress(
+          user2StakeConnection.userPublicKey(),
+        );
+      let previousStakeAccountCheckpointsAddress =
+        await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          stakeAccountMetadataAddress,
+          false,
+        );
+
+      const { proposalAccount } =
+        await user2StakeConnection.fetchProposalAccount(proposalIdInput);
+
+      try {
+        await user2StakeConnection.program.methods
+          .castVote(
+            Array.from(proposalIdInput),
+            new BN(10),
+            new BN(20),
+            new BN(12),
+            0,
+          )
+          .accountsPartial({
+            proposal: proposalAccount,
+            voterCheckpoints: previousStakeAccountCheckpointsAddress,
+            voterCheckpointsNext: null,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert((e as AnchorError).error?.errorCode?.code === "CheckpointNotFound");
+      }
+      
+    });
+
+    it("should successfully castVote", async () => {
+      await sleep(2000)
+      await user2StakeConnection.delegate(
+        user2,
+        WHTokenBalance.fromString("150"),
+      );
+
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId45")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
+
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await user2StakeConnection.postSignatures(
+        mockSignatures,
+        signaturesKeypair,
+      );
+      const mockGuardianSetIndex = 5;
+
+      await sleep(7000)
+      await user2StakeConnection.addProposal(
+        proposalIdInput,
+        ethProposalResponseBytes,
+        signaturesKeypair.publicKey,
+        mockGuardianSetIndex,
+      );
+
+      await user2StakeConnection.castVote(
+        proposalIdInput,
+        new BN(10),
+        new BN(20),
+        new BN(12),
+        0,
+      );
+      await user2StakeConnection.castVote(
+        proposalIdInput,
+        new BN(10),
+        new BN(10),
+        new BN(0),
+        0,
+      );
+      await user2StakeConnection.castVote(
+        proposalIdInput,
+        new BN(0),
+        new BN(7),
+        new BN(10),
+        0,
+      );
+
+      const { proposalId, againstVotes, forVotes, abstainVotes } =
+        await user2StakeConnection.proposalVotes(proposalIdInput);
+
+      assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
+      assert.equal(againstVotes.toString(), "20");
+      assert.equal(forVotes.toString(), "37");
+      assert.equal(abstainVotes.toString(), "22");
+    });
+
+    it("should fail to castVote if the wanted checkpoint is the last one in the filled account", async () => {
+      let stakeAccountMetadataAddress =
+        await user2StakeConnection.getStakeMetadataAddress(
+          user2StakeConnection.userPublicKey(),
+        );
+      let currentStakeAccountCheckpointsAddress =
+        await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          stakeAccountMetadataAddress,
+          false,
+        );
+      let currentStakeAccountCheckpoints: CheckpointAccount =
+        await user2StakeConnection.fetchCheckpointAccount(
+          currentStakeAccountCheckpointsAddress,
+        );
+      // current checkpoint account not fully filled out
+      assert.equal(
+        currentStakeAccountCheckpoints.getCheckpointCount(),
+        TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1,
+      );
+
+      // filling the checkpoint account to the limit
+      await sleep(2000)
+      await user2StakeConnection.delegate(
+        user2,
+        WHTokenBalance.fromString("5"),
+      );
+
+      let user2StakeAccountMetadata =
+        await user2StakeConnection.fetchStakeAccountMetadata(
+          user2StakeConnection.userPublicKey(),
+        );
+      // a new checkpoint account must be created 
+      assert.equal(
+        user2StakeAccountMetadata.stakeAccountCheckpointsLastIndex,
+        1,
+      );
+
+      currentStakeAccountCheckpointsAddress =
+        await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          stakeAccountMetadataAddress,
+          false,
+        );
+      // current checkpoint account does not exist
+      assert.equal(currentStakeAccountCheckpointsAddress, undefined);
+
+      let previousStakeAccountCheckpointsAddress =
+        await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          stakeAccountMetadataAddress,
+          true,
+        );
+
+      let previousVesterStakeCheckpoints: CheckpointAccount =
+        await user2StakeConnection.fetchCheckpointAccount(
+          previousStakeAccountCheckpointsAddress,
+        );
+
+      // previous checkpoint account is filled
+      assert.equal(
+        previousVesterStakeCheckpoints.getCheckpointCount(),
+        TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+      );
+
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId24")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
+
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await user2StakeConnection.postSignatures(
+        mockSignatures,
+        signaturesKeypair,
+      );
+      const mockGuardianSetIndex = 5;
+
+      await user2StakeConnection.addProposal(
+        proposalIdInput,
+        ethProposalResponseBytes,
+        signaturesKeypair.publicKey,
+        mockGuardianSetIndex,
+      );
+
+      const { proposalAccount } =
+        await user2StakeConnection.fetchProposalAccount(proposalIdInput);
+
+      try {
+        await user2StakeConnection.program.methods
+          .castVote(
+            Array.from(proposalIdInput),
+            new BN(10),
+            new BN(20),
+            new BN(12),
+            0,
+          )
+          .accountsPartial({
+            proposal: proposalAccount,
+            voterCheckpoints: previousStakeAccountCheckpointsAddress,
+            voterCheckpointsNext: null,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert((e as AnchorError).error?.errorCode?.code === "CheckpointOutOfBounds");
+      }
+    });
+
+    it("should successfully castVote with created checkpoint account", async () => {
+      let user2StakeAccountMetadataAddress =
+        await user2StakeConnection.getStakeMetadataAddress(
+          user2StakeConnection.userPublicKey(),
+        );
+      let user2StakeAccountCheckpointsAddress =
+        await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          user2StakeAccountMetadataAddress,
+          true,
+        );
+
+      await sleep(2000)
+      await user2StakeConnection.program.methods
+        .createCheckpoints()
+        .accounts({
+          stakeAccountCheckpoints: user2StakeAccountCheckpointsAddress,
+          stakeAccountMetadata: user2StakeAccountMetadataAddress,
+        })
+        .rpc({ skipPreflight: true })
+        .then(confirm);
+
+      await sleep(2000)
+      await user2StakeConnection.delegate(
+        user2,
+        WHTokenBalance.fromString("150"),
+      );
+
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId25")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
+
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await user2StakeConnection.postSignatures(
+        mockSignatures,
+        signaturesKeypair,
+      );
+      const mockGuardianSetIndex = 5;
+
+      await user2StakeConnection.addProposal(
+        proposalIdInput,
+        ethProposalResponseBytes,
+        signaturesKeypair.publicKey,
+        mockGuardianSetIndex,
+      );
+
+      await user2StakeConnection.castVote(
+        proposalIdInput,
+        new BN(10),
+        new BN(20),
+        new BN(12),
+        1,
+      );
+
+      const { proposalId, againstVotes, forVotes, abstainVotes } =
+        await user2StakeConnection.proposalVotes(proposalIdInput);
+
+      assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
+      assert.equal(againstVotes.toString(), "10");
+      assert.equal(forVotes.toString(), "20");
+      assert.equal(abstainVotes.toString(), "12");
+    });
+
+    it("should fail when castVote with an invalid voter checkpoints", async () => {
+      let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
         undefined,
         WHTokenBalance.fromString("150"),
       );
 
-    const proposalIdInput = crypto
-      .createHash("sha256")
-      .update("proposalId5")
-      .digest();
-    const voteStart = Math.floor(Date.now() / 1000);
+      let user2StakeAccountCheckpointsAddress =
+        await user2StakeConnection.delegate(
+          undefined,
+          WHTokenBalance.fromString("150"),
+        );
 
-    const ethProposalResponseBytes = createProposalQueryResponseBytes(
-      proposalIdInput,
-      voteStart,
-    );
-    const signaturesKeypair = Keypair.generate();
-    const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(ethProposalResponseBytes);
-    await user2StakeConnection.postSignatures(
-      mockSignatures,
-      signaturesKeypair,
-    );
-    const mockGuardianSetIndex = 5;
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId5")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
 
-    await user2StakeConnection.addProposal(
-      proposalIdInput,
-      ethProposalResponseBytes,
-      signaturesKeypair.publicKey,
-      mockGuardianSetIndex,
-    );
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const signaturesKeypair = Keypair.generate();
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      await user2StakeConnection.postSignatures(
+        mockSignatures,
+        signaturesKeypair,
+      );
+      const mockGuardianSetIndex = 5;
 
-    await user2StakeConnection.delegate(
-      undefined,
-      WHTokenBalance.fromString("200"),
-    );
+      await user2StakeConnection.addProposal(
+        proposalIdInput,
+        ethProposalResponseBytes,
+        signaturesKeypair.publicKey,
+        mockGuardianSetIndex,
+      );
 
-    const { proposalAccount } =
-      await user2StakeConnection.fetchProposalAccount(proposalIdInput);
+      await user2StakeConnection.delegate(
+        undefined,
+        WHTokenBalance.fromString("200"),
+      );
 
-    try {
-      await user2StakeConnection.program.methods
-        .castVote(
-          Array.from(proposalIdInput),
-          new BN(10),
-          new BN(20),
-          new BN(12),
-          1,
-        )
-        .accountsPartial({
-          proposal: proposalAccount,
-          voterCheckpoints: stakeAccountCheckpointsAddress,
-        })
-        .rpc();
+      const { proposalAccount } =
+        await user2StakeConnection.fetchProposalAccount(proposalIdInput);
 
-      assert.fail("Expected an error but none was thrown");
-    } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
-    }
+      try {
+        await user2StakeConnection.program.methods
+          .castVote(
+            Array.from(proposalIdInput),
+            new BN(10),
+            new BN(20),
+            new BN(12),
+            1,
+          )
+          .accountsPartial({
+            proposal: proposalAccount,
+            voterCheckpoints: stakeAccountCheckpointsAddress,
+            voterCheckpointsNext: null,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
+      }
+    });
   });
 });

@@ -579,7 +579,7 @@ pub struct ReceiveMessage<'info> {
         constraint = posted_vaa.emitter_chain() == message_executor.hub_chain_id @ MessageExecutorError::InvalidEmitterChain,
         constraint = *posted_vaa.emitter_address() == message_executor.hub_dispatcher.to_bytes() @ MessageExecutorError::InvalidHubDispatcher,
     )]
-    pub posted_vaa: Account<'info, PostedVaa<Message>>,
+    pub posted_vaa: Account<'info, PostedVaa::<Message>>,
 
     #[account(
         seeds = [AIRLOCK_SEED.as_bytes()],
@@ -641,7 +641,7 @@ pub struct InitializeVoteWeightWindowLengths<'info> {
 
 #[derive(Accounts)]
 #[instruction(new_window_length: u64)]
-pub struct UpdateVoteWeightWindowLength<'info> {
+pub struct UpdateVoteWeightWindowLengths<'info> {
     #[account(mut, address = config.governance_authority)]
     pub governance_authority: Signer<'info>,
 
