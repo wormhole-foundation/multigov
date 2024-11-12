@@ -41,7 +41,7 @@ import { addressStore } from '../../config/addresses';
 import { createClients } from '../../config/clients';
 import { toWormholeFormat } from '../wormhole/wormholeHelpers';
 
-async function deployToken(wallet: Wallet) {
+async function deployGovToken(wallet: Wallet) {
   const hash = await wallet.deployContract({
     abi: ERC20VotesFakeAbi,
     account: wallet.account,
@@ -62,7 +62,7 @@ export async function deployHubContracts() {
   const { ethClient, ethWallet } = createClients();
 
   console.log('\n🪙  Deploying token...');
-  const token = await deployToken(ethWallet);
+  const token = await deployGovToken(ethWallet);
 
   console.log(`✅ Token deployed to: ${token}`);
   addressStore.setAddress('HUB_VOTING_TOKEN', token);
@@ -489,7 +489,7 @@ export async function deploySpokeContracts() {
 
   // Deploy token with standard CREATE
   console.log('\n🪙  Deploying Spoke voting token...');
-  const token = await deployToken(eth2Wallet);
+  const token = await deployGovToken(eth2Wallet);
   addressStore.setAddress('SPOKE_VOTING_TOKEN', token);
   console.log(`✅ Spoke voting token deployed to: ${token}`);
 
