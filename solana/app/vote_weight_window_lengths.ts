@@ -35,9 +35,7 @@ const voteWeightWindowLengthsSchema = new Map<any, any>([
     VoteWeightWindowLengths,
     {
       kind: "struct",
-      fields: [
-        ["nextIndex", "u64"],
-      ],
+      fields: [["nextIndex", "u64"]],
     },
   ],
 ]);
@@ -59,7 +57,10 @@ export class WindowLengthsAccount {
   voteWeightWindowLengths: VoteWeightWindowLengths;
   windowLengths: WindowLength[];
 
-  constructor(voteWeightWindowLengths: VoteWeightWindowLengths, windowLengths: WindowLength[]) {
+  constructor(
+    voteWeightWindowLengths: VoteWeightWindowLengths,
+    windowLengths: WindowLength[],
+  ) {
     this.voteWeightWindowLengths = voteWeightWindowLengths;
     this.windowLengths = windowLengths;
   }
@@ -68,7 +69,9 @@ export class WindowLengthsAccount {
     if (this.windowLengths.length === 0) {
       return null;
     }
-    return this.windowLengths[Number(this.voteWeightWindowLengths.nextIndex) - 1];
+    return this.windowLengths[
+      Number(this.voteWeightWindowLengths.nextIndex) - 1
+    ];
   }
 
   toString(): string {
@@ -113,7 +116,10 @@ export async function readWindowLengths(
   const windowLengths: WindowLength[] = [];
   for (let i = 0; i < totalElements; i++) {
     const offset = i * elementSize;
-    const windowLengthBytes = windowLengthsData.slice(offset, offset + elementSize);
+    const windowLengthBytes = windowLengthsData.slice(
+      offset,
+      offset + elementSize,
+    );
     const windowLength = borsh.deserialize(
       windowLengthSchema,
       WindowLength,

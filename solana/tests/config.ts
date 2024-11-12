@@ -30,7 +30,10 @@ import {
   CORE_BRIDGE_ADDRESS,
 } from "../app/constants";
 import { StakeAccountMetadata } from "../app/StakeConnection.ts";
-import { WindowLengthsAccount, readWindowLengths } from "../app/vote_weight_window_lengths";
+import {
+  WindowLengthsAccount,
+  readWindowLengths,
+} from "../app/vote_weight_window_lengths";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -243,20 +246,13 @@ describe("config", async () => {
         program.programId,
       );
 
-    let windowLengths: WindowLengthsAccount =
-      await readWindowLengths(program.provider.connection, voteWeightWindowLengthsAccountAddress);
-    assert.equal(
-      windowLengths.getWindowLengthCount(),
-      1,
+    let windowLengths: WindowLengthsAccount = await readWindowLengths(
+      program.provider.connection,
+      voteWeightWindowLengthsAccountAddress,
     );
-    assert.equal(
-      windowLengths.voteWeightWindowLengths.nextIndex,
-      1
-    );
-    assert.equal(
-      windowLengths.getLastWindowLength().value.toString(),
-      "10",
-    );
+    assert.equal(windowLengths.getWindowLengthCount(), 1);
+    assert.equal(windowLengths.voteWeightWindowLengths.nextIndex, 1);
+    assert.equal(windowLengths.getLastWindowLength().value.toString(), "10");
   });
 
   it("should fail to update HubProposalMetadata if the signer is not a valid governance_authority", async () => {

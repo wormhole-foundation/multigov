@@ -12,8 +12,8 @@ impl VoteWeightWindowLengths {
     pub const VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE: usize = 8 + 8; // 16 (discriminator + next_index)
     pub const WINDOW_LENGTH_SIZE: usize = 8 + 8; // 16 (timestamp + value)
 
-    pub const LEN: usize = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE +
-        VoteWeightWindowLengths::WINDOW_LENGTH_SIZE; // 32 (header + checkpoint)
+    pub const LEN: usize = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE
+        + VoteWeightWindowLengths::WINDOW_LENGTH_SIZE; // 32 (header + checkpoint)
 
     pub fn initialize(&mut self) {
         self.next_index = 1;
@@ -74,11 +74,7 @@ pub fn init_window_length<'info>(
         timestamp: current_timestamp,
         value: window_length_value,
     };
-    write_window_length_at_index(
-        vote_weight_window_length_account_info,
-        0,
-        &window_length,
-    )?;
+    write_window_length_at_index(vote_weight_window_length_account_info, 0, &window_length)?;
 
     Ok(())
 }

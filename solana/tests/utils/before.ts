@@ -406,11 +406,10 @@ export async function standardSetup(
   );
 
   await transferSolFromValidatorWallet(
-      provider,
-      governanceAuthority.publicKey,
-      10000,
+    provider,
+    governanceAuthority.publicKey,
+    10000,
   );
-
 
   globalConfig.governanceAuthority = governanceAuthority.publicKey;
 
@@ -436,7 +435,7 @@ export async function standardSetup(
     .rpc();
 
   await program.methods
-    .initializeVoteWeightWindowLengths(new BN(3))
+    .initializeVoteWeightWindowLengths(new BN(2000))
     .accounts({ governance_authority: user })
     .rpc();
 

@@ -33,7 +33,10 @@ import {
 } from "./transaction";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import { CheckpointAccount, readCheckpoints } from "./checkpoints";
-import { WindowLengthsAccount, readWindowLengths } from "./vote_weight_window_lengths";
+import {
+  WindowLengthsAccount,
+  readWindowLengths,
+} from "./vote_weight_window_lengths";
 import { signaturesToSolanaArray } from "@wormhole-foundation/wormhole-query-sdk";
 import { deriveGuardianSetKey } from "./helpers/guardianSet";
 
@@ -273,12 +276,17 @@ export class StakeConnection {
   async fetchWindowLengthsAccount(): Promise<WindowLengthsAccount> {
     let windowLengthsAccountAddress = PublicKey.findProgramAddressSync(
       [
-        utils.bytes.utf8.encode(wasm.Constants.VOTE_WEIGHT_WINDOW_LENGTHS_SEED()),
+        utils.bytes.utf8.encode(
+          wasm.Constants.VOTE_WEIGHT_WINDOW_LENGTHS_SEED(),
+        ),
       ],
       this.program.programId,
     )[0];
 
-    return await readWindowLengths(this.provider.connection, windowLengthsAccountAddress);
+    return await readWindowLengths(
+      this.provider.connection,
+      windowLengthsAccountAddress,
+    );
   }
 
   public async fetchStakeAccountMetadata(
@@ -612,9 +620,15 @@ export class StakeConnection {
     checkpointIndex: number = 0,
   ): Promise<void> {
     let voterStakeAccountCheckpointsAddress =
-      await this.getStakeAccountCheckpointsAddress(this.userPublicKey(), checkpointIndex);
+      await this.getStakeAccountCheckpointsAddress(
+        this.userPublicKey(),
+        checkpointIndex,
+      );
     let nextVoterStakeAccountCheckpointsAddress =
-      await this.getStakeAccountCheckpointsAddress(this.userPublicKey(), checkpointIndex + 1);
+      await this.getStakeAccountCheckpointsAddress(
+        this.userPublicKey(),
+        checkpointIndex + 1,
+      );
 
     const instructions: TransactionInstruction[] = [];
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
@@ -625,13 +639,16 @@ export class StakeConnection {
           Array.from(proposalId),
           againstVotes,
           forVotes,
-          abstainVotes, 
+          abstainVotes,
           checkpointIndex,
         )
         .accountsPartial({
           proposal: proposalAccount,
           voterCheckpoints: voterStakeAccountCheckpointsAddress,
-          voterCheckpointsNext: nextVoterStakeAccountCheckpointsAddress == undefined ? null : nextVoterStakeAccountCheckpointsAddress,
+          voterCheckpointsNext:
+            nextVoterStakeAccountCheckpointsAddress == undefined
+              ? null
+              : nextVoterStakeAccountCheckpointsAddress,
         })
         .instruction(),
     );
