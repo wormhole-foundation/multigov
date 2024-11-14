@@ -41,6 +41,8 @@ pub enum ErrorCode {
     InvalidStakeAccountCheckpoints,
     #[msg("Window length not found")]
     WindowLengthNotFound,
+    #[msg("Next checkpoint data account is required")]
+    MissingNextCheckpointDataAccount,
     #[msg("Other")]
     Other,
 }

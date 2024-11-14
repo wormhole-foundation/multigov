@@ -435,7 +435,7 @@ export async function standardSetup(
     .rpc();
 
   await program.methods
-    .initializeVoteWeightWindowLengths(new BN(2000))
+    .initializeVoteWeightWindowLengths(new BN(10))
     .accounts({ governance_authority: user })
     .rpc();
 
