@@ -642,8 +642,15 @@ pub struct InitializeVoteWeightWindowLengths<'info> {
 #[derive(Accounts)]
 #[instruction(new_window_length: u64)]
 pub struct UpdateVoteWeightWindowLengths<'info> {
-    #[account(mut, address = config.governance_authority)]
-    pub governance_authority: Signer<'info>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        bump = airlock.bump,
+        signer
+    )]
+    pub airlock: Account<'info, SpokeAirlock>,
 
     #[account(
         mut,
@@ -652,7 +659,5 @@ pub struct UpdateVoteWeightWindowLengths<'info> {
     )]
     pub vote_weight_window_lengths: AccountLoader<'info, VoteWeightWindowLengths>,
 
-    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
-    pub config: Box<Account<'info, global_config::GlobalConfig>>,
     pub system_program: Program<'info, System>,
 }

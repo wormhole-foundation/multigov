@@ -837,7 +837,7 @@ pub mod staking {
             &vote_weight_window_length_account_info,
             current_timestamp,
             new_window_length,
-            &ctx.accounts.governance_authority.to_account_info(),
+            &ctx.accounts.payer.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
         )?;
         Ok(())
