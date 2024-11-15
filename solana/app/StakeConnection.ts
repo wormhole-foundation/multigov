@@ -711,9 +711,13 @@ export class StakeConnection {
     guardianSignatures: PublicKey,
     guardianSetIndex: number,
     unoptimized?: boolean,
+    bridgeAddress?: PublicKey
   ): Promise<void> {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
+    if(bridgeAddress === undefined ){
+      bridgeAddress = CORE_BRIDGE_ADDRESS;
+    }
     const methodsBuilder = this.program.methods
       .addProposal(
         Buffer.from(ethProposalResponseBytes),
@@ -724,7 +728,7 @@ export class StakeConnection {
         proposal: proposalAccount,
         guardianSignatures: guardianSignatures,
         guardianSet: deriveGuardianSetKey(
-          CORE_BRIDGE_ADDRESS,
+          bridgeAddress,
           guardianSetIndex,
         ),
       });

@@ -1,0 +1,26 @@
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: multigov-solana-deploy
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: multigov-ci-tests
+          image: multigov-solana-contract
+          command:
+            - /bin/sh
+            - -c
+            - 'anchor build && anchor deploy --provider.wallet ./solana_id.json --provider.cluster http://solana-devnet:8899 && echo "done!" && touch /success && sleep 100000'
+          readinessProbe:
+            exec:
+              command:
+                - test
+                - -e
+                - "/success"
+            initialDelaySeconds: 60
+            periodSeconds: 5
+            securityContext:
+              privileged: true
