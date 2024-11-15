@@ -32,7 +32,7 @@ export const createProposalOnSpoke = async (proposalId: bigint) => {
   return proposalId;
 };
 
-const queryHubProposalMetadata = async ({
+export const queryHubProposalMetadata = async ({
   proposalId,
   proposalCreatedBlock,
 }: {
