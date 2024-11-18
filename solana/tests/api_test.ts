@@ -72,12 +72,14 @@ describe("api", async () => {
   let user3StakeConnection: StakeConnection;
   let user4StakeConnection: StakeConnection;
   let user5StakeConnection: StakeConnection;
+  let user6StakeConnection: StakeConnection;
 
   let controller;
   let owner;
   let user2;
   let user3;
   let user4;
+  let user6;
   let delegate;
 
   const confirm = async (signature: string): Promise<string> => {
@@ -146,6 +148,16 @@ describe("api", async () => {
       whMintAuthority,
       WHTokenBalance.fromString("1000"),
     );
+
+    user6StakeConnection = await newUserStakeConnection(
+      stakeConnection,
+      Keypair.generate(),
+      config,
+      whMintAccount,
+      whMintAuthority,
+      WHTokenBalance.fromString("1000"),
+    );
+    user6 = user6StakeConnection.provider.wallet.publicKey;
   });
 
   it("postSignatures", async () => {
@@ -724,32 +736,32 @@ describe("api", async () => {
 
   describe("castVote", () => {
     it("should fail to castVote if votes were added in the voteWeightWindow", async () => {
-      await user2StakeConnection.delegate(
-        user2,
+      await user6StakeConnection.delegate(
+        user6,
         WHTokenBalance.fromString("150"),
       );
 
       // voteWeightWindow is 10s
       let proposalIdInput = await addTestProposal(
-        user2StakeConnection,
+        user6StakeConnection,
         Math.floor(Date.now() / 1000) + 3,
       );
 
       let stakeAccountMetadataAddress =
-        await user2StakeConnection.getStakeMetadataAddress(
-          user2StakeConnection.userPublicKey(),
+        await user6StakeConnection.getStakeMetadataAddress(
+          user6StakeConnection.userPublicKey(),
         );
       let previousStakeAccountCheckpointsAddress =
-        await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        await user6StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
           stakeAccountMetadataAddress,
           false,
         );
 
       const { proposalAccount } =
-        await user2StakeConnection.fetchProposalAccount(proposalIdInput);
+        await user6StakeConnection.fetchProposalAccount(proposalIdInput);
 
       try {
-        await user2StakeConnection.program.methods
+        await user6StakeConnection.program.methods
           .castVote(
             Array.from(proposalIdInput),
             new BN(10),
