@@ -381,6 +381,7 @@ export async function standardSetup(
   governanceAuthority: Keypair,
   globalConfig: GlobalConfig,
   amount?: WHTokenBalance,
+  voteWeightWindowLength?: number = 10,
 ) {
   const { controller, program, provider } = await startValidator(
     portNumber,
@@ -435,7 +436,7 @@ export async function standardSetup(
     .rpc();
 
   await program.methods
-    .initializeVoteWeightWindowLengths(new BN(10))
+    .initializeVoteWeightWindowLengths(new BN(voteWeightWindowLength))
     .accounts({ governance_authority: user })
     .rpc();
 

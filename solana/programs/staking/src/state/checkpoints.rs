@@ -107,6 +107,64 @@ pub enum Operation {
     Add,
     Subtract,
 }
+
+pub fn push_checkpoints_bulk<'info>(
+    checkpoints_loader: &mut AccountLoader<'info, CheckpointData>,
+    checkpoints_account_info: &AccountInfo<'info>,
+    checkpoints_count: u64,
+    first_timestamp: u64,
+    first_value: u64,
+    payer_account_info: &AccountInfo<'info>,
+    system_program_account_info: &AccountInfo<'info>,
+) -> Result<()> {
+    let mut checkpoint_data = checkpoints_loader.load_mut()?;
+    let mut next_index = checkpoint_data.next_index;
+    checkpoint_data.next_index += checkpoints_count;
+    drop(checkpoint_data);
+
+    let mut next_timestamp = first_timestamp;
+    let mut next_value = first_value;
+
+    let required_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE
+        + ((next_index + checkpoints_count) as usize) * CheckpointData::CHECKPOINT_SIZE;
+    if required_size > checkpoints_account_info.data_len() {
+        resize_account(
+            checkpoints_account_info,
+            payer_account_info,
+            system_program_account_info,
+            required_size,
+        )?;
+    }
+
+    if next_index > 0 {
+        let checkpoint =
+            read_checkpoint_at_index(checkpoints_account_info, (next_index - 1) as usize)?;
+        next_value = checkpoint.value + 1;
+        next_timestamp = checkpoint.timestamp + 1;
+    }
+
+    let last_index = next_index + checkpoints_count;
+    let mut new_checkpoint: Checkpoint;
+    while next_index < last_index {
+        new_checkpoint = Checkpoint {
+            timestamp: next_timestamp,
+            value: next_value,
+        };
+
+        write_checkpoint_at_index(
+            checkpoints_account_info,
+            next_index as usize,
+            &new_checkpoint,
+        )?;
+
+        next_index += 1;
+        next_timestamp += 1;
+        next_value += 1;
+    }
+
+    Ok(())
+}
+
 pub fn push_checkpoint<'info>(
     checkpoints_loader: &mut AccountLoader<'info, CheckpointData>,
     checkpoints_account_info: &AccountInfo<'info>,

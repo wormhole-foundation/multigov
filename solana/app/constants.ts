@@ -19,3 +19,5 @@ export const hubChainId = 10002;
 
 export const CHECKPOINTS_ACCOUNT_LIMIT = 654998;
 export const TEST_CHECKPOINTS_ACCOUNT_LIMIT = 10;
+
+export const MAX_VOTE_WEIGHT_WINDOW_LENGTH = 870;

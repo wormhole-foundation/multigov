@@ -54,6 +54,16 @@ pub struct InitConfig<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(_checkpoints_count: u64, _first_timestamp: u64, _first_value: u64)]
+pub struct AddCheckpointsBulk<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut)]
+    pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 #[instruction(delegatee: Pubkey, current_delegate_stake_account_owner: Pubkey)]
 pub struct Delegate<'info> {
     // Native payer:

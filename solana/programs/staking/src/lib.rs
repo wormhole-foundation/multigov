@@ -12,7 +12,7 @@ use anchor_spl::token::transfer;
 use context::*;
 use contexts::*;
 use state::checkpoints::{
-    find_checkpoint_le, push_checkpoint, push_checkpoint_init, read_checkpoint_at_index, Operation,
+    find_checkpoint_le, push_checkpoint, push_checkpoints_bulk, push_checkpoint_init, read_checkpoint_at_index, Operation,
 };
 use state::global_config::GlobalConfig;
 use std::convert::TryInto;
@@ -180,6 +180,27 @@ pub mod staking {
                 &ctx.accounts.system_program.to_account_info(),
             )?;
         }
+
+        Ok(())
+    }
+
+    pub fn add_checkpoints_bulk(
+        ctx: Context<AddCheckpointsBulk>,
+        checkpoints_count: u64,
+        first_timestamp: u64,
+        first_value: u64,
+    ) -> Result<()> {
+        let checkpoints_account_info = ctx.accounts.stake_account_checkpoints.to_account_info();
+
+        push_checkpoints_bulk(
+            &mut ctx.accounts.stake_account_checkpoints,
+            &checkpoints_account_info,
+            checkpoints_count,
+            first_timestamp,
+            first_value,
+            &ctx.accounts.payer.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+        )?;
 
         Ok(())
     }
