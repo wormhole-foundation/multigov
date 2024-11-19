@@ -350,7 +350,7 @@ export async function generateTransferInstruction(
   const SolanaAccountMetaType =
     "tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
   const SolanaInstructionType = `tuple(bytes32 programId, ${SolanaAccountMetaType}[] accounts, bytes data)`;
-  const MessageType = `tuple(uint256 messageId, uint256 wormholeChainId, ${SolanaInstructionType}[] instructions)`;
+  const MessageType = `tuple(uint256 messageId, uint16 wormholeChainId, ${SolanaInstructionType}[] instructions)`;
 
   // Prepare the message without instructionsLength
   const messageObject = {
