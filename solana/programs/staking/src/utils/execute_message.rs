@@ -50,7 +50,7 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
 
     let params = vec![ParamType::Tuple(vec![
         ParamType::Uint(256), // messageId
-        ParamType::Uint(256), // wormholeChainId
+        ParamType::Uint(16), // wormholeChainId
         ParamType::Array(Box::new(ParamType::Tuple(vec![
             ParamType::FixedBytes(32), // programId
             ParamType::Array(Box::new(ParamType::Tuple(vec![
@@ -252,7 +252,7 @@ mod tests {
         // **Encode the message using ethabi tokens**
         let message_token = Token::Tuple(vec![
             Token::Uint(message_id.into()),
-            Token::Uint((wormhole_chain_id as u64).into()),
+            Token::Uint((wormhole_chain_id).into()),
             Token::Array(vec![instruction_token]),
         ]);
 
