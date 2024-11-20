@@ -1,15 +1,15 @@
 kind: Job
 apiVersion: batch/v1
 metadata:
-  name: ntt-ci-tests
+  name: multi-gov-tests
 spec:
   backoffLimit: 0
   template:
     spec:
       restartPolicy: Never
       containers:
-        - name: ntt-ci-tests
-          image: ntt-ci
+        - name: multi-gov-tests
+          image: multi-gov-ci
           command:
             - /bin/sh
             - -c
