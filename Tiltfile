@@ -40,5 +40,5 @@ k8s_yaml_with_ns("./integration-tests/ci.yaml")
 k8s_resource(
     "multi-gov-tests",
     labels = ["multi-gov"],
-    resource_deps = ["eth-devnet", "eth-devnet2", "solana-devnet", "guardian", "relayer-engine", "wormchain"],
+    resource_deps = ["eth-devnet", "eth-devnet2", "guardian", "relayer-engine", "wormchain"],
 )
