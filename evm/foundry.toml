@@ -9,7 +9,7 @@
     "wormhole-sdk/=lib/wormhole-solidity-sdk/src",
     "src/=src/",
     "test/=test/",
-    "script/=script/"
+    "script/=script/",
   ]
   solc_version = "0.8.23"
   verbosity = 3
