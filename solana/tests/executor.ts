@@ -307,6 +307,75 @@ describe("receive_message", () => {
     );
   });
 
+  it("should fail to update VoteWeightWindowLengths if the maximum allowable voice weight window length is exceeded", async () => {
+    const windowLength = 851;
+    // Generate the instruction and message payload
+    const { messagePayloadBuffer, remainingAccounts } =
+      await generateUpdateVoteWeightWindowLengthsInstruction(
+        stakeConnection,
+        airlockPDA,
+        new BN(windowLength)
+      );
+
+    // Generate the VAA
+    const { publicKey, hash } = await postReceiveMessageVaa(
+      stakeConnection.provider.connection,
+      payer,
+      MOCK_GUARDIANS,
+      Array.from(Buffer.alloc(32, "f0", "hex")),
+      BigInt(3),
+      messagePayloadBuffer,
+      { sourceChain: "Ethereum" },
+    );
+
+    // Prepare the seeds
+    const messageReceivedSeed = Buffer.from("message_received");
+    const emitterChainSeed = Buffer.alloc(2);
+    emitterChainSeed.writeUInt16BE(2, 0);
+    const emitterAddressSeed = Buffer.alloc(32, "f0", "hex");
+    const sequenceSeed = Buffer.alloc(8);
+    sequenceSeed.writeBigUInt64BE(BigInt(3), 0);
+
+    // Prepare PDA for message_received
+    const [messageReceivedPDA] = PublicKey.findProgramAddressSync(
+      [messageReceivedSeed, emitterChainSeed, emitterAddressSeed, sequenceSeed],
+      stakeConnection.program.programId,
+    );
+
+    let remainingAccountsModified = remainingAccounts.map((a) => {
+      if (
+        a.pubkey.toBase58() === "8fhJpwx2zsa1GGxRzMFAB57wRZZknWcuvbYK4C4e6hCH"
+      ) {
+        return {
+          pubkey: a.pubkey,
+          isWritable: a.isWritable,
+          isSigner: false,
+        };
+      } else return a;
+    });
+
+    try {
+      // Invoke receiveMessage instruction
+      await stakeConnection.program.methods
+        .receiveMessage()
+        .accounts({
+          payer: payer.publicKey,
+          messageReceived: messageReceivedPDA,
+          airlock: airlockPDA,
+          messageExecutor: messageExecutorPDA,
+          postedVaa: publicKey,
+          wormholeProgram: CORE_BRIDGE_PID,
+          systemProgram: SystemProgram.programId,
+        })
+        .remainingAccounts(remainingAccountsModified)
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "ExceedsMaxAllowableVoteWeightWindowLength");
+    }
+  });
+
   it("should successfully update VoteWeightWindowLengths", async () => {
     const windowLength = 850;
     // Generate the instruction and message payload
