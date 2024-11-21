@@ -46,6 +46,13 @@ export const CORE_BRIDGE_PID = new PublicKey(
 export const GUARDIAN_KEY =
   "cfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0";
 export const MOCK_GUARDIANS = new mocks.MockGuardians(0, [GUARDIAN_KEY]);
+
+// Define the ABI types
+const SolanaAccountMetaType =
+"tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
+const SolanaInstructionType = `tuple(bytes32 programId, ${SolanaAccountMetaType}[] accounts, bytes data)`;
+const MessageType = ['uint256 messageId', 'uint16 wormholeChainId', `${SolanaInstructionType}[] instructions`];
+
 describe("receive_message", () => {
   let stakeConnection: StakeConnection;
   let controller;
@@ -344,13 +351,6 @@ export async function generateTransferInstruction(
   const messageId = BigInt(1);
   const wormholeChainId = BigInt(1);
   const instructions = [instructionData];
-  const instructionsLength = BigInt(instructions.length);
-
-  // Define the ABI types
-  const SolanaAccountMetaType =
-    "tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
-  const SolanaInstructionType = `tuple(bytes32 programId, ${SolanaAccountMetaType}[] accounts, bytes data)`;
-  const MessageType = `tuple(uint256 messageId, uint16 wormholeChainId, ${SolanaInstructionType}[] instructions)`;
 
   // Prepare the message without instructionsLength
   const messageObject = {
@@ -361,7 +361,7 @@ export async function generateTransferInstruction(
 
   // Encode the message
   const abiCoder = new ethers.AbiCoder();
-  const messagePayloadHex = abiCoder.encode([MessageType], [messageObject]);
+  const messagePayloadHex = abiCoder.encode(MessageType, Object.values(messageObject));
 
   // Convert the encoded message to Buffer
   const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");
@@ -421,25 +421,17 @@ export async function generateExternalProgramInstruction(
   const messageId = BigInt(1);
   const wormholeChainId = BigInt(1);
   const instructions = [instructionData];
-  const instructionsLength = BigInt(instructions.length);
-
-  // Define the ABI types
-  const SolanaAccountMetaType =
-    "tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
-  const SolanaInstructionType = `tuple(bytes32 programId, ${SolanaAccountMetaType}[] accounts, bytes data)`;
-  const MessageType = `tuple(uint256 messageId, uint256 wormholeChainId,  ${SolanaInstructionType}[] instructions)`;
 
   // Prepare the message
   const messageObject = {
     messageId: messageId,
     wormholeChainId: wormholeChainId,
-    instructionsLength: instructionsLength,
     instructions: instructions,
   };
 
   // Encode the message
   const abiCoder = new ethers.AbiCoder();
-  const messagePayloadHex = abiCoder.encode([MessageType], [messageObject]);
+  const messagePayloadHex = abiCoder.encode(MessageType, Object.values(messageObject));
 
   // Convert the encoded message to Buffer
   const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");
