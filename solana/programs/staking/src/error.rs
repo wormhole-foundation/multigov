@@ -43,6 +43,8 @@ pub enum ErrorCode {
     WindowLengthNotFound,
     #[msg("Next checkpoint data account is required")]
     MissingNextCheckpointDataAccount,
+    #[msg("Exceeds the maximum allowable vote weight window length")]
+    ExceedsMaxAllowableVoteWeightWindowLength,
     #[msg("Other")]
     Other,
 }

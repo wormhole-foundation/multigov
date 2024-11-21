@@ -1,4 +1,5 @@
 use crate::state::checkpoints::resize_account;
+use crate::error::ErrorCode;
 use anchor_lang::prelude::borsh::{BorshDeserialize, BorshSerialize};
 use anchor_lang::prelude::*;
 
@@ -11,9 +12,9 @@ pub struct VoteWeightWindowLengths {
 impl VoteWeightWindowLengths {
     pub const VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE: usize = 8 + 8; // 16 (discriminator + next_index)
     pub const WINDOW_LENGTH_SIZE: usize = 8 + 8; // 16 (timestamp + value)
-
     pub const LEN: usize = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE
         + VoteWeightWindowLengths::WINDOW_LENGTH_SIZE; // 32 (header + checkpoint)
+    pub const MAX_VOTE_WEIGHT_WINDOW_LENGTH: u64 = 850;
 
     pub fn initialize(&mut self) {
         self.next_index = 1;
@@ -25,6 +26,11 @@ pub fn write_window_length_at_index(
     index: usize,
     window_length: &WindowLength,
 ) -> Result<()> {
+    require!(
+        window_length.value <= VoteWeightWindowLengths::MAX_VOTE_WEIGHT_WINDOW_LENGTH,
+        ErrorCode::ExceedsMaxAllowableVoteWeightWindowLength
+    );
+
     let mut data = account_info.try_borrow_mut_data()?;
     let header_size = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE;
     let data = &mut data[header_size..];
