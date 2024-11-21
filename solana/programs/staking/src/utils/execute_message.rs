@@ -48,9 +48,9 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
     msg!("Starting parse_abi_encoded_message...");
     msg!("Data length: {}", data.len());
 
-    let params = vec![ParamType::Tuple(vec![
+    let params = vec![
         ParamType::Uint(256), // messageId
-        ParamType::Uint(256), // wormholeChainId
+        ParamType::Uint(16), // wormholeChainId
         ParamType::Array(Box::new(ParamType::Tuple(vec![
             ParamType::FixedBytes(32), // programId
             ParamType::Array(Box::new(ParamType::Tuple(vec![
@@ -60,7 +60,7 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
             ]))),
             ParamType::Bytes, // data
         ]))),
-    ])];
+    ];
 
     msg!("Params: {:?}", params);
 
@@ -72,15 +72,8 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
     })?;
     msg!("Decoded tokens: {:?}", tokens);
 
-    let message_tuple = tokens
-        .first()
-        .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing message tuple"))?
-        .clone()
-        .into_tuple()
-        .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Failed to convert to tuple"))?;
-
     // Extract message_id
-    let message_id = message_tuple
+    let message_id = tokens
         .first()
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing message_id"))?
         .clone()
@@ -89,7 +82,7 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
         .as_u64();
 
     // Extract wormhole_chain_id
-    let wormhole_chain_id = message_tuple
+    let wormhole_chain_id = tokens
         .get(1)
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing wormhole_chain_id"))?
         .clone()
@@ -98,7 +91,7 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
         .as_u64() as u16;
 
     // Extract instructions array
-    let instructions_array = message_tuple
+    let instructions_array = tokens
         .get(2)
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "Missing instructions array"))?
         .clone()
@@ -250,14 +243,14 @@ mod tests {
         ]);
 
         // **Encode the message using ethabi tokens**
-        let message_token = Token::Tuple(vec![
+        let message_token = vec![
             Token::Uint(message_id.into()),
-            Token::Uint((wormhole_chain_id as u64).into()),
+            Token::Uint((wormhole_chain_id as u16).into()),
             Token::Array(vec![instruction_token]),
-        ]);
+        ];
 
         // Encode the tokens into bytes
-        let encoded_message = encode(&[message_token]);
+        let encoded_message = encode(&message_token);
 
         // Attempt to parse the ABI-encoded message
         let parsed_message =
@@ -282,14 +275,14 @@ mod tests {
     #[test]
     fn test_parse_real_abi_encoded_message() {
         // Hex string provided from Solidity contract
-        let hex_data = "020000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000000221fd064255d33746ad7522a9c1cdb7c2fce29383ba4600dde36ca7539c1fd07800000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001c6347e298d586376049f0ee221e15d6b1a4d4a56c47e8e52451237be4d1e185b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000c02000000e8030000000000000000000000000000000000000000000000000000";
+        let hex_data = "000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000aee0000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000026000000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000690000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001ce600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000186d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b0c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000007cf000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000001a90a218";
 
         // Decode the hex string into bytes
         let encoded_message = hex_decode(hex_data).expect("Failed to decode hex string");
 
         // Attempt to parse the ABI-encoded message
         let parsed_message =
-            parse_abi_encoded_message(&encoded_message[3..]).expect("Failed to parse message");
+            parse_abi_encoded_message(&encoded_message).expect("Failed to parse message");
 
         // Assertions to verify that parsing was successful
         assert_eq!(parsed_message.message_id, 1);
