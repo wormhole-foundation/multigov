@@ -219,7 +219,7 @@ describe("config", async () => {
   it("should fail to initialize VoteWeightWindowLengths if the signer is not a valid governance_authority", async () => {
     try {
       await program.methods
-        .initializeVoteWeightWindowLengths(new BN(10))
+        .initializeVoteWeightWindowLengths(new BN(850))
         .accounts({ governanceAuthority: randomUser.publicKey })
         .signers([randomUser])
         .rpc();
@@ -230,9 +230,22 @@ describe("config", async () => {
     }
   });
 
+  it("should fail to initialize VoteWeightWindowLengths if the maximum allowable voice weight window length is exceeded", async () => {
+    try {
+      await program.methods
+        .initializeVoteWeightWindowLengths(new BN(851))
+        .accounts({ governanceAuthority: program.provider.wallet.publicKey })
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "ExceedsMaxAllowableVoteWeightWindowLength");
+    }
+  });
+
   it("should successfully initialize VoteWeightWindowLengths", async () => {
     await program.methods
-      .initializeVoteWeightWindowLengths(new BN(10))
+      .initializeVoteWeightWindowLengths(new BN(850))
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
       .rpc({ skipPreflight: true });
 
@@ -252,7 +265,7 @@ describe("config", async () => {
     );
     assert.equal(windowLengths.getWindowLengthCount(), 1);
     assert.equal(windowLengths.voteWeightWindowLengths.nextIndex, 1);
-    assert.equal(windowLengths.getLastWindowLength().value.toString(), "10");
+    assert.equal(windowLengths.getLastWindowLength().value.toString(), "850");
   });
 
   it("should fail to update HubProposalMetadata if the signer is not a valid governance_authority", async () => {
