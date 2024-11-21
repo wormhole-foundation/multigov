@@ -46,9 +46,9 @@ pub struct InitConfig<'info> {
         seeds = [CONFIG_SEED.as_bytes()],
         bump
     )]
-    // Stake program accounts:
     pub config_account: Account<'info, global_config::GlobalConfig>,
-    // Primitive accounts:
+
+    // Primitive accounts
     pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
@@ -56,12 +56,20 @@ pub struct InitConfig<'info> {
 #[derive(Accounts)]
 #[instruction(delegatee: Pubkey, current_delegate_stake_account_owner: Pubkey)]
 pub struct Delegate<'info> {
-    // Native payer:
+    // Native payer
     #[account(address = stake_account_metadata.owner)]
     pub payer: Signer<'info>,
 
-    // Current delegate stake account:
-    #[account(mut)]
+    // Current delegate stake account
+    #[account(
+        mut,
+        seeds = [
+            CHECKPOINT_DATA_SEED.as_bytes(),
+            stake_account_metadata.delegate.as_ref(),
+            current_delegate_stake_account_metadata.stake_account_checkpoints_last_index.to_le_bytes().as_ref()
+        ],
+        bump
+    )]
     pub current_delegate_stake_account_checkpoints:
         AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
@@ -71,8 +79,17 @@ pub struct Delegate<'info> {
     )]
     pub current_delegate_stake_account_metadata:
         Box<Account<'info, stake_account::StakeAccountMetadata>>,
-    // Delegatee stake accounts:
-    #[account(mut)]
+
+    // Delegatee stake account
+    #[account(
+        mut,
+        seeds = [
+            CHECKPOINT_DATA_SEED.as_bytes(),
+            delegatee.as_ref(),
+            delegatee_stake_account_metadata.stake_account_checkpoints_last_index.to_le_bytes().as_ref()
+        ],
+        bump
+    )]
     pub delegatee_stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
@@ -81,7 +98,7 @@ pub struct Delegate<'info> {
     )]
     pub delegatee_stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
 
-    // User stake account:
+    // User stake account
     #[account(
         mut,
         seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), payer.key().as_ref()],
@@ -90,6 +107,7 @@ pub struct Delegate<'info> {
             @ ErrorCode::InvalidCurrentDelegate
     )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+
     /// CHECK : This AccountInfo is safe because it's a checked PDA
     #[account(seeds = [AUTHORITY_SEED.as_bytes(), payer.key().as_ref()], bump)]
     pub custody_authority: AccountInfo<'info>,
