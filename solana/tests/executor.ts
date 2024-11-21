@@ -308,11 +308,13 @@ describe("receive_message", () => {
   });
 
   it("should successfully update VoteWeightWindowLengths", async () => {
+    const windowLength = 850;
     // Generate the instruction and message payload
     const { messagePayloadBuffer, remainingAccounts } =
       await generateUpdateVoteWeightWindowLengthsInstruction(
         stakeConnection,
         airlockPDA,
+        new BN(windowLength)
       );
 
     // Generate the VAA
@@ -383,7 +385,7 @@ describe("receive_message", () => {
     );
     assert.equal(windowLengths.getWindowLengthCount(), 2);
     assert.equal(windowLengths.voteWeightWindowLengths.nextIndex, 2);
-    assert.equal(windowLengths.getLastWindowLength().value.toString(), "22");
+    assert.equal(windowLengths.getLastWindowLength().value.toString(), windowLength.toString());
   });
 });
 
@@ -541,6 +543,7 @@ export async function generateExternalProgramInstruction(
 export async function generateUpdateVoteWeightWindowLengthsInstruction(
   stakeConnection: StakeConnection,
   airlockPDA: PublicKey,
+  windowLength: BN,
 ): Promise<{ messagePayloadBuffer: Buffer; remainingAccounts: any[] }> {
   const [voteWeightWindowLengthsAccountAddress, _] =
     PublicKey.findProgramAddressSync(
@@ -554,7 +557,7 @@ export async function generateUpdateVoteWeightWindowLengthsInstruction(
 
   // Create the admin_action instruction
   const updateVoteWeightWindowLengthsIx = await stakeConnection.program.methods
-    .updateVoteWeightWindowLengths(new BN(22))
+    .updateVoteWeightWindowLengths(windowLength)
     .accounts({
       payer: stakeConnection.userPublicKey(),
       airlock: airlockPDA,
@@ -582,13 +585,6 @@ export async function generateUpdateVoteWeightWindowLengthsInstruction(
   const messageId = BigInt(1);
   const wormholeChainId = BigInt(1);
   const instructions = [instructionData];
-  const instructionsLength = BigInt(instructions.length);
-
-  // Define the ABI types
-  const SolanaAccountMetaType =
-    "tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
-  const SolanaInstructionType = `tuple(bytes32 programId, ${SolanaAccountMetaType}[] accounts, bytes data)`;
-  const MessageType = `tuple(uint256 messageId, uint256 wormholeChainId,  ${SolanaInstructionType}[] instructions)`;
 
   // Prepare the message
   const messageObject = {
@@ -599,7 +595,7 @@ export async function generateUpdateVoteWeightWindowLengthsInstruction(
 
   // Encode the message
   const abiCoder = new ethers.AbiCoder();
-  const messagePayloadHex = abiCoder.encode([MessageType], [messageObject]);
+  const messagePayloadHex = abiCoder.encode(MessageType, Object.values(messageObject));
 
   // Convert the encoded message to Buffer
   const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");
