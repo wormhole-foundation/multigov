@@ -30,6 +30,7 @@ use crate::error::{
     ErrorCode, ProposalWormholeMessageError, QueriesSolanaVerifyError, VestingError,
 };
 use crate::state::GuardianSignatures;
+use crate::state::{find_window_length_le, init_window_length, push_new_window_length};
 
 // automatically generate module using program idl found in ./idls
 declare_program!(wormhole_bridge_core);
@@ -124,61 +125,29 @@ pub mod staking {
     }
 
     pub fn create_checkpoints(ctx: Context<CreateCheckpoints>) -> Result<()> {
-        let owner = &ctx.accounts.payer.key;
-        let stake_account_metadata = &ctx.accounts.stake_account_metadata;
-
-        require!(
-            **owner == ctx.accounts.stake_account_metadata.owner,
-            VestingError::InvalidStakeAccountOwner
-        );
-
-        let previous_index = if stake_account_metadata.stake_account_checkpoints_last_index == 0 {
-            0
-        } else {
-            stake_account_metadata.stake_account_checkpoints_last_index - 1
-        };
-
-        let expected_stake_account_checkpoints_address = Pubkey::find_program_address(
-            &[
-                CHECKPOINT_DATA_SEED.as_bytes(),
-                owner.as_ref(),
-                previous_index.to_le_bytes().as_ref(),
-            ],
-            &crate::ID,
-        )
-        .0;
-
-        require!(
-            expected_stake_account_checkpoints_address
-                == ctx.accounts.stake_account_checkpoints.key(),
-            ErrorCode::InvalidStakeAccountCheckpoints
-        );
-
         let mut new_stake_account_checkpoints =
             ctx.accounts.new_stake_account_checkpoints.load_init()?;
-        new_stake_account_checkpoints.initialize(&owner);
+        new_stake_account_checkpoints.initialize(&ctx.accounts.stake_account_metadata.owner);
         drop(new_stake_account_checkpoints);
 
         let current_checkpoints_account_info =
             ctx.accounts.stake_account_checkpoints.to_account_info();
 
         let checkpoint_data = ctx.accounts.stake_account_checkpoints.load()?;
-        if checkpoint_data.next_index > 0 {
-            let latest_index = checkpoint_data.next_index - 1;
-            let checkpoint =
-                read_checkpoint_at_index(&current_checkpoints_account_info, latest_index as usize)?;
-            let checkpoints_account_info =
-                ctx.accounts.new_stake_account_checkpoints.to_account_info();
-            push_checkpoint_init(
-                &mut ctx.accounts.new_stake_account_checkpoints,
-                &checkpoints_account_info,
-                checkpoint.value,
-                Operation::Add,
-                checkpoint.timestamp,
-                &ctx.accounts.payer.to_account_info(),
-                &ctx.accounts.system_program.to_account_info(),
-            )?;
-        }
+        let latest_index = checkpoint_data.next_index - 1;
+        let checkpoint =
+            read_checkpoint_at_index(&current_checkpoints_account_info, latest_index as usize)?;
+        let checkpoints_account_info =
+            ctx.accounts.new_stake_account_checkpoints.to_account_info();
+        push_checkpoint_init(
+            &mut ctx.accounts.new_stake_account_checkpoints,
+            &checkpoints_account_info,
+            checkpoint.value,
+            Operation::Add,
+            checkpoint.timestamp,
+            &ctx.accounts.payer.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+        )?;
 
         Ok(())
     }
@@ -504,23 +473,115 @@ pub mod staking {
         against_votes: u64,
         for_votes: u64,
         abstain_votes: u64,
-        _checkpoint_index: u8,
+        stake_account_checkpoints_index: u8,
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
         let config = &ctx.accounts.config;
 
-        let voter_checkpoints = ctx.accounts.voter_checkpoints.to_account_info();
+        let vote_start = proposal.vote_start;
 
-        if let Some((index, checkpoint)) =
-            find_checkpoint_le(&voter_checkpoints, proposal.vote_start)?
-        {
+        let (_, window_length) = find_window_length_le(
+            &ctx.accounts.vote_weight_window_lengths.to_account_info(),
+            vote_start,
+        )?
+        .ok_or(ErrorCode::WindowLengthNotFound)?;
+
+        let window_start = proposal.vote_start - window_length.value;
+
+        // Use the AccountInfo directly from ctx.accounts without storing in a variable
+        if let Some((window_start_checkpoint_index, window_start_checkpoint)) = find_checkpoint_le(
+            &ctx.accounts.voter_checkpoints.to_account_info(),
+            window_start,
+        )? {
             // Check if checkpoint is not the last in fully loaded checkpoints account
             require!(
-                config.max_checkpoints_account_limit != (index as u32) + 1,
+                config.max_checkpoints_account_limit != (window_start_checkpoint_index as u32) + 1,
                 ErrorCode::CheckpointOutOfBounds
             );
 
-            let total_weight = checkpoint.value;
+            let mut total_weight = window_start_checkpoint.value;
+
+            let mut checkpoint_index = window_start_checkpoint_index;
+
+            let mut reading_from_next_account = false;
+
+            // The loop below is guaranteed to exit because:
+            // 1. It breaks when there are no more checkpoints in the current or next account.
+            // 2. It breaks when a checkpoint's timestamp exceeds the `vote_start` timestamp.
+            // This ensures that the loop will not run indefinitely
+            loop {
+                checkpoint_index += 1;
+
+                if !reading_from_next_account
+                    && (checkpoint_index as u32) == config.max_checkpoints_account_limit
+                {
+                    // Switch to the next account
+
+                    // Ensure the next voter checkpoints account exists
+                    let voter_checkpoints_next = ctx.accounts
+                        .voter_checkpoints_next
+                        .as_ref()
+                        .ok_or_else(|| error!(ErrorCode::MissingNextCheckpointDataAccount))?;
+
+                    let expected_voter_checkpoints_next_address = Pubkey::find_program_address(
+                        &[
+                            CHECKPOINT_DATA_SEED.as_bytes(),
+                            ctx.accounts.owner.key().as_ref(),
+                            (stake_account_checkpoints_index + 1).to_le_bytes().as_ref(),
+                        ],
+                        &crate::ID,
+                    )
+                    .0;
+
+                    require!(
+                        voter_checkpoints_next.key() == expected_voter_checkpoints_next_address,
+                        ErrorCode::InvalidNextVoterCheckpoints
+                    );
+
+                    // Reset checkpoint_index for the next account
+                    checkpoint_index = 0;
+                    // Now reading from the next account
+                    reading_from_next_account = true;
+                    // Continue to the next iteration to read further checkpoints from the next account
+                    continue;
+                } else {
+                    // Read from the current or next account based on reading_from_next_account
+                    let (voter_checkpoints_loader, voter_checkpoints_data) =
+                        if reading_from_next_account {
+                            let voter_checkpoints_next_loader =
+                                ctx.accounts.voter_checkpoints_next.as_ref().unwrap();
+                            let voter_checkpoints_next_data =
+                                voter_checkpoints_next_loader.load()?;
+                            (voter_checkpoints_next_loader, voter_checkpoints_next_data)
+                        } else {
+                            let voter_checkpoints_loader = &ctx.accounts.voter_checkpoints;
+                            let voter_checkpoints_data = voter_checkpoints_loader.load()?;
+                            (voter_checkpoints_loader, voter_checkpoints_data)
+                        };
+
+                    let next_index = voter_checkpoints_data.next_index;
+
+                    if checkpoint_index >= next_index as usize {
+                        // No more checkpoints in account
+                        break;
+                    }
+
+                    let checkpoint = read_checkpoint_at_index(
+                        &voter_checkpoints_loader.to_account_info(),
+                        checkpoint_index,
+                    )?;
+                    
+
+                    if checkpoint.timestamp > vote_start {
+                        // Checkpoint is beyond the vote start time
+                        break;
+                    }
+
+                    if checkpoint.value < total_weight {
+                        total_weight = checkpoint.value;
+                    }
+                }
+            }
 
             require!(total_weight > 0, ErrorCode::NoWeight);
 
@@ -536,16 +597,28 @@ pub mod staking {
                 ErrorCode::AllWeightCast
             );
 
-            let new_weight =
-                against_votes + for_votes + abstain_votes + proposal_voters_weight_cast.value;
+            let new_weight = against_votes
+                .checked_add(for_votes)
+                .and_then(|v| v.checked_add(abstain_votes))
+                .and_then(|v| v.checked_add(proposal_voters_weight_cast.value))
+                .ok_or(ErrorCode::VoteWouldExceedWeight)?;
 
             require!(new_weight <= total_weight, ErrorCode::VoteWouldExceedWeight);
 
             proposal_voters_weight_cast.set(new_weight);
 
-            proposal.against_votes += against_votes;
-            proposal.for_votes += for_votes;
-            proposal.abstain_votes += abstain_votes;
+            proposal.against_votes = proposal
+                .against_votes
+                .checked_add(against_votes)
+                .ok_or(ErrorCode::GenericOverflow)?;
+            proposal.for_votes = proposal
+                .for_votes
+                .checked_add(for_votes)
+                .ok_or(ErrorCode::GenericOverflow)?;
+            proposal.abstain_votes = proposal
+                .abstain_votes
+                .checked_add(abstain_votes)
+                .ok_or(ErrorCode::GenericOverflow)?;
 
             emit!(VoteCast {
                 voter: ctx.accounts.owner.key(),
@@ -710,6 +783,46 @@ pub mod staking {
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
         let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);
 
+        Ok(())
+    }
+
+    pub fn initialize_vote_weight_window_lengths(
+        ctx: Context<InitializeVoteWeightWindowLengths>,
+        initial_window_length: u64,
+    ) -> Result<()> {
+        let vote_weight_window_length = &mut ctx.accounts.vote_weight_window_lengths;
+
+        let mut vote_weight_window_length_data = vote_weight_window_length.load_init()?;
+        vote_weight_window_length_data.initialize();
+        drop(vote_weight_window_length_data);
+
+        let vote_weight_window_length_account_info = vote_weight_window_length.to_account_info();
+        let current_timestamp: u64 = utils::clock::get_current_time().try_into()?;
+
+        init_window_length(
+            &vote_weight_window_length_account_info,
+            current_timestamp,
+            initial_window_length,
+        )?;
+        Ok(())
+    }
+
+    pub fn update_vote_weight_window_lengths(
+        ctx: Context<UpdateVoteWeightWindowLengths>,
+        new_window_length: u64,
+    ) -> Result<()> {
+        let vote_weight_window_length = &mut ctx.accounts.vote_weight_window_lengths;
+        let vote_weight_window_length_account_info = vote_weight_window_length.to_account_info();
+        let current_timestamp: u64 = utils::clock::get_current_time().try_into()?;
+
+        push_new_window_length(
+            vote_weight_window_length,
+            &vote_weight_window_length_account_info,
+            current_timestamp,
+            new_window_length,
+            &ctx.accounts.payer.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+        )?;
         Ok(())
     }
 

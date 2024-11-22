@@ -39,6 +39,14 @@ pub enum ErrorCode {
     InvalidStakeAccountMetadata,
     #[msg("Invalid stake account checkpoints provided")]
     InvalidStakeAccountCheckpoints,
+    #[msg("Window length not found")]
+    WindowLengthNotFound,
+    #[msg("Next checkpoint data account is required")]
+    MissingNextCheckpointDataAccount,
+    #[msg("Exceeds the maximum allowable vote weight window length")]
+    ExceedsMaxAllowableVoteWeightWindowLength,
+    #[msg("Invalid next voter checkpoints")]
+    InvalidNextVoterCheckpoints,
     #[msg("Other")]
     Other,
 }

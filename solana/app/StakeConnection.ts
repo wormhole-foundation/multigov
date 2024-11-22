@@ -33,9 +33,11 @@ import {
 } from "./transaction";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import { CheckpointAccount, readCheckpoints } from "./checkpoints";
-
+import {
+  WindowLengthsAccount,
+  readWindowLengths,
+} from "./vote_weight_window_lengths";
 import { signaturesToSolanaArray } from "@wormhole-foundation/wormhole-query-sdk";
-
 import { deriveGuardianSetKey } from "./helpers/guardianSet";
 
 let wasm = importedWasm;
@@ -165,11 +167,13 @@ export class StakeConnection {
   /** Gets the user's stake account CheckpointData address or undefined if it doesn't exist */
   public async getStakeAccountCheckpointsAddress(
     user: PublicKey,
+    index: number,
   ): Promise<PublicKey | undefined> {
     let checkpointDataAccountPublicKey = PublicKey.findProgramAddressSync(
       [
         utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
         user.toBuffer(),
+        Buffer.from([index]),
       ],
       this.program.programId,
     )[0];
@@ -267,6 +271,22 @@ export class StakeConnection {
 
   async fetchCheckpointAccount(address: PublicKey): Promise<CheckpointAccount> {
     return await readCheckpoints(this.provider.connection, address);
+  }
+
+  async fetchWindowLengthsAccount(): Promise<WindowLengthsAccount> {
+    let windowLengthsAccountAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(
+          wasm.Constants.VOTE_WEIGHT_WINDOW_LENGTHS_SEED(),
+        ),
+      ],
+      this.program.programId,
+    )[0];
+
+    return await readWindowLengths(
+      this.provider.connection,
+      windowLengthsAccountAddress,
+    );
   }
 
   public async fetchStakeAccountMetadata(
@@ -436,7 +456,7 @@ export class StakeConnection {
       currentDelegateStakeAccountOwner = this.userPublicKey();
     } else {
       currentDelegateStakeAccountOwner = await this.delegates(
-        stakeAccountCheckpointsAddress,
+        this.userPublicKey(),
       );
       let currentDelegateStakeAccountMetadataAddress =
         await this.getStakeMetadataAddress(currentDelegateStakeAccountOwner);
@@ -534,7 +554,7 @@ export class StakeConnection {
       currentDelegateStakeAccountOwner = this.userPublicKey();
     } else {
       currentDelegateStakeAccountOwner = await this.delegates(
-        stakeAccountCheckpointsAddress,
+        this.userPublicKey(),
       );
       let currentDelegateStakeAccountMetadataAddress =
         await this.getStakeMetadataAddress(currentDelegateStakeAccountOwner);
@@ -594,14 +614,25 @@ export class StakeConnection {
 
   public async castVote(
     proposalId: Buffer,
-    stakeAccount: PublicKey,
     againstVotes: BN,
     forVotes: BN,
     abstainVotes: BN,
-    checkpointIndex: number,
+    checkpointIndex: number = 0,
   ): Promise<void> {
+    let voterStakeAccountCheckpointsAddress =
+      await this.getStakeAccountCheckpointsAddress(
+        this.userPublicKey(),
+        checkpointIndex,
+      );
+    let nextVoterStakeAccountCheckpointsAddress =
+      await this.getStakeAccountCheckpointsAddress(
+        this.userPublicKey(),
+        checkpointIndex + 1,
+      );
+
     const instructions: TransactionInstruction[] = [];
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
+
     instructions.push(
       await this.program.methods
         .castVote(
@@ -613,7 +644,11 @@ export class StakeConnection {
         )
         .accountsPartial({
           proposal: proposalAccount,
-          voterCheckpoints: stakeAccount,
+          voterCheckpoints: voterStakeAccountCheckpointsAddress,
+          voterCheckpointsNext:
+            nextVoterStakeAccountCheckpointsAddress == undefined
+              ? null
+              : nextVoterStakeAccountCheckpointsAddress,
         })
         .instruction(),
     );
@@ -688,14 +723,12 @@ export class StakeConnection {
     }
   }
 
-  /** Gets the current delegate's stake account associated with the specified stake account. */
+  /** Gets the current delegate's public key associated with the user public key */
   public async delegates(
-    stakeAccountCheckpoints: PublicKey,
+    user: PublicKey,
   ): Promise<PublicKey> {
-    const stakeAccountCheckpointsData =
-      await this.program.account.checkpointData.fetch(stakeAccountCheckpoints);
     const stakeAccountMetadata = await this.fetchStakeAccountMetadata(
-      stakeAccountCheckpointsData.owner,
+      user,
     );
     return stakeAccountMetadata.delegate;
   }
@@ -727,8 +760,11 @@ export class StakeConnection {
       );
     }
 
+    let stakeAccountCheckpointsData =
+      await this.program.account.checkpointData.fetch(stakeAccount.address);
+    
     let currentDelegateStakeAccountCheckpointsOwner = await this.delegates(
-      stakeAccount.address,
+      stakeAccountCheckpointsData.owner,
     );
     let currentDelegateStakeAccountMetadataAddress =
       await this.getStakeMetadataAddress(
@@ -739,9 +775,6 @@ export class StakeConnection {
         currentDelegateStakeAccountMetadataAddress,
         false,
       );
-
-    let stakeAccountCheckpointsData =
-      await this.program.account.checkpointData.fetch(stakeAccount.address);
 
     instructions.push(
       await this.program.methods

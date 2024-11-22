@@ -31,6 +31,7 @@ pub const SPOKE_MESSAGE_EXECUTOR_SEED: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
 pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
+pub const VOTE_WEIGHT_WINDOW_LENGTHS_SEED: &str = "vote_weight_window_lengths";
 
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -122,7 +123,7 @@ pub struct Delegate<'info> {
         _against_votes: u64,
         _for_votes: u64,
         _abstain_votes: u64,
-        checkpoint_index: u8)]
+        stake_account_checkpoints_index: u8)]
 pub struct CastVote<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -134,13 +135,18 @@ pub struct CastVote<'info> {
     )]
     pub proposal: Account<'info, proposal::ProposalData>,
 
+    /// CheckpointData account that contains the checkpoint for the timestamp vote_start - vote_weight_window_length
     #[account(
         mut,
         has_one = owner,
-        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), owner.key().as_ref(), checkpoint_index.to_le_bytes().as_ref()],
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), owner.key().as_ref(), stake_account_checkpoints_index.to_le_bytes().as_ref()],
         bump
     )]
     pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+
+    /// Next CheckpointData account if it exists
+    /// Necessary for handle the case when the vote window contains checkpoints stored on two accounts
+    pub voter_checkpoints_next: Option<AccountLoader<'info, checkpoints::CheckpointData>>,
 
     #[account(
         init_if_needed,
@@ -151,6 +157,13 @@ pub struct CastVote<'info> {
     )]
     pub proposal_voters_weight_cast:
         Account<'info, proposal_voters_weight_cast::ProposalVotersWeightCast>,
+
+    #[account(
+        mut,
+        seeds = [VOTE_WEIGHT_WINDOW_LENGTHS_SEED.as_bytes()],
+        bump
+    )]
+    pub vote_weight_window_lengths: AccountLoader<'info, VoteWeightWindowLengths>,
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Box<Account<'info, global_config::GlobalConfig>>,
@@ -434,25 +447,30 @@ pub struct CreateStakeAccount<'info> {
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
+
 #[derive(Accounts)]
 pub struct CreateCheckpoints<'info> {
     // Native payer:
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(mut)]
-    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
-    // Stake program accounts:
-    #[account(mut)]
+
+    #[account(
+        mut,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), stake_account_metadata.owner.as_ref(), (stake_account_metadata.stake_account_checkpoints_last_index - 1).to_le_bytes().as_ref()],
+        bump
+    )]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-    // Stake program accounts:
     #[account(
         init,
-        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref(), stake_account_metadata.stake_account_checkpoints_last_index.to_le_bytes().as_ref()],
-        bump,
         payer = payer,
         space = checkpoints::CheckpointData::LEN,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), stake_account_metadata.owner.as_ref(), stake_account_metadata.stake_account_checkpoints_last_index.to_le_bytes().as_ref()],
+        bump
     )]
     pub new_stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    #[account(mut)]
+    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+
     // Primitive accounts :
     pub system_program: Program<'info, System>,
 }
@@ -603,5 +621,48 @@ pub struct InitializeSpokeAirlock<'info> {
         bump
     )]
     pub airlock: Account<'info, SpokeAirlock>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(initial_window_length: u64)]
+pub struct InitializeVoteWeightWindowLengths<'info> {
+    #[account(mut, address = config.governance_authority)]
+    pub governance_authority: Signer<'info>,
+
+    #[account(
+        init,
+        payer = governance_authority,
+        space = VoteWeightWindowLengths::LEN,
+        seeds = [VOTE_WEIGHT_WINDOW_LENGTHS_SEED.as_bytes()],
+        bump
+    )]
+    pub vote_weight_window_lengths: AccountLoader<'info, VoteWeightWindowLengths>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(new_window_length: u64)]
+pub struct UpdateVoteWeightWindowLengths<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        bump = airlock.bump,
+        signer
+    )]
+    pub airlock: Account<'info, SpokeAirlock>,
+
+    #[account(
+        mut,
+        seeds = [VOTE_WEIGHT_WINDOW_LENGTHS_SEED.as_bytes()],
+        bump
+    )]
+    pub vote_weight_window_lengths: AccountLoader<'info, VoteWeightWindowLengths>,
+
     pub system_program: Program<'info, System>,
 }

@@ -31,9 +31,15 @@ import {
 import { SolanaSendSigner } from "@wormhole-foundation/sdk-solana";
 import { signAndSendWait } from "@wormhole-foundation/sdk-connect";
 import { Chain, contracts } from "@wormhole-foundation/sdk-base";
-import { Program } from "@coral-xyz/anchor";
+import { Program, utils } from "@coral-xyz/anchor";
 import { ExternalProgram } from "./artifacts/external_program.ts";
 import externalProgramIdl from "./artifacts/external_program.json";
+import BN from "bn.js";
+import * as wasm from "@wormhole/staking-wasm";
+import {
+  readWindowLengths,
+  WindowLengthsAccount,
+} from "../app/vote_weight_window_lengths.ts";
 
 // Define the port number for the test
 const portNumber = getPortNumber(path.basename(__filename));
@@ -300,6 +306,156 @@ describe("receive_message", () => {
       "Counter did not increment as expected",
     );
   });
+
+  it("should fail to update VoteWeightWindowLengths if the maximum allowable voice weight window length is exceeded", async () => {
+    const windowLength = 851;
+    // Generate the instruction and message payload
+    const { messagePayloadBuffer, remainingAccounts } =
+      await generateUpdateVoteWeightWindowLengthsInstruction(
+        stakeConnection,
+        airlockPDA,
+        new BN(windowLength)
+      );
+
+    // Generate the VAA
+    const { publicKey, hash } = await postReceiveMessageVaa(
+      stakeConnection.provider.connection,
+      payer,
+      MOCK_GUARDIANS,
+      Array.from(Buffer.alloc(32, "f0", "hex")),
+      BigInt(3),
+      messagePayloadBuffer,
+      { sourceChain: "Ethereum" },
+    );
+
+    // Prepare the seeds
+    const messageReceivedSeed = Buffer.from("message_received");
+    const emitterChainSeed = Buffer.alloc(2);
+    emitterChainSeed.writeUInt16BE(2, 0);
+    const emitterAddressSeed = Buffer.alloc(32, "f0", "hex");
+    const sequenceSeed = Buffer.alloc(8);
+    sequenceSeed.writeBigUInt64BE(BigInt(3), 0);
+
+    // Prepare PDA for message_received
+    const [messageReceivedPDA] = PublicKey.findProgramAddressSync(
+      [messageReceivedSeed, emitterChainSeed, emitterAddressSeed, sequenceSeed],
+      stakeConnection.program.programId,
+    );
+
+    let remainingAccountsModified = remainingAccounts.map((a) => {
+      if (
+        a.pubkey.toBase58() === "8fhJpwx2zsa1GGxRzMFAB57wRZZknWcuvbYK4C4e6hCH"
+      ) {
+        return {
+          pubkey: a.pubkey,
+          isWritable: a.isWritable,
+          isSigner: false,
+        };
+      } else return a;
+    });
+
+    try {
+      // Invoke receiveMessage instruction
+      await stakeConnection.program.methods
+        .receiveMessage()
+        .accounts({
+          payer: payer.publicKey,
+          messageReceived: messageReceivedPDA,
+          airlock: airlockPDA,
+          messageExecutor: messageExecutorPDA,
+          postedVaa: publicKey,
+          wormholeProgram: CORE_BRIDGE_PID,
+          systemProgram: SystemProgram.programId,
+        })
+        .remainingAccounts(remainingAccountsModified)
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "ExceedsMaxAllowableVoteWeightWindowLength");
+    }
+  });
+
+  it("should successfully update VoteWeightWindowLengths", async () => {
+    const windowLength = 850;
+    // Generate the instruction and message payload
+    const { messagePayloadBuffer, remainingAccounts } =
+      await generateUpdateVoteWeightWindowLengthsInstruction(
+        stakeConnection,
+        airlockPDA,
+        new BN(windowLength)
+      );
+
+    // Generate the VAA
+    const { publicKey, hash } = await postReceiveMessageVaa(
+      stakeConnection.provider.connection,
+      payer,
+      MOCK_GUARDIANS,
+      Array.from(Buffer.alloc(32, "f0", "hex")),
+      BigInt(3),
+      messagePayloadBuffer,
+      { sourceChain: "Ethereum" },
+    );
+
+    // Prepare the seeds
+    const messageReceivedSeed = Buffer.from("message_received");
+    const emitterChainSeed = Buffer.alloc(2);
+    emitterChainSeed.writeUInt16BE(2, 0);
+    const emitterAddressSeed = Buffer.alloc(32, "f0", "hex");
+    const sequenceSeed = Buffer.alloc(8);
+    sequenceSeed.writeBigUInt64BE(BigInt(3), 0);
+
+    // Prepare PDA for message_received
+    const [messageReceivedPDA] = PublicKey.findProgramAddressSync(
+      [messageReceivedSeed, emitterChainSeed, emitterAddressSeed, sequenceSeed],
+      stakeConnection.program.programId,
+    );
+
+    let remainingAccountsModified = remainingAccounts.map((a) => {
+      if (
+        a.pubkey.toBase58() === "8fhJpwx2zsa1GGxRzMFAB57wRZZknWcuvbYK4C4e6hCH"
+      ) {
+        return {
+          pubkey: a.pubkey,
+          isWritable: a.isWritable,
+          isSigner: false,
+        };
+      } else return a;
+    });
+
+    // Invoke receiveMessage instruction
+    await stakeConnection.program.methods
+      .receiveMessage()
+      .accounts({
+        payer: payer.publicKey,
+        messageReceived: messageReceivedPDA,
+        airlock: airlockPDA,
+        messageExecutor: messageExecutorPDA,
+        postedVaa: publicKey,
+        wormholeProgram: CORE_BRIDGE_PID,
+        systemProgram: SystemProgram.programId,
+      })
+      .remainingAccounts(remainingAccountsModified)
+      .rpc({ skipPreflight: true });
+
+    const [voteWeightWindowLengthsAccountAddress, _] =
+      PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(
+            wasm.Constants.VOTE_WEIGHT_WINDOW_LENGTHS_SEED(),
+          ),
+        ],
+        stakeConnection.program.programId,
+      );
+
+    let windowLengths: WindowLengthsAccount = await readWindowLengths(
+      stakeConnection.program.provider.connection,
+      voteWeightWindowLengthsAccountAddress,
+    );
+    assert.equal(windowLengths.getWindowLengthCount(), 2);
+    assert.equal(windowLengths.voteWeightWindowLengths.nextIndex, 2);
+    assert.equal(windowLengths.getLastWindowLength().value.toString(), windowLength.toString());
+  });
 });
 
 export async function generateTransferInstruction(
@@ -446,6 +602,83 @@ export async function generateExternalProgramInstruction(
   // Include the programId account as well
   remainingAccounts.push({
     pubkey: adminActionIx.programId,
+    isWritable: false,
+    isSigner: false,
+  });
+
+  return { messagePayloadBuffer, remainingAccounts };
+}
+
+export async function generateUpdateVoteWeightWindowLengthsInstruction(
+  stakeConnection: StakeConnection,
+  airlockPDA: PublicKey,
+  windowLength: BN,
+): Promise<{ messagePayloadBuffer: Buffer; remainingAccounts: any[] }> {
+  const [voteWeightWindowLengthsAccountAddress, _] =
+    PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(
+          wasm.Constants.VOTE_WEIGHT_WINDOW_LENGTHS_SEED(),
+        ),
+      ],
+      stakeConnection.program.programId,
+    );
+
+  // Create the admin_action instruction
+  const updateVoteWeightWindowLengthsIx = await stakeConnection.program.methods
+    .updateVoteWeightWindowLengths(windowLength)
+    .accounts({
+      payer: stakeConnection.userPublicKey(),
+      airlock: airlockPDA,
+      voteWeightWindowLengths: voteWeightWindowLengthsAccountAddress,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+
+  // Extract programId, accounts, data
+  const accounts = updateVoteWeightWindowLengthsIx.keys.map((accountMeta) => ({
+    pubkey: "0x" + accountMeta.pubkey.toBuffer().toString("hex"),
+    isSigner: accountMeta.isSigner,
+    isWritable: accountMeta.isWritable,
+  }));
+
+  const instructionData = {
+    programId:
+      "0x" +
+      updateVoteWeightWindowLengthsIx.programId.toBuffer().toString("hex"),
+    accounts: accounts,
+    data: "0x" + updateVoteWeightWindowLengthsIx.data.toString("hex"),
+  };
+
+  // Prepare the message
+  const messageId = BigInt(1);
+  const wormholeChainId = BigInt(1);
+  const instructions = [instructionData];
+
+  // Prepare the message
+  const messageObject = {
+    messageId: messageId,
+    wormholeChainId: wormholeChainId,
+    instructions: instructions,
+  };
+
+  // Encode the message
+  const abiCoder = new ethers.AbiCoder();
+  const messagePayloadHex = abiCoder.encode(MessageType, Object.values(messageObject));
+
+  // Convert the encoded message to Buffer
+  const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");
+
+  // Prepare the required accounts for the instruction
+  const remainingAccounts = updateVoteWeightWindowLengthsIx.keys.map((key) => ({
+    pubkey: key.pubkey,
+    isWritable: key.isWritable,
+    isSigner: key.isSigner,
+  }));
+
+  // Include the programId account as well
+  remainingAccounts.push({
+    pubkey: updateVoteWeightWindowLengthsIx.programId,
     isWritable: false,
     isSigner: false,
   });

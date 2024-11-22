@@ -30,6 +30,10 @@ import {
   CORE_BRIDGE_ADDRESS,
 } from "../app/constants";
 import { StakeAccountMetadata } from "../app/StakeConnection.ts";
+import {
+  WindowLengthsAccount,
+  readWindowLengths,
+} from "../app/vote_weight_window_lengths";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -210,6 +214,58 @@ describe("config", async () => {
       spokeMetadataCollectorAccountData.wormholeCore.toString("hex"),
       CORE_BRIDGE_ADDRESS.toString("hex"),
     );
+  });
+
+  it("should fail to initialize VoteWeightWindowLengths if the signer is not a valid governance_authority", async () => {
+    try {
+      await program.methods
+        .initializeVoteWeightWindowLengths(new BN(850))
+        .accounts({ governanceAuthority: randomUser.publicKey })
+        .signers([randomUser])
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintAddress");
+    }
+  });
+
+  it("should fail to initialize VoteWeightWindowLengths if the maximum allowable voice weight window length is exceeded", async () => {
+    try {
+      await program.methods
+        .initializeVoteWeightWindowLengths(new BN(851))
+        .accounts({ governanceAuthority: program.provider.wallet.publicKey })
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "ExceedsMaxAllowableVoteWeightWindowLength");
+    }
+  });
+
+  it("should successfully initialize VoteWeightWindowLengths", async () => {
+    await program.methods
+      .initializeVoteWeightWindowLengths(new BN(850))
+      .accounts({ governanceAuthority: program.provider.wallet.publicKey })
+      .rpc({ skipPreflight: true });
+
+    const [voteWeightWindowLengthsAccountAddress, voteWeightWindowLengthsBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(
+            wasm.Constants.VOTE_WEIGHT_WINDOW_LENGTHS_SEED(),
+          ),
+        ],
+        program.programId,
+      );
+
+    let windowLengths: WindowLengthsAccount = await readWindowLengths(
+      program.provider.connection,
+      voteWeightWindowLengthsAccountAddress,
+    );
+    assert.equal(windowLengths.getWindowLengthCount(), 1);
+    assert.equal(windowLengths.voteWeightWindowLengths.nextIndex, 1);
+    assert.equal(windowLengths.getLastWindowLength().value.toString(), "850");
   });
 
   it("should fail to update HubProposalMetadata if the signer is not a valid governance_authority", async () => {
