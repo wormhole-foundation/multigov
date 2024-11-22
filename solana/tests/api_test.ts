@@ -616,7 +616,7 @@ describe("api", async () => {
         );
 
       await sleep(2000);
-      const user3StakeAccountAddress = await user3StakeConnection.delegate(
+      const user3StakeAccountCheckpointsAddress = await user3StakeConnection.delegate(
         user3,
         WHTokenBalance.fromString("10"),
       );
@@ -630,7 +630,7 @@ describe("api", async () => {
           .accounts({
             currentDelegateStakeAccountCheckpoints:
               currentDelegateStakeAccountCheckpointsAddress,
-            delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
+            delegateeStakeAccountCheckpoints: user3StakeAccountCheckpointsAddress,
             vestingConfig: null,
             vestingBalance: null,
             mint: stakeConnection.config.whTokenMint,
@@ -661,7 +661,7 @@ describe("api", async () => {
       assert.equal(currentDelegate.toBase58(), user2.toBase58());
 
       await sleep(2000);
-      const user3StakeAccountAddress = await user3StakeConnection.delegate(
+      const user3StakeAccountCheckpointsAddress = await user3StakeConnection.delegate(
         user3,
         WHTokenBalance.fromString("700"),
       );
@@ -674,8 +674,8 @@ describe("api", async () => {
           )
           .accounts({
             currentDelegateStakeAccountCheckpoints:
-              user3StakeAccountAddress, // Invalid current delegate checkpoints account
-            delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
+              user3StakeAccountCheckpointsAddress, // Invalid current delegate checkpoints account
+            delegateeStakeAccountCheckpoints: user3StakeAccountCheckpointsAddress,
             vestingConfig: null,
             vestingBalance: null,
             mint: stakeConnection.config.whTokenMint,
@@ -786,7 +786,7 @@ describe("api", async () => {
       );
     });
 
-    it("should fail when withdrawal with an invalid current delegate", async () => {
+    it("should fail when withdrawal with an invalid current_delegate_stake_account_metadata_owner parameter", async () => {
       await sleep(2000);
       await user2StakeConnection.delegate(
         undefined,
@@ -794,10 +794,17 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
+      await stakeConnection.delegate(
         user2,
         WHTokenBalance.fromString("10"),
       );
+      let currentDelegate = await stakeConnection.delegates(owner);
+      assert.equal(currentDelegate.toBase58(), user2.toBase58());
+      let currentDelegateStakeAccountCheckpointsAddress =
+        await stakeConnection.getStakeAccountCheckpointsAddress(
+          currentDelegate,
+          0,
+        );
 
       const toAccount = await getAssociatedTokenAddress(
         stakeConnection.config.whTokenMint,
@@ -805,21 +812,16 @@ describe("api", async () => {
         true,
       );
 
-      let stakeAccountCheckpointsData =
-        await stakeConnection.program.account.checkpointData.fetch(
-          stakeAccountCheckpointsAddress,
-        );
-
       try {
         await stakeConnection.program.methods
           .withdrawTokens(
-            WHTokenBalance.fromString("5").toBN(),
-            stakeAccountCheckpointsData.owner,
-            stakeAccountCheckpointsData.owner,
+            WHTokenBalance.fromString("5").toBN(), // amount: u64
+            owner, // Invalid current_delegate_stake_account_metadata_owner: Pubkey
+            owner, // stake_account_metadata_owner: Pubkey
           )
           .accounts({
             currentDelegateStakeAccountCheckpoints:
-              stakeAccountCheckpointsAddress, // Invalid delegate
+              currentDelegateStakeAccountCheckpointsAddress,
             destination: toAccount,
           })
           .rpc();
@@ -828,6 +830,55 @@ describe("api", async () => {
       } catch (e) {
         assert(
           (e as AnchorError).error?.errorCode?.code === "InvalidCurrentDelegate",
+        );
+      }
+    });
+
+    it("should fail when withdrawal with an invalid currentDelegateStakeAccountCheckpoints account", async () => {
+      await sleep(2000);
+      await user2StakeConnection.delegate(
+        undefined,
+        WHTokenBalance.fromString("10"),
+      );
+
+      await sleep(2000);
+      await stakeConnection.delegate(
+        user2,
+        WHTokenBalance.fromString("10"),
+      );
+      let currentDelegate = await stakeConnection.delegates(owner);
+      assert.equal(currentDelegate.toBase58(), user2.toBase58());
+
+      const toAccount = await getAssociatedTokenAddress(
+        stakeConnection.config.whTokenMint,
+        owner,
+        true,
+      );
+
+      await sleep(2000);
+      const user3StakeAccountCheckpointsAddress = await user3StakeConnection.delegate(
+        user3,
+        WHTokenBalance.fromString("50"),
+      );
+
+      try {
+        await stakeConnection.program.methods
+          .withdrawTokens(
+            WHTokenBalance.fromString("5").toBN(), // amount: u64
+            currentDelegate, // current_delegate_stake_account_metadata_owner: Pubkey
+            owner, // stake_account_metadata_owner: Pubkey
+          )
+          .accounts({
+            currentDelegateStakeAccountCheckpoints:
+              user3StakeAccountCheckpointsAddress, // Invalid current delegate checkpoints account
+            destination: toAccount,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
         );
       }
     });

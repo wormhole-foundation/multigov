@@ -502,7 +502,15 @@ pub struct WithdrawTokens<'info> {
     pub payer: Signer<'info>,
 
     // Current delegate stake account:
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [
+            CHECKPOINT_DATA_SEED.as_bytes(),
+            stake_account_metadata.delegate.as_ref(),
+            current_delegate_stake_account_metadata.stake_account_checkpoints_last_index.to_le_bytes().as_ref()
+        ],
+        bump
+    )]
     pub current_delegate_stake_account_checkpoints:
         AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
