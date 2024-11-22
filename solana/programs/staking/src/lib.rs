@@ -125,61 +125,29 @@ pub mod staking {
     }
 
     pub fn create_checkpoints(ctx: Context<CreateCheckpoints>) -> Result<()> {
-        let owner = &ctx.accounts.payer.key;
-        let stake_account_metadata = &ctx.accounts.stake_account_metadata;
-
-        require!(
-            **owner == ctx.accounts.stake_account_metadata.owner,
-            VestingError::InvalidStakeAccountOwner
-        );
-
-        let previous_index = if stake_account_metadata.stake_account_checkpoints_last_index == 0 {
-            0
-        } else {
-            stake_account_metadata.stake_account_checkpoints_last_index - 1
-        };
-
-        let expected_stake_account_checkpoints_address = Pubkey::find_program_address(
-            &[
-                CHECKPOINT_DATA_SEED.as_bytes(),
-                owner.as_ref(),
-                previous_index.to_le_bytes().as_ref(),
-            ],
-            &crate::ID,
-        )
-        .0;
-
-        require!(
-            expected_stake_account_checkpoints_address
-                == ctx.accounts.stake_account_checkpoints.key(),
-            ErrorCode::InvalidStakeAccountCheckpoints
-        );
-
         let mut new_stake_account_checkpoints =
             ctx.accounts.new_stake_account_checkpoints.load_init()?;
-        new_stake_account_checkpoints.initialize(&owner);
+        new_stake_account_checkpoints.initialize(&ctx.accounts.stake_account_metadata.owner);
         drop(new_stake_account_checkpoints);
 
         let current_checkpoints_account_info =
             ctx.accounts.stake_account_checkpoints.to_account_info();
 
         let checkpoint_data = ctx.accounts.stake_account_checkpoints.load()?;
-        if checkpoint_data.next_index > 0 {
-            let latest_index = checkpoint_data.next_index - 1;
-            let checkpoint =
-                read_checkpoint_at_index(&current_checkpoints_account_info, latest_index as usize)?;
-            let checkpoints_account_info =
-                ctx.accounts.new_stake_account_checkpoints.to_account_info();
-            push_checkpoint_init(
-                &mut ctx.accounts.new_stake_account_checkpoints,
-                &checkpoints_account_info,
-                checkpoint.value,
-                Operation::Add,
-                checkpoint.timestamp,
-                &ctx.accounts.payer.to_account_info(),
-                &ctx.accounts.system_program.to_account_info(),
-            )?;
-        }
+        let latest_index = checkpoint_data.next_index - 1;
+        let checkpoint =
+            read_checkpoint_at_index(&current_checkpoints_account_info, latest_index as usize)?;
+        let checkpoints_account_info =
+            ctx.accounts.new_stake_account_checkpoints.to_account_info();
+        push_checkpoint_init(
+            &mut ctx.accounts.new_stake_account_checkpoints,
+            &checkpoints_account_info,
+            checkpoint.value,
+            Operation::Add,
+            checkpoint.timestamp,
+            &ctx.accounts.payer.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+        )?;
 
         Ok(())
     }

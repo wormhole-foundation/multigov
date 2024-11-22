@@ -447,25 +447,30 @@ pub struct CreateStakeAccount<'info> {
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
+
 #[derive(Accounts)]
 pub struct CreateCheckpoints<'info> {
     // Native payer:
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(mut)]
-    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
-    // Stake program accounts:
-    #[account(mut)]
+
+    #[account(
+        mut,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), stake_account_metadata.owner.as_ref(), (stake_account_metadata.stake_account_checkpoints_last_index - 1).to_le_bytes().as_ref()],
+        bump
+    )]
     pub stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
-    // Stake program accounts:
     #[account(
         init,
-        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref(), stake_account_metadata.stake_account_checkpoints_last_index.to_le_bytes().as_ref()],
-        bump,
         payer = payer,
         space = checkpoints::CheckpointData::LEN,
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), stake_account_metadata.owner.as_ref(), stake_account_metadata.stake_account_checkpoints_last_index.to_le_bytes().as_ref()],
+        bump
     )]
     pub new_stake_account_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,
+    #[account(mut)]
+    pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
+
     // Primitive accounts :
     pub system_program: Program<'info, System>,
 }

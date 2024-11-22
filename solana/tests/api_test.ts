@@ -1,4 +1,9 @@
-import { Keypair } from "@solana/web3.js";
+import {
+  Keypair,
+  LAMPORTS_PER_SOL,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
 import assert from "assert";
 import {
   ANCHOR_CONFIG_PATH,
@@ -939,7 +944,7 @@ describe("api", async () => {
       }
     });
 
-    it("should successfully castVote with created checkpoint account", async () => {
+    it("should successfully castVote with new checkpoint account created by any random user", async () => {
       // filling the checkpoint account to the limit
       for (let i = 0; i < TEST_CHECKPOINTS_ACCOUNT_LIMIT; i++) {
         await sleep(1000);
@@ -959,12 +964,25 @@ describe("api", async () => {
           true,
         );
 
+      const randomUser = new Keypair();
+      let tx = new Transaction();
+      tx.instructions = [
+        SystemProgram.transfer({
+          fromPubkey: stakeConnection.program.provider.publicKey,
+          toPubkey: randomUser.publicKey,
+          lamports: 10 * LAMPORTS_PER_SOL,
+        }),
+      ];
+      await stakeConnection.program.provider.sendAndConfirm(tx, [stakeConnection.program.provider.wallet.payer]);
+
       await user5StakeConnection.program.methods
         .createCheckpoints()
         .accounts({
+          payer: randomUser.publicKey,
           stakeAccountCheckpoints: user5StakeAccountCheckpointsAddress,
           stakeAccountMetadata: user5StakeAccountMetadataAddress,
         })
+        .signers([randomUser])
         .rpc({ skipPreflight: true })
         .then(confirm);
 
