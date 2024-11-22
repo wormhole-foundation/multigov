@@ -983,11 +983,11 @@ describe("api", async () => {
         WHTokenBalance.fromString("5"),
       );
 
+      let voteStart = Math.floor(Date.now() / 1000) + 25;
       let proposalIdInput = await addTestProposal(
         user4StakeConnection,
-        Math.floor(Date.now() / 1000) + 15,
+        voteStart,
       );
-
       const { proposalAccount } =
         await user4StakeConnection.fetchProposalAccount(proposalIdInput);
 
@@ -1009,11 +1009,13 @@ describe("api", async () => {
         await user4StakeConnection.fetchCheckpointAccount(
           currentStakeAccountCheckpointsAddress,
         );
-
       // current checkpoint account is fully filled out
       assert.equal(
         currentStakeAccountCheckpoints.getCheckpointCount(),
         TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+      );
+      assert(
+        currentStakeAccountCheckpoints.getLastCheckpoint().timestamp < voteStart
       );
 
       try {
