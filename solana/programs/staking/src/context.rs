@@ -123,7 +123,7 @@ pub struct Delegate<'info> {
         _against_votes: u64,
         _for_votes: u64,
         _abstain_votes: u64,
-        checkpoint_index: u8)]
+        stake_account_checkpoints_index: u8)]
 pub struct CastVote<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -139,7 +139,7 @@ pub struct CastVote<'info> {
     #[account(
         mut,
         has_one = owner,
-        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), owner.key().as_ref(), checkpoint_index.to_le_bytes().as_ref()],
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), owner.key().as_ref(), stake_account_checkpoints_index.to_le_bytes().as_ref()],
         bump
     )]
     pub voter_checkpoints: AccountLoader<'info, checkpoints::CheckpointData>,

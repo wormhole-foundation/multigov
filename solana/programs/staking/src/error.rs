@@ -45,6 +45,8 @@ pub enum ErrorCode {
     MissingNextCheckpointDataAccount,
     #[msg("Exceeds the maximum allowable vote weight window length")]
     ExceedsMaxAllowableVoteWeightWindowLength,
+    #[msg("Invalid next voter checkpoints")]
+    InvalidNextVoterCheckpoints,
     #[msg("Other")]
     Other,
 }

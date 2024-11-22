@@ -826,9 +826,23 @@ describe("api", async () => {
       assert.equal(abstainVotes.toString(), "22");
     });
 
-    it("should fail to castVote if the wanted checkpoint is the last one in the filled account", async () => {
+    it("should fail to castVote if next voter checkpoints are invalid", async () => {
+      await sleep(1000);
+      await user4StakeConnection.delegate(
+        user4StakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("5"),
+      );
+
+      let proposalIdInput = await addTestProposal(
+        user4StakeConnection,
+        Math.floor(Date.now() / 1000) + 15,
+      );
+
+      const { proposalAccount } =
+        await user4StakeConnection.fetchProposalAccount(proposalIdInput);
+
       // filling the checkpoint account to the limit
-      for (let i = 0; i < TEST_CHECKPOINTS_ACCOUNT_LIMIT; i++) {
+      for (let i = 1; i < TEST_CHECKPOINTS_ACCOUNT_LIMIT; i++) {
         await sleep(1000);
         await user4StakeConnection.delegate(
           user4StakeConnection.userPublicKey(),
@@ -836,6 +850,47 @@ describe("api", async () => {
         );
       }
 
+      let currentStakeAccountCheckpointsAddress =
+        await user4StakeConnection.getStakeAccountCheckpointsAddress(
+          user4StakeConnection.userPublicKey(),
+          0,
+        );
+      let currentStakeAccountCheckpoints: CheckpointAccount =
+        await user4StakeConnection.fetchCheckpointAccount(
+          currentStakeAccountCheckpointsAddress,
+        );
+
+      // current checkpoint account is fully filled out
+      assert.equal(
+        currentStakeAccountCheckpoints.getCheckpointCount(),
+        TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+      );
+
+      try {
+        await user4StakeConnection.program.methods
+          .castVote(
+            Array.from(proposalIdInput),
+            new BN(10),
+            new BN(20),
+            new BN(12),
+            0,
+          )
+          .accountsPartial({
+            proposal: proposalAccount,
+            voterCheckpoints: currentStakeAccountCheckpointsAddress,
+            voterCheckpointsNext: currentStakeAccountCheckpointsAddress,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code === "InvalidNextVoterCheckpoints",
+        );
+      }
+    });
+
+    it("should fail to castVote if the wanted checkpoint is the last one in the filled account", async () => {
       let currentStakeAccountCheckpointsAddress =
         await user4StakeConnection.getStakeAccountCheckpointsAddress(
           user4StakeConnection.userPublicKey(),

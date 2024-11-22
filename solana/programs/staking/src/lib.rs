@@ -505,7 +505,7 @@ pub mod staking {
         against_votes: u64,
         for_votes: u64,
         abstain_votes: u64,
-        _checkpoint_index: u8,
+        stake_account_checkpoints_index: u8,
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
         let config = &ctx.accounts.config;
@@ -550,10 +550,25 @@ pub mod staking {
                     // Switch to the next account
 
                     // Ensure the next voter checkpoints account exists
-                    ctx.accounts
+                    let voter_checkpoints_next = ctx.accounts
                         .voter_checkpoints_next
                         .as_ref()
                         .ok_or_else(|| error!(ErrorCode::MissingNextCheckpointDataAccount))?;
+
+                    let expected_voter_checkpoints_next_address = Pubkey::find_program_address(
+                        &[
+                            CHECKPOINT_DATA_SEED.as_bytes(),
+                            ctx.accounts.owner.key().as_ref(),
+                            (stake_account_checkpoints_index + 1).to_le_bytes().as_ref(),
+                        ],
+                        &crate::ID,
+                    )
+                    .0;
+
+                    require!(
+                        voter_checkpoints_next.key() == expected_voter_checkpoints_next_address,
+                        ErrorCode::InvalidNextVoterCheckpoints
+                    );
 
                     // Reset checkpoint_index for the next account
                     checkpoint_index = 0;
