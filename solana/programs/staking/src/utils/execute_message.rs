@@ -50,7 +50,7 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
 
     let params = vec![
         ParamType::Uint(256), // messageId
-        ParamType::Uint(16), // wormholeChainId
+        ParamType::Uint(16),  // wormholeChainId
         ParamType::Array(Box::new(ParamType::Tuple(vec![
             ParamType::FixedBytes(32), // programId
             ParamType::Array(Box::new(ParamType::Tuple(vec![

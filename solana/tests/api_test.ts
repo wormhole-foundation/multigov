@@ -603,10 +603,7 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      await stakeConnection.delegate(
-        user2,
-        WHTokenBalance.fromString("10"),
-      );
+      await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
       let currentDelegate = await stakeConnection.delegates(owner);
       assert.equal(currentDelegate.toBase58(), user2.toBase58());
       let currentDelegateStakeAccountCheckpointsAddress =
@@ -616,10 +613,11 @@ describe("api", async () => {
         );
 
       await sleep(2000);
-      const user3StakeAccountCheckpointsAddress = await user3StakeConnection.delegate(
-        user3,
-        WHTokenBalance.fromString("10"),
-      );
+      const user3StakeAccountCheckpointsAddress =
+        await user3StakeConnection.delegate(
+          user3,
+          WHTokenBalance.fromString("10"),
+        );
 
       try {
         await stakeConnection.program.methods
@@ -630,7 +628,8 @@ describe("api", async () => {
           .accounts({
             currentDelegateStakeAccountCheckpoints:
               currentDelegateStakeAccountCheckpointsAddress,
-            delegateeStakeAccountCheckpoints: user3StakeAccountCheckpointsAddress,
+            delegateeStakeAccountCheckpoints:
+              user3StakeAccountCheckpointsAddress,
             vestingConfig: null,
             vestingBalance: null,
             mint: stakeConnection.config.whTokenMint,
@@ -640,7 +639,8 @@ describe("api", async () => {
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
         assert(
-          (e as AnchorError).error?.errorCode?.code === "InvalidCurrentDelegate",
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidCurrentDelegate",
         );
       }
     });
@@ -653,18 +653,16 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      await stakeConnection.delegate(
-        user2,
-        WHTokenBalance.fromString("10"),
-      );
+      await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
       let currentDelegate = await stakeConnection.delegates(owner);
       assert.equal(currentDelegate.toBase58(), user2.toBase58());
 
       await sleep(2000);
-      const user3StakeAccountCheckpointsAddress = await user3StakeConnection.delegate(
-        user3,
-        WHTokenBalance.fromString("700"),
-      );
+      const user3StakeAccountCheckpointsAddress =
+        await user3StakeConnection.delegate(
+          user3,
+          WHTokenBalance.fromString("700"),
+        );
 
       try {
         await stakeConnection.program.methods
@@ -675,7 +673,8 @@ describe("api", async () => {
           .accounts({
             currentDelegateStakeAccountCheckpoints:
               user3StakeAccountCheckpointsAddress, // Invalid current delegate checkpoints account
-            delegateeStakeAccountCheckpoints: user3StakeAccountCheckpointsAddress,
+            delegateeStakeAccountCheckpoints:
+              user3StakeAccountCheckpointsAddress,
             vestingConfig: null,
             vestingBalance: null,
             mint: stakeConnection.config.whTokenMint,
@@ -684,9 +683,7 @@ describe("api", async () => {
 
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
-        assert(
-          (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
-        );
+        assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
       }
     });
 
@@ -699,10 +696,8 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      const ownerStakeAccountCheckpointsAddress = await stakeConnection.delegate(
-        user2,
-        WHTokenBalance.fromString("10"),
-      );
+      const ownerStakeAccountCheckpointsAddress =
+        await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
 
       let currentDelegate = await stakeConnection.delegates(owner);
       assert.equal(currentDelegate.toBase58(), user2.toBase58());
@@ -727,7 +722,8 @@ describe("api", async () => {
           .accounts({
             currentDelegateStakeAccountCheckpoints:
               currentDelegateStakeAccountCheckpointsAddress,
-            delegateeStakeAccountCheckpoints: ownerStakeAccountCheckpointsAddress, // Invalid delegatee checkpoints account
+            delegateeStakeAccountCheckpoints:
+              ownerStakeAccountCheckpointsAddress, // Invalid delegatee checkpoints account
             vestingConfig: null,
             vestingBalance: null,
             mint: stakeConnection.config.whTokenMint,
@@ -736,9 +732,7 @@ describe("api", async () => {
 
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
-        assert(
-          (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
-        );
+        assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
       }
     });
   });
@@ -761,7 +755,10 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      await stakeConnection.delegate(undefined, WHTokenBalance.fromString("100"));
+      await stakeConnection.delegate(
+        undefined,
+        WHTokenBalance.fromString("100"),
+      );
 
       stakeAccount = await stakeConnection.loadStakeAccount(
         stakeAccountCheckpointsAddress,
@@ -794,10 +791,7 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      await stakeConnection.delegate(
-        user2,
-        WHTokenBalance.fromString("10"),
-      );
+      await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
       let currentDelegate = await stakeConnection.delegates(owner);
       assert.equal(currentDelegate.toBase58(), user2.toBase58());
       let currentDelegateStakeAccountCheckpointsAddress =
@@ -829,7 +823,8 @@ describe("api", async () => {
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
         assert(
-          (e as AnchorError).error?.errorCode?.code === "InvalidCurrentDelegate",
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidCurrentDelegate",
         );
       }
     });
@@ -842,10 +837,7 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      await stakeConnection.delegate(
-        user2,
-        WHTokenBalance.fromString("10"),
-      );
+      await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
       let currentDelegate = await stakeConnection.delegates(owner);
       assert.equal(currentDelegate.toBase58(), user2.toBase58());
 
@@ -856,10 +848,11 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      const user3StakeAccountCheckpointsAddress = await user3StakeConnection.delegate(
-        user3,
-        WHTokenBalance.fromString("50"),
-      );
+      const user3StakeAccountCheckpointsAddress =
+        await user3StakeConnection.delegate(
+          user3,
+          WHTokenBalance.fromString("50"),
+        );
 
       try {
         await stakeConnection.program.methods
@@ -877,9 +870,7 @@ describe("api", async () => {
 
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
-        assert(
-          (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
-        );
+        assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
       }
     });
   });
@@ -1015,7 +1006,8 @@ describe("api", async () => {
         TEST_CHECKPOINTS_ACCOUNT_LIMIT,
       );
       assert(
-        currentStakeAccountCheckpoints.getLastCheckpoint().timestamp < voteStart
+        currentStakeAccountCheckpoints.getLastCheckpoint().timestamp <
+          voteStart,
       );
 
       try {
@@ -1037,7 +1029,8 @@ describe("api", async () => {
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
         assert(
-          (e as AnchorError).error?.errorCode?.code === "InvalidNextVoterCheckpoints",
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidNextVoterCheckpoints",
         );
       }
     });
@@ -1120,7 +1113,9 @@ describe("api", async () => {
           lamports: 10 * LAMPORTS_PER_SOL,
         }),
       ];
-      await stakeConnection.program.provider.sendAndConfirm(tx, [stakeConnection.program.provider.wallet.payer]);
+      await stakeConnection.program.provider.sendAndConfirm(tx, [
+        stakeConnection.program.provider.wallet.payer,
+      ]);
 
       await user5StakeConnection.program.methods
         .createCheckpoints()

@@ -1,5 +1,5 @@
-use crate::state::checkpoints::resize_account;
 use crate::error::ErrorCode;
+use crate::state::checkpoints::resize_account;
 use anchor_lang::prelude::borsh::{BorshDeserialize, BorshSerialize};
 use anchor_lang::prelude::*;
 

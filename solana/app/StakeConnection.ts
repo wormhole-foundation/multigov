@@ -724,12 +724,8 @@ export class StakeConnection {
   }
 
   /** Gets the current delegate's public key associated with the user public key */
-  public async delegates(
-    user: PublicKey,
-  ): Promise<PublicKey> {
-    const stakeAccountMetadata = await this.fetchStakeAccountMetadata(
-      user,
-    );
+  public async delegates(user: PublicKey): Promise<PublicKey> {
+    const stakeAccountMetadata = await this.fetchStakeAccountMetadata(user);
     return stakeAccountMetadata.delegate;
   }
 
@@ -762,7 +758,7 @@ export class StakeConnection {
 
     let stakeAccountCheckpointsData =
       await this.program.account.checkpointData.fetch(stakeAccount.address);
-    
+
     let currentDelegateStakeAccountCheckpointsOwner = await this.delegates(
       stakeAccountCheckpointsData.owner,
     );

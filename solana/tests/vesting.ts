@@ -1280,21 +1280,22 @@ describe("vesting", () => {
   it("should fail to delegate if checkpoints account is fulled", async () => {
     let delegateeStakeAccountOwner = vesterStakeConnection.userPublicKey();
     let delegateeStakeAccountMetadataAddress =
-      await stakeConnection.getStakeMetadataAddress(
-        delegateeStakeAccountOwner,
-      );
+      await stakeConnection.getStakeMetadataAddress(delegateeStakeAccountOwner);
     let delegateeStakeAccountCheckpointsAddress =
       await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         delegateeStakeAccountMetadataAddress,
         true,
       );
 
-    let currentDelegate = await vesterStakeConnection.delegates(vesterStakeConnection.userPublicKey());
-    assert.equal(currentDelegate.toBase58(), vesterStakeConnection.userPublicKey().toBase58());
+    let currentDelegate = await vesterStakeConnection.delegates(
+      vesterStakeConnection.userPublicKey(),
+    );
+    assert.equal(
+      currentDelegate.toBase58(),
+      vesterStakeConnection.userPublicKey().toBase58(),
+    );
     let currentDelegateStakeAccountAddress =
-      await vesterStakeConnection.getStakeMetadataAddress(
-        currentDelegate,
-      );
+      await vesterStakeConnection.getStakeMetadataAddress(currentDelegate);
     let currentDelegateStakeAccountCheckpointsAddress =
       await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         currentDelegateStakeAccountAddress,
@@ -1329,9 +1330,7 @@ describe("vesting", () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
     }
   });
 

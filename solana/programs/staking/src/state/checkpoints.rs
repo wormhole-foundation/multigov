@@ -125,7 +125,11 @@ pub fn push_checkpoint<'info>(
             let latest_index = checkpoint_data.next_index - 1;
             let checkpoint =
                 read_checkpoint_at_index(checkpoints_account_info, latest_index as usize)?;
-            (checkpoint_data.next_index, Some(checkpoint), checkpoint_data.owner)
+            (
+                checkpoint_data.next_index,
+                Some(checkpoint),
+                checkpoint_data.owner,
+            )
         }
     };
     if let Some(ref latest_checkpoint) = latest_checkpoint {

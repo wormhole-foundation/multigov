@@ -55,9 +55,13 @@ export const MOCK_GUARDIANS = new mocks.MockGuardians(0, [GUARDIAN_KEY]);
 
 // Define the ABI types
 const SolanaAccountMetaType =
-"tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
+  "tuple(bytes32 pubkey, bool isSigner, bool isWritable)";
 const SolanaInstructionType = `tuple(bytes32 programId, ${SolanaAccountMetaType}[] accounts, bytes data)`;
-const MessageType = ['uint256 messageId', 'uint16 wormholeChainId', `${SolanaInstructionType}[] instructions`];
+const MessageType = [
+  "uint256 messageId",
+  "uint16 wormholeChainId",
+  `${SolanaInstructionType}[] instructions`,
+];
 
 describe("receive_message", () => {
   let stakeConnection: StakeConnection;
@@ -314,7 +318,7 @@ describe("receive_message", () => {
       await generateUpdateVoteWeightWindowLengthsInstruction(
         stakeConnection,
         airlockPDA,
-        new BN(windowLength)
+        new BN(windowLength),
       );
 
     // Generate the VAA
@@ -372,7 +376,10 @@ describe("receive_message", () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "ExceedsMaxAllowableVoteWeightWindowLength");
+      assert(
+        (e as AnchorError).error?.errorCode?.code ===
+          "ExceedsMaxAllowableVoteWeightWindowLength",
+      );
     }
   });
 
@@ -383,7 +390,7 @@ describe("receive_message", () => {
       await generateUpdateVoteWeightWindowLengthsInstruction(
         stakeConnection,
         airlockPDA,
-        new BN(windowLength)
+        new BN(windowLength),
       );
 
     // Generate the VAA
@@ -454,7 +461,10 @@ describe("receive_message", () => {
     );
     assert.equal(windowLengths.getWindowLengthCount(), 2);
     assert.equal(windowLengths.voteWeightWindowLengths.nextIndex, 2);
-    assert.equal(windowLengths.getLastWindowLength().value.toString(), windowLength.toString());
+    assert.equal(
+      windowLengths.getLastWindowLength().value.toString(),
+      windowLength.toString(),
+    );
   });
 });
 
@@ -517,7 +527,10 @@ export async function generateTransferInstruction(
 
   // Encode the message
   const abiCoder = new ethers.AbiCoder();
-  const messagePayloadHex = abiCoder.encode(MessageType, Object.values(messageObject));
+  const messagePayloadHex = abiCoder.encode(
+    MessageType,
+    Object.values(messageObject),
+  );
 
   // Convert the encoded message to Buffer
   const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");
@@ -587,7 +600,10 @@ export async function generateExternalProgramInstruction(
 
   // Encode the message
   const abiCoder = new ethers.AbiCoder();
-  const messagePayloadHex = abiCoder.encode(MessageType, Object.values(messageObject));
+  const messagePayloadHex = abiCoder.encode(
+    MessageType,
+    Object.values(messageObject),
+  );
 
   // Convert the encoded message to Buffer
   const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");
@@ -664,7 +680,10 @@ export async function generateUpdateVoteWeightWindowLengthsInstruction(
 
   // Encode the message
   const abiCoder = new ethers.AbiCoder();
-  const messagePayloadHex = abiCoder.encode(MessageType, Object.values(messageObject));
+  const messagePayloadHex = abiCoder.encode(
+    MessageType,
+    Object.values(messageObject),
+  );
 
   // Convert the encoded message to Buffer
   const messagePayloadBuffer = Buffer.from(messagePayloadHex.slice(2), "hex");
