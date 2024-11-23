@@ -137,8 +137,7 @@ pub mod staking {
         let latest_index = checkpoint_data.next_index - 1;
         let checkpoint =
             read_checkpoint_at_index(&current_checkpoints_account_info, latest_index as usize)?;
-        let checkpoints_account_info =
-            ctx.accounts.new_stake_account_checkpoints.to_account_info();
+        let checkpoints_account_info = ctx.accounts.new_stake_account_checkpoints.to_account_info();
         push_checkpoint_init(
             &mut ctx.accounts.new_stake_account_checkpoints,
             &checkpoints_account_info,
@@ -518,7 +517,8 @@ pub mod staking {
                     // Switch to the next account
 
                     // Ensure the next voter checkpoints account exists
-                    let voter_checkpoints_next = ctx.accounts
+                    let voter_checkpoints_next = ctx
+                        .accounts
                         .voter_checkpoints_next
                         .as_ref()
                         .ok_or_else(|| error!(ErrorCode::MissingNextCheckpointDataAccount))?;
@@ -570,7 +570,6 @@ pub mod staking {
                         &voter_checkpoints_loader.to_account_info(),
                         checkpoint_index,
                     )?;
-                    
 
                     if checkpoint.timestamp > vote_start {
                         // Checkpoint is beyond the vote start time

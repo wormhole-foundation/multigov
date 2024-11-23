@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use std::mem::size_of;
 
 #[account]
 pub struct Vesting {
@@ -10,16 +11,16 @@ pub struct Vesting {
 }
 
 impl Space for Vesting {
-    const INIT_SPACE: usize = 8 + 32 + 32 + 8 + 8 + 8;
+    const INIT_SPACE: usize = Vesting::DISCRIMINATOR.len() + size_of::<Vesting>();
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::Vesting;
-    use anchor_lang::{Discriminator, Space};
+    use anchor_lang::Space;
 
     #[test]
     fn check_size() {
-        assert!(size_of::<Vesting>() + Vesting::DISCRIMINATOR.len() == Vesting::INIT_SPACE);
+        assert!(Vesting::INIT_SPACE == 8 + 32 + 32 + 8 + 8 + 8); // 96
     }
 }

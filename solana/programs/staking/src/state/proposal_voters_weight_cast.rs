@@ -2,6 +2,7 @@ use crate::Pubkey;
 use anchor_lang::account;
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
+use std::mem::size_of;
 
 #[account]
 #[derive(BorshSchema)]
@@ -12,7 +13,8 @@ pub struct ProposalVotersWeightCast {
 }
 
 impl ProposalVotersWeightCast {
-    pub const LEN: usize = 8 + 32 + 32 + 8;
+    pub const LEN: usize =
+        ProposalVotersWeightCast::DISCRIMINATOR.len() + size_of::<ProposalVotersWeightCast>();
 
     pub fn initialize(&mut self, proposal_id: [u8; 32], voter: &Pubkey) {
         self.proposal_id = proposal_id;
@@ -28,13 +30,9 @@ impl ProposalVotersWeightCast {
 #[cfg(test)]
 pub mod tests {
     use super::ProposalVotersWeightCast;
-    use anchor_lang::Discriminator;
 
     #[test]
     fn check_size() {
-        assert!(
-            size_of::<ProposalVotersWeightCast>() + ProposalVotersWeightCast::DISCRIMINATOR.len()
-                <= ProposalVotersWeightCast::LEN
-        );
+        assert!(ProposalVotersWeightCast::LEN == 8 + 32 + 32 + 8); // == 80
     }
 }

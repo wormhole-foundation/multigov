@@ -239,7 +239,10 @@ describe("config", async () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "ExceedsMaxAllowableVoteWeightWindowLength");
+      assert(
+        (e as AnchorError).error?.errorCode?.code ===
+          "ExceedsMaxAllowableVoteWeightWindowLength",
+      );
     }
   });
 

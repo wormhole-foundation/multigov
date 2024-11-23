@@ -1,5 +1,6 @@
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
+use std::mem::size_of;
 
 #[account]
 #[derive(Default, Debug, BorshSchema)]
@@ -13,16 +14,15 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub const LEN: usize = 8 + 8 + 32 + 32 + 32; // == 112
+    pub const LEN: usize = GlobalConfig::DISCRIMINATOR.len() + size_of::<GlobalConfig>();
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::GlobalConfig;
-    use anchor_lang::Discriminator;
 
     #[test]
     fn check_size() {
-        assert!(size_of::<GlobalConfig>() + GlobalConfig::DISCRIMINATOR.len() == GlobalConfig::LEN);
+        assert!(GlobalConfig::LEN == 8 + 8 + 32 + 32 + 32) // == 112
     }
 }
