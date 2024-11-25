@@ -1,7 +1,6 @@
+use crate::error::ProposalWormholeMessageError;
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
-
-use crate::error::ProposalWormholeMessageError;
 
 pub struct ProposalDataFromEthResponse {
     pub proposal_id: [u8; 32],
@@ -26,7 +25,8 @@ pub struct SpokeMetadataCollector {
 }
 
 impl SpokeMetadataCollector {
-    pub const LEN: usize = 8 + 2 + 2 + 20 + 32; // 64 bytes
+    pub const LEN: usize =
+        SpokeMetadataCollector::DISCRIMINATOR.len() + std::mem::size_of::<SpokeMetadataCollector>();
 
     pub fn initialize(
         &mut self,
@@ -114,14 +114,9 @@ impl SpokeMetadataCollector {
 #[cfg(test)]
 mod tests {
     use super::SpokeMetadataCollector;
-    use anchor_lang::Discriminator;
 
     #[test]
     fn check_spoke_metadata_collector_size() {
-        assert!(
-            std::mem::size_of::<SpokeMetadataCollector>()
-                + SpokeMetadataCollector::DISCRIMINATOR.len()
-                == SpokeMetadataCollector::LEN
-        );
+        assert!(SpokeMetadataCollector::LEN == 8 + 2 + 2 + 20 + 32); // 64
     }
 }

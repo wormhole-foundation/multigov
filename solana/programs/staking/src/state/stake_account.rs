@@ -1,5 +1,6 @@
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
+use std::mem::size_of;
 
 /// This is the metadata account for each staker
 /// It is derived from the checkpoints account with seeds "stake_metadata"
@@ -20,7 +21,8 @@ pub struct StakeAccountMetadata {
 }
 
 impl StakeAccountMetadata {
-    pub const LEN: usize = 8 + 8 + 8 + 8 + 32 + 32; // == 96
+    pub const LEN: usize =
+        StakeAccountMetadata::DISCRIMINATOR.len() + size_of::<StakeAccountMetadata>();
 
     pub fn initialize(
         &mut self,
@@ -43,13 +45,9 @@ impl StakeAccountMetadata {
 #[cfg(test)]
 pub mod tests {
     use super::StakeAccountMetadata;
-    use anchor_lang::Discriminator;
 
     #[test]
     fn check_size() {
-        assert!(
-            size_of::<StakeAccountMetadata>() + StakeAccountMetadata::DISCRIMINATOR.len()
-                == StakeAccountMetadata::LEN
-        );
+        assert!(StakeAccountMetadata::LEN == 8 + 8 + 8 + 8 + 32 + 32); // == 96
     }
 }

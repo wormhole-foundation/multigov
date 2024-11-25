@@ -3,6 +3,7 @@ use anchor_lang::prelude::borsh::{BorshDeserialize, BorshSerialize};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction;
+use std::mem::size_of;
 
 /// CheckpointData account has a fixed header (owner, next_index)
 /// and a dynamic tail where checkpoints are stored in byte format
@@ -23,10 +24,10 @@ pub struct DelegateVotesChanged {
 }
 
 impl CheckpointData {
-    pub const CHECKPOINT_SIZE: usize = 16; // 8 + 8 (timestamp + value)
-    pub const CHECKPOINT_DATA_HEADER_SIZE: usize = 48; // 8 + 32 + 8 (discriminator + owner + next_index)
-
-    pub const LEN: usize = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE; // 48 (header)
+    pub const CHECKPOINT_SIZE: usize = size_of::<Checkpoint>();
+    pub const CHECKPOINT_DATA_HEADER_SIZE: usize =
+        CheckpointData::DISCRIMINATOR.len() + size_of::<CheckpointData>();
+    pub const LEN: usize = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE;
 
     pub fn initialize(&mut self, owner: &Pubkey) {
         self.owner = *owner;
@@ -125,7 +126,11 @@ pub fn push_checkpoint<'info>(
             let latest_index = checkpoint_data.next_index - 1;
             let checkpoint =
                 read_checkpoint_at_index(checkpoints_account_info, latest_index as usize)?;
-            (checkpoint_data.next_index, Some(checkpoint), checkpoint_data.owner)
+            (
+                checkpoint_data.next_index,
+                Some(checkpoint),
+                checkpoint_data.owner,
+            )
         }
     };
     if let Some(ref latest_checkpoint) = latest_checkpoint {
@@ -331,4 +336,24 @@ pub fn find_checkpoint_le(
 pub struct Checkpoint {
     pub timestamp: u64,
     pub value: u64,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::CheckpointData;
+
+    #[test]
+    fn check_checkpoint_size() {
+        assert!(CheckpointData::CHECKPOINT_SIZE == 8 + 8); // 16 (timestamp + value)
+    }
+
+    #[test]
+    fn check_checkpoint_data_header_size() {
+        assert!(CheckpointData::CHECKPOINT_DATA_HEADER_SIZE == 8 + 32 + 8); // 48 (discriminator + owner + next_index)
+    }
+
+    #[test]
+    fn check_checkpoint_data_size() {
+        assert!(CheckpointData::LEN == 48); // 48 (header)
+    }
 }

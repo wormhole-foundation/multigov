@@ -1,17 +1,17 @@
 use crate::context::{CONFIG_SEED, VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
+use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
+use crate::state::global_config::GlobalConfig;
+use crate::state::stake_account::StakeAccountMetadata;
+use crate::{
+    error::{ErrorCode, VestingError},
+    state::{Vesting, VestingBalance, VestingConfig},
+};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
 use std::convert::TryInto;
-use crate::{
-    error::{ErrorCode, VestingError},
-    state::{Vesting, VestingBalance, VestingConfig},
-};
-use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
-use crate::state::global_config::GlobalConfig;
-use crate::state::stake_account::StakeAccountMetadata;
 
 #[derive(Accounts)]
 pub struct ClaimVesting<'info> {

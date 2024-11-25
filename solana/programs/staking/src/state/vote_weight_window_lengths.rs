@@ -1,7 +1,8 @@
-use crate::state::checkpoints::resize_account;
 use crate::error::ErrorCode;
+use crate::state::checkpoints::resize_account;
 use anchor_lang::prelude::borsh::{BorshDeserialize, BorshSerialize};
 use anchor_lang::prelude::*;
+use std::mem::size_of;
 
 #[account(zero_copy)]
 #[derive(Default)]
@@ -10,10 +11,11 @@ pub struct VoteWeightWindowLengths {
 }
 
 impl VoteWeightWindowLengths {
-    pub const VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE: usize = 8 + 8; // 16 (discriminator + next_index)
-    pub const WINDOW_LENGTH_SIZE: usize = 8 + 8; // 16 (timestamp + value)
+    pub const VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE: usize =
+        VoteWeightWindowLengths::DISCRIMINATOR.len() + size_of::<VoteWeightWindowLengths>();
+    pub const WINDOW_LENGTH_SIZE: usize = size_of::<WindowLength>();
     pub const LEN: usize = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE
-        + VoteWeightWindowLengths::WINDOW_LENGTH_SIZE; // 32 (header + checkpoint)
+        + VoteWeightWindowLengths::WINDOW_LENGTH_SIZE;
     pub const MAX_VOTE_WEIGHT_WINDOW_LENGTH: u64 = 850;
 
     pub fn initialize(&mut self) {
@@ -173,4 +175,25 @@ pub fn find_window_length_le(
 pub struct WindowLength {
     pub timestamp: u64,
     pub value: u64,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::VoteWeightWindowLengths;
+
+    #[test]
+    fn check_window_length_size() {
+        assert!(VoteWeightWindowLengths::WINDOW_LENGTH_SIZE == 8 + 8); // 16 (timestamp + value)
+    }
+
+    #[test]
+    fn check_vote_weight_window_lengths_header_size() {
+        assert!(VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE == 8 + 8);
+        // 16 (discriminator + next_index)
+    }
+
+    #[test]
+    fn check_vote_weight_window_lengths_size() {
+        assert!(VoteWeightWindowLengths::LEN == 16 + 16); // 32 (header + checkpoint)
+    }
 }

@@ -1,6 +1,7 @@
 use crate::error::ErrorCode;
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
+use std::mem::size_of;
 
 #[account]
 #[derive(Debug, BorshSchema)]
@@ -13,7 +14,7 @@ pub struct ProposalData {
 }
 
 impl ProposalData {
-    pub const LEN: usize = 72; // 8 + 32 + 4 * 8;
+    pub const LEN: usize = ProposalData::DISCRIMINATOR.len() + size_of::<ProposalData>();
 
     fn initialize(&mut self, proposal_id: [u8; 32], vote_start: u64) {
         self.id = proposal_id;
@@ -46,11 +47,10 @@ impl ProposalData {
 #[cfg(test)]
 pub mod tests {
     use super::ProposalData;
-    use anchor_lang::Discriminator;
 
     #[test]
     fn check_size() {
-        assert!(size_of::<ProposalData>() + ProposalData::DISCRIMINATOR.len() == ProposalData::LEN);
+        assert!(ProposalData::LEN == 8 + 32 + 4 * 8); // 72
     }
 
     #[test]

@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use std::mem::size_of;
 
 /// Used to store the total vesting balance of a single vester
 /// It is also used to delegate vesting
@@ -11,19 +12,16 @@ pub struct VestingBalance {
 }
 
 impl Space for VestingBalance {
-    const INIT_SPACE: usize = 8 + 32 + 8 + 8 + 32;
+    const INIT_SPACE: usize = VestingBalance::DISCRIMINATOR.len() + size_of::<VestingBalance>();
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::VestingBalance;
-    use anchor_lang::{Discriminator, Space};
+    use anchor_lang::Space;
 
     #[test]
     fn check_size() {
-        assert!(
-            size_of::<VestingBalance>() + VestingBalance::DISCRIMINATOR.len()
-                == VestingBalance::INIT_SPACE
-        );
+        assert!(VestingBalance::INIT_SPACE == 8 + 32 + 8 + 8 + 32); // 88
     }
 }

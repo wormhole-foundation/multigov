@@ -21,31 +21,26 @@ pub struct MessageReceived {
 }
 
 impl SpokeMessageExecutor {
-    pub const LEN: usize = 8 + 2 + 32 + 2 + 2 + 32; // 84
+    pub const LEN: usize =
+        SpokeMessageExecutor::DISCRIMINATOR.len() + std::mem::size_of::<SpokeMessageExecutor>();
 }
 
 impl MessageReceived {
-    pub const LEN: usize = 8 + 1; // 9
+    pub const LEN: usize =
+        MessageReceived::DISCRIMINATOR.len() + std::mem::size_of::<MessageReceived>();
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::{MessageReceived, SpokeMessageExecutor};
-    use anchor_lang::Discriminator;
 
     #[test]
     fn check_spoke_message_executor_size() {
-        assert!(
-            std::mem::size_of::<SpokeMessageExecutor>() + SpokeMessageExecutor::DISCRIMINATOR.len()
-                == SpokeMessageExecutor::LEN
-        );
+        assert!(SpokeMessageExecutor::LEN == 8 + 2 + 32 + 2 + 2 + 32); // 78
     }
 
     #[test]
     fn check_message_received_size() {
-        assert!(
-            std::mem::size_of::<MessageReceived>() + MessageReceived::DISCRIMINATOR.len()
-                == MessageReceived::LEN
-        );
+        assert!(MessageReceived::LEN == 8 + 1); // 9
     }
 }

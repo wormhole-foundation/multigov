@@ -8,19 +8,15 @@ pub struct SpokeAirlock {
 }
 
 impl SpokeAirlock {
-    pub const LEN: usize = 8 + 1; // 9
+    pub const LEN: usize = SpokeAirlock::DISCRIMINATOR.len() + std::mem::size_of::<SpokeAirlock>();
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::SpokeAirlock;
-    use anchor_lang::Discriminator;
 
     #[test]
     fn check_size() {
-        assert!(
-            std::mem::size_of::<SpokeAirlock>() + SpokeAirlock::DISCRIMINATOR.len()
-                == SpokeAirlock::LEN
-        );
+        assert!(SpokeAirlock::LEN == 8 + 1); // 9
     }
 }

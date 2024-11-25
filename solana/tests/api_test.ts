@@ -643,7 +643,8 @@ describe("api", async () => {
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
         assert(
-          (e as AnchorError).error?.errorCode?.code === "InvalidCurrentDelegate",
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidCurrentDelegate",
         );
       }
     });
@@ -667,7 +668,10 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      await stakeConnection.delegate(undefined, WHTokenBalance.fromString("100"));
+      await stakeConnection.delegate(
+        undefined,
+        WHTokenBalance.fromString("100"),
+      );
 
       stakeAccount = await stakeConnection.loadStakeAccount(
         stakeAccountCheckpointsAddress,
@@ -733,7 +737,8 @@ describe("api", async () => {
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
         assert(
-          (e as AnchorError).error?.errorCode?.code === "InvalidCurrentDelegate",
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidCurrentDelegate",
         );
       }
     });
@@ -890,7 +895,8 @@ describe("api", async () => {
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
         assert(
-          (e as AnchorError).error?.errorCode?.code === "InvalidNextVoterCheckpoints",
+          (e as AnchorError).error?.errorCode?.code ===
+            "InvalidNextVoterCheckpoints",
         );
       }
     });
@@ -973,7 +979,9 @@ describe("api", async () => {
           lamports: 10 * LAMPORTS_PER_SOL,
         }),
       ];
-      await stakeConnection.program.provider.sendAndConfirm(tx, [stakeConnection.program.provider.wallet.payer]);
+      await stakeConnection.program.provider.sendAndConfirm(tx, [
+        stakeConnection.program.provider.wallet.payer,
+      ]);
 
       await user5StakeConnection.program.methods
         .createCheckpoints()
