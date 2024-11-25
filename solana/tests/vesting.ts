@@ -1278,26 +1278,24 @@ describe("vesting", () => {
   });
 
   it("should fail to delegate if checkpoints account is fulled", async () => {
-    let delegateeStakeAccountMetadataAddress =
-      await stakeConnection.getStakeMetadataAddress(
-        vesterStakeConnection.userPublicKey(),
-      );
-
-    let currentDelegateStakeAccountOwner =
-      vesterStakeConnection.userPublicKey();
     let delegateeStakeAccountOwner = vesterStakeConnection.userPublicKey();
-
+    let delegateeStakeAccountMetadataAddress =
+      await stakeConnection.getStakeMetadataAddress(delegateeStakeAccountOwner);
     let delegateeStakeAccountCheckpointsAddress =
       await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         delegateeStakeAccountMetadataAddress,
         true,
       );
 
+    let currentDelegate = await vesterStakeConnection.delegates(
+      vesterStakeConnection.userPublicKey(),
+    );
+    assert.equal(
+      currentDelegate.toBase58(),
+      vesterStakeConnection.userPublicKey().toBase58(),
+    );
     let currentDelegateStakeAccountAddress =
-      await vesterStakeConnection.getStakeMetadataAddress(
-        currentDelegateStakeAccountOwner,
-      );
-
+      await vesterStakeConnection.getStakeMetadataAddress(currentDelegate);
     let currentDelegateStakeAccountCheckpointsAddress =
       await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         currentDelegateStakeAccountAddress,
@@ -1308,14 +1306,14 @@ describe("vesting", () => {
       [
         utils.bytes.utf8.encode(wasm.Constants.VESTING_BALANCE_SEED()),
         config.toBuffer(),
-        vesterStakeConnection.userPublicKey().toBuffer(),
+        delegateeStakeAccountOwner.toBuffer(),
       ],
       vesterStakeConnection.program.programId,
     )[0];
 
     try {
       await stakeConnection.program.methods
-        .delegate(delegateeStakeAccountOwner, currentDelegateStakeAccountOwner)
+        .delegate(delegateeStakeAccountOwner, currentDelegate)
         .accounts({
           payer: vesterStakeConnection.userPublicKey(),
           delegateeStakeAccountCheckpoints:
@@ -1332,9 +1330,7 @@ describe("vesting", () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "TooManyCheckpoints",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
     }
   });
 

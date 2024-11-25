@@ -595,45 +595,41 @@ describe("api", async () => {
       assert.equal(delegate.toBase58(), user2.toBase58());
     });
 
-    it("should fail when delegating with an invalid current delegate", async () => {
+    it("should fail when delegating with an invalid current_delegate_stake_account_owner parameter", async () => {
       await sleep(2000);
       await user2StakeConnection.delegate(
-        undefined,
-        WHTokenBalance.fromString("10"),
-      );
-
-      await sleep(2000);
-      let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
         user2,
         WHTokenBalance.fromString("10"),
       );
 
       await sleep(2000);
-      const user3StakeAccountAddress = await user3StakeConnection.delegate(
-        undefined,
-        WHTokenBalance.fromString("10"),
-      );
-
-      let stakeAccountCheckpointsData =
-        await stakeConnection.program.account.checkpointData.fetch(
-          stakeAccountCheckpointsAddress,
+      await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
+      let currentDelegate = await stakeConnection.delegates(owner);
+      assert.equal(currentDelegate.toBase58(), user2.toBase58());
+      let currentDelegateStakeAccountCheckpointsAddress =
+        await stakeConnection.getStakeAccountCheckpointsAddress(
+          currentDelegate,
+          0,
         );
 
-      let user3StakeAccountAddressData =
-        await stakeConnection.program.account.checkpointData.fetch(
-          user3StakeAccountAddress,
+      await sleep(2000);
+      const user3StakeAccountCheckpointsAddress =
+        await user3StakeConnection.delegate(
+          user3,
+          WHTokenBalance.fromString("10"),
         );
 
       try {
         await stakeConnection.program.methods
           .delegate(
-            stakeAccountCheckpointsData.owner,
-            user3StakeAccountAddressData.owner,
+            user3, // delegatee: Pubkey
+            user3, // Invalid current_delegate_stake_account_owner: Pubkey
           )
           .accounts({
             currentDelegateStakeAccountCheckpoints:
-              stakeAccountCheckpointsAddress, // Invalid delegate
-            delegateeStakeAccountCheckpoints: user3StakeAccountAddress,
+              currentDelegateStakeAccountCheckpointsAddress,
+            delegateeStakeAccountCheckpoints:
+              user3StakeAccountCheckpointsAddress,
             vestingConfig: null,
             vestingBalance: null,
             mint: stakeConnection.config.whTokenMint,
@@ -646,6 +642,97 @@ describe("api", async () => {
           (e as AnchorError).error?.errorCode?.code ===
             "InvalidCurrentDelegate",
         );
+      }
+    });
+
+    it("should fail when delegating with an invalid currentDelegateStakeAccountCheckpoints account", async () => {
+      await sleep(2000);
+      await user2StakeConnection.delegate(
+        user2,
+        WHTokenBalance.fromString("10"),
+      );
+
+      await sleep(2000);
+      await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
+      let currentDelegate = await stakeConnection.delegates(owner);
+      assert.equal(currentDelegate.toBase58(), user2.toBase58());
+
+      await sleep(2000);
+      const user3StakeAccountCheckpointsAddress =
+        await user3StakeConnection.delegate(
+          user3,
+          WHTokenBalance.fromString("700"),
+        );
+
+      try {
+        await stakeConnection.program.methods
+          .delegate(
+            user3, // delegatee: Pubkey
+            currentDelegate, // current_delegate_stake_account_owner: Pubkey
+          )
+          .accounts({
+            currentDelegateStakeAccountCheckpoints:
+              user3StakeAccountCheckpointsAddress, // Invalid current delegate checkpoints account
+            delegateeStakeAccountCheckpoints:
+              user3StakeAccountCheckpointsAddress,
+            vestingConfig: null,
+            vestingBalance: null,
+            mint: stakeConnection.config.whTokenMint,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
+      }
+    });
+
+    it("should fail when delegating with an invalid delegateeStakeAccountCheckpoints account", async () => {
+      await sleep(2000);
+
+      await user2StakeConnection.delegate(
+        user2,
+        WHTokenBalance.fromString("10"),
+      );
+
+      await sleep(2000);
+      const ownerStakeAccountCheckpointsAddress =
+        await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
+
+      let currentDelegate = await stakeConnection.delegates(owner);
+      assert.equal(currentDelegate.toBase58(), user2.toBase58());
+      let currentDelegateStakeAccountCheckpointsAddress =
+        await stakeConnection.getStakeAccountCheckpointsAddress(
+          currentDelegate,
+          0,
+        );
+
+      await sleep(2000);
+      await user3StakeConnection.delegate(
+        user3,
+        WHTokenBalance.fromString("10"),
+      );
+
+      try {
+        await stakeConnection.program.methods
+          .delegate(
+            user3, // delegatee: Pubkey
+            currentDelegate, // current_delegate_stake_account_owner: Pubkey
+          )
+          .accounts({
+            currentDelegateStakeAccountCheckpoints:
+              currentDelegateStakeAccountCheckpointsAddress,
+            delegateeStakeAccountCheckpoints:
+              ownerStakeAccountCheckpointsAddress, // Invalid delegatee checkpoints account
+            vestingConfig: null,
+            vestingBalance: null,
+            mint: stakeConnection.config.whTokenMint,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
       }
     });
   });
@@ -664,7 +751,7 @@ describe("api", async () => {
       );
       assert.equal(
         stakeAccount.tokenBalance.toString(),
-        "330000000", // 330 * 10**6
+        "350000000", // 350 * 10**6
       );
 
       await sleep(2000);
@@ -678,7 +765,7 @@ describe("api", async () => {
       );
       assert.equal(
         stakeAccount.tokenBalance.toString(),
-        "430000000", // 430 * 10**6
+        "450000000", // 450 * 10**6
       );
 
       await sleep(2000);
@@ -692,11 +779,11 @@ describe("api", async () => {
       );
       assert.equal(
         stakeAccount.tokenBalance.toString(),
-        "380000000", // 380 * 10**6
+        "400000000", // 400 * 10**6
       );
     });
 
-    it("should fail when withdrawal with an invalid current delegate", async () => {
+    it("should fail when withdrawal with an invalid current_delegate_stake_account_metadata_owner parameter", async () => {
       await sleep(2000);
       await user2StakeConnection.delegate(
         undefined,
@@ -704,10 +791,14 @@ describe("api", async () => {
       );
 
       await sleep(2000);
-      let stakeAccountCheckpointsAddress = await stakeConnection.delegate(
-        user2,
-        WHTokenBalance.fromString("10"),
-      );
+      await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
+      let currentDelegate = await stakeConnection.delegates(owner);
+      assert.equal(currentDelegate.toBase58(), user2.toBase58());
+      let currentDelegateStakeAccountCheckpointsAddress =
+        await stakeConnection.getStakeAccountCheckpointsAddress(
+          currentDelegate,
+          0,
+        );
 
       const toAccount = await getAssociatedTokenAddress(
         stakeConnection.config.whTokenMint,
@@ -715,21 +806,16 @@ describe("api", async () => {
         true,
       );
 
-      let stakeAccountCheckpointsData =
-        await stakeConnection.program.account.checkpointData.fetch(
-          stakeAccountCheckpointsAddress,
-        );
-
       try {
         await stakeConnection.program.methods
           .withdrawTokens(
-            WHTokenBalance.fromString("5").toBN(),
-            stakeAccountCheckpointsData.owner,
-            stakeAccountCheckpointsData.owner,
+            WHTokenBalance.fromString("5").toBN(), // amount: u64
+            owner, // Invalid current_delegate_stake_account_metadata_owner: Pubkey
+            owner, // stake_account_metadata_owner: Pubkey
           )
           .accounts({
             currentDelegateStakeAccountCheckpoints:
-              stakeAccountCheckpointsAddress, // Invalid delegate
+              currentDelegateStakeAccountCheckpointsAddress,
             destination: toAccount,
           })
           .rpc();
@@ -740,6 +826,51 @@ describe("api", async () => {
           (e as AnchorError).error?.errorCode?.code ===
             "InvalidCurrentDelegate",
         );
+      }
+    });
+
+    it("should fail when withdrawal with an invalid currentDelegateStakeAccountCheckpoints account", async () => {
+      await sleep(2000);
+      await user2StakeConnection.delegate(
+        undefined,
+        WHTokenBalance.fromString("10"),
+      );
+
+      await sleep(2000);
+      await stakeConnection.delegate(user2, WHTokenBalance.fromString("10"));
+      let currentDelegate = await stakeConnection.delegates(owner);
+      assert.equal(currentDelegate.toBase58(), user2.toBase58());
+
+      const toAccount = await getAssociatedTokenAddress(
+        stakeConnection.config.whTokenMint,
+        owner,
+        true,
+      );
+
+      await sleep(2000);
+      const user3StakeAccountCheckpointsAddress =
+        await user3StakeConnection.delegate(
+          user3,
+          WHTokenBalance.fromString("50"),
+        );
+
+      try {
+        await stakeConnection.program.methods
+          .withdrawTokens(
+            WHTokenBalance.fromString("5").toBN(), // amount: u64
+            currentDelegate, // current_delegate_stake_account_metadata_owner: Pubkey
+            owner, // stake_account_metadata_owner: Pubkey
+          )
+          .accounts({
+            currentDelegateStakeAccountCheckpoints:
+              user3StakeAccountCheckpointsAddress, // Invalid current delegate checkpoints account
+            destination: toAccount,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
       }
     });
   });
@@ -843,11 +974,11 @@ describe("api", async () => {
         WHTokenBalance.fromString("5"),
       );
 
+      let voteStart = Math.floor(Date.now() / 1000) + 25;
       let proposalIdInput = await addTestProposal(
         user4StakeConnection,
-        Math.floor(Date.now() / 1000) + 15,
+        voteStart,
       );
-
       const { proposalAccount } =
         await user4StakeConnection.fetchProposalAccount(proposalIdInput);
 
@@ -869,11 +1000,14 @@ describe("api", async () => {
         await user4StakeConnection.fetchCheckpointAccount(
           currentStakeAccountCheckpointsAddress,
         );
-
       // current checkpoint account is fully filled out
       assert.equal(
         currentStakeAccountCheckpoints.getCheckpointCount(),
         TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+      );
+      assert(
+        currentStakeAccountCheckpoints.getLastCheckpoint().timestamp <
+          voteStart,
       );
 
       try {
