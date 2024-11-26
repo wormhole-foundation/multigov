@@ -39,6 +39,7 @@ import {
 } from "./vote_weight_window_lengths";
 import { signaturesToSolanaArray } from "@wormhole-foundation/wormhole-query-sdk";
 import { deriveGuardianSetKey } from "./helpers/guardianSet";
+import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
 
 let wasm = importedWasm;
 export { wasm };
@@ -694,9 +695,13 @@ export class StakeConnection {
     guardianSignatures: PublicKey,
     guardianSetIndex: number,
     unoptimized?: boolean,
+    bridgeAddress?: PublicKey
   ): Promise<void> {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
+    if(bridgeAddress === undefined ){
+      bridgeAddress = CORE_BRIDGE_ADDRESS;
+    }
     const methodsBuilder = this.program.methods
       .addProposal(
         Buffer.from(ethProposalResponseBytes),
@@ -707,7 +712,7 @@ export class StakeConnection {
         proposal: proposalAccount,
         guardianSignatures: guardianSignatures,
         guardianSet: deriveGuardianSetKey(
-          CORE_BRIDGE_ADDRESS,
+          bridgeAddress,
           guardianSetIndex,
         ),
       });
