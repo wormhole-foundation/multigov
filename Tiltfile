@@ -7,21 +7,21 @@ git_checkout('https://github.com/wormhole-foundation/wormhole.git#main', '.wormh
 load(".wormhole/Tiltfile", "namespace", "k8s_yaml_with_ns")
 
 # Copied from .wormhole/Tiltfile, as this setup will extend the `solana-contract` image in order to inject the .so at startup
-# docker_build(
-#     ref = "bridge-client",
-#     context = ".wormhole/",
-#     only = ["./proto", "./solana", "./clients"],
-#     dockerfile = ".wormhole/solana/Dockerfile.client",
-#     # Ignore target folders from local (non-container) development.
-#     ignore = [".wormhole/solana/*/target"],
-# )
-# docker_build(
-#     ref = "solana-contract",
-#     context = ".wormhole/solana",
-#     dockerfile = ".wormhole/solana/Dockerfile",
-#     target = "builder",
-#     build_args = {"BRIDGE_ADDRESS": "Bridge1p5gheXUvJ6jGWGeCsgPKgnE3YgdGKRVCMY9o"}
-# )
+docker_build(
+    ref = "bridge-client",
+    context = ".wormhole/",
+    only = ["./proto", "./solana", "./clients"],
+    dockerfile = ".wormhole/solana/Dockerfile.client",
+    # Ignore target folders from local (non-container) development.
+    ignore = [".wormhole/solana/*/target"],
+)
+docker_build(
+    ref = "solana-contract",
+    context = ".wormhole/solana",
+    dockerfile = ".wormhole/solana/Dockerfile",
+    target = "builder",
+    build_args = {"BRIDGE_ADDRESS": "Bridge1p5gheXUvJ6jGWGeCsgPKgnE3YgdGKRVCMY9o"}
+)
 
 # EVM build
 docker_build(
@@ -40,5 +40,5 @@ k8s_yaml_with_ns("./integration-tests/ci.yaml")
 k8s_resource(
     "multi-gov-tests",
     labels = ["multi-gov"],
-    resource_deps = ["eth-devnet", "eth-devnet2", "relayer-engine"],
+    resource_deps = ["eth-devnet", "eth-devnet2", "solana-devnet", "guardian", "relayer-engine", "wormchain"],
 )
