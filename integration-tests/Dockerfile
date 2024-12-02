@@ -1,4 +1,4 @@
-FROM oven/bun:1-alpine
+FROM oven/bun:1
 
 # install dependencies into temp directory
 # this will cache them and speed up future builds
