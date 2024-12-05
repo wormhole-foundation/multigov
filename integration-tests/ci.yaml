@@ -10,6 +10,9 @@ spec:
       containers:
         - name: multi-gov-tests
           image: multi-gov-ci
+          env:
+          - name: ETHDEVNET_MNEMONIC
+            value: "myth like bonus scare over problem client lizard pioneer submit female collect"
           command:
             - /bin/sh
             - -c
