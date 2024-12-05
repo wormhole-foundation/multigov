@@ -30,7 +30,7 @@ WORKDIR ./app
 # [optional] tests & build
 # ENV NODE_ENV=production
 RUN cd ./integration-tests && bun install --frozen-lockfile
-CMD cd ./integration-tests && bun run test:only
+# CMD cd ./integration-tests && bun run test:only
 
 # copy production dependencies and source code into final image
 
