@@ -16,7 +16,7 @@ spec:
           command:
             - /bin/sh
             - -c
-            - 'cd ./integration-tests && bun run test:only && echo "done!" && touch /success'
+            - 'bun run test:only && echo "done!" && touch /success'
           readinessProbe:
             exec:
               command:
