@@ -6,11 +6,11 @@ import {Vm} from "forge-std/Vm.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 
 contract RegisterSpokesOnHubTestnet is Script {
-  address HUB_VOTE_POOL = 0xddEB0415Ada159AE53D980feB6FF05244F65FD7f; // TODO: Replace with the hub vote pool address
-  address OPTIMISM_SEPOLIA_VOTE_AGGREGATOR = 0x767f74378aCAFDb44C7E2f73F49101aD2C3eD6d2; // TODO: Replace with a real
+  address HUB_VOTE_POOL = 0x1004C781763c70F5f11Aa64b0E5b34e1442a3c02; // TODO: Replace with the hub vote pool address
+  address OPTIMISM_SEPOLIA_VOTE_AGGREGATOR = 0x073B3333f39eA46aEA1cA1367ba48F5A2C1F336C; // TODO: Replace with a real
     // address
-  bytes32 SOLANA_SPOKE = bytes32(0xabd58849f17e52708082849880f862589c11f972cb372d73b0cd219722cd0f22);
-  address TIMELOCK = 0x1054f49899Af83e0c55375d54D2F57488cFC8606; // TODO Timelock address
+  bytes32 SOLANA_SPOKE = bytes32(0xbc56d37cda8ce051fa81e3837805b817a93cb3203dd87d06587c7e3892cd68c1);
+  address TIMELOCK = address(0); // TODO Timelock address
 
   // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
   // should be set.

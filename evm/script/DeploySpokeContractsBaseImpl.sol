@@ -16,7 +16,7 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
   uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
     uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
 
-  string constant DEFAULT_DEPLOY_VERSION = "v1";
+  string constant DEFAULT_DEPLOY_VERSION = "v1.3";
 
   struct DeploymentConfiguration {
     address wormholeCore;
