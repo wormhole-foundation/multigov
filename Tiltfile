@@ -33,7 +33,7 @@ docker_build(
 # CI tests
 docker_build(
     ref = "multi-gov-ci",
-    context = "./integration-tests",
+    context = ".",
     dockerfile = "./integration-tests/Dockerfile",
 )
 k8s_yaml_with_ns("./integration-tests/ci.yaml") 
