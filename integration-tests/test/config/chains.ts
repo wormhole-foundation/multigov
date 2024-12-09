@@ -1,7 +1,12 @@
 import type { Chain } from 'viem';
 
-export const ETH_DEVNET_NODE_URL = 'http://localhost:8545';
-export const ETH2_DEVNET_NODE_URL = 'http://localhost:8546';
+// Use environment variables or fallback to localhost
+export const ETH_DEVNET_NODE_URL = process.env.CI
+  ? 'http://eth-devnet.wormhole.svc.cluster.local:8545'
+  : 'http://localhost:8545';
+export const ETH2_DEVNET_NODE_URL = process.env.CI
+  ? 'http://eth-devnet2.wormhole.svc.cluster.local:8545'
+  : 'http://localhost:8546';
 
 export const ETH_DEVNET_WORMHOLE_CHAIN_ID = 2;
 export const ETH2_DEVNET_WORMHOLE_CHAIN_ID = 4;
