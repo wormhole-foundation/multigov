@@ -11,6 +11,7 @@ use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 pub struct Initialize<'info> {
     #[account(mut)]
     admin: Signer<'info>,
+    #[account(address = global_config.wh_token_mint)]
     mint: InterfaceAccount<'info, Mint>,
     // Initialize a vault for us to store our money in escrow for vesting
     #[account(

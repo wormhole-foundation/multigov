@@ -95,16 +95,6 @@ impl<'info> ClaimVesting<'info> {
                 );
                 drop(loaded_checkpoints);
 
-                require!(
-                    self.config.mint == self.global_config.wh_token_mint,
-                    // This error can never happen here, because for the condition above
-                    // (self.vesting_balance.stake_account_metadata != Pubkey::default())
-                    // to be met, the delegate instruction must be executed.
-                    // However, delegate cannot be executed when self.config.mint !=
-                    // self.global_config.wh_token_mint.
-                    VestingError::InvalidVestingMint
-                );
-
                 // Additional checks to ensure the owner matches
                 require!(
                     stake_account_metadata.owner == self.vesting_balance.vester,

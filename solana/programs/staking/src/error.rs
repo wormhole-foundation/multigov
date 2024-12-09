@@ -69,8 +69,6 @@ pub enum VestingError {
     InvalidStakeAccountCheckpoints,
     #[msg("Error parsing stake_account_metadata and stake_account_checkpoints")]
     ErrorOfStakeAccountParsing,
-    #[msg("Invalid vesting mint")]
-    InvalidVestingMint,
     #[msg("Invalid stake account owner")]
     InvalidStakeAccountOwner,
     #[msg("Invalid vesting admin")]

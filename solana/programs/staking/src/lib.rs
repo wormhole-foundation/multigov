@@ -192,10 +192,6 @@ pub mod staking {
                         vesting_balance.vester == stake_account_metadata.owner,
                         VestingError::InvalidStakeAccountOwner
                     );
-                    require!(
-                        vesting_config.mint == config.wh_token_mint,
-                        VestingError::InvalidVestingMint
-                    );
                     vesting_balance.stake_account_metadata = stake_account_metadata.key();
                     stake_account_metadata.recorded_vesting_balance =
                         vesting_balance.total_vesting_balance;
