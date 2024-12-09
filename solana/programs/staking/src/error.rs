@@ -79,6 +79,8 @@ pub enum VestingError {
     InvalidStakeAccountMetadataPDA,
     #[msg("Invalid stake account checkpoints PDA")]
     InvalidStakeAccountCheckpointsPDA,
+    #[msg("Invalid vesting balance PDA")]
+    InvalidVestingBalancePDA,
     #[msg("Transfer vest to myself")]
     TransferVestToMyself,
 }

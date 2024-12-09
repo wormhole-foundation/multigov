@@ -942,6 +942,115 @@ describe("vesting", () => {
     }
   });
 
+  it("should fail to delegate if vesting balance PDA does not match vesting config PDA", async () => {
+    await sleep(2000);
+    await vesterStakeConnection.delegateWithVest(
+      vesterStakeConnection.userPublicKey(),
+      WHTokenBalance.fromString("0"),
+      true,
+      config,
+    );
+
+    let delegateeStakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+    let delegateeStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        delegateeStakeAccountMetadataAddress,
+        false,
+      );
+
+    let currentDelegateStakeAccountOwner = await vesterStakeConnection.delegates(
+      vesterStakeConnection.userPublicKey(),
+    );
+    let currentDelegateStakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        currentDelegateStakeAccountOwner,
+      );
+
+    let currentDelegateStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        currentDelegateStakeAccountMetadataAddress,
+        false,
+      );
+
+    let vestingBalanceAccount = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
+        config.toBuffer(),
+        vesterStakeConnection.userPublicKey().toBuffer(),
+      ],
+      vesterStakeConnection.program.programId,
+    )[0];
+
+    let delegateeStakeAccountCheckpointsData =
+      await vesterStakeConnection.program.account.checkpointData.fetch(
+        delegateeStakeAccountCheckpointsAddress,
+      );
+
+    let delegateeStakeAccountOwner = delegateeStakeAccountCheckpointsData.owner;
+
+    const seed2 = new BN(randomBytes(8));
+    const vestingConfig2 = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
+        whMintAuthority.publicKey.toBuffer(),
+        whMintAccount.publicKey.toBuffer(),
+        seed2.toBuffer("le", 8),
+      ],
+      vesterStakeConnection.program.programId,
+    )[0];
+    const vault2 = getAssociatedTokenAddressSync(
+      whMintAccount.publicKey,
+      vestingConfig2,
+      true,
+      TOKEN_PROGRAM_ID,
+    );
+    await vesterStakeConnection.program.methods
+      .initializeVestingConfig(seed2)
+      .accounts({
+        ...accounts,
+        config: vestingConfig2,
+        vault: vault2,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+    await vesterStakeConnection.program.methods
+      .finalizeVestingConfig()
+      .accounts({
+        ...accounts,
+        config: vestingConfig2,
+        vault: vault2,
+      })
+      .signers([whMintAuthority])
+      .rpc({ skipPreflight: true })
+      .then(confirm);
+
+    try {
+      await vesterStakeConnection.program.methods
+        .delegate(delegateeStakeAccountOwner, currentDelegateStakeAccountOwner)
+        .accounts({
+          delegateeStakeAccountCheckpoints:
+            delegateeStakeAccountCheckpointsAddress,
+          currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
+          vestingConfig: vestingConfig2,
+          vestingBalance: vestingBalanceAccount,
+          mint: whMintAccount.publicKey,
+        })
+        .rpc()
+        .then(confirm);
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalancePDA",
+      );
+    }
+  });
+
   it("should fail to delegate with vestingBalance account discriminator mismatch", async () => {
     await sleep(2000);
     await vesterStakeConnection.delegateWithVest(
