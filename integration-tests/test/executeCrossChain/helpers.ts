@@ -82,10 +82,16 @@ const fetchSignedVAA = async (sequence: bigint): Promise<`0x${string}`> => {
   const MAX_RETRIES = 30;
   const RETRY_DELAY = 2000;
 
+  // Use guardian service name for headless service
+  const guardianHost = process.env.CI
+    ? 'guardian.wormhole' // Changed from guardian-0.guardian.wormhole.svc.cluster.local
+    : 'localhost';
+  const guardianPort = '7071';
+
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
       const response = await fetch(
-        `http://localhost:7071/v1/signed_vaa/2/${emitterAddress}/${sequence}`,
+        `http://${guardianHost}:${guardianPort}/v1/signed_vaa/2/${emitterAddress}/${sequence}`,
       );
 
       if (response.status === 404) {
