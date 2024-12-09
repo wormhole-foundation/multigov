@@ -1,6 +1,7 @@
 # Wormhole git directory
 .wormhole/.git/
 .wormhole/.git/*
+.wormhole/
 
 # Common files to ignore
 node_modules/

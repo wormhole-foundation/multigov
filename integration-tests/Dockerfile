@@ -12,17 +12,13 @@ RUN ls -la
 # Second stage: Setup test environment
 FROM oven/bun:1 AS base
 WORKDIR /app
-# Copy package files first for better caching
-COPY integration-tests/package.json integration-tests/bun.lockb ./
+
+# Copy all integration-tests files
+COPY integration-tests/ ./
+
+# Install dependencies
 RUN bun install --frozen-lockfile
 
-# Copy test files and artifacts
-COPY integration-tests/test ./test
-COPY integration-tests/abis ./abis
-COPY integration-tests/artifacts ./artifacts
+# Copy foundry output
 COPY --from=foundry /app/evm/out ./out
-
-# Copy tsconfig and other config files
-COPY integration-tests/tsconfig.json ./
-COPY integration-tests/biome.json ./
 
