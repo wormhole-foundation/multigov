@@ -61,6 +61,7 @@ describe("vesting", () => {
   const NOW = new BN(Math.floor(new Date().getTime() / 1000));
   const FEW_LATER = NOW.add(new BN(1));
   const FEW_LATER_2 = NOW.add(new BN(2));
+  const FEW_LATER_3 = NOW.add(new BN(3));
   const LATER = NOW.add(new BN(1000));
   const EVEN_LATER = LATER.add(new BN(1000));
   const EVEN_LATER_AGAIN = EVEN_LATER.add(new BN(1000));
@@ -85,6 +86,8 @@ describe("vesting", () => {
     vestLaterForTransfer,
     vestEvenLaterAgain,
     vestNowForTransfer,
+    vestNowForTransfer3,
+    vestNowTransfered3,
     vestingBalance,
     vestFewLater,
     vesterStakeConnection,
@@ -170,7 +173,7 @@ describe("vesting", () => {
 
     vestFewLater = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         vesterTa.toBuffer(),
         FEW_LATER_2.toBuffer("le", 8),
@@ -200,7 +203,7 @@ describe("vesting", () => {
 
     vestLaterForTransfer = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         newVesterTa.toBuffer(),
         LATER.toBuffer("le", 8),
@@ -220,14 +223,31 @@ describe("vesting", () => {
 
     vestNowForTransfer = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         vesterTa.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
     )[0];
-
+    vestNowForTransfer3 = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VEST_SEED()),
+        config.toBuffer(),
+        vesterTa.toBuffer(),
+        FEW_LATER_3.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId,
+    )[0];
+    vestNowTransfered3 = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VEST_SEED()),
+        config.toBuffer(),
+        newVesterTa.toBuffer(),
+        FEW_LATER_3.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId,
+    )[0];
     vestingBalance = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
@@ -595,13 +615,33 @@ describe("vesting", () => {
 
   it("Create another matured vests", async () => {
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER, new BN(1337e6))
+      .createVesting(FEW_LATER, new BN(1016e6))
       .accounts({ ...accounts, vest: vestNowForTransfer })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
+
     await stakeConnection.program.methods
-      .createVesting(LATER, new BN(1337e6))
+      .createVesting(FEW_LATER_3, new BN(321e6))
+      .accounts({ ...accounts, vest: vestNowForTransfer3 })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .createVesting(FEW_LATER_3, new BN(321e6))
+      .accounts({
+        ...accounts,
+        vest: vestNowTransfered3,
+        vesterTa: newVesterTa,
+        vestingBalance: newVestingBalance,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .createVesting(LATER, new BN(1016e6))
       .accounts({
         ...accounts,
         vest: vestLaterForTransfer,
@@ -611,13 +651,12 @@ describe("vesting", () => {
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
+
     await stakeConnection.program.methods
       .createVesting(FEW_LATER_2, new BN(1337e6))
       .accounts({ ...accounts, vest: vestFewLater })
       .signers([whMintAuthority])
-      .rpc({
-        skipPreflight: true,
-      })
+      .rpc()
       .then(confirm);
   });
 
@@ -1568,7 +1607,7 @@ describe("vesting", () => {
 
     let vestNowTransfered = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         newVesterTa.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
@@ -2160,7 +2199,7 @@ describe("vesting", () => {
 
     let vestNowTransfered = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         newVesterTa.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
@@ -2224,6 +2263,112 @@ describe("vesting", () => {
 
     assert.equal(
       updatedVestingBalance.totalVestingBalance.toString(),
+      "1658000000",
+    );
+    assert.equal(
+      updatedNewVestingBalance.totalVestingBalance.toString(),
+      "2353000000",
+    );
+
+    let vesterStakeMetadata: StakeAccountMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let vesterStakeCheckpoints: CheckpointAccount =
+      await vesterStakeConnection.fetchCheckpointAccount(
+        stakeAccountCheckpointsAddress,
+      );
+
+    assert.equal(
+      vesterStakeMetadata.recordedVestingBalance.toString(),
+      "1658000000",
+    );
+    assert.equal(vesterStakeMetadata.recordedBalance.toString(), "40000000");
+    assert.equal(
+      vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "1698000000",
+    );
+  });
+
+
+  it("should successfully transfer vest to another vester with an existing vest of the same kind", async () => {
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        false,
+      );
+
+    let newStakeAccountMetadataAddress =
+      await newVesterStakeConnection.getStakeMetadataAddress(
+        newVesterStakeConnection.userPublicKey(),
+      );
+    let newStakeAccountCheckpointsAddress =
+      await newVesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        newStakeAccountMetadataAddress,
+        false,
+      );
+
+    await sleep(2000);
+    await newVesterStakeConnection.delegateWithVest(
+      newVesterStakeConnection.userPublicKey(),
+      WHTokenBalance.fromString("10"),
+      true,
+      config,
+    );
+
+    let updatedVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        vestingBalance,
+      );
+
+    let updatedNewVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        newVestingBalance,
+      );
+
+    assert.equal(
+      updatedVestingBalance.totalVestingBalance.toString(),
+      "1658000000",
+    );
+    assert.equal(
+      updatedNewVestingBalance.totalVestingBalance.toString(),
+      "2353000000",
+    );
+
+    await stakeConnection.program.methods
+      .transferVesting()
+      .accounts({
+        ...accounts,
+        vest: vestNowForTransfer3,
+        stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+        stakeAccountMetadata: stakeAccountMetadataAddress,
+        newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+        newStakeAccountMetadata: newStakeAccountMetadataAddress,
+        newVest: vestNowTransfered3,
+        newVestingBalance: newVestingBalance,
+        globalConfig: stakeConnection.configAddress,
+      })
+      .signers([vester])
+      .rpc({ skipPreflight: true })
+      .then(confirm);
+
+    updatedVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        vestingBalance,
+      );
+
+    updatedNewVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        newVestingBalance,
+      );
+
+    assert.equal(
+      updatedVestingBalance.totalVestingBalance.toString(),
       "1337000000",
     );
     assert.equal(
@@ -2255,7 +2400,7 @@ describe("vesting", () => {
   it("should successfully claim a vest after transfer", async () => {
     let vestNowTransfered = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         newVesterTa.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
@@ -2295,7 +2440,7 @@ describe("vesting", () => {
 
     assert.equal(
       updatedVestingBalance.totalVestingBalance.toString(),
-      "1337000000",
+      "1658000000",
     );
   });
 
@@ -2349,10 +2494,10 @@ describe("vesting", () => {
         vestingBalanceWithoutAccount,
       );
 
-    assert.equal(updatedVestingBalance.totalVestingBalance.toString(), "0");
+    assert.equal(updatedVestingBalance.totalVestingBalance.toString(), "642000000");
     assert.equal(
       updatedNewVestingBalance.totalVestingBalance.toString(),
-      "1337000000",
+      "1016000000",
     );
   });
 });
