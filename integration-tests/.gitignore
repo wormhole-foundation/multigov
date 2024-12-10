@@ -3,9 +3,6 @@
 # Deployment cache
 .deployment-cache.json
 
-# Artifacts
-artifacts/
-
 # Logs
 
 logs
@@ -189,7 +186,6 @@ node_modules/
 # Build artifacts
 out/
 cache/
-artifacts/
 
 # Test artifacts
 coverage/
