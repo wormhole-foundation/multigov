@@ -267,10 +267,15 @@ impl<'info> crate::contexts::TransferVesting<'info> {
         self.new_vest.set_inner(Vesting {
             vester_ta: self.new_vester_ta.key(),
             config: self.vest.config,
-            amount: self.vest.amount,
+            amount: self.new_vest.amount,
             maturation: self.vest.maturation,
             bump,
         });
+        update_balance(
+            &mut self.new_vest.amount,
+            self.vest.amount,
+            false,
+        )?;
 
         update_balance(
             &mut self.vesting_balance.total_vesting_balance,

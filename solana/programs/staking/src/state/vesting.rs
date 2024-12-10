@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use std::mem::size_of;
 
 #[account]
+#[derive(Default)]
 pub struct Vesting {
     pub vester_ta: Pubkey,
     pub config: Pubkey,
