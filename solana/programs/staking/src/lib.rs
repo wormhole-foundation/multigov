@@ -671,7 +671,7 @@ pub mod staking {
 
     // Transfer Vesting from and send to new Vester
     pub fn transfer_vesting(ctx: Context<TransferVesting>) -> Result<()> {
-        ctx.accounts.transfer_vesting(ctx.bumps.new_vest)
+        ctx.accounts.transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)
     }
 
     // Cancel and close a Vesting account for a non-finalized Config

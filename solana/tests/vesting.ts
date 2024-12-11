@@ -2499,6 +2499,10 @@ describe("vesting", () => {
       updatedNewVestingBalance.totalVestingBalance.toString(),
       "1016000000",
     );
+    assert.equal(
+      updatedNewVestingBalance.vester.toString("hex"),
+      vesterWithoutAccount.publicKey.toString("hex"),
+    );
   });
 });
 

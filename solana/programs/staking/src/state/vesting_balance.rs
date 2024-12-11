@@ -4,6 +4,7 @@ use std::mem::size_of;
 /// Used to store the total vesting balance of a single vester
 /// It is also used to delegate vesting
 #[account]
+#[derive(Default)]
 pub struct VestingBalance {
     pub vester: Pubkey,
     pub total_vesting_balance: u64,
