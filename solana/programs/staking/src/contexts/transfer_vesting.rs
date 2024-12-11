@@ -260,31 +260,26 @@ impl<'info> crate::contexts::TransferVesting<'info> {
         self.new_vest.set_inner(Vesting {
             vester_ta: self.new_vester_ta.key(),
             config: self.vest.config,
-            amount: self.new_vest.amount,
+            amount: self.new_vest.amount
+                .checked_add(self.vest.amount)
+                .ok_or(VestingError::Underflow)?,
             maturation: self.vest.maturation,
             bump: new_vest_bump,
         });
-        self.new_vest.amount = self
-            .new_vest
-            .amount
-            .checked_add(self.vest.amount)
-            .ok_or(VestingError::Underflow)?;
 
         self.new_vesting_balance.set_inner(VestingBalance {
             vester: self.new_vester_ta.owner.key(),
             stake_account_metadata: self.new_vesting_balance.stake_account_metadata,
-            total_vesting_balance: self.new_vesting_balance.total_vesting_balance,
+            total_vesting_balance: self.new_vesting_balance.total_vesting_balance
+                .checked_add(self.vest.amount)
+                .ok_or(VestingError::Underflow)?,
             bump: new_vesting_balance_bump,
         });
+
         self.vesting_balance.total_vesting_balance = self
             .vesting_balance
             .total_vesting_balance
             .checked_sub(self.vest.amount)
-            .ok_or(VestingError::Underflow)?;
-        self.new_vesting_balance.total_vesting_balance = self
-            .new_vesting_balance
-            .total_vesting_balance
-            .checked_add(self.vest.amount)
             .ok_or(VestingError::Underflow)?;
 
         Ok(())
