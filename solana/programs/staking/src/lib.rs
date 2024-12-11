@@ -78,7 +78,7 @@ pub mod staking {
         let config_account = &mut ctx.accounts.config_account;
         config_account.bump = ctx.bumps.config_account;
         config_account.governance_authority = global_config.governance_authority;
-        config_account.wh_token_mint = global_config.wh_token_mint;
+        config_account.voting_token_mint = global_config.voting_token_mint;
         config_account.vesting_admin = global_config.vesting_admin;
         config_account.max_checkpoints_account_limit = global_config.max_checkpoints_account_limit;
 

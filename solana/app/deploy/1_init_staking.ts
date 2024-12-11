@@ -19,7 +19,7 @@ async function main() {
   const globalConfig = {
     bump: 255,
     governanceAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
-    whTokenMint: WORMHOLE_TOKEN,
+    votingTokenMint: WORMHOLE_TOKEN,
     vestingAdmin: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
     maxCheckpointsAccountLimit: CHECKPOINTS_ACCOUNT_LIMIT,
   };
