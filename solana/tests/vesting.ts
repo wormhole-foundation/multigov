@@ -1000,9 +1000,10 @@ describe("vesting", () => {
         false,
       );
 
-    let currentDelegateStakeAccountOwner = await vesterStakeConnection.delegates(
-      vesterStakeConnection.userPublicKey(),
-    );
+    let currentDelegateStakeAccountOwner =
+      await vesterStakeConnection.delegates(
+        vesterStakeConnection.userPublicKey(),
+      );
     let currentDelegateStakeAccountMetadataAddress =
       await vesterStakeConnection.getStakeMetadataAddress(
         currentDelegateStakeAccountOwner,
@@ -1085,7 +1086,8 @@ describe("vesting", () => {
       assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidVestingBalancePDA",
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidVestingBalancePDA",
       );
     }
   });
@@ -2291,7 +2293,6 @@ describe("vesting", () => {
     );
   });
 
-
   it("should successfully transfer vest to another vester with an existing vest of the same kind", async () => {
     let stakeAccountMetadataAddress =
       await vesterStakeConnection.getStakeMetadataAddress(
@@ -2494,7 +2495,10 @@ describe("vesting", () => {
         vestingBalanceWithoutAccount,
       );
 
-    assert.equal(updatedVestingBalance.totalVestingBalance.toString(), "642000000");
+    assert.equal(
+      updatedVestingBalance.totalVestingBalance.toString(),
+      "642000000",
+    );
     assert.equal(
       updatedNewVestingBalance.totalVestingBalance.toString(),
       "1016000000",
@@ -2505,11 +2509,3 @@ describe("vesting", () => {
     );
   });
 });
-
-
-
-
-
-
-
-

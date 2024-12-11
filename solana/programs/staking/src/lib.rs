@@ -192,9 +192,7 @@ pub mod staking {
                         &[
                             VESTING_BALANCE_SEED.as_bytes(),
                             vesting_config.key().as_ref(),
-                            stake_account_metadata
-                                .owner
-                                .as_ref(),
+                            stake_account_metadata.owner.as_ref(),
                         ],
                         &crate::ID,
                     );
@@ -671,7 +669,8 @@ pub mod staking {
 
     // Transfer Vesting from and send to new Vester
     pub fn transfer_vesting(ctx: Context<TransferVesting>) -> Result<()> {
-        ctx.accounts.transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)
+        ctx.accounts
+            .transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)
     }
 
     // Cancel and close a Vesting account for a non-finalized Config
