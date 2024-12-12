@@ -229,7 +229,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 new_stake_account_metadata.recorded_vesting_balance = new_stake_account_metadata
                     .recorded_vesting_balance
                     .checked_add(self.vest.amount)
-                    .ok_or(VestingError::Underflow)?;
+                    .ok_or(VestingError::Overflow)?;
 
                 let current_delegate_checkpoints_account_info =
                     new_stake_account_checkpoints.to_account_info();
@@ -264,7 +264,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 .new_vest
                 .amount
                 .checked_add(self.vest.amount)
-                .ok_or(VestingError::Underflow)?,
+                .ok_or(VestingError::Overflow)?,
             maturation: self.vest.maturation,
             bump: new_vest_bump,
         });
@@ -276,7 +276,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 .new_vesting_balance
                 .total_vesting_balance
                 .checked_add(self.vest.amount)
-                .ok_or(VestingError::Underflow)?,
+                .ok_or(VestingError::Overflow)?,
             bump: new_vesting_balance_bump,
         });
 

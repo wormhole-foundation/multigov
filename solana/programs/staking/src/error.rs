@@ -7,6 +7,8 @@ pub enum ErrorCode {
     TooManyCheckpoints,
     #[msg("An arithmetic operation unexpectedly overflowed")]
     GenericOverflow,
+    #[msg("An arithmetic operation unexpectedly underflowed")]
+    GenericUnderflow,
     #[msg("Error deserializing checkpoint")]
     CheckpointSerDe,
     #[msg("Checkpoint out of bounds")]
