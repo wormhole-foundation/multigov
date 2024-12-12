@@ -87,16 +87,11 @@ pub struct TransferVesting<'info> {
 }
 
 impl<'info> crate::contexts::TransferVesting<'info> {
-    pub fn transfer_vesting(&mut self, bump: u8) -> Result<()> {
-        fn update_balance(balance: &mut u64, amount: u64, is_subtract: bool) -> Result<()> {
-            if is_subtract {
-                *balance = balance.checked_sub(amount).ok_or(VestingError::Underflow)?;
-            } else {
-                *balance = balance.checked_add(amount).ok_or(VestingError::Underflow)?;
-            }
-            Ok(())
-        }
-
+    pub fn transfer_vesting(
+        &mut self,
+        new_vest_bump: u8,
+        new_vesting_balance_bump: u8,
+    ) -> Result<()> {
         if self.new_vester_ta.owner.key() == self.vester_ta.owner.key() {
             return err!(VestingError::TransferVestToMyself);
         }
@@ -149,11 +144,10 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     VestingError::InvalidStakeAccountMetadataPDA
                 );
 
-                update_balance(
-                    &mut stake_account_metadata.recorded_vesting_balance,
-                    self.vest.amount,
-                    true,
-                )?;
+                stake_account_metadata.recorded_vesting_balance = stake_account_metadata
+                    .recorded_vesting_balance
+                    .checked_sub(self.vest.amount)
+                    .ok_or(VestingError::Underflow)?;
 
                 // Update checkpoints
                 let current_delegate_checkpoints_account_info =
@@ -232,11 +226,10 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     VestingError::InvalidStakeAccountMetadataPDA
                 );
 
-                update_balance(
-                    &mut new_stake_account_metadata.recorded_vesting_balance,
-                    self.vest.amount,
-                    false,
-                )?;
+                new_stake_account_metadata.recorded_vesting_balance = new_stake_account_metadata
+                    .recorded_vesting_balance
+                    .checked_add(self.vest.amount)
+                    .ok_or(VestingError::Overflow)?;
 
                 let current_delegate_checkpoints_account_info =
                     new_stake_account_checkpoints.to_account_info();
@@ -267,21 +260,31 @@ impl<'info> crate::contexts::TransferVesting<'info> {
         self.new_vest.set_inner(Vesting {
             vester_ta: self.new_vester_ta.key(),
             config: self.vest.config,
-            amount: self.vest.amount,
+            amount: self
+                .new_vest
+                .amount
+                .checked_add(self.vest.amount)
+                .ok_or(VestingError::Overflow)?,
             maturation: self.vest.maturation,
-            bump,
+            bump: new_vest_bump,
         });
 
-        update_balance(
-            &mut self.vesting_balance.total_vesting_balance,
-            self.vest.amount,
-            true,
-        )?;
-        update_balance(
-            &mut self.new_vesting_balance.total_vesting_balance,
-            self.vest.amount,
-            false,
-        )?;
+        self.new_vesting_balance.set_inner(VestingBalance {
+            vester: self.new_vester_ta.owner.key(),
+            stake_account_metadata: self.new_vesting_balance.stake_account_metadata,
+            total_vesting_balance: self
+                .new_vesting_balance
+                .total_vesting_balance
+                .checked_add(self.vest.amount)
+                .ok_or(VestingError::Overflow)?,
+            bump: new_vesting_balance_bump,
+        });
+
+        self.vesting_balance.total_vesting_balance = self
+            .vesting_balance
+            .total_vesting_balance
+            .checked_sub(self.vest.amount)
+            .ok_or(VestingError::Underflow)?;
 
         Ok(())
     }

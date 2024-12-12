@@ -61,6 +61,7 @@ describe("vesting", () => {
   const NOW = new BN(Math.floor(new Date().getTime() / 1000));
   const FEW_LATER = NOW.add(new BN(1));
   const FEW_LATER_2 = NOW.add(new BN(2));
+  const FEW_LATER_3 = NOW.add(new BN(3));
   const LATER = NOW.add(new BN(1000));
   const EVEN_LATER = LATER.add(new BN(1000));
   const EVEN_LATER_AGAIN = EVEN_LATER.add(new BN(1000));
@@ -85,6 +86,8 @@ describe("vesting", () => {
     vestLaterForTransfer,
     vestEvenLaterAgain,
     vestNowForTransfer,
+    vestNowForTransfer3,
+    vestNowTransfered3,
     vestingBalance,
     vestFewLater,
     vesterStakeConnection,
@@ -97,9 +100,7 @@ describe("vesting", () => {
     fakeConfig,
     fakeAdminAta,
     fakeVault,
-    fakeVesterTa,
-    fakeVestNow,
-    fakeVestingBalanceAccount;
+    fakeVesterTa;
 
   after(async () => {
     controller.abort();
@@ -172,7 +173,7 @@ describe("vesting", () => {
 
     vestFewLater = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         vesterTa.toBuffer(),
         FEW_LATER_2.toBuffer("le", 8),
@@ -202,7 +203,7 @@ describe("vesting", () => {
 
     vestLaterForTransfer = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         newVesterTa.toBuffer(),
         LATER.toBuffer("le", 8),
@@ -222,14 +223,31 @@ describe("vesting", () => {
 
     vestNowForTransfer = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         vesterTa.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
     )[0];
-
+    vestNowForTransfer3 = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VEST_SEED()),
+        config.toBuffer(),
+        vesterTa.toBuffer(),
+        FEW_LATER_3.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId,
+    )[0];
+    vestNowTransfered3 = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VEST_SEED()),
+        config.toBuffer(),
+        newVesterTa.toBuffer(),
+        FEW_LATER_3.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId,
+    )[0];
     vestingBalance = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
@@ -346,6 +364,102 @@ describe("vesting", () => {
       ),
     ];
     await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority]);
+  });
+
+  it("should fail to initialize vesting config with invalid mint", async () => {
+    fakeMintAccount = Keypair.generate();
+    fakeConfig = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
+        whMintAuthority.publicKey.toBuffer(),
+        fakeMintAccount.publicKey.toBuffer(),
+        seed.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId,
+    )[0];
+    fakeAdminAta = getAssociatedTokenAddressSync(
+      fakeMintAccount.publicKey,
+      whMintAuthority.publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+    );
+    fakeVault = getAssociatedTokenAddressSync(
+      fakeMintAccount.publicKey,
+      fakeConfig,
+      true,
+      TOKEN_PROGRAM_ID,
+    );
+    fakeVesterTa = getAssociatedTokenAddressSync(
+      fakeMintAccount.publicKey,
+      vester.publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+    );
+
+    const lamports = await getMinimumBalanceForRentExemptMint(
+      stakeConnection.provider.connection,
+    );
+    let tx = new Transaction();
+    tx.instructions = [
+      SystemProgram.createAccount({
+        fromPubkey: stakeConnection.provider.publicKey,
+        newAccountPubkey: fakeMintAccount.publicKey,
+        lamports,
+        space: MINT_SIZE,
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      createInitializeMintInstruction(
+        fakeMintAccount.publicKey,
+        6,
+        whMintAuthority.publicKey,
+        undefined,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        stakeConnection.provider.publicKey,
+        fakeAdminAta,
+        whMintAuthority.publicKey,
+        fakeMintAccount.publicKey,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        whMintAuthority.publicKey,
+        fakeVesterTa,
+        vester.publicKey,
+        fakeMintAccount.publicKey,
+      ),
+      createMintToInstruction(
+        fakeMintAccount.publicKey,
+        fakeAdminAta,
+        whMintAuthority.publicKey,
+        1e11,
+      ),
+    ];
+    await stakeConnection.provider.sendAndConfirm(tx, [
+      whMintAuthority,
+      fakeMintAccount,
+    ]);
+
+    fakeAccounts = {
+      ...accounts,
+      mint: fakeMintAccount.publicKey,
+      config: fakeConfig,
+      vault: fakeVault,
+      vesterTa: fakeVesterTa,
+      adminAta: fakeAdminAta,
+      recovery: fakeAdminAta,
+    };
+
+    try {
+      await stakeConnection.program.methods
+        .initializeVestingConfig(seed)
+        .accounts({ ...fakeAccounts })
+        .signers([whMintAuthority])
+        .rpc()
+        .then(confirm);
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintAddress");
+    }
   });
 
   it("should fail to initialize vesting config with invalid admin", async () => {
@@ -501,13 +615,33 @@ describe("vesting", () => {
 
   it("Create another matured vests", async () => {
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER, new BN(1337e6))
+      .createVesting(FEW_LATER, new BN(1016e6))
       .accounts({ ...accounts, vest: vestNowForTransfer })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
+
     await stakeConnection.program.methods
-      .createVesting(LATER, new BN(1337e6))
+      .createVesting(FEW_LATER_3, new BN(321e6))
+      .accounts({ ...accounts, vest: vestNowForTransfer3 })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .createVesting(FEW_LATER_3, new BN(321e6))
+      .accounts({
+        ...accounts,
+        vest: vestNowTransfered3,
+        vesterTa: newVesterTa,
+        vestingBalance: newVestingBalance,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .createVesting(LATER, new BN(1016e6))
       .accounts({
         ...accounts,
         vest: vestLaterForTransfer,
@@ -517,13 +651,12 @@ describe("vesting", () => {
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
+
     await stakeConnection.program.methods
       .createVesting(FEW_LATER_2, new BN(1337e6))
       .accounts({ ...accounts, vest: vestFewLater })
       .signers([whMintAuthority])
-      .rpc({
-        skipPreflight: true,
-      })
+      .rpc()
       .then(confirm);
   });
 
@@ -844,6 +977,117 @@ describe("vesting", () => {
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code === "AccountNotInitialized",
+      );
+    }
+  });
+
+  it("should fail to delegate if vesting balance PDA does not match vesting config PDA", async () => {
+    await sleep(2000);
+    await vesterStakeConnection.delegateWithVest(
+      vesterStakeConnection.userPublicKey(),
+      WHTokenBalance.fromString("0"),
+      true,
+      config,
+    );
+
+    let delegateeStakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+    let delegateeStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        delegateeStakeAccountMetadataAddress,
+        false,
+      );
+
+    let currentDelegateStakeAccountOwner =
+      await vesterStakeConnection.delegates(
+        vesterStakeConnection.userPublicKey(),
+      );
+    let currentDelegateStakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        currentDelegateStakeAccountOwner,
+      );
+
+    let currentDelegateStakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        currentDelegateStakeAccountMetadataAddress,
+        false,
+      );
+
+    let vestingBalanceAccount = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
+        config.toBuffer(),
+        vesterStakeConnection.userPublicKey().toBuffer(),
+      ],
+      vesterStakeConnection.program.programId,
+    )[0];
+
+    let delegateeStakeAccountCheckpointsData =
+      await vesterStakeConnection.program.account.checkpointData.fetch(
+        delegateeStakeAccountCheckpointsAddress,
+      );
+
+    let delegateeStakeAccountOwner = delegateeStakeAccountCheckpointsData.owner;
+
+    const seed2 = new BN(randomBytes(8));
+    const vestingConfig2 = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
+        whMintAuthority.publicKey.toBuffer(),
+        whMintAccount.publicKey.toBuffer(),
+        seed2.toBuffer("le", 8),
+      ],
+      vesterStakeConnection.program.programId,
+    )[0];
+    const vault2 = getAssociatedTokenAddressSync(
+      whMintAccount.publicKey,
+      vestingConfig2,
+      true,
+      TOKEN_PROGRAM_ID,
+    );
+    await vesterStakeConnection.program.methods
+      .initializeVestingConfig(seed2)
+      .accounts({
+        ...accounts,
+        config: vestingConfig2,
+        vault: vault2,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+    await vesterStakeConnection.program.methods
+      .finalizeVestingConfig()
+      .accounts({
+        ...accounts,
+        config: vestingConfig2,
+        vault: vault2,
+      })
+      .signers([whMintAuthority])
+      .rpc({ skipPreflight: true })
+      .then(confirm);
+
+    try {
+      await vesterStakeConnection.program.methods
+        .delegate(delegateeStakeAccountOwner, currentDelegateStakeAccountOwner)
+        .accounts({
+          delegateeStakeAccountCheckpoints:
+            delegateeStakeAccountCheckpointsAddress,
+          currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
+          vestingConfig: vestingConfig2,
+          vestingBalance: vestingBalanceAccount,
+          mint: whMintAccount.publicKey,
+        })
+        .rpc()
+        .then(confirm);
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidVestingBalancePDA",
       );
     }
   });
@@ -1365,7 +1609,7 @@ describe("vesting", () => {
 
     let vestNowTransfered = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         newVesterTa.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
@@ -1957,7 +2201,7 @@ describe("vesting", () => {
 
     let vestNowTransfered = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         newVesterTa.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
@@ -2021,6 +2265,103 @@ describe("vesting", () => {
 
     assert.equal(
       updatedVestingBalance.totalVestingBalance.toString(),
+      "1658000000",
+    );
+    assert.equal(
+      updatedNewVestingBalance.totalVestingBalance.toString(),
+      "2353000000",
+    );
+
+    let vesterStakeMetadata: StakeAccountMetadata =
+      await vesterStakeConnection.fetchStakeAccountMetadata(
+        vesterStakeConnection.userPublicKey(),
+      );
+
+    let vesterStakeCheckpoints: CheckpointAccount =
+      await vesterStakeConnection.fetchCheckpointAccount(
+        stakeAccountCheckpointsAddress,
+      );
+
+    assert.equal(
+      vesterStakeMetadata.recordedVestingBalance.toString(),
+      "1658000000",
+    );
+    assert.equal(vesterStakeMetadata.recordedBalance.toString(), "40000000");
+    assert.equal(
+      vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
+      "1698000000",
+    );
+  });
+
+  it("should successfully transfer vest to another vester with an existing vest of the same kind", async () => {
+    let stakeAccountMetadataAddress =
+      await vesterStakeConnection.getStakeMetadataAddress(
+        vesterStakeConnection.userPublicKey(),
+      );
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        false,
+      );
+
+    let newStakeAccountMetadataAddress =
+      await newVesterStakeConnection.getStakeMetadataAddress(
+        newVesterStakeConnection.userPublicKey(),
+      );
+    let newStakeAccountCheckpointsAddress =
+      await newVesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        newStakeAccountMetadataAddress,
+        false,
+      );
+
+    let updatedVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        vestingBalance,
+      );
+
+    let updatedNewVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        newVestingBalance,
+      );
+
+    assert.equal(
+      updatedVestingBalance.totalVestingBalance.toString(),
+      "1658000000",
+    );
+    assert.equal(
+      updatedNewVestingBalance.totalVestingBalance.toString(),
+      "2353000000",
+    );
+
+    await stakeConnection.program.methods
+      .transferVesting()
+      .accounts({
+        ...accounts,
+        vest: vestNowForTransfer3,
+        stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+        stakeAccountMetadata: stakeAccountMetadataAddress,
+        newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+        newStakeAccountMetadata: newStakeAccountMetadataAddress,
+        newVest: vestNowTransfered3,
+        newVestingBalance: newVestingBalance,
+        globalConfig: stakeConnection.configAddress,
+      })
+      .signers([vester])
+      .rpc({ skipPreflight: true })
+      .then(confirm);
+
+    updatedVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        vestingBalance,
+      );
+
+    updatedNewVestingBalance =
+      await stakeConnection.program.account.vestingBalance.fetch(
+        newVestingBalance,
+      );
+
+    assert.equal(
+      updatedVestingBalance.totalVestingBalance.toString(),
       "1337000000",
     );
     assert.equal(
@@ -2052,7 +2393,7 @@ describe("vesting", () => {
   it("should successfully claim a vest after transfer", async () => {
     let vestNowTransfered = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vest"),
+        Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
         newVesterTa.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
@@ -2092,7 +2433,7 @@ describe("vesting", () => {
 
     assert.equal(
       updatedVestingBalance.totalVestingBalance.toString(),
-      "1337000000",
+      "1658000000",
     );
   });
 
@@ -2146,222 +2487,17 @@ describe("vesting", () => {
         vestingBalanceWithoutAccount,
       );
 
-    assert.equal(updatedVestingBalance.totalVestingBalance.toString(), "0");
+    assert.equal(
+      updatedVestingBalance.totalVestingBalance.toString(),
+      "642000000",
+    );
     assert.equal(
       updatedNewVestingBalance.totalVestingBalance.toString(),
-      "1337000000",
+      "1016000000",
     );
-  });
-
-  describe("InvalidVestingMint", () => {
-    before(async () => {
-      // Create fake token, fake configuration and fake vestingBalance account
-      fakeMintAccount = Keypair.generate();
-      fakeConfig = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-          whMintAuthority.publicKey.toBuffer(),
-          fakeMintAccount.publicKey.toBuffer(),
-          seed.toBuffer("le", 8),
-        ],
-        stakeConnection.program.programId,
-      )[0];
-      fakeAdminAta = getAssociatedTokenAddressSync(
-        fakeMintAccount.publicKey,
-        whMintAuthority.publicKey,
-        false,
-        TOKEN_PROGRAM_ID,
-      );
-      fakeVault = getAssociatedTokenAddressSync(
-        fakeMintAccount.publicKey,
-        fakeConfig,
-        true,
-        TOKEN_PROGRAM_ID,
-      );
-      fakeVesterTa = getAssociatedTokenAddressSync(
-        fakeMintAccount.publicKey,
-        vester.publicKey,
-        false,
-        TOKEN_PROGRAM_ID,
-      );
-      fakeVestNow = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from(wasm.Constants.VEST_SEED()),
-          fakeConfig.toBuffer(),
-          fakeVesterTa.toBuffer(),
-          NOW.toBuffer("le", 8),
-        ],
-        stakeConnection.program.programId,
-      )[0];
-
-      const lamports = await getMinimumBalanceForRentExemptMint(
-        stakeConnection.provider.connection,
-      );
-      let tx = new Transaction();
-      tx.instructions = [
-        SystemProgram.createAccount({
-          fromPubkey: stakeConnection.provider.publicKey,
-          newAccountPubkey: fakeMintAccount.publicKey,
-          lamports,
-          space: MINT_SIZE,
-          programId: TOKEN_PROGRAM_ID,
-        }),
-        createInitializeMintInstruction(
-          fakeMintAccount.publicKey,
-          6,
-          whMintAuthority.publicKey,
-          undefined,
-        ),
-        createAssociatedTokenAccountIdempotentInstruction(
-          stakeConnection.provider.publicKey,
-          fakeAdminAta,
-          whMintAuthority.publicKey,
-          fakeMintAccount.publicKey,
-        ),
-        createAssociatedTokenAccountIdempotentInstruction(
-          whMintAuthority.publicKey,
-          fakeVesterTa,
-          vester.publicKey,
-          fakeMintAccount.publicKey,
-        ),
-        createMintToInstruction(
-          fakeMintAccount.publicKey,
-          fakeAdminAta,
-          whMintAuthority.publicKey,
-          1e11,
-        ),
-      ];
-      await stakeConnection.provider.sendAndConfirm(tx, [
-        whMintAuthority,
-        fakeMintAccount,
-      ]);
-
-      fakeAccounts = {
-        ...accounts,
-        mint: fakeMintAccount.publicKey,
-        config: fakeConfig,
-        vault: fakeVault,
-        vesterTa: fakeVesterTa,
-        adminAta: fakeAdminAta,
-        recovery: fakeAdminAta,
-      };
-
-      await stakeConnection.program.methods
-        .initializeVestingConfig(seed)
-        .accounts({ ...fakeAccounts })
-        .signers([whMintAuthority])
-        .rpc()
-        .then(confirm);
-
-      fakeVestingBalanceAccount = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
-          fakeConfig.toBuffer(),
-          vester.publicKey.toBuffer(),
-        ],
-        stakeConnection.program.programId,
-      )[0];
-
-      fakeAccounts = {
-        ...fakeAccounts,
-        vestingBalance: fakeVestingBalanceAccount,
-      };
-      await stakeConnection.program.methods
-        .createVestingBalance()
-        .accounts({ ...fakeAccounts })
-        .signers([whMintAuthority])
-        .rpc()
-        .then(confirm);
-
-      fakeAccounts = { ...fakeAccounts, vest: fakeVestNow };
-      await stakeConnection.program.methods
-        .createVesting(NOW, new BN(1337e6))
-        .accounts({ ...fakeAccounts })
-        .signers([whMintAuthority])
-        .rpc()
-        .then(confirm);
-
-      tx = new Transaction();
-      tx.add(
-        createTransferCheckedInstruction(
-          fakeAdminAta,
-          fakeMintAccount.publicKey,
-          fakeVault,
-          whMintAuthority.publicKey,
-          1337e6,
-          6,
-          undefined,
-          TOKEN_PROGRAM_ID,
-        ),
-      );
-      await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority]);
-
-      await stakeConnection.program.methods
-        .finalizeVestingConfig()
-        .accounts({ ...fakeAccounts })
-        .signers([whMintAuthority])
-        .rpc({ skipPreflight: true })
-        .then(confirm);
-    });
-
-    it("should fail to delegate with invalid vesting token", async () => {
-      await sleep(2000);
-      await vesterStakeConnection.delegateWithVest(
-        vesterStakeConnection.userPublicKey(),
-        WHTokenBalance.fromString("0"),
-        true,
-        config,
-      );
-
-      let delegateeStakeAccountMetadataAddress =
-        await stakeConnection.getStakeMetadataAddress(
-          vesterStakeConnection.userPublicKey(),
-        );
-      let delegateeStakeAccountCheckpointsAddress =
-        await stakeConnection.getStakeAccountCheckpointsAddressByMetadata(
-          delegateeStakeAccountMetadataAddress,
-          false,
-        );
-
-      let currentDelegateStakeAccountOwner = await stakeConnection.delegates(
-        vesterStakeConnection.userPublicKey(),
-      );
-
-      let currentDelegateStakeAccountMetadataAddress =
-        await vesterStakeConnection.getStakeMetadataAddress(
-          currentDelegateStakeAccountOwner,
-        );
-
-      let currentDelegateStakeAccountCheckpointsAddress =
-        await vesterStakeConnection.getStakeAccountCheckpointsAddressByMetadata(
-          currentDelegateStakeAccountMetadataAddress,
-          false,
-        );
-
-      try {
-        await vesterStakeConnection.program.methods
-          .delegate(
-            vesterStakeConnection.userPublicKey(),
-            currentDelegateStakeAccountOwner,
-          )
-          .accounts({
-            delegateeStakeAccountCheckpoints:
-              delegateeStakeAccountCheckpointsAddress,
-            currentDelegateStakeAccountCheckpoints:
-              currentDelegateStakeAccountCheckpointsAddress,
-            vestingConfig: fakeConfig,
-            vestingBalance: fakeVestingBalanceAccount,
-            mint: whMintAccount.publicKey,
-          })
-          .rpc()
-          .then(confirm);
-
-        assert.fail("Expected error was not thrown");
-      } catch (e) {
-        assert(
-          (e as AnchorError).error?.errorCode?.code === "InvalidVestingMint",
-        );
-      }
-    });
+    assert.equal(
+      updatedNewVestingBalance.vester.toString("hex"),
+      vesterWithoutAccount.publicKey.toString("hex"),
+    );
   });
 });

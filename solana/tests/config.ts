@@ -95,7 +95,7 @@ describe("config", async () => {
     await program.methods
       .initConfig({
         governanceAuthority: program.provider.wallet.publicKey,
-        whTokenMint: whMintAccount.publicKey,
+        votingTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
         maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
       })
@@ -120,7 +120,7 @@ describe("config", async () => {
         bump,
         maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         governanceAuthority: program.provider.wallet.publicKey,
-        whTokenMint: whMintAccount.publicKey,
+        votingTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
       }),
     );
@@ -136,7 +136,7 @@ describe("config", async () => {
       await program.methods
         .initConfig({
           governanceAuthority: program.provider.wallet.publicKey,
-          whTokenMint: whMintAccount.publicKey,
+          votingTokenMint: whMintAccount.publicKey,
           vestingAdmin: vestingAdmin,
           maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
@@ -145,7 +145,7 @@ describe("config", async () => {
       await program.methods
         .initConfig({
           governanceAuthority: program.provider.wallet.publicKey,
-          whTokenMint: whMintAccount.publicKey,
+          votingTokenMint: whMintAccount.publicKey,
           vestingAdmin: vestingAdmin,
           maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         })
@@ -331,7 +331,7 @@ describe("config", async () => {
         bump,
         maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         governanceAuthority: program.provider.wallet.publicKey,
-        whTokenMint: whMintAccount.publicKey,
+        votingTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
       }),
     );
@@ -419,7 +419,7 @@ describe("config", async () => {
         bump,
         maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         governanceAuthority: program.provider.wallet.publicKey,
-        whTokenMint: whMintAccount.publicKey,
+        votingTokenMint: whMintAccount.publicKey,
         vestingAdmin: program.provider.wallet.publicKey,
       }),
     );
@@ -435,7 +435,7 @@ describe("config", async () => {
         bump,
         maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
         governanceAuthority: program.provider.wallet.publicKey,
-        whTokenMint: whMintAccount.publicKey,
+        votingTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
       }),
     );

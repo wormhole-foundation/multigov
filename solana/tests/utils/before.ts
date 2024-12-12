@@ -291,7 +291,7 @@ export function makeTestConfig(
   return {
     bump: 0,
     governanceAuthority: null,
-    whTokenMint: whMint,
+    votingTokenMint: whMint,
     vestingAdmin: vestingAdmin,
     maxCheckpointsAccountLimit: maxCheckpointsAccountLimit,
   };

@@ -280,7 +280,7 @@ fn calc_new_checkpoint(
             .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
         Operation::Subtract => current_value
             .checked_sub(amount_delta)
-            .ok_or_else(|| error!(ErrorCode::GenericOverflow))?,
+            .ok_or_else(|| error!(ErrorCode::GenericUnderflow))?,
     };
 
     let new_checkpoint = Checkpoint {

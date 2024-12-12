@@ -632,7 +632,7 @@ describe("api", async () => {
               user3StakeAccountCheckpointsAddress,
             vestingConfig: null,
             vestingBalance: null,
-            mint: stakeConnection.config.whTokenMint,
+            mint: stakeConnection.config.votingTokenMint,
           })
           .rpc();
 
@@ -677,7 +677,7 @@ describe("api", async () => {
               user3StakeAccountCheckpointsAddress,
             vestingConfig: null,
             vestingBalance: null,
-            mint: stakeConnection.config.whTokenMint,
+            mint: stakeConnection.config.votingTokenMint,
           })
           .rpc();
 
@@ -726,7 +726,7 @@ describe("api", async () => {
               ownerStakeAccountCheckpointsAddress, // Invalid delegatee checkpoints account
             vestingConfig: null,
             vestingBalance: null,
-            mint: stakeConnection.config.whTokenMint,
+            mint: stakeConnection.config.votingTokenMint,
           })
           .rpc();
 
@@ -801,7 +801,7 @@ describe("api", async () => {
         );
 
       const toAccount = await getAssociatedTokenAddress(
-        stakeConnection.config.whTokenMint,
+        stakeConnection.config.votingTokenMint,
         owner,
         true,
       );
@@ -842,7 +842,7 @@ describe("api", async () => {
       assert.equal(currentDelegate.toBase58(), user2.toBase58());
 
       const toAccount = await getAssociatedTokenAddress(
-        stakeConnection.config.whTokenMint,
+        stakeConnection.config.votingTokenMint,
         owner,
         true,
       );

@@ -78,7 +78,7 @@ pub mod staking {
         let config_account = &mut ctx.accounts.config_account;
         config_account.bump = ctx.bumps.config_account;
         config_account.governance_authority = global_config.governance_authority;
-        config_account.wh_token_mint = global_config.wh_token_mint;
+        config_account.voting_token_mint = global_config.voting_token_mint;
         config_account.vesting_admin = global_config.vesting_admin;
         config_account.max_checkpoints_account_limit = global_config.max_checkpoints_account_limit;
 
@@ -188,14 +188,19 @@ pub mod staking {
         if let Some(vesting_config) = &mut ctx.accounts.vesting_config {
             if vesting_config.finalized {
                 if let Some(vesting_balance) = &mut ctx.accounts.vesting_balance {
-                    require!(
-                        vesting_balance.vester == stake_account_metadata.owner,
-                        VestingError::InvalidStakeAccountOwner
+                    let (expected_vesting_balance_pda, _) = Pubkey::find_program_address(
+                        &[
+                            VESTING_BALANCE_SEED.as_bytes(),
+                            vesting_config.key().as_ref(),
+                            stake_account_metadata.owner.as_ref(),
+                        ],
+                        &crate::ID,
                     );
                     require!(
-                        vesting_config.mint == config.wh_token_mint,
-                        VestingError::InvalidVestingMint
+                        expected_vesting_balance_pda == vesting_balance.key(),
+                        VestingError::InvalidVestingBalancePDA
                     );
+
                     vesting_balance.stake_account_metadata = stake_account_metadata.key();
                     stake_account_metadata.recorded_vesting_balance =
                         vesting_balance.total_vesting_balance;
@@ -664,7 +669,8 @@ pub mod staking {
 
     // Transfer Vesting from and send to new Vester
     pub fn transfer_vesting(ctx: Context<TransferVesting>) -> Result<()> {
-        ctx.accounts.transfer_vesting(ctx.bumps.new_vest)
+        ctx.accounts
+            .transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)
     }
 
     // Cancel and close a Vesting account for a non-finalized Config

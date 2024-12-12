@@ -7,6 +7,8 @@ pub enum ErrorCode {
     TooManyCheckpoints,
     #[msg("An arithmetic operation unexpectedly overflowed")]
     GenericOverflow,
+    #[msg("An arithmetic operation unexpectedly underflowed")]
+    GenericUnderflow,
     #[msg("Error deserializing checkpoint")]
     CheckpointSerDe,
     #[msg("Checkpoint out of bounds")]
@@ -69,8 +71,6 @@ pub enum VestingError {
     InvalidStakeAccountCheckpoints,
     #[msg("Error parsing stake_account_metadata and stake_account_checkpoints")]
     ErrorOfStakeAccountParsing,
-    #[msg("Invalid vesting mint")]
-    InvalidVestingMint,
     #[msg("Invalid stake account owner")]
     InvalidStakeAccountOwner,
     #[msg("Invalid vesting admin")]
@@ -81,6 +81,8 @@ pub enum VestingError {
     InvalidStakeAccountMetadataPDA,
     #[msg("Invalid stake account checkpoints PDA")]
     InvalidStakeAccountCheckpointsPDA,
+    #[msg("Invalid vesting balance PDA")]
+    InvalidVestingBalancePDA,
     #[msg("Transfer vest to myself")]
     TransferVestToMyself,
 }

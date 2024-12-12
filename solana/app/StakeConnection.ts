@@ -335,7 +335,10 @@ export class StakeConnection {
     ).amount;
 
     const totalSupply = (
-      await getMint(this.program.provider.connection, this.config.whTokenMint)
+      await getMint(
+        this.program.provider.connection,
+        this.config.votingTokenMint,
+      )
     ).supply;
 
     return new StakeAccount(
@@ -366,7 +369,7 @@ export class StakeConnection {
       await this.program.methods
         .createStakeAccount()
         .accounts({
-          mint: this.config.whTokenMint,
+          mint: this.config.votingTokenMint,
         })
         .instruction(),
     );
@@ -389,7 +392,7 @@ export class StakeConnection {
       await this.program.methods
         .createStakeAccount()
         .accounts({
-          mint: this.config.whTokenMint,
+          mint: this.config.votingTokenMint,
         })
         .instruction(),
     );
@@ -402,7 +405,7 @@ export class StakeConnection {
     amount: BN,
   ): Promise<TransactionInstruction> {
     const from_account = await getAssociatedTokenAddress(
-      this.config.whTokenMint,
+      this.config.votingTokenMint,
       this.provider.wallet.publicKey,
       true,
     );
@@ -515,7 +518,7 @@ export class StakeConnection {
             delegateeStakeAccountCheckpointsAddress,
           vestingConfig: vestingConfigAccount,
           vestingBalance: vestingBalanceAccount,
-          mint: this.config.whTokenMint,
+          mint: this.config.votingTokenMint,
         })
         .instruction(),
     );
@@ -602,7 +605,7 @@ export class StakeConnection {
             delegateeStakeAccountCheckpointsAddress,
           vestingConfig: null,
           vestingBalance: null,
-          mint: this.config.whTokenMint,
+          mint: this.config.votingTokenMint,
         })
         .instruction(),
     );
@@ -739,7 +742,7 @@ export class StakeConnection {
     }
 
     const toAccount = await getAssociatedTokenAddress(
-      this.config.whTokenMint,
+      this.config.votingTokenMint,
       this.provider.wallet.publicKey,
       true,
     );
@@ -751,7 +754,7 @@ export class StakeConnection {
           this.provider.wallet.publicKey,
           toAccount,
           this.provider.wallet.publicKey,
-          this.config.whTokenMint,
+          this.config.votingTokenMint,
         ),
       );
     }

@@ -9,7 +9,7 @@ pub struct GlobalConfig {
     // Maximum number of checkpoints that can be stored in a single account
     pub max_checkpoints_account_limit: u32,
     pub governance_authority: Pubkey,
-    pub wh_token_mint: Pubkey,
+    pub voting_token_mint: Pubkey,
     pub vesting_admin: Pubkey,
 }
 
