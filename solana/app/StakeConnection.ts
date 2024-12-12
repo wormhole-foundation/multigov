@@ -335,7 +335,10 @@ export class StakeConnection {
     ).amount;
 
     const totalSupply = (
-      await getMint(this.program.provider.connection, this.config.votingTokenMint)
+      await getMint(
+        this.program.provider.connection,
+        this.config.votingTokenMint,
+      )
     ).supply;
 
     return new StakeAccount(
