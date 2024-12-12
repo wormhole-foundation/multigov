@@ -2314,14 +2314,6 @@ describe("vesting", () => {
         false,
       );
 
-    await sleep(2000);
-    await newVesterStakeConnection.delegateWithVest(
-      newVesterStakeConnection.userPublicKey(),
-      WHTokenBalance.fromString("10"),
-      true,
-      config,
-    );
-
     let updatedVestingBalance =
       await stakeConnection.program.account.vestingBalance.fetch(
         vestingBalance,
