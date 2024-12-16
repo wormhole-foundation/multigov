@@ -1,0 +1,51 @@
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: multi-gov-tests
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      tolerations:
+        - key: "node.kubernetes.io/disk-pressure"
+          operator: "Exists"
+          effect: "NoSchedule"
+      restartPolicy: Never
+      containers:
+        - name: multi-gov-tests
+          image: multi-gov-ci
+          env:
+            - name: ETHDEVNET_MNEMONIC
+              value: "myth like bonus scare over problem client lizard pioneer submit female collect"
+            - name: WORMHOLE_API_KEY
+              value: "my_secret_key_3"
+            - name: CI
+              value: "true"
+            - name: ETH_RPC_URL
+              value: "http://eth-devnet.wormhole.svc.cluster.local:8545"
+            - name: ETH2_RPC_URL
+              value: "http://eth-devnet2.wormhole.svc.cluster.local:8545"
+            - name: QUERY_SERVER_HOST
+              value: "query-server"
+          command:
+            - /bin/sh
+            - -c
+            - 'bun run test:only && echo "done!" && touch /success'
+          readinessProbe:
+            exec:
+              command:
+                - test
+                - -e
+                - "/success"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 120
+          resources:
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+              ephemeral-storage: "500Mi"
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+              ephemeral-storage: "250Mi"

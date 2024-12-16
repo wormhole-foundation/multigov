@@ -86,10 +86,16 @@ const fetchSignedVAA = async (sequence: bigint): Promise<`0x${string}`> => {
   const MAX_RETRIES = 30;
   const RETRY_DELAY = 2000;
 
+  // Use guardian service name for headless service
+  const guardianHost = process.env.CI
+    ? 'guardian.wormhole' // Changed from guardian-0.guardian.wormhole.svc.cluster.local
+    : 'localhost';
+  const guardianPort = '7071';
+
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
       const response = await fetch(
-        `http://localhost:7071/v1/signed_vaa/2/${emitterAddress}/${sequence}`,
+        `http://${guardianHost}:${guardianPort}/v1/signed_vaa/2/${emitterAddress}/${sequence}`,
       );
 
       if (response.status === 404) {
@@ -136,28 +142,38 @@ const executeVAAOnSpoke = async (vaa: `0x${string}`) => {
 const getMessageSequence = async () => {
   console.log('🔍 Getting message sequence...');
   const { ethClient } = createClients();
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 20000; // 20 seconds
 
-  const logs = await ethClient.getLogs({
-    address: ContractAddresses.WORMHOLE_CORE,
-    event: parseAbiItem(
-      'event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel)',
-    ),
-    fromBlock: 'earliest',
-    toBlock: 'latest',
-    args: {
-      sender: ContractAddresses.HUB_MESSAGE_DISPATCHER,
-    },
-  });
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    const logs = await ethClient.getLogs({
+      address: ContractAddresses.WORMHOLE_CORE,
+      event: parseAbiItem(
+        'event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel)',
+      ),
+      fromBlock: 'earliest',
+      toBlock: 'latest',
+      args: {
+        sender: ContractAddresses.HUB_MESSAGE_DISPATCHER,
+      },
+    });
 
-  const log = logs[logs.length - 1];
-  if (!log?.args?.sequence) throw new Error('No sequence found');
+    const log = logs[logs.length - 1];
 
-  // Wait for guardian to process
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+    if (log?.args?.sequence !== undefined) {
+      // Wait for guardian to process
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+      console.log('✅ Message sequence fetched:', log.args.sequence.toString());
+      return log.args.sequence;
+    }
 
-  console.log('✅ Message sequence fetched');
+    console.log(`No sequence found on attempt ${i + 1}, retrying...`);
+    if (i < MAX_RETRIES - 1) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+    }
+  }
 
-  return log.args.sequence;
+  throw new Error(`No sequence found after ${MAX_RETRIES} attempts`);
 };
 
 // Helper to create proposal data for token minting
