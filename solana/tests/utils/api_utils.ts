@@ -1,7 +1,10 @@
 import { StakeAccount, StakeConnection } from "../../app/StakeConnection";
 import { PublicKey } from "@solana/web3.js";
 import { WHTokenBalance } from "../../app";
-import { HUB_CHAIN_ID, HUB_PROPOSAL_METADATA_ADDRESS } from "../../app/constants";
+import {
+  HUB_CHAIN_ID,
+  HUB_PROPOSAL_METADATA_ADDRESS,
+} from "../../app/constants";
 import assert from "assert";
 import {
   QueryRequest,

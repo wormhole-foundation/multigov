@@ -53,5 +53,3 @@ export const HUB_SOLANA_SPOKE_VOTE_DECODER_ADDRESS =
 /// Wormhole HubVotePool Contract (sepolia ethereum address)
 export const HUB_VOTE_POOL_ADDRESS =
   "0x1004c781763c70f5f11aa64b0e5b34e1442a3c02";
-
-

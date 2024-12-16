@@ -700,7 +700,13 @@ pub mod staking {
             bump: ctx.bumps.message_received,
         });
 
-        msg!("Remaining accounts: {:?}", ctx.remaining_accounts.iter().map(|a| a.key).collect::<Vec<_>>());
+        msg!(
+            "Remaining accounts: {:?}",
+            ctx.remaining_accounts
+                .iter()
+                .map(|a| a.key)
+                .collect::<Vec<_>>()
+        );
 
         // Execute the instructions in the message.
         for instruction in posted_vaa.payload.1.instructions.clone() {

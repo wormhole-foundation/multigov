@@ -21,7 +21,7 @@ async function castVote() {
 
     const proposalId = await input({ message: "Enter the proposal id:" });
     const proposalIdHex = BigInt(proposalId).toString(16).padStart(64, "0");
-//     console.log("proposalIdHex:", proposalIdHex);
+    //     console.log("proposalIdHex:", proposalIdHex);
     const proposalIdArray = Buffer.from(proposalIdHex, "hex");
 
     const user2StakeConnection = await StakeConnection.createStakeConnection(

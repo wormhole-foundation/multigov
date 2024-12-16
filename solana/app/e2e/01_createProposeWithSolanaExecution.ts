@@ -118,11 +118,11 @@ async function createProposeWithSolanaExecution(): Promise<void> {
       [calldata],
       proposalName,
     ];
-//     console.log("proposalPayload:", proposalPayload);
+    //     console.log("proposalPayload:", proposalPayload);
     console.log("Creating a new proposal...");
     const proposalId = await contract.propose.staticCall(...proposalPayload);
     const tx = await contract.propose(...proposalPayload);
-//     console.log("tx:", tx);
+    //     console.log("tx:", tx);
     const receipt = await tx.wait();
     console.log("receipt.blockNumber:", receipt.blockNumber);
 
@@ -133,7 +133,7 @@ async function createProposeWithSolanaExecution(): Promise<void> {
     const proposalData = {
       proposalName,
       solanaPayloadHex,
-      receiptBlockNumber: receipt.blockNumber
+      receiptBlockNumber: receipt.blockNumber,
     };
     const fileName = `./app/e2e/log/${proposalId.toString()}.json`;
     fs.writeFileSync(fileName, JSON.stringify(proposalData, null, 2));

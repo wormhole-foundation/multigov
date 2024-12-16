@@ -42,7 +42,10 @@ export interface SolanaPdaEntry {
   seeds: Uint8Array[];
 }
 
-async function getSolanaQueryResponse(): Promise<{ bytes: string; signatures: any[] }> {
+async function getSolanaQueryResponse(): Promise<{
+  bytes: string;
+  signatures: any[];
+}> {
   const proposalId = await input({ message: "Enter the proposal id:" });
   const proposalIdHex = BigInt(proposalId).toString(16).padStart(64, "0");
   console.log("proposalIdHex:", proposalIdHex);
@@ -50,7 +53,10 @@ async function getSolanaQueryResponse(): Promise<{ bytes: string; signatures: an
   const pdas: SolanaPdaEntry[] = [
     {
       programAddress: STAKING_ADDRESS.toBuffer(),
-      seeds: [Buffer.from(wasm.Constants.PROPOSAL_SEED()), Buffer.from(proposalIdHex, "hex")],
+      seeds: [
+        Buffer.from(wasm.Constants.PROPOSAL_SEED()),
+        Buffer.from(proposalIdHex, "hex"),
+      ],
     },
   ];
   const queryRequest = new QueryRequest(42, [
@@ -59,7 +65,7 @@ async function getSolanaQueryResponse(): Promise<{ bytes: string; signatures: an
   const serializedQueryRequest = Buffer.from(queryRequest.serialize()).toString(
     "hex",
   );
-//   console.log("serializedQueryRequest: ", serializedQueryRequest);
+  //   console.log("serializedQueryRequest: ", serializedQueryRequest);
 
   const queryResponse = (
     await axios.post<QueryProxyQueryResponse>(
@@ -68,9 +74,9 @@ async function getSolanaQueryResponse(): Promise<{ bytes: string; signatures: an
       { headers: { "X-API-Key": WORMHOLE_API_KEY } },
     )
   ).data;
-//   console.log("queryResponse: ", queryResponse);
+  //   console.log("queryResponse: ", queryResponse);
 
-//   const queryResponseHex = QueryResponse.from(Buffer.from(queryResponse.bytes, "hex"));
+  //   const queryResponseHex = QueryResponse.from(Buffer.from(queryResponse.bytes, "hex"));
 
   const bytes = "0x" + queryResponse["bytes"];
   const signatures = queryResponse["signatures"];
@@ -82,26 +88,36 @@ async function getSolanaQueryResponse(): Promise<{ bytes: string; signatures: an
 
 async function decodeSolana(): Promise<void> {
   try {
-    const contractHubSolanaSpokeVoteDecoderABIPath = "./app/e2e/abi/HubSolanaSpokeVoteDecoder.json";
-    const contractHubSolanaSpokeVoteDecoderABI = JSON.parse(fs.readFileSync(contractHubSolanaSpokeVoteDecoderABIPath, "utf8"));
-    const contract = new ethers.Contract(HUB_SOLANA_SPOKE_VOTE_DECODER_ADDRESS, contractHubSolanaSpokeVoteDecoderABI, wallet);
+    const contractHubSolanaSpokeVoteDecoderABIPath =
+      "./app/e2e/abi/HubSolanaSpokeVoteDecoder.json";
+    const contractHubSolanaSpokeVoteDecoderABI = JSON.parse(
+      fs.readFileSync(contractHubSolanaSpokeVoteDecoderABIPath, "utf8"),
+    );
+    const contract = new ethers.Contract(
+      HUB_SOLANA_SPOKE_VOTE_DECODER_ADDRESS,
+      contractHubSolanaSpokeVoteDecoderABI,
+      wallet,
+    );
 
     const { bytes, signatures } = await getSolanaQueryResponse();
     const guardianSignatures = signaturesToEvmStruct(signatures);
-//     console.log("guardianSignatures: ", guardianSignatures);
+    //     console.log("guardianSignatures: ", guardianSignatures);
 
     console.log("Parse and Verify QueryResponse...");
-    const parsedQueryResponse = await contract.parseAndVerifyQueryResponse.staticCall(
-      bytes,
-      guardianSignatures,
-    );
+    const parsedQueryResponse =
+      await contract.parseAndVerifyQueryResponse.staticCall(
+        bytes,
+        guardianSignatures,
+      );
     let parsedPerChainQueryResponse = [...parsedQueryResponse.responses[0]];
-//     console.log("parsedPerChainQueryResponse:", parsedPerChainQueryResponse);
+    //     console.log("parsedPerChainQueryResponse:", parsedPerChainQueryResponse);
 
     console.log("Parse Solana PDA QueryResponse...");
     const solanaPdaQueryResponse =
-      await contract.parseSolanaPdaQueryResponse.staticCall(parsedPerChainQueryResponse);
-//     console.log("solanaPdaQueryResponse:", solanaPdaQueryResponse);
+      await contract.parseSolanaPdaQueryResponse.staticCall(
+        parsedPerChainQueryResponse,
+      );
+    //     console.log("solanaPdaQueryResponse:", solanaPdaQueryResponse);
 
     console.log("Decode...");
     const queryVote = await contract.decode.staticCall(
@@ -119,8 +135,14 @@ async function decodeSolana(): Promise<void> {
 async function crossChainVoteSolana(): Promise<void> {
   try {
     const contractHubVotePoolABIPath = "./app/e2e/abi/HubVotePool.json";
-    const contractHubVotePoolABI = JSON.parse(fs.readFileSync(contractHubVotePoolABIPath, "utf8"));
-    const contract = new ethers.Contract(HUB_VOTE_POOL_ADDRESS, contractHubVotePoolABI, wallet);
+    const contractHubVotePoolABI = JSON.parse(
+      fs.readFileSync(contractHubVotePoolABIPath, "utf8"),
+    );
+    const contract = new ethers.Contract(
+      HUB_VOTE_POOL_ADDRESS,
+      contractHubVotePoolABI,
+      wallet,
+    );
 
     const { bytes, signatures } = await getSolanaQueryResponse();
     const guardianSignatures = signaturesToEvmStruct(signatures);
@@ -134,8 +156,3 @@ async function crossChainVoteSolana(): Promise<void> {
 }
 
 crossChainVoteSolana();
-
-
-
-
-

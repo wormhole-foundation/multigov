@@ -7,7 +7,7 @@ import {
   QueryRequest,
   QueryResponse,
 } from "@wormhole-foundation/wormhole-query-sdk";
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError } from "axios";
 import { ethers } from "ethers";
 import input from "@inquirer/input";
 import "dotenv/config";
@@ -15,16 +15,13 @@ import {
   HUB_CHAIN_ID,
   HUB_PROPOSAL_METADATA_ADDRESS,
   STAKING_ADDRESS,
-  CORE_BRIDGE_ADDRESS,  
+  CORE_BRIDGE_ADDRESS,
 } from "../constants";
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
-import {
-  DEPLOYER_AUTHORITY_KEYPAIR,
-  RPC_NODE,
-} from "../deploy/devnet";
+import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "../deploy/devnet";
 import { getWormholeBridgeData } from "../helpers/wormholeBridgeConfig";
 import * as fs from "fs";
 
@@ -62,12 +59,19 @@ async function getLatestFinalizedBlock(rpcUrl: string): Promise<number> {
 
       return response.data?.result?.number;
     } catch (error) {
-      if (error instanceof AxiosError && (error.code === 'EHOSTUNREACH' || error.code === 'ENETUNREACH' || error.code === 'ERR_BAD_REQUEST')) {
+      if (
+        error instanceof AxiosError &&
+        (error.code === "EHOSTUNREACH" ||
+          error.code === "ENETUNREACH" ||
+          error.code === "ERR_BAD_REQUEST")
+      ) {
         attempt++;
-        console.log(`Attempt ${attempt} failed. Retrying in ${RETRY_DELAY / 1000} seconds...`);
+        console.log(
+          `Attempt ${attempt} failed. Retrying in ${RETRY_DELAY / 1000} seconds...`,
+        );
         await sleep(RETRY_DELAY);
       } else {
-        console.error('Error during request:', error);
+        console.error("Error during request:", error);
         break;
       }
     }
@@ -86,9 +90,7 @@ async function getWormholeQuery(
     [
       new PerChainQueryRequest(
         chain, // Ethereum Wormhole Chain ID
-        new EthCallWithFinalityQueryRequest(block, "finalized", [
-          calldata,
-        ]),
+        new EthCallWithFinalityQueryRequest(block, "finalized", [calldata]),
       ),
     ],
   ).serialize();
@@ -102,7 +104,9 @@ async function getWormholeQuery(
   ).data;
 }
 
-async function getProposalMetadata(proposalId: string): Promise<{ rawResponse: any }> {
+async function getProposalMetadata(
+  proposalId: string,
+): Promise<{ rawResponse: any }> {
   const encodedSignature = encodeSignature("getProposalMetadata(uint256)");
   const encodedParameters = new ethers.AbiCoder().encode(
     ["uint256"],
@@ -115,15 +119,24 @@ async function getProposalMetadata(proposalId: string): Promise<{ rawResponse: a
   };
 
   const latestFinalizedBlock = await getLatestFinalizedBlock(rpcUrl);
-  console.log("latestFinalizedBlock:", parseInt(latestFinalizedBlock.toString(), 16));
-  const rawResponse = await getWormholeQuery(HUB_CHAIN_ID, latestFinalizedBlock, calldata);
+  console.log(
+    "latestFinalizedBlock:",
+    parseInt(latestFinalizedBlock.toString(), 16),
+  );
+  const rawResponse = await getWormholeQuery(
+    HUB_CHAIN_ID,
+    latestFinalizedBlock,
+    calldata,
+  );
   console.log("rawResponse: ", rawResponse);
-  const queryResponse = QueryResponse.from(Buffer.from(rawResponse.bytes, "hex"));
-//   console.log("queryResponse:", queryResponse);
+  const queryResponse = QueryResponse.from(
+    Buffer.from(rawResponse.bytes, "hex"),
+  );
+  //   console.log("queryResponse:", queryResponse);
   const solRequest = queryResponse.request.requests[0].query;
   const solResponse = queryResponse.responses[0].response;
-//   console.log("solRequest:", solRequest);
-//   console.log("solResponse:", solResponse);
+  //   console.log("solRequest:", solRequest);
+  //   console.log("solResponse:", solResponse);
 
   return { rawResponse };
 }
@@ -146,15 +159,19 @@ async function addProposal() {
 
     const proposalId = await input({ message: "Enter the proposal id:" });
     let proposalIdHex = BigInt(proposalId).toString(16).padStart(64, "0");
-//     console.log("proposalIdHex:", proposalIdHex);
+    //     console.log("proposalIdHex:", proposalIdHex);
 
     const fileName = `./app/e2e/log/${proposalId.toString()}.json`;
-    if (!fs.existsSync(fileName)) throw new Error(`Proposal file not found: ${fileName}`);
+    if (!fs.existsSync(fileName))
+      throw new Error(`Proposal file not found: ${fileName}`);
     const savedProposalData = JSON.parse(fs.readFileSync(fileName, "utf8"));
     console.log("savedProposalData:", savedProposalData);
 
     while (true) {
-      const latestFinalizedBlockInt = parseInt((await getLatestFinalizedBlock(rpcUrl)).toString(), 16);
+      const latestFinalizedBlockInt = parseInt(
+        (await getLatestFinalizedBlock(rpcUrl)).toString(),
+        16,
+      );
       console.log("Latest finalized block:", latestFinalizedBlockInt);
 
       if (latestFinalizedBlockInt >= savedProposalData.receiptBlockNumber) {
@@ -166,10 +183,12 @@ async function addProposal() {
     }
 
     const proposalIdArray = Buffer.from(proposalIdHex, "hex");
-    const { proposalAccount } = await stakeConnection.fetchProposalAccount(proposalIdArray);
-    const proposalAccountData = await stakeConnection.program.account.proposalData.fetchNullable(
-      proposalAccount
-    );
+    const { proposalAccount } =
+      await stakeConnection.fetchProposalAccount(proposalIdArray);
+    const proposalAccountData =
+      await stakeConnection.program.account.proposalData.fetchNullable(
+        proposalAccount,
+      );
     console.log("proposalAccountData:", proposalAccountData);
 
     if (proposalAccountData == null) {

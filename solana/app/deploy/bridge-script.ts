@@ -18,7 +18,11 @@ import "dotenv/config";
 
 import { Keypair } from "@solana/web3.js";
 import { Connection } from "@solana/web3.js";
-import { CORE_BRIDGE_ADDRESS, HUB_CHAIN_ID, HUB_PROPOSAL_METADATA_ADDRESS } from "../constants";
+import {
+  CORE_BRIDGE_ADDRESS,
+  HUB_CHAIN_ID,
+  HUB_PROPOSAL_METADATA_ADDRESS,
+} from "../constants";
 import { RPC_NODE } from "./devnet";
 import { getWormholeBridgeData } from "../helpers/wormholeBridgeConfig";
 import { deriveGuardianSetKey } from "../helpers/guardianSet";
@@ -184,10 +188,10 @@ async function main() {
 
   const proposalId = await input({ message: "Enter the proposal id:" });
 
-//   const contractAddress = await input({
-//     message: "Enter the contract address:",
-//   });
-  
+  //   const contractAddress = await input({
+  //     message: "Enter the contract address:",
+  //   });
+
   const contractAddress = HUB_PROPOSAL_METADATA_ADDRESS;
 
   console.log(await scripts[bridgeType](chain, proposalId, contractAddress));

@@ -1,7 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
-import { USER2_AUTHORITY_KEYPAIR, RPC_NODE, AIRLOCK_PDA_ADDRESS } from "../../deploy/devnet";
+import {
+  USER2_AUTHORITY_KEYPAIR,
+  RPC_NODE,
+  AIRLOCK_PDA_ADDRESS,
+} from "../../deploy/devnet";
 import { ExternalProgram } from "./idl/external_program";
 import externalProgramIdl from "./idl/external_program.json";
 
@@ -24,7 +28,7 @@ async function initializeConfigPDA() {
       [Buffer.from("config")],
       externalProgram.programId,
     );
-    console.log("configPDA:",configPDA)
+    console.log("configPDA:", configPDA);
 
     await externalProgram.methods
       .initialize(AIRLOCK_PDA_ADDRESS)
@@ -34,7 +38,7 @@ async function initializeConfigPDA() {
         systemProgram: SystemProgram.programId,
       })
       .signers([USER2_AUTHORITY_KEYPAIR])
-      .rpc();    
+      .rpc();
   } catch (err) {
     console.error("Error:", err);
   }

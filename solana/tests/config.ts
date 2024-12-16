@@ -167,7 +167,10 @@ describe("config", async () => {
   it("should fail to initialize SpokeMetadataCollector if the signer is not a valid governance_authority", async () => {
     try {
       await program.methods
-        .initializeSpokeMetadataCollector(HUB_CHAIN_ID, hubProposalMetadataUint8Array)
+        .initializeSpokeMetadataCollector(
+          HUB_CHAIN_ID,
+          hubProposalMetadataUint8Array,
+        )
         .accounts({ governanceAuthority: randomUser.publicKey })
         .signers([randomUser])
         .rpc();

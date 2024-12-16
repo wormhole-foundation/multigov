@@ -347,9 +347,7 @@ describe("receive_message", () => {
     );
 
     let remainingAccountsModified = remainingAccounts.map((a) => {
-      if (
-        a.pubkey.toBase58() === airlockPDA.toBase58()
-      ) {
+      if (a.pubkey.toBase58() === airlockPDA.toBase58()) {
         return {
           pubkey: a.pubkey,
           isWritable: a.isWritable,
@@ -419,9 +417,7 @@ describe("receive_message", () => {
     );
 
     let remainingAccountsModified = remainingAccounts.map((a) => {
-      if (
-        a.pubkey.toBase58() === airlockPDA.toBase58()
-      ) {
+      if (a.pubkey.toBase58() === airlockPDA.toBase58()) {
         return {
           pubkey: a.pubkey,
           isWritable: a.isWritable,
