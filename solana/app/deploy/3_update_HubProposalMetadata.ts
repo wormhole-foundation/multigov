@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
-import { hubChainId, hubProposalMetadata } from "../constants";
+import { hubProposalMetadataUint8Array } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
@@ -23,7 +23,7 @@ async function main() {
     );
 
     await program.methods
-      .updateHubProposalMetadata(Array.from(hubProposalMetadata))
+      .updateHubProposalMetadata(Array.from(hubProposalMetadataUint8Array))
       .accounts({ governanceAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey })
       .rpc();
   } catch (err) {

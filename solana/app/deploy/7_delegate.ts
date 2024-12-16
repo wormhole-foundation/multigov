@@ -26,12 +26,12 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("10"));
+    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("10000000"));
     await sleep(10000);
 
     const user = provider.wallet.publicKey;
     console.log("user:", user);
-    await stakeConnection.delegate(user, WHTokenBalance.fromString("10"));
+    await stakeConnection.delegate(user, WHTokenBalance.fromString("10000000"));
   } catch (err) {
     console.error("Error:", err);
   }

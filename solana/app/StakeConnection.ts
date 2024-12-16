@@ -508,7 +508,7 @@ export class StakeConnection {
     instructions.push(
       await this.program.methods
         .delegate(delegateeStakeAccountOwner, currentDelegateStakeAccountOwner)
-        .accounts({
+        .accountsPartial({
           currentDelegateStakeAccountCheckpoints:
             currentDelegateStakeAccountCheckpointsAddress,
           delegateeStakeAccountCheckpoints:
@@ -595,7 +595,7 @@ export class StakeConnection {
     instructions.push(
       await this.program.methods
         .delegate(delegateeStakeAccountOwner, currentDelegateStakeAccountOwner)
-        .accounts({
+        .accountsPartial({
           currentDelegateStakeAccountCheckpoints:
             currentDelegateStakeAccountCheckpointsAddress,
           delegateeStakeAccountCheckpoints:
@@ -779,7 +779,7 @@ export class StakeConnection {
           currentDelegateStakeAccountCheckpointsOwner,
           stakeAccountCheckpointsData.owner,
         )
-        .accounts({
+        .accountsPartial({
           currentDelegateStakeAccountCheckpoints:
             currentDelegateStakeAccountCheckpointsAddress,
           destination: toAccount,

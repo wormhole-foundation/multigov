@@ -348,7 +348,7 @@ describe("receive_message", () => {
 
     let remainingAccountsModified = remainingAccounts.map((a) => {
       if (
-        a.pubkey.toBase58() === "8fhJpwx2zsa1GGxRzMFAB57wRZZknWcuvbYK4C4e6hCH"
+        a.pubkey.toBase58() === airlockPDA.toBase58()
       ) {
         return {
           pubkey: a.pubkey,
@@ -420,7 +420,7 @@ describe("receive_message", () => {
 
     let remainingAccountsModified = remainingAccounts.map((a) => {
       if (
-        a.pubkey.toBase58() === "8fhJpwx2zsa1GGxRzMFAB57wRZZknWcuvbYK4C4e6hCH"
+        a.pubkey.toBase58() === airlockPDA.toBase58()
       ) {
         return {
           pubkey: a.pubkey,

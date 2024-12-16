@@ -25,8 +25,8 @@ import {
 } from "../app";
 import BN from "bn.js";
 import {
-  hubChainId,
-  hubProposalMetadata,
+  HUB_CHAIN_ID,
+  hubProposalMetadataUint8Array,
   CORE_BRIDGE_ADDRESS,
 } from "../app/constants";
 import { StakeAccountMetadata } from "../app/StakeConnection.ts";
@@ -167,7 +167,7 @@ describe("config", async () => {
   it("should fail to initialize SpokeMetadataCollector if the signer is not a valid governance_authority", async () => {
     try {
       await program.methods
-        .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
+        .initializeSpokeMetadataCollector(HUB_CHAIN_ID, hubProposalMetadataUint8Array)
         .accounts({ governanceAuthority: randomUser.publicKey })
         .signers([randomUser])
         .rpc();
@@ -182,7 +182,7 @@ describe("config", async () => {
     const initHubProposalMetadata = new Uint8Array(20);
 
     await program.methods
-      .initializeSpokeMetadataCollector(hubChainId, initHubProposalMetadata)
+      .initializeSpokeMetadataCollector(HUB_CHAIN_ID, initHubProposalMetadata)
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
       .rpc({ skipPreflight: true });
 
@@ -205,7 +205,7 @@ describe("config", async () => {
       spokeMetadataCollectorAccountData.bump,
       spokeMetadataCollectorBump,
     );
-    assert.equal(spokeMetadataCollectorAccountData.hubChainId, hubChainId);
+    assert.equal(spokeMetadataCollectorAccountData.hubChainId, HUB_CHAIN_ID);
     assert.equal(
       spokeMetadataCollectorAccountData.hubProposalMetadata.toString(),
       initHubProposalMetadata.toString(),
@@ -274,7 +274,7 @@ describe("config", async () => {
   it("should fail to update HubProposalMetadata if the signer is not a valid governance_authority", async () => {
     try {
       await program.methods
-        .updateHubProposalMetadata(hubProposalMetadata)
+        .updateHubProposalMetadata(hubProposalMetadataUint8Array)
         .accounts({ governanceAuthority: randomUser.publicKey })
         .signers([randomUser])
         .rpc();
@@ -287,7 +287,7 @@ describe("config", async () => {
 
   it("should successfully update HubProposalMetadata", async () => {
     await program.methods
-      .updateHubProposalMetadata(hubProposalMetadata)
+      .updateHubProposalMetadata(hubProposalMetadataUint8Array)
       .accounts({ governanceAuthority: program.provider.wallet.publicKey })
       .rpc({ skipPreflight: true });
 
@@ -310,10 +310,10 @@ describe("config", async () => {
       spokeMetadataCollectorAccountData.bump,
       spokeMetadataCollectorBump,
     );
-    assert.equal(spokeMetadataCollectorAccountData.hubChainId, hubChainId);
+    assert.equal(spokeMetadataCollectorAccountData.hubChainId, HUB_CHAIN_ID);
     assert.equal(
       spokeMetadataCollectorAccountData.hubProposalMetadata.toString(),
-      hubProposalMetadata.toString(),
+      hubProposalMetadataUint8Array.toString(),
     );
     assert.equal(
       spokeMetadataCollectorAccountData.wormholeCore.toString("hex"),

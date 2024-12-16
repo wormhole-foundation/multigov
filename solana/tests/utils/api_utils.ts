@@ -1,7 +1,7 @@
 import { StakeAccount, StakeConnection } from "../../app/StakeConnection";
 import { PublicKey } from "@solana/web3.js";
 import { WHTokenBalance } from "../../app";
-import { hubChainId, hubProposalMetadata } from "../../app/constants";
+import { HUB_CHAIN_ID, HUB_PROPOSAL_METADATA_ADDRESS } from "../../app/constants";
 import assert from "assert";
 import {
   QueryRequest,
@@ -49,11 +49,10 @@ export async function assertBalanceMatches(
 }
 
 function getQueryRequestCalldata(proposalIdInput: Uint8Array): EthCallData {
-  const contractAddress = "0x26c73662633bd0d4a6ba231a1001bbbced8d2b21"; // HubProposalMetadata address
   const encodedSignature = encodeSignature("getProposalMetadata(uint256)");
 
   const calldata: EthCallData = {
-    to: contractAddress,
+    to: HUB_PROPOSAL_METADATA_ADDRESS,
     data: encodedSignature + Buffer.from(proposalIdInput).toString("hex"),
   };
 
@@ -63,13 +62,12 @@ function getQueryRequestCalldata(proposalIdInput: Uint8Array): EthCallData {
 function getQueryRequestCalldataWithInvalidFunctionSignature(
   proposalIdInput: Uint8Array,
 ): EthCallData {
-  const contractAddress = "0x26c73662633bd0d4a6ba231a1001bbbced8d2b21"; // HubProposalMetadata address
   const encodedSignature = encodeSignature(
     "getInvalidProposalMetadata(uint256)",
   );
 
   const calldata: EthCallData = {
-    to: contractAddress,
+    to: HUB_PROPOSAL_METADATA_ADDRESS,
     data: encodedSignature + Buffer.from(proposalIdInput).toString("hex"),
   };
 
@@ -84,7 +82,7 @@ export function createProposalQueryResponseBytes(
     42, // nonce
     [
       new PerChainQueryRequest(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallWithFinalityQueryRequest(
           987654, // block number
           "finalized",
@@ -104,12 +102,12 @@ export function createProposalQueryResponseBytes(
   result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
-    hubChainId, // chain id
+    HUB_CHAIN_ID, // chain id
     Buffer.from(new Array(32).fill(3)).toString("hex"), // request id (32 bytes for on-chain request since chainId != 0)
     queryRequest,
     [
       new PerChainQueryResponse(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallWithFinalityQueryResponse(
           BigInt(987654), // block number
           "0x123abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123a", // block hash
@@ -131,7 +129,7 @@ export function createNonFinalizedProposalQueryResponseBytes(
     42, // nonce
     [
       new PerChainQueryRequest(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallWithFinalityQueryRequest(
           987654, // block number
           "safe",
@@ -151,12 +149,12 @@ export function createNonFinalizedProposalQueryResponseBytes(
   result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
-    hubChainId, // chain id
+    HUB_CHAIN_ID, // chain id
     Buffer.from(new Array(32).fill(3)).toString("hex"), // request id (32 bytes for on-chain request since chainId != 0)
     queryRequest,
     [
       new PerChainQueryResponse(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallWithFinalityQueryResponse(
           BigInt(987654), // block number
           "0x123abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123a", // block hash
@@ -178,7 +176,7 @@ export function createProposalQueryResponseBytesWithInvalidChainSpecificQuery(
     42, // nonce
     [
       new PerChainQueryRequest(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallQueryRequest(
           987654, // block number
           [getQueryRequestCalldata(proposalIdInput)],
@@ -197,12 +195,12 @@ export function createProposalQueryResponseBytesWithInvalidChainSpecificQuery(
   result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
-    hubChainId, // chain id
+    HUB_CHAIN_ID, // chain id
     Buffer.from(new Array(32).fill(3)).toString("hex"), // request id (32 bytes for on-chain request since chainId != 0)
     queryRequest,
     [
       new PerChainQueryResponse(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallQueryResponse(
           BigInt(987654), // block number
           "0x123abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123a", // block hash
@@ -224,7 +222,7 @@ export function createProposalQueryResponseBytesWithInvalidChainSpecificResponse
     42, // nonce
     [
       new PerChainQueryRequest(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallWithFinalityQueryRequest(
           987654, // block number
           "finalized",
@@ -244,12 +242,12 @@ export function createProposalQueryResponseBytesWithInvalidChainSpecificResponse
   result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
-    hubChainId, // chain id
+    HUB_CHAIN_ID, // chain id
     Buffer.from(new Array(32).fill(3)).toString("hex"), // request id (32 bytes for on-chain request since chainId != 0)
     queryRequest,
     [
       new PerChainQueryResponse(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallQueryResponse(
           BigInt(987654), // block number
           "0x123abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123a", // block hash
@@ -271,7 +269,7 @@ export function createProposalQueryResponseBytesWithInvalidFunctionSignature(
     42, // nonce
     [
       new PerChainQueryRequest(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallWithFinalityQueryRequest(
           987654, // block number
           "finalized",
@@ -295,12 +293,12 @@ export function createProposalQueryResponseBytesWithInvalidFunctionSignature(
   result.set(voteStart, 32); // vote start (32 bytes)
 
   const serializedQueryResponse = new QueryResponse(
-    hubChainId, // chain id
+    HUB_CHAIN_ID, // chain id
     Buffer.from(new Array(32).fill(3)).toString("hex"), // request id (32 bytes for on-chain request since chainId != 0)
     queryRequest,
     [
       new PerChainQueryResponse(
-        hubChainId, // chain id
+        HUB_CHAIN_ID, // chain id
         new EthCallWithFinalityQueryResponse(
           BigInt(987654), // block number
           "0x123abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123a", // block hash

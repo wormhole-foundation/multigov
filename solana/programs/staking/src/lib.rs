@@ -67,7 +67,7 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
+declare_id!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
 #[program]
 pub mod staking {
     /// Creates a global config for the program
@@ -700,6 +700,8 @@ pub mod staking {
             bump: ctx.bumps.message_received,
         });
 
+        msg!("Remaining accounts: {:?}", ctx.remaining_accounts.iter().map(|a| a.key).collect::<Vec<_>>());
+
         // Execute the instructions in the message.
         for instruction in posted_vaa.payload.1.instructions.clone() {
             // Prepare AccountInfo vector for the instruction.
@@ -707,6 +709,9 @@ pub mod staking {
 
             for meta in &instruction.accounts {
                 let meta_pubkey = Pubkey::new_from_array(meta.pubkey);
+
+                msg!("meta_pubkey: {:?}", meta_pubkey);
+
                 let account_info = ctx
                     .remaining_accounts
                     .iter()

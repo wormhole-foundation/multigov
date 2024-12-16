@@ -21,7 +21,7 @@ async function main() {
     );
 
     const proposalIdHex =
-      "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2";
+      "01560dfa1adfd9ba4546b29b5d115c4a09c607f33588599455fa0698a512e59c";
     const proposalIdArray = Buffer.from(proposalIdHex, "hex");
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
