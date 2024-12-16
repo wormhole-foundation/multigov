@@ -700,14 +700,6 @@ pub mod staking {
             bump: ctx.bumps.message_received,
         });
 
-        msg!(
-            "Remaining accounts: {:?}",
-            ctx.remaining_accounts
-                .iter()
-                .map(|a| a.key)
-                .collect::<Vec<_>>()
-        );
-
         // Execute the instructions in the message.
         for instruction in posted_vaa.payload.1.instructions.clone() {
             // Prepare AccountInfo vector for the instruction.
@@ -715,8 +707,6 @@ pub mod staking {
 
             for meta in &instruction.accounts {
                 let meta_pubkey = Pubkey::new_from_array(meta.pubkey);
-
-                msg!("meta_pubkey: {:?}", meta_pubkey);
 
                 let account_info = ctx
                     .remaining_accounts
