@@ -3,9 +3,6 @@
 # Deployment cache
 .deployment-cache.json
 
-# Artifacts
-artifacts/
-
 # Logs
 
 logs
@@ -179,3 +176,21 @@ dist
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Wormhole
+.wormhole/
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+out/
+cache/
+
+# Test artifacts
+coverage/
+.deployment-cache.json
+
+# Environment
+.env
+.env.*

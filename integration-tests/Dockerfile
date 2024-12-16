@@ -1,36 +1,24 @@
-FROM ghcr.io/foundry-rs/foundry:latest as foundry
+# First stage: Build contracts
+FROM --platform=linux/amd64 ghcr.io/foundry-rs/foundry@sha256:8b843eb65cc7b155303b316f65d27173c862b37719dc095ef3a2ef27ce8d3c00 as foundry
 
-COPY . ./app
-WORKDIR ./app
-RUN forge clean
-RUN forge build
+# Only copy what's needed for forge build
+WORKDIR /app/evm
+COPY evm/foundry.toml ./foundry.toml
+COPY evm/lib ./lib
+COPY evm/src ./src
+RUN forge clean && forge build
+RUN ls -la
 
-
+# Second stage: Setup test environment
 FROM oven/bun:1 AS base
+WORKDIR /app
 
-# install dependencies into temp directory
-# this will cache them and speed up future builds
-# FROM base AS install
-# RUN mkdir -p /temp/dev
-# COPY package.json bun.lockb /temp/dev/
-# RUN cd /temp/dev && bun install --frozen-lockfile
+# Copy all integration-tests files
+COPY integration-tests/ ./
 
-# install with --production (exclude devDependencies)
-# RUN mkdir -p /temp/prod
-# COPY package.json bun.lockb /temp/prod/
-# RUN cd /temp/prod && bun install --frozen-lockfile --production
-
-# copy node_modules from temp directory
-# then copy all (non-ignored) project files into the image
-# FROM base AS prerelease
-# COPY --from=install /temp/dev/node_modules node_modules
-COPY --from=foundry ./app ./app
-WORKDIR ./app/integration-tests
-
-# [optional] tests & build
-# ENV NODE_ENV=production
+# Install dependencies
 RUN bun install --frozen-lockfile
-# CMD cd ./integration-tests && bun run test:only
 
-# copy production dependencies and source code into final image
+# Copy foundry output
+COPY --from=foundry /app/evm/out ./out
 
