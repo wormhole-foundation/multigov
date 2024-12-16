@@ -18,8 +18,8 @@ external_program = "eLUV8cwhgUC2Bcu4UA16uhuMwK8zPkx3XSzt4hd3JJ3"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "https://api.devnet.solana.com"
-wallet = "/home/myster-sky/.config/solana/deployer.json"
+cluster = "localnet"
+wallet = "./app/keypairs/localnet_authority.json"
 
 [scripts]
 test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/*.ts"
