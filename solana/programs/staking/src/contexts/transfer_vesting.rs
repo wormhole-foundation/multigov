@@ -144,10 +144,13 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     VestingError::InvalidStakeAccountMetadataPDA
                 );
 
-                stake_account_metadata.recorded_vesting_balance = stake_account_metadata
+                let new_recorded_vesting_balance = stake_account_metadata
                     .recorded_vesting_balance
                     .checked_sub(self.vest.amount)
                     .ok_or(VestingError::Underflow)?;
+
+                stake_account_metadata
+                    .update_recorded_vesting_balance(new_recorded_vesting_balance);
 
                 // Update checkpoints
                 let current_delegate_checkpoints_account_info =
@@ -226,10 +229,13 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     VestingError::InvalidStakeAccountMetadataPDA
                 );
 
-                new_stake_account_metadata.recorded_vesting_balance = new_stake_account_metadata
+                let new_recorded_vesting_balance = new_stake_account_metadata
                     .recorded_vesting_balance
                     .checked_add(self.vest.amount)
                     .ok_or(VestingError::Overflow)?;
+
+                new_stake_account_metadata
+                    .update_recorded_vesting_balance(new_recorded_vesting_balance);
 
                 let current_delegate_checkpoints_account_info =
                     new_stake_account_checkpoints.to_account_info();

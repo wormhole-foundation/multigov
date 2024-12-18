@@ -202,8 +202,8 @@ pub mod staking {
                     );
 
                     vesting_balance.stake_account_metadata = stake_account_metadata.key();
-                    stake_account_metadata.recorded_vesting_balance =
-                        vesting_balance.total_vesting_balance;
+                    stake_account_metadata
+                        .update_recorded_vesting_balance(vesting_balance.total_vesting_balance);
                 }
             }
         }
@@ -292,7 +292,7 @@ pub mod staking {
         }
 
         if current_stake_balance != stake_account_metadata.recorded_balance {
-            stake_account_metadata.recorded_balance = current_stake_balance;
+            stake_account_metadata.update_recorded_balance(current_stake_balance);
         }
 
         let delegatee_stake_account_checkpoints =
@@ -466,7 +466,9 @@ pub mod staking {
             drop(loaded_checkpoints);
         }
 
-        ctx.accounts.stake_account_metadata.recorded_balance = *current_stake_balance;
+        ctx.accounts
+            .stake_account_metadata
+            .update_recorded_balance(*current_stake_balance);
 
         Ok(())
     }
