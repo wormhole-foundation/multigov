@@ -8,7 +8,6 @@ members = ["programs/staking"]
 
 [programs.localnet]
 staking = "DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY"
-external_program = "eLUV8cwhgUC2Bcu4UA16uhuMwK8zPkx3XSzt4hd3JJ3"
 
 [programs.devnet]
 staking = "DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY"
