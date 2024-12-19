@@ -20,6 +20,20 @@ pub struct StakeAccountMetadata {
     pub stake_account_checkpoints_last_index: u8,
 }
 
+#[event]
+pub struct RecordedBalanceChanged {
+    pub owner: Pubkey,
+    pub previous_balance: u64,
+    pub new_balance: u64,
+}
+
+#[event]
+pub struct RecordedVestingBalanceChanged {
+    pub owner: Pubkey,
+    pub previous_balance: u64,
+    pub new_balance: u64,
+}
+
 impl StakeAccountMetadata {
     pub const LEN: usize =
         StakeAccountMetadata::DISCRIMINATOR.len() + size_of::<StakeAccountMetadata>();
@@ -39,6 +53,26 @@ impl StakeAccountMetadata {
         self.owner = *owner;
         self.delegate = *delegate;
         self.stake_account_checkpoints_last_index = stake_account_checkpoints_last;
+    }
+
+    pub fn update_recorded_balance(&mut self, new_recorded_balance: u64) {
+        emit!(RecordedBalanceChanged {
+            owner: self.owner,
+            previous_balance: self.recorded_balance,
+            new_balance: new_recorded_balance,
+        });
+
+        self.recorded_balance = new_recorded_balance;
+    }
+
+    pub fn update_recorded_vesting_balance(&mut self, new_recorded_vesting_balance: u64) {
+        emit!(RecordedVestingBalanceChanged {
+            owner: self.owner,
+            previous_balance: self.recorded_vesting_balance,
+            new_balance: new_recorded_vesting_balance,
+        });
+
+        self.recorded_vesting_balance = new_recorded_vesting_balance;
     }
 }
 

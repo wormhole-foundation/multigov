@@ -101,11 +101,14 @@ impl<'info> ClaimVesting<'info> {
                     VestingError::InvalidStakeAccountOwner
                 );
 
-                // Update the recorded vesting balance
-                stake_account_metadata.recorded_vesting_balance = stake_account_metadata
+                let new_recorded_vesting_balance = stake_account_metadata
                     .recorded_vesting_balance
                     .checked_sub(self.vest.amount)
                     .ok_or(VestingError::Underflow)?;
+
+                // Update the recorded vesting balance
+                stake_account_metadata
+                    .update_recorded_vesting_balance(new_recorded_vesting_balance);
 
                 // Update checkpoints
                 let current_delegate_checkpoints_account_info =
