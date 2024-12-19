@@ -1,0 +1,31 @@
+{
+  "name": "integration-tests",
+  "module": "index.test.ts",
+  "type": "module",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "forge:clean": "cd ../evm && forge clean",
+    "forge:build": "cd ../evm && forge build --via-ir",
+    "generate:abis": "cd ../evm && forge build && ./generate_abis.sh",
+    "generate:artifacts": "bun run scripts/generateArtifacts.ts",
+    "build": "bun run forge:clean && bun run forge:build && bun run generate:artifacts",
+    "test": "bun run build && bun test",
+    "test:only": "bun test",
+    "lint": "tsc --noEmit && biome lint --write",
+    "format": "biome format --write",
+    "check": "tsc --noEmit && biome check --write",
+    "check-write": "tsc --noEmit && biome check --write"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@wormhole-foundation/sdk": "^0.15.0",
+    "@wormhole-foundation/wormhole-query-sdk": "^0.0.13",
+    "dotenv": "^16.4.5",
+    "viem": "^2.21.42"
+  }
+}

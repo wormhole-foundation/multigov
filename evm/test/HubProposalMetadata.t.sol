@@ -39,6 +39,7 @@ contract HubProposalMetadataTest is Test, ProposalTest {
     extender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, address(timelock), initialOwner, MINIMUM_VOTE_EXTENSION
     );
+    HubVotePool hubVotePool = new HubVotePool(address(wormhole), address(0), address(timelock));
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",
       token: token,
@@ -47,7 +48,7 @@ contract HubProposalMetadataTest is Test, ProposalTest {
       initialVotingPeriod: INITIAL_VOTING_PERIOD,
       initialProposalThreshold: PROPOSAL_THRESHOLD,
       initialQuorum: INITIAL_QUORUM,
-      hubVotePool: initialOwner,
+      hubVotePool: address(hubVotePool),
       wormholeCore: address(wormhole),
       governorProposalExtender: address(extender),
       initialVoteWeightWindow: VOTE_WINDOW

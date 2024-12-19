@@ -1,0 +1,27 @@
+# Compiler files
+cache/
+out/
+evm/cache/
+evm/out/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+/broadcast/*devnet*/**
+
+# Dotenv file
+.env
+
+# Coverage
+lcov.info
+
+# IDEs
+.vscode
+.idea
+
+# Artifacts
+artifacts/
+
+# Abis
+abis/

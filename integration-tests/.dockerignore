@@ -1,0 +1,27 @@
+# Node
+node_modules
+npm-debug.log
+
+# Build artifacts
+out
+cache
+artifacts
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Wormhole
+.wormhole
+
+# Test artifacts
+coverage
+.deployment-cache.json
+
+# Environment
+.env
+.env.* 
