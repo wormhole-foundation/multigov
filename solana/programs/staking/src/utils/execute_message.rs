@@ -26,7 +26,6 @@ pub struct Message {
 
 impl AnchorDeserialize for Message {
     fn deserialize(buf: &mut &[u8]) -> std::result::Result<Message, std::io::Error> {
-        msg!("parse_abi_encoded_message...");
         parse_abi_encoded_message(buf)
     }
 
@@ -45,9 +44,6 @@ impl AnchorSerialize for Message {
 }
 
 pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
-    msg!("Starting parse_abi_encoded_message...");
-    msg!("Data length: {}", data.len());
-
     let params = vec![
         ParamType::Uint(256), // messageId
         ParamType::Uint(16),  // wormholeChainId
@@ -62,15 +58,12 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
         ]))),
     ];
 
-    msg!("Params: {:?}", params);
-
     let tokens = decode(&params, data).map_err(|e| {
         IoError::new(
             ErrorKind::InvalidData,
             format!("Failed to decode ABI data: {}", e),
         )
     })?;
-    msg!("Decoded tokens: {:?}", tokens);
 
     // Extract message_id
     let message_id = tokens
@@ -99,8 +92,6 @@ pub fn parse_abi_encoded_message(data: &[u8]) -> StdResult<Message, IoError> {
         .ok_or_else(|| {
             IoError::new(ErrorKind::InvalidData, "Failed to parse instructions array")
         })?;
-
-    println!("instructions_array.len(): {}", instructions_array.len());
 
     let mut instructions = Vec::new();
 

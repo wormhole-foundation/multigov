@@ -32,7 +32,10 @@ import {
 import { GlobalConfig } from "../../app/StakeConnection";
 import { createMint, initAddressLookupTable } from "./utils";
 import { loadKeypair } from "./keys";
-import { hubChainId, hubProposalMetadata } from "../../app/constants";
+import {
+  HUB_CHAIN_ID,
+  hubProposalMetadataUint8Array,
+} from "../../app/constants";
 
 export const ANCHOR_CONFIG_PATH = "./Anchor.toml";
 export interface AnchorConfig {
@@ -430,7 +433,10 @@ export async function standardSetup(
   //   console.log("Lookup table address: ", lookupTableAddress.toBase58());
 
   await program.methods
-    .initializeSpokeMetadataCollector(hubChainId, hubProposalMetadata)
+    .initializeSpokeMetadataCollector(
+      HUB_CHAIN_ID,
+      hubProposalMetadataUint8Array,
+    )
     .accounts({ governance_authority: user })
     .rpc();
 

@@ -30,7 +30,10 @@ async function main() {
       STAKING_ADDRESS,
     );
 
-    await stakeConnection.delegate(undefined, WHTokenBalance.fromString("10"));
+    await stakeConnection.delegate(
+      undefined,
+      WHTokenBalance.fromString("10000000"),
+    );
     await sleep(10000);
 
     const user2Provider = new AnchorProvider(
@@ -47,13 +50,13 @@ async function main() {
 
     await user2StakeConnection.delegate(
       undefined,
-      WHTokenBalance.fromString("10"),
+      WHTokenBalance.fromString("10000000"),
     );
     await sleep(10000);
 
     await stakeConnection.delegate(
       user2StakeConnection.userPublicKey(),
-      WHTokenBalance.fromString("10"),
+      WHTokenBalance.fromString("10000000"),
     );
   } catch (err) {
     console.error("Error:", err);

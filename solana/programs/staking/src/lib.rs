@@ -67,7 +67,7 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-declare_id!("8t5PooRwQTcmN7BP5gsGeWSi3scvoaPqFifNi2Bnnw4g");
+declare_id!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
 #[program]
 pub mod staking {
     /// Creates a global config for the program
@@ -713,6 +713,7 @@ pub mod staking {
 
             for meta in &instruction.accounts {
                 let meta_pubkey = Pubkey::new_from_array(meta.pubkey);
+
                 let account_info = ctx
                     .remaining_accounts
                     .iter()
