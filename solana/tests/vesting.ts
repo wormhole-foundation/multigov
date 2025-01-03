@@ -1623,9 +1623,11 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
-          stakeAccountCheckpoints: previousStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints: previousStakeAccountCheckpointsAddress,
+          delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
-          newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountMetadata: newStakeAccountMetadataAddress,
           newStakeAccountMetadata: newStakeAccountMetadataAddress,
           newVest: vestNowTransfered,
           newVestingBalance: newVestingBalance,
@@ -1981,9 +1983,11 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
+          delegateStakeAccountMetadata: incorrectStakeAccountMetadataAddress,
           stakeAccountMetadata: incorrectStakeAccountMetadataAddress,
-          stakeAccountCheckpoints: incorrectStakeAccountCheckpointsAddress,
-          newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints: incorrectStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountMetadata: newStakeAccountMetadataAddress,
           newStakeAccountMetadata: newStakeAccountMetadataAddress,
           newVestingBalance: newVestingBalance,
           globalConfig: stakeConnection.configAddress,
@@ -2032,9 +2036,11 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
-          stakeAccountCheckpoints: incorrectStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints: incorrectStakeAccountCheckpointsAddress,
+          delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
-          newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountMetadata: newStakeAccountMetadataAddress,
           newStakeAccountMetadata: newStakeAccountMetadataAddress,
           newVestingBalance: newVestingBalance,
           globalConfig: stakeConnection.configAddress,
@@ -2047,7 +2053,7 @@ describe("vesting", () => {
     } catch (e) {
       assert(
         (e as AnchorError).error?.errorCode?.code ===
-          "InvalidStakeAccountCheckpointsPDA",
+          "InvalidStakeAccountCheckpoints",
       );
     }
   });
@@ -2078,9 +2084,11 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
-          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          delegateStakeAccountMetadata: null,
           stakeAccountMetadata: null,
-          newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountMetadata: newStakeAccountMetadataAddress,
           newStakeAccountMetadata: newStakeAccountMetadataAddress,
           newVestingBalance: newVestingBalance,
           globalConfig: stakeConnection.configAddress,
@@ -2119,9 +2127,11 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
-          stakeAccountCheckpoints: null,
+          delegateStakeAccountCheckpoints: null,
+          delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
-          newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+          newDelegateStakeAccountMetadata: newStakeAccountMetadataAddress,
           newStakeAccountMetadata: newStakeAccountMetadataAddress,
           newVestingBalance: newVestingBalance,
           globalConfig: stakeConnection.configAddress,
@@ -2156,9 +2166,11 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
-          stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
-          newStakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          newDelegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+          newDelegateStakeAccountMetadata: stakeAccountMetadataAddress,
           newStakeAccountMetadata: stakeAccountMetadataAddress,
           vesterTa: vesterTa,
           newVesterTa: vesterTa,
@@ -2241,9 +2253,11 @@ describe("vesting", () => {
       .accounts({
         ...accounts,
         vest: vestNowForTransfer,
-        stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+        delegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+        delegateStakeAccountMetadata: stakeAccountMetadataAddress,
         stakeAccountMetadata: stakeAccountMetadataAddress,
-        newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+        newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+        newDelegateStakeAccountMetadata: newStakeAccountMetadataAddress,
         newStakeAccountMetadata: newStakeAccountMetadataAddress,
         newVest: vestNowTransfered,
         newVestingBalance: newVestingBalance,
@@ -2338,9 +2352,11 @@ describe("vesting", () => {
       .accounts({
         ...accounts,
         vest: vestNowForTransfer3,
-        stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+        delegateStakeAccountCheckpoints: stakeAccountCheckpointsAddress,
+        delegateStakeAccountMetadata: stakeAccountMetadataAddress,
         stakeAccountMetadata: stakeAccountMetadataAddress,
-        newStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+        newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
+        newDelegateStakeAccountMetadata: newStakeAccountMetadataAddress,
         newStakeAccountMetadata: newStakeAccountMetadataAddress,
         newVest: vestNowTransfered3,
         newVestingBalance: newVestingBalance,
@@ -2461,13 +2477,15 @@ describe("vesting", () => {
         vesterTa: newVesterTa,
         vestingBalance: newVestingBalance,
         vest: vestLaterForTransfer,
-        stakeAccountCheckpoints: newVesterStakeAccountCheckpointsAddress,
+        delegateStakeAccountCheckpoints: newVesterStakeAccountCheckpointsAddress,
+        delegateStakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         stakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         // Instead of null we pass any existing CheckpointData and StakeAccountMetadata accounts,
         // because otherwise we have an error
         // "Access violation in unknown section at address 0x8 of size 8"
         // related to the lack of memory on the stack
-        newStakeAccountCheckpoints: newVesterStakeAccountCheckpointsAddress,
+        newDelegateStakeAccountCheckpoints: newVesterStakeAccountCheckpointsAddress,
+        newDelegateStakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         newStakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         newVestingBalance: vestingBalanceWithoutAccount,
         newVesterTa: vesterTaWithoutAccount,

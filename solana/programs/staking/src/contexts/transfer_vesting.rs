@@ -16,17 +16,17 @@ use std::convert::TryInto;
 pub struct TransferVesting<'info> {
     #[account(mut)]
     vester: Signer<'info>,
-    mint: InterfaceAccount<'info, Mint>,
+    mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(
         mut,
         token::mint = mint
     )]
-    vester_ta: InterfaceAccount<'info, TokenAccount>,
+    vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         token::mint = mint
     )]
-    new_vester_ta: InterfaceAccount<'info, TokenAccount>,
+    new_vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
@@ -74,11 +74,15 @@ pub struct TransferVesting<'info> {
     /// CheckpointData and StakeAccountMetadata accounts are optional because
     /// in order to be able to transfer vests that have not been delegated
     #[account(mut)]
-    pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
+    pub delegate_stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
+    #[account(mut)]
+    pub delegate_stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
     #[account(mut)]
     pub stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
     #[account(mut)]
-    pub new_stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
+    pub new_delegate_stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
+    #[account(mut)]
+    pub new_delegate_stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
     #[account(mut)]
     pub new_stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
     associated_token_program: Program<'info, AssociatedToken>,
@@ -97,16 +101,23 @@ impl<'info> crate::contexts::TransferVesting<'info> {
         }
 
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
-            if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
+            if let (Some(stake_account_metadata), Some(delegate_stake_account_metadata), Some(delegate_stake_account_checkpoints)) = (
                 &mut self.stake_account_metadata,
-                &mut self.stake_account_checkpoints,
+                &mut self.delegate_stake_account_metadata,
+                &mut self.delegate_stake_account_checkpoints,
             ) {
                 // Check if stake account checkpoints is out of bounds
-                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
                 require!(
                     loaded_checkpoints.next_index
                         < self.global_config.max_checkpoints_account_limit.into(),
                     ErrorCode::TooManyCheckpoints,
+                );
+
+                // Verify that the actual delegate_stake_account_checkpoints address matches the expected one
+                require!(
+                    stake_account_metadata.delegate.key() == loaded_checkpoints.owner,
+                    VestingError::InvalidStakeAccountCheckpoints
                 );
                 drop(loaded_checkpoints);
 
@@ -116,11 +127,17 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     VestingError::InvalidStakeAccountOwner
                 );
 
-                let (expected_stake_account_checkpoints_pda, _) = Pubkey::find_program_address(
+                // Verify that the actual delegate_stake_account_metadata address matches the expected one
+                require!(
+                    stake_account_metadata.delegate == delegate_stake_account_metadata.owner,
+                    VestingError::InvalidStakeAccountOwner
+                );
+
+                let (expected_delegate_stake_account_checkpoints_pda, _) = Pubkey::find_program_address(
                     &[
                         CHECKPOINT_DATA_SEED.as_bytes(),
                         self.vester.key().as_ref(),
-                        stake_account_metadata
+                        delegate_stake_account_metadata
                             .stake_account_checkpoints_last_index
                             .to_le_bytes()
                             .as_ref(),
@@ -128,7 +145,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     &crate::ID,
                 );
                 require!(
-                    expected_stake_account_checkpoints_pda == stake_account_checkpoints.key(),
+                    expected_delegate_stake_account_checkpoints_pda == delegate_stake_account_checkpoints.key(),
                     VestingError::InvalidStakeAccountCheckpointsPDA
                 );
 
@@ -153,25 +170,30 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     .update_recorded_vesting_balance(new_recorded_vesting_balance);
 
                 // Update checkpoints
-                let current_delegate_checkpoints_account_info =
-                    stake_account_checkpoints.to_account_info();
+                let delegate_checkpoints_account_info =
+                    delegate_stake_account_checkpoints.to_account_info();
 
                 let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
 
                 push_checkpoint(
-                    stake_account_checkpoints,
-                    &current_delegate_checkpoints_account_info,
+                    delegate_stake_account_checkpoints,
+                    &delegate_checkpoints_account_info,
                     self.vest.amount,
                     Operation::Subtract,
                     current_timestamp,
                     &self.vester.to_account_info(),
                     &self.system_program.to_account_info(),
                 )?;
-                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
                 if loaded_checkpoints.next_index
                     >= self.global_config.max_checkpoints_account_limit.into()
                 {
-                    stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    if delegate_stake_account_metadata.key() == stake_account_metadata.key()
+                    {
+                        stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    } else {
+                        delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    }
                 }
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
@@ -179,16 +201,23 @@ impl<'info> crate::contexts::TransferVesting<'info> {
         }
 
         if self.new_vesting_balance.stake_account_metadata != Pubkey::default() {
-            if let (Some(new_stake_account_metadata), Some(new_stake_account_checkpoints)) = (
+            if let (Some(new_stake_account_metadata), Some(new_delegate_stake_account_metadata), Some(new_delegate_stake_account_checkpoints)) = (
                 &mut self.new_stake_account_metadata,
-                &mut self.new_stake_account_checkpoints,
+                &mut self.new_delegate_stake_account_metadata,
+                &mut self.new_delegate_stake_account_checkpoints,
             ) {
                 // Check if stake account checkpoints is out of bounds
-                let loaded_checkpoints = new_stake_account_checkpoints.load()?;
+                let loaded_checkpoints = new_delegate_stake_account_checkpoints.load()?;
                 require!(
                     loaded_checkpoints.next_index
                         < self.global_config.max_checkpoints_account_limit.into(),
                     ErrorCode::TooManyCheckpoints,
+                );
+
+                // Verify that the actual new_delegate_stake_account_checkpoints address matches the expected one
+                require!(
+                    new_stake_account_metadata.delegate.key() == loaded_checkpoints.owner,
+                    VestingError::InvalidStakeAccountCheckpoints
                 );
                 drop(loaded_checkpoints);
 
@@ -197,12 +226,18 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     VestingError::InvalidStakeAccountOwner
                 );
 
+                // Verify that the actual new_delegate_stake_account_metadata address matches the expected one
+                require!(
+                    new_stake_account_metadata.delegate == new_delegate_stake_account_metadata.owner,
+                    VestingError::InvalidStakeAccountOwner
+                );
+
                 let (expected_stake_account_checkpoints_vester_pda, _) =
                     Pubkey::find_program_address(
                         &[
                             CHECKPOINT_DATA_SEED.as_bytes(),
                             self.new_vester_ta.owner.key().as_ref(),
-                            new_stake_account_metadata
+                            new_delegate_stake_account_metadata
                                 .stake_account_checkpoints_last_index
                                 .to_le_bytes()
                                 .as_ref(),
@@ -212,7 +247,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
 
                 require!(
                     expected_stake_account_checkpoints_vester_pda
-                        == new_stake_account_checkpoints.key(),
+                        == new_delegate_stake_account_checkpoints.key(),
                     VestingError::InvalidStakeAccountCheckpointsPDA
                 );
 
@@ -238,12 +273,12 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     .update_recorded_vesting_balance(new_recorded_vesting_balance);
 
                 let current_delegate_checkpoints_account_info =
-                    new_stake_account_checkpoints.to_account_info();
+                    new_delegate_stake_account_checkpoints.to_account_info();
 
                 let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
 
                 push_checkpoint(
-                    new_stake_account_checkpoints,
+                    new_delegate_stake_account_checkpoints,
                     &current_delegate_checkpoints_account_info,
                     self.vest.amount,
                     Operation::Add,
@@ -252,11 +287,16 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     &self.system_program.to_account_info(),
                 )?;
 
-                let loaded_checkpoints = new_stake_account_checkpoints.load()?;
+                let loaded_checkpoints = new_delegate_stake_account_checkpoints.load()?;
                 if loaded_checkpoints.next_index
                     >= self.global_config.max_checkpoints_account_limit.into()
                 {
-                    new_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    if new_delegate_stake_account_metadata.key() == new_stake_account_metadata.key()
+                    {
+                        new_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    } else {
+                        new_delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    }
                 }
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);

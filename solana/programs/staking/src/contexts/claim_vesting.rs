@@ -88,7 +88,7 @@ impl<'info> ClaimVesting<'info> {
                     ErrorCode::TooManyCheckpoints,
                 );
 
-                // Verify that the actual address matches the expected one
+                // Verify that the actual stake_account_checkpoints address matches the expected one
                 require!(
                     stake_account_metadata.delegate.key() == loaded_checkpoints.owner,
                     VestingError::InvalidStakeAccountCheckpoints
