@@ -136,7 +136,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 let (expected_delegate_stake_account_checkpoints_pda, _) = Pubkey::find_program_address(
                     &[
                         CHECKPOINT_DATA_SEED.as_bytes(),
-                        self.vester.key().as_ref(),
+                        stake_account_metadata.delegate.key().as_ref(),
                         delegate_stake_account_metadata
                             .stake_account_checkpoints_last_index
                             .to_le_bytes()
@@ -236,7 +236,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     Pubkey::find_program_address(
                         &[
                             CHECKPOINT_DATA_SEED.as_bytes(),
-                            self.new_vester_ta.owner.key().as_ref(),
+                            new_stake_account_metadata.delegate.key().as_ref(),
                             new_delegate_stake_account_metadata
                                 .stake_account_checkpoints_last_index
                                 .to_le_bytes()
@@ -244,7 +244,6 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                         ],
                         &crate::ID,
                     );
-
                 require!(
                     expected_stake_account_checkpoints_vester_pda
                         == new_delegate_stake_account_checkpoints.key(),
@@ -258,7 +257,6 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     ],
                     &crate::ID,
                 );
-
                 require!(
                     expected_stake_account_metadata_vester_pda == new_stake_account_metadata.key(),
                     VestingError::InvalidStakeAccountMetadataPDA
