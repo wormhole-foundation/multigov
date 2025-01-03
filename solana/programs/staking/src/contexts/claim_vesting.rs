@@ -57,7 +57,9 @@ pub struct ClaimVesting<'info> {
     /// CheckpointData and StakeAccountMetadata accounts are optional because
     /// in order to be able to claim vests that have not been delegated
     #[account(mut)]
-    pub stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
+    pub delegate_stake_account_checkpoints: Option<AccountLoader<'info, CheckpointData>>,
+    #[account(mut)]
+    pub delegate_stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
     #[account(mut)]
     pub stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
     #[account(
@@ -76,19 +78,20 @@ impl<'info> ClaimVesting<'info> {
         // If vesting_balance.stake_account_metadata is not set it means that vester has not
         // delegated his vests
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
-            if let (Some(stake_account_metadata), Some(stake_account_checkpoints)) = (
+            if let (Some(stake_account_metadata), Some(delegate_stake_account_metadata), Some(delegate_stake_account_checkpoints)) = (
                 &mut self.stake_account_metadata,
-                &mut self.stake_account_checkpoints,
+                &mut self.delegate_stake_account_metadata,
+                &mut self.delegate_stake_account_checkpoints,
             ) {
                 // Check if stake account checkpoints is out of bounds
-                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
                 require!(
                     loaded_checkpoints.next_index
                         < self.global_config.max_checkpoints_account_limit.into(),
                     ErrorCode::TooManyCheckpoints,
                 );
 
-                // Verify that the actual stake_account_checkpoints address matches the expected one
+                // Verify that the actual delegate_stake_account_checkpoints address matches the expected one
                 require!(
                     stake_account_metadata.delegate.key() == loaded_checkpoints.owner,
                     VestingError::InvalidStakeAccountCheckpoints
@@ -98,6 +101,12 @@ impl<'info> ClaimVesting<'info> {
                 // Additional checks to ensure the owner matches
                 require!(
                     stake_account_metadata.owner == self.vesting_balance.vester,
+                    VestingError::InvalidStakeAccountOwner
+                );
+
+                // Verify that the actual delegate_stake_account_metadata address matches the expected one
+                require!(
+                    stake_account_metadata.delegate == delegate_stake_account_metadata.owner,
                     VestingError::InvalidStakeAccountOwner
                 );
 
@@ -112,12 +121,12 @@ impl<'info> ClaimVesting<'info> {
 
                 // Update checkpoints
                 let current_delegate_checkpoints_account_info =
-                    stake_account_checkpoints.to_account_info();
+                    delegate_stake_account_checkpoints.to_account_info();
 
                 let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
 
                 push_checkpoint(
-                    stake_account_checkpoints,
+                    delegate_stake_account_checkpoints,
                     &current_delegate_checkpoints_account_info,
                     self.vest.amount,
                     Operation::Subtract,
@@ -126,11 +135,16 @@ impl<'info> ClaimVesting<'info> {
                     &self.system_program.to_account_info(),
                 )?;
 
-                let loaded_checkpoints = stake_account_checkpoints.load()?;
+                let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
                 if loaded_checkpoints.next_index
                     >= self.global_config.max_checkpoints_account_limit.into()
                 {
-                    stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    if delegate_stake_account_metadata.key() == stake_account_metadata.key()
+                    {
+                        stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    } else {
+                        delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    }
                 }
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
