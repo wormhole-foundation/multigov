@@ -27,7 +27,9 @@ pub struct ClaimVesting<'info> {
     vault: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
-        token::mint = mint
+        associated_token::mint = mint,
+        associated_token::authority = vester,
+        associated_token::token_program = token_program
     )]
     vester_ta: InterfaceAccount<'info, TokenAccount>,
     #[account(

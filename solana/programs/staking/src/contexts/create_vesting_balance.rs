@@ -1,6 +1,7 @@
 use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED};
 use crate::state::{VestingBalance, VestingConfig};
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 #[derive(Accounts)]
@@ -24,10 +25,13 @@ pub struct CreateVestingBalance<'info> {
     )]
     vesting_balance: Account<'info, VestingBalance>,
     #[account(
-        token::mint = mint,
-        token::token_program = token_program
+        associated_token::mint = mint,
+        associated_token::authority = vester_ta.owner,
+        associated_token::token_program = token_program
     )]
     vester_ta: InterfaceAccount<'info, TokenAccount>,
+
+    associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
     system_program: Program<'info, System>,
 }

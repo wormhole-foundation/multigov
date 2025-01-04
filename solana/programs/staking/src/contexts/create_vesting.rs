@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
@@ -12,8 +13,9 @@ pub struct CreateVesting<'info> {
     admin: Signer<'info>,
     mint: InterfaceAccount<'info, Mint>,
     #[account(
-        token::mint = mint,
-        token::token_program = token_program
+        associated_token::mint = mint,
+        associated_token::authority = vester_ta.owner,
+        associated_token::token_program = token_program
     )]
     vester_ta: InterfaceAccount<'info, TokenAccount>,
     #[account(
@@ -39,6 +41,8 @@ pub struct CreateVesting<'info> {
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,
+
+    associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
     system_program: Program<'info, System>,
 }

@@ -19,12 +19,16 @@ pub struct TransferVesting<'info> {
     mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(
         mut,
-        token::mint = mint
+        associated_token::mint = mint,
+        associated_token::authority = vester_ta.owner,
+        associated_token::token_program = token_program
     )]
     vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
-        token::mint = mint
+        associated_token::mint = mint,
+        associated_token::authority = new_vester_ta.owner,
+        associated_token::token_program = token_program
     )]
     new_vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
