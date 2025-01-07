@@ -907,7 +907,7 @@ describe("vesting", () => {
     await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority]);
   });
 
-  it("should fail to finalize vesting when vault token balance is greater than vestingConfig.vested", async () => {
+  it("should successfully finalize vesting when vault token balance is greater than vestingConfig.vested", async () => {
     const vaultTokenBalance = (
       await getAccount(stakeConnection.provider.connection, vault)
     ).amount;
@@ -919,20 +919,12 @@ describe("vesting", () => {
       "In this test, the vault token balance must be greater than vestingConfig.vested",
     );
 
-    try {
-      await stakeConnection.program.methods
-        .finalizeVestingConfig()
-        .accounts({ ...accounts })
-        .signers([whMintAuthority])
-        .rpc()
-        .then(confirm);
-
-      assert.fail("Expected error was not thrown");
-    } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "VestedBalanceMismatch",
-      );
-    }
+    await stakeConnection.program.methods
+      .finalizeVestingConfig()
+      .accounts({ ...accounts })
+      .signers([whMintAuthority])
+      .rpc({ skipPreflight: true })
+      .then(confirm);
   });
 
   it("should fail to withdraw surplus tokens if the signer is not a valid admin", async () => {
@@ -956,15 +948,6 @@ describe("vesting", () => {
   it("Withdraw surplus tokens", async () => {
     await stakeConnection.program.methods
       .withdrawSurplus()
-      .accounts({ ...accounts })
-      .signers([whMintAuthority])
-      .rpc({ skipPreflight: true })
-      .then(confirm);
-  });
-
-  it("Finalizes the vest", async () => {
-    await stakeConnection.program.methods
-      .finalizeVestingConfig()
       .accounts({ ...accounts })
       .signers([whMintAuthority])
       .rpc({ skipPreflight: true })
