@@ -347,7 +347,7 @@ describe("vesting", () => {
       whMintAuthority,
       WHTokenBalance.fromString("1000"),
     );
-    
+
     vester2StakeConnection = await newUserStakeConnection(
       stakeConnection,
       vester2,
@@ -1356,7 +1356,8 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNow,
-          delegateStakeAccountCheckpoints: incorrectStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            incorrectStakeAccountCheckpointsAddress,
           delegateStakeAccountMetadata: incorrectStakeAccountMetadataAddress,
           stakeAccountMetadata: incorrectStakeAccountMetadataAddress,
           globalConfig: stakeConnection.configAddress,
@@ -1396,7 +1397,8 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNow,
-          delegateStakeAccountCheckpoints: incorrectStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            incorrectStakeAccountCheckpointsAddress,
           delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
           globalConfig: stakeConnection.configAddress,
@@ -1641,7 +1643,8 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestFewLater,
-          delegateStakeAccountCheckpoints: delegateStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            delegateStakeAccountCheckpointsAddress,
           delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
           globalConfig: stakeConnection.configAddress,
@@ -1760,7 +1763,8 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
-          delegateStakeAccountCheckpoints: previousStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            previousStakeAccountCheckpointsAddress,
           delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
           newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
@@ -2123,7 +2127,8 @@ describe("vesting", () => {
           vest: vestNowForTransfer,
           delegateStakeAccountMetadata: incorrectStakeAccountMetadataAddress,
           stakeAccountMetadata: incorrectStakeAccountMetadataAddress,
-          delegateStakeAccountCheckpoints: incorrectStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            incorrectStakeAccountCheckpointsAddress,
           newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
           newDelegateStakeAccountMetadata: newStakeAccountMetadataAddress,
           newStakeAccountMetadata: newStakeAccountMetadataAddress,
@@ -2174,7 +2179,8 @@ describe("vesting", () => {
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
-          delegateStakeAccountCheckpoints: incorrectStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            incorrectStakeAccountCheckpointsAddress,
           delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
           newDelegateStakeAccountCheckpoints: newStakeAccountCheckpointsAddress,
@@ -2512,11 +2518,14 @@ describe("vesting", () => {
           newVesterTa: newVester2Ta,
           vest: vest2NowForTransfer,
           vestingBalance: vesting2Balance,
-          delegateStakeAccountCheckpoints: vester2StakeAccountCheckpointsAddress, // invalid delegateStakeAccountCheckpoints
+          delegateStakeAccountCheckpoints:
+            vester2StakeAccountCheckpointsAddress, // invalid delegateStakeAccountCheckpoints
           delegateStakeAccountMetadata: newVester3StakeAccountMetadataAddress,
           stakeAccountMetadata: vester2StakeAccountMetadataAddress,
-          newDelegateStakeAccountCheckpoints: newVester2StakeAccountCheckpointsAddress,
-          newDelegateStakeAccountMetadata: newVester2StakeAccountMetadataAddress,
+          newDelegateStakeAccountCheckpoints:
+            newVester2StakeAccountCheckpointsAddress,
+          newDelegateStakeAccountMetadata:
+            newVester2StakeAccountMetadataAddress,
           newStakeAccountMetadata: newVester2StakeAccountMetadataAddress,
           newVest: vestNowTransfered,
           newVestingBalance: newVesting2Balance,
@@ -2529,7 +2538,8 @@ describe("vesting", () => {
       assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountCheckpoints",
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidStakeAccountCheckpoints",
       );
     }
 
@@ -2543,11 +2553,14 @@ describe("vesting", () => {
           newVesterTa: newVester2Ta,
           vest: vest2NowForTransfer,
           vestingBalance: vesting2Balance,
-          delegateStakeAccountCheckpoints: newVester3StakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            newVester3StakeAccountCheckpointsAddress,
           delegateStakeAccountMetadata: vester2StakeAccountMetadataAddress, // invalid delegateStakeAccountMetadata
           stakeAccountMetadata: vester2StakeAccountMetadataAddress,
-          newDelegateStakeAccountCheckpoints: newVester2StakeAccountCheckpointsAddress,
-          newDelegateStakeAccountMetadata: newVester2StakeAccountMetadataAddress,
+          newDelegateStakeAccountCheckpoints:
+            newVester2StakeAccountCheckpointsAddress,
+          newDelegateStakeAccountMetadata:
+            newVester2StakeAccountMetadataAddress,
           newStakeAccountMetadata: newVester2StakeAccountMetadataAddress,
           newVest: vestNowTransfered,
           newVestingBalance: newVesting2Balance,
@@ -2560,7 +2573,8 @@ describe("vesting", () => {
       assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountOwner",
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidStakeAccountOwner",
       );
     }
 
@@ -2574,11 +2588,14 @@ describe("vesting", () => {
           newVesterTa: newVester2Ta,
           vest: vest2NowForTransfer,
           vestingBalance: vesting2Balance,
-          delegateStakeAccountCheckpoints: newVester3StakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            newVester3StakeAccountCheckpointsAddress,
           delegateStakeAccountMetadata: newVester3StakeAccountMetadataAddress,
           stakeAccountMetadata: vester2StakeAccountMetadataAddress,
-          newDelegateStakeAccountCheckpoints: newVester3StakeAccountCheckpointsAddress, // invalid newDelegateStakeAccountCheckpoints
-          newDelegateStakeAccountMetadata: newVester2StakeAccountMetadataAddress,
+          newDelegateStakeAccountCheckpoints:
+            newVester3StakeAccountCheckpointsAddress, // invalid newDelegateStakeAccountCheckpoints
+          newDelegateStakeAccountMetadata:
+            newVester2StakeAccountMetadataAddress,
           newStakeAccountMetadata: newVester2StakeAccountMetadataAddress,
           newVest: vestNowTransfered,
           newVestingBalance: newVesting2Balance,
@@ -2591,7 +2608,8 @@ describe("vesting", () => {
       assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountCheckpoints",
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidStakeAccountCheckpoints",
       );
     }
 
@@ -2605,11 +2623,14 @@ describe("vesting", () => {
           newVesterTa: newVester2Ta,
           vest: vest2NowForTransfer,
           vestingBalance: vesting2Balance,
-          delegateStakeAccountCheckpoints: newVester3StakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            newVester3StakeAccountCheckpointsAddress,
           delegateStakeAccountMetadata: newVester3StakeAccountMetadataAddress,
           stakeAccountMetadata: vester2StakeAccountMetadataAddress,
-          newDelegateStakeAccountCheckpoints: newVester2StakeAccountCheckpointsAddress,
-          newDelegateStakeAccountMetadata: newVester3StakeAccountMetadataAddress, // invalid newDelegateStakeAccountMetadata
+          newDelegateStakeAccountCheckpoints:
+            newVester2StakeAccountCheckpointsAddress,
+          newDelegateStakeAccountMetadata:
+            newVester3StakeAccountMetadataAddress, // invalid newDelegateStakeAccountMetadata
           newStakeAccountMetadata: newVester2StakeAccountMetadataAddress,
           newVest: vestNowTransfered,
           newVestingBalance: newVesting2Balance,
@@ -2622,7 +2643,8 @@ describe("vesting", () => {
       assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountOwner",
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidStakeAccountOwner",
       );
     }
   });
@@ -2715,10 +2737,7 @@ describe("vesting", () => {
       updatedNewVestingBalance.totalVestingBalance.toString(),
       "2353000000",
     );
-    assert.equal(
-      updatedNewVesting2Balance.totalVestingBalance.toString(),
-      "0",
-    );
+    assert.equal(updatedNewVesting2Balance.totalVestingBalance.toString(), "0");
 
     await sleep(2000);
     await vester2StakeConnection.program.methods
@@ -2730,10 +2749,12 @@ describe("vesting", () => {
         newVesterTa: newVester2Ta,
         vest: vest2NowForTransfer,
         vestingBalance: vesting2Balance,
-        delegateStakeAccountCheckpoints: newVester3StakeAccountCheckpointsAddress,
+        delegateStakeAccountCheckpoints:
+          newVester3StakeAccountCheckpointsAddress,
         delegateStakeAccountMetadata: newVester3StakeAccountMetadataAddress,
         stakeAccountMetadata: vester2StakeAccountMetadataAddress,
-        newDelegateStakeAccountCheckpoints: newVester2StakeAccountCheckpointsAddress,
+        newDelegateStakeAccountCheckpoints:
+          newVester2StakeAccountCheckpointsAddress,
         newDelegateStakeAccountMetadata: newVester2StakeAccountMetadataAddress,
         newStakeAccountMetadata: newVester2StakeAccountMetadataAddress,
         newVest: vestNowTransfered,
@@ -2757,10 +2778,7 @@ describe("vesting", () => {
         newVesting2Balance,
       );
 
-    assert.equal(
-      updatedVesting2Balance.totalVestingBalance.toString(),
-      "0",
-    );
+    assert.equal(updatedVesting2Balance.totalVestingBalance.toString(), "0");
     assert.equal(
       updatedNewVestingBalance.totalVestingBalance.toString(),
       "2353000000",
@@ -2787,10 +2805,7 @@ describe("vesting", () => {
         newVester2StakeAccountCheckpointsAddress,
       );
 
-    assert.equal(
-      vester2StakeMetadata.recordedVestingBalance.toString(),
-      "0",
-    );
+    assert.equal(vester2StakeMetadata.recordedVestingBalance.toString(), "0");
     assert.equal(vester2StakeMetadata.recordedBalance.toString(), "30000000");
     assert.equal(
       vester2StakeCheckpoints.getLastCheckpoint().value.toString(),
@@ -2856,7 +2871,8 @@ describe("vesting", () => {
           vesterTa: newVester2Ta,
           vest: newVest2,
           vestingBalance: newVesting2Balance,
-          delegateStakeAccountCheckpoints: delegateStakeAccountCheckpointsAddress,
+          delegateStakeAccountCheckpoints:
+            delegateStakeAccountCheckpointsAddress,
           delegateStakeAccountMetadata: stakeAccountMetadataAddress, // invalid delegateStakeAccountMetadata
           stakeAccountMetadata: stakeAccountMetadataAddress,
           globalConfig: stakeConnection.configAddress,
@@ -2868,7 +2884,8 @@ describe("vesting", () => {
       assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountOwner",
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidStakeAccountOwner",
       );
     }
 
@@ -2891,7 +2908,8 @@ describe("vesting", () => {
           vesterTa: newVester2Ta,
           vest: newVest2,
           vestingBalance: newVesting2Balance,
-          delegateStakeAccountCheckpoints: newVesterStakeAccountCheckpointsAddress, // invalid delegateStakeAccountCheckpoints
+          delegateStakeAccountCheckpoints:
+            newVesterStakeAccountCheckpointsAddress, // invalid delegateStakeAccountCheckpoints
           delegateStakeAccountMetadata: delegateStakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
           globalConfig: stakeConnection.configAddress,
@@ -2903,7 +2921,8 @@ describe("vesting", () => {
       assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "InvalidStakeAccountCheckpoints",
+        (e as AnchorError).error?.errorCode?.code ===
+          "InvalidStakeAccountCheckpoints",
       );
     }
   });
@@ -2969,10 +2988,7 @@ describe("vesting", () => {
         delegateStakeAccountCheckpointsAddress,
       );
 
-    assert.equal(
-      vesterStakeMetadata.recordedVestingBalance.toString(),
-      "0",
-    );
+    assert.equal(vesterStakeMetadata.recordedVestingBalance.toString(), "0");
     assert.equal(
       vesterStakeCheckpoints.getLastCheckpoint().value.toString(),
       "30000000",
@@ -3162,7 +3178,8 @@ describe("vesting", () => {
         .createCheckpoints()
         .accounts({
           payer: accounts.vester,
-          stakeAccountCheckpoints: previousNewVesterStakeAccountCheckpointsAddress,
+          stakeAccountCheckpoints:
+            previousNewVesterStakeAccountCheckpointsAddress,
           stakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         })
         .signers([vester])
@@ -3186,14 +3203,16 @@ describe("vesting", () => {
         vesterTa: newVesterTa,
         vestingBalance: newVestingBalance,
         vest: vestLaterForTransfer,
-        delegateStakeAccountCheckpoints: newVesterStakeAccountCheckpointsAddress,
+        delegateStakeAccountCheckpoints:
+          newVesterStakeAccountCheckpointsAddress,
         delegateStakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         stakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         // Instead of null we pass any existing CheckpointData and StakeAccountMetadata accounts,
         // because otherwise we have an error
         // "Access violation in unknown section at address 0x8 of size 8"
         // related to the lack of memory on the stack
-        newDelegateStakeAccountCheckpoints: newVesterStakeAccountCheckpointsAddress,
+        newDelegateStakeAccountCheckpoints:
+          newVesterStakeAccountCheckpointsAddress,
         newDelegateStakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         newStakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         newVestingBalance: vestingBalanceWithoutAccount,

@@ -105,7 +105,11 @@ impl<'info> crate::contexts::TransferVesting<'info> {
         }
 
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
-            if let (Some(stake_account_metadata), Some(delegate_stake_account_metadata), Some(delegate_stake_account_checkpoints)) = (
+            if let (
+                Some(stake_account_metadata),
+                Some(delegate_stake_account_metadata),
+                Some(delegate_stake_account_checkpoints),
+            ) = (
                 &mut self.stake_account_metadata,
                 &mut self.delegate_stake_account_metadata,
                 &mut self.delegate_stake_account_checkpoints,
@@ -137,19 +141,21 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     VestingError::InvalidStakeAccountOwner
                 );
 
-                let (expected_delegate_stake_account_checkpoints_pda, _) = Pubkey::find_program_address(
-                    &[
-                        CHECKPOINT_DATA_SEED.as_bytes(),
-                        stake_account_metadata.delegate.key().as_ref(),
-                        delegate_stake_account_metadata
-                            .stake_account_checkpoints_last_index
-                            .to_le_bytes()
-                            .as_ref(),
-                    ],
-                    &crate::ID,
-                );
+                let (expected_delegate_stake_account_checkpoints_pda, _) =
+                    Pubkey::find_program_address(
+                        &[
+                            CHECKPOINT_DATA_SEED.as_bytes(),
+                            stake_account_metadata.delegate.key().as_ref(),
+                            delegate_stake_account_metadata
+                                .stake_account_checkpoints_last_index
+                                .to_le_bytes()
+                                .as_ref(),
+                        ],
+                        &crate::ID,
+                    );
                 require!(
-                    expected_delegate_stake_account_checkpoints_pda == delegate_stake_account_checkpoints.key(),
+                    expected_delegate_stake_account_checkpoints_pda
+                        == delegate_stake_account_checkpoints.key(),
                     VestingError::InvalidStakeAccountCheckpointsPDA
                 );
 
@@ -192,8 +198,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 if loaded_checkpoints.next_index
                     >= self.global_config.max_checkpoints_account_limit.into()
                 {
-                    if delegate_stake_account_metadata.key() == stake_account_metadata.key()
-                    {
+                    if delegate_stake_account_metadata.key() == stake_account_metadata.key() {
                         stake_account_metadata.stake_account_checkpoints_last_index += 1;
                     } else {
                         delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
@@ -205,7 +210,11 @@ impl<'info> crate::contexts::TransferVesting<'info> {
         }
 
         if self.new_vesting_balance.stake_account_metadata != Pubkey::default() {
-            if let (Some(new_stake_account_metadata), Some(new_delegate_stake_account_metadata), Some(new_delegate_stake_account_checkpoints)) = (
+            if let (
+                Some(new_stake_account_metadata),
+                Some(new_delegate_stake_account_metadata),
+                Some(new_delegate_stake_account_checkpoints),
+            ) = (
                 &mut self.new_stake_account_metadata,
                 &mut self.new_delegate_stake_account_metadata,
                 &mut self.new_delegate_stake_account_checkpoints,
@@ -232,7 +241,8 @@ impl<'info> crate::contexts::TransferVesting<'info> {
 
                 // Verify that the actual new_delegate_stake_account_metadata address matches the expected one
                 require!(
-                    new_stake_account_metadata.delegate == new_delegate_stake_account_metadata.owner,
+                    new_stake_account_metadata.delegate
+                        == new_delegate_stake_account_metadata.owner,
                     VestingError::InvalidStakeAccountOwner
                 );
 
@@ -297,7 +307,8 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     {
                         new_stake_account_metadata.stake_account_checkpoints_last_index += 1;
                     } else {
-                        new_delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                        new_delegate_stake_account_metadata.stake_account_checkpoints_last_index +=
+                            1;
                     }
                 }
             } else {

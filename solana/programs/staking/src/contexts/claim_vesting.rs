@@ -80,7 +80,11 @@ impl<'info> ClaimVesting<'info> {
         // If vesting_balance.stake_account_metadata is not set it means that vester has not
         // delegated his vests
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
-            if let (Some(stake_account_metadata), Some(delegate_stake_account_metadata), Some(delegate_stake_account_checkpoints)) = (
+            if let (
+                Some(stake_account_metadata),
+                Some(delegate_stake_account_metadata),
+                Some(delegate_stake_account_checkpoints),
+            ) = (
                 &mut self.stake_account_metadata,
                 &mut self.delegate_stake_account_metadata,
                 &mut self.delegate_stake_account_checkpoints,
@@ -141,8 +145,7 @@ impl<'info> ClaimVesting<'info> {
                 if loaded_checkpoints.next_index
                     >= self.global_config.max_checkpoints_account_limit.into()
                 {
-                    if delegate_stake_account_metadata.key() == stake_account_metadata.key()
-                    {
+                    if delegate_stake_account_metadata.key() == stake_account_metadata.key() {
                         stake_account_metadata.stake_account_checkpoints_last_index += 1;
                     } else {
                         delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
