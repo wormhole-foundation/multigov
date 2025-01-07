@@ -708,6 +708,12 @@ pub mod staking {
             bump: ctx.bumps.message_received,
         });
 
+        require!(
+            posted_vaa.payload.1.wormhole_chain_id.clone()
+                == ctx.accounts.message_executor.spoke_chain_id.clone(),
+            MessageExecutorError::InvalidWormholeChainId
+        );
+
         // Execute the instructions in the message.
         for instruction in posted_vaa.payload.1.instructions.clone() {
             // Prepare AccountInfo vector for the instruction.
