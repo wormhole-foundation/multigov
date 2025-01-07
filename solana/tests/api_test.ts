@@ -876,10 +876,58 @@ describe("api", async () => {
   });
 
   describe("castVote", () => {
+    it("should fail to castVote if proposal inactive", async () => {
+      await user6StakeConnection.delegate(
+        user6,
+        WHTokenBalance.fromString("50"),
+      );
+
+      let proposalIdInput = await addTestProposal(
+        user6StakeConnection,
+        Math.floor(Date.now() / 1000) + 20,
+      );
+
+      let stakeAccountMetadataAddress =
+        await user6StakeConnection.getStakeMetadataAddress(
+          user6StakeConnection.userPublicKey(),
+        );
+      let previousStakeAccountCheckpointsAddress =
+        await user6StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          stakeAccountMetadataAddress,
+          false,
+        );
+
+      const { proposalAccount } =
+        await user6StakeConnection.fetchProposalAccount(proposalIdInput);
+
+      try {
+        await user6StakeConnection.program.methods
+          .castVote(
+            Array.from(proposalIdInput),
+            new BN(10),
+            new BN(20),
+            new BN(12),
+            0,
+          )
+          .accountsPartial({
+            proposal: proposalAccount,
+            voterCheckpoints: previousStakeAccountCheckpointsAddress,
+            voterCheckpointsNext: null,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code === "ProposalInactive",
+        );
+      }
+    });
+
     it("should fail to castVote if votes were added in the voteWeightWindow", async () => {
       await user6StakeConnection.delegate(
         user6,
-        WHTokenBalance.fromString("150"),
+        WHTokenBalance.fromString("100"),
       );
 
       // voteWeightWindow is 10s
@@ -887,6 +935,7 @@ describe("api", async () => {
         user6StakeConnection,
         Math.floor(Date.now() / 1000) + 3,
       );
+      await sleep(3000);
 
       let stakeAccountMetadataAddress =
         await user6StakeConnection.getStakeMetadataAddress(
@@ -935,6 +984,7 @@ describe("api", async () => {
         user3StakeConnection,
         Math.floor(Date.now() / 1000) + 12,
       );
+      await sleep(12000);
 
       await user3StakeConnection.castVote(
         proposalIdInput,
@@ -979,6 +1029,7 @@ describe("api", async () => {
         user4StakeConnection,
         voteStart,
       );
+
       const { proposalAccount } =
         await user4StakeConnection.fetchProposalAccount(proposalIdInput);
 
@@ -990,6 +1041,7 @@ describe("api", async () => {
           WHTokenBalance.fromString("5"),
         );
       }
+      await sleep(4000);
 
       let currentStakeAccountCheckpointsAddress =
         await user4StakeConnection.getStakeAccountCheckpointsAddress(
@@ -1054,8 +1106,9 @@ describe("api", async () => {
 
       let proposalIdInput = await addTestProposal(
         user4StakeConnection,
-        Math.floor(Date.now() / 1000) + 12,
+        Math.floor(Date.now() / 1000) + 11,
       );
+      await sleep(11000);
 
       const { proposalAccount } =
         await user4StakeConnection.fetchProposalAccount(proposalIdInput);
