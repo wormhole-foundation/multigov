@@ -159,4 +159,6 @@ pub enum MessageExecutorError {
     VaaNotFinalized,
     #[msg("Missing Remaining account")]
     MissedRemainingAccount,
+    #[msg("Message is not meant for this chain")]
+    InvalidWormholeChainId,
 }
