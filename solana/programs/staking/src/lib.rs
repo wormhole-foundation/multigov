@@ -486,10 +486,7 @@ pub mod staking {
 
         let current_timestamp: u64 = utils::clock::get_current_time().try_into()?;
         let vote_start = proposal.vote_start;
-        require!(
-            current_timestamp > vote_start,
-            ErrorCode::ProposalInactive
-        );
+        require!(current_timestamp > vote_start, ErrorCode::ProposalInactive);
 
         let (_, window_length) = find_window_length_le(
             &ctx.accounts.vote_weight_window_lengths.to_account_info(),
