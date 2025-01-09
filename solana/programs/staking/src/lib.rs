@@ -487,7 +487,7 @@ pub mod staking {
         let current_timestamp: u64 = utils::clock::get_current_time().try_into()?;
         let vote_start = proposal.vote_start;
         require!(
-            current_timestamp >= vote_start,
+            current_timestamp > vote_start,
             ErrorCode::ProposalInactive
         );
 
