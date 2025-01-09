@@ -137,6 +137,8 @@ contract Constructor is HubGovernorTest {
   ) public {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_timelock != address(0));
+    vm.assume(_deployer != address(0));
+
     HubProposalExtender _voteExtender =
       new HubProposalExtender(initialOwner, VOTE_TIME_EXTENSION, address(_timelock), _deployer, MINIMUM_VOTE_EXTENSION);
 
@@ -181,6 +183,8 @@ contract Constructor is HubGovernorTest {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_extenderOwner != address(0) && _timelock != address(0));
     vm.assume(_extenderOwner != address(_timelock));
+    vm.assume(_deployer != address(0));
+
     HubProposalExtender _voteExtender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, address(_extenderOwner), _deployer, MINIMUM_VOTE_EXTENSION
     );
