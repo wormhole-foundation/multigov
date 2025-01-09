@@ -17,9 +17,6 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher, IMessageDispatcher {
   /// @notice Thrown if the instruction set is empty.
   error EmptyInstructionSet();
 
-  /// @notice Thrown if the value is not zero.
-  error InvalidValue();
-
   /// @param _timelock The timelock that will call the hub dispatcher to initiate a cross chain execution.
   /// @param _core The Wormhole contract that will handle publishing the cross chain message.
   /// @param _dispatchConsistencyLevel The consistency level of a message when sending it to another chain. In most
@@ -57,8 +54,6 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher, IMessageDispatcher {
   /// @param _payload An encoding of the target wormhole chain id and the Solana instructions to be executed.
   function dispatch(bytes calldata _payload) external payable {
     _checkOwner();
-
-    if (msg.value > 0) revert InvalidValue();
 
     (uint16 _wormholeChainId, SolanaInstruction[] memory instructions) =
       abi.decode(_payload, (uint16, SolanaInstruction[]));
