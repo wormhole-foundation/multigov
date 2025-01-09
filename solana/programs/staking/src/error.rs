@@ -51,6 +51,8 @@ pub enum ErrorCode {
     InvalidNextVoterCheckpoints,
     #[msg("Proposal inactive")]
     ProposalInactive,
+    #[msg("Checkpoint account limit too high")]
+    InvalidCheckpointAccountLimit,
     #[msg("Other")]
     Other,
 }

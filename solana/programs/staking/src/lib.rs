@@ -80,6 +80,12 @@ pub mod staking {
         config_account.governance_authority = global_config.governance_authority;
         config_account.voting_token_mint = global_config.voting_token_mint;
         config_account.vesting_admin = global_config.vesting_admin;
+        // Make sure the caller can't set the checkpoint account limit too high
+        // We don't want to be able to fill up a checkpoint account and cause a DoS
+        // Solana accounts are 10MB maximum = 10485760 bytes
+        // The checkpoint account contains 8 + 32 + 8 = 48 bytes of fixed data
+        // Every checkpoint is 8 + 8 = 16 bytes, so we can fit in (10485760 - 48) / 16 = 655,357 checkpoints
+        require!(global_config.max_checkpoints_account_limit <= 655_000, ErrorCode::InvalidCheckpointAccountLimit);
         config_account.max_checkpoints_account_limit = global_config.max_checkpoints_account_limit;
 
         Ok(())
