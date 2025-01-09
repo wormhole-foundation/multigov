@@ -201,9 +201,18 @@ pub mod staking {
                         VestingError::InvalidVestingBalancePDA
                     );
 
-                    vesting_balance.stake_account_metadata = stake_account_metadata.key();
-                    stake_account_metadata
-                        .update_recorded_vesting_balance(vesting_balance.total_vesting_balance);
+                    if vesting_balance.stake_account_metadata == Pubkey::default() {
+                        vesting_balance.stake_account_metadata = stake_account_metadata.key();
+
+                        let new_recorded_vesting_balance = stake_account_metadata
+                            .recorded_vesting_balance
+                            .checked_add(vesting_balance.total_vesting_balance)
+                            .ok_or(VestingError::Overflow)?;
+
+                        // Update the recorded vesting balance
+                        stake_account_metadata
+                            .update_recorded_vesting_balance(new_recorded_vesting_balance);
+                    }
                 }
             }
         }
