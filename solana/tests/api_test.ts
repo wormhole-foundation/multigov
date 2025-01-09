@@ -1,8 +1,10 @@
 import {
   Keypair,
   LAMPORTS_PER_SOL,
+  PublicKey,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import assert from "assert";
 import {
@@ -35,7 +37,10 @@ import {
   QueryProxyMock,
   signaturesToSolanaArray,
 } from "@wormhole-foundation/wormhole-query-sdk";
-import { AnchorError } from "@coral-xyz/anchor";
+import { AnchorError, utils } from "@coral-xyz/anchor";
+import * as importedWasm from "@wormhole/staking-wasm";
+let wasm = importedWasm;
+export { wasm };
 
 const portNumber = getPortNumber(path.basename(__filename));
 
@@ -78,6 +83,7 @@ describe("api", async () => {
   let user4StakeConnection: StakeConnection;
   let user5StakeConnection: StakeConnection;
   let user6StakeConnection: StakeConnection;
+  let user7StakeConnection: StakeConnection;
 
   let controller;
   let owner;
@@ -85,6 +91,7 @@ describe("api", async () => {
   let user3;
   let user4;
   let user6;
+  let user7;
   let delegate;
 
   const confirm = async (signature: string): Promise<string> => {
@@ -163,6 +170,16 @@ describe("api", async () => {
       WHTokenBalance.fromString("1000"),
     );
     user6 = user6StakeConnection.provider.wallet.publicKey;
+
+    user7StakeConnection = await newUserStakeConnection(
+      stakeConnection,
+      Keypair.generate(),
+      config,
+      whMintAccount,
+      whMintAuthority,
+      WHTokenBalance.fromString("1000"),
+    );
+    user7 = user7StakeConnection.provider.wallet.publicKey;
   });
 
   it("postSignatures", async () => {
@@ -1153,6 +1170,115 @@ describe("api", async () => {
       assert.equal(againstVotes.toString(), "10");
       assert.equal(forVotes.toString(), "20");
       assert.equal(abstainVotes.toString(), "12");
+    });
+
+    it("should fail to castVote with zeroing out the first checkpoint in new checkpoint account", async () => {
+      // filling the checkpoint account to the limit
+      for (let i = 0; i < TEST_CHECKPOINTS_ACCOUNT_LIMIT; i++) {
+        await sleep(1000);
+        await user7StakeConnection.delegate(
+          user7StakeConnection.userPublicKey(),
+          WHTokenBalance.fromString("5"),
+        );
+      }
+
+      let user7StakeAccountMetadataAddress =
+        await user7StakeConnection.getStakeMetadataAddress(
+          user7StakeConnection.userPublicKey(),
+        );
+      let previousUser7StakeAccountCheckpointsAddress =
+        await user7StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          user7StakeAccountMetadataAddress,
+          true,
+        );
+      let user7StakeAccountCheckpointsAddress = PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+          user7StakeConnection.userPublicKey().toBuffer(),
+          Buffer.from([1]),
+        ],
+        user7StakeConnection.program.programId,
+      )[0];
+
+      let user6StakeAccountMetadataAddress =
+        await user6StakeConnection.getStakeMetadataAddress(
+          user6StakeConnection.userPublicKey(),
+        );
+      let user6StakeAccountCheckpointsAddress =
+        await user6StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          user6StakeAccountMetadataAddress,
+          false,
+        );
+
+      const instructions: TransactionInstruction[] = [];
+      instructions.push(
+        await user7StakeConnection.program.methods
+          .createCheckpoints()
+          .accounts({
+            payer: user7StakeConnection.userPublicKey(),
+            stakeAccountCheckpoints: previousUser7StakeAccountCheckpointsAddress,
+            stakeAccountMetadata: user7StakeAccountMetadataAddress,
+          })
+          .instruction(),
+      );
+      instructions.push(
+        await user7StakeConnection.program.methods
+          .delegate(user6StakeConnection.userPublicKey(), user7StakeConnection.userPublicKey())
+          .accountsPartial({
+            currentDelegateStakeAccountCheckpoints:
+              user7StakeAccountCheckpointsAddress,
+            delegateeStakeAccountCheckpoints:
+              user6StakeAccountCheckpointsAddress,
+            vestingConfig: null,
+            vestingBalance: null,
+            mint: user7StakeConnection.config.votingTokenMint,
+          })
+          .instruction(),
+      );
+      await user7StakeConnection.sendAndConfirmAsVersionedTransaction(instructions);
+
+      await sleep(2000);
+      await user7StakeConnection.delegate(
+        user7StakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("150"),
+      );
+
+      let user7StakeAccountCheckpoints: CheckpointAccount =
+        await user7StakeConnection.fetchCheckpointAccount(
+          user7StakeAccountCheckpointsAddress,
+        );
+      assert.equal(user7StakeAccountCheckpoints.checkpoints[0].value.toString(), "0");
+      assert.equal(user7StakeAccountCheckpoints.checkpoints[1].value.toString(), "225000000");
+
+      let proposalIdInput = await addTestProposal(
+        user7StakeConnection,
+        Math.floor(Date.now() / 1000),
+      );
+      const { proposalAccount } =
+        await user7StakeConnection.fetchProposalAccount(proposalIdInput);
+
+      try {
+        await user7StakeConnection.program.methods
+          .castVote(
+            Array.from(proposalIdInput),
+            new BN(10),
+            new BN(20),
+            new BN(12),
+            0,
+          )
+          .accountsPartial({
+            proposal: proposalAccount,
+            voterCheckpoints: previousUser7StakeAccountCheckpointsAddress,
+            voterCheckpointsNext: user7StakeAccountCheckpointsAddress,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert(
+          (e as AnchorError).error?.errorCode?.code === "NoWeight",
+        );
+      }
     });
 
     it("should fail when castVote with an invalid voter checkpoints", async () => {

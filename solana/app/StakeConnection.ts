@@ -130,7 +130,7 @@ export class StakeConnection {
     );
   }
 
-  async sendAndConfirmAsVersionedTransaction(
+  public async sendAndConfirmAsVersionedTransaction(
     instructions: TransactionInstruction[],
   ) {
     const addressLookupTableAccount = this.addressLookupTable
