@@ -86,6 +86,8 @@ describe("api", async () => {
   let user4;
   let user6;
   let delegate;
+  
+  let guardianSignaturesSeed = 0;
 
   const confirm = async (signature: string): Promise<string> => {
     const block =
@@ -165,23 +167,25 @@ describe("api", async () => {
     user6 = user6StakeConnection.provider.wallet.publicKey;
   });
 
-  it("postSignatures", async () => {
-    const signaturesKeypair = Keypair.generate();
-    await stakeConnection.postSignatures(
-      ethProposalResponse.signatures,
-      signaturesKeypair,
-    );
-    const { guardianSignaturesData } =
-      await stakeConnection.fetchGuardianSignaturesData(
-        signaturesKeypair.publicKey,
+  describe("postSignatures", () => {
+    it("should correctly post signatures", async () => {    
+      await stakeConnection.postSignatures(
+        ethProposalResponse.signatures,
+        guardianSignaturesSeed
       );
-    const expectedSignatures = signaturesToSolanaArray(
-      ethProposalResponse.signatures,
-    );
-    assert.equal(
-      Buffer.from(guardianSignaturesData.guardianSignatures[1]).toString("hex"),
-      Buffer.from(expectedSignatures[1]).toString("hex"),
-    );
+      const { guardianSignaturesData } =
+        await stakeConnection.fetchGuardianSignaturesData(
+          guardianSignaturesSeed
+        );
+      const expectedSignatures = signaturesToSolanaArray(
+        ethProposalResponse.signatures,
+      );
+      guardianSignaturesSeed++;
+      assert.equal(
+        Buffer.from(guardianSignaturesData.guardianSignatures[1]).toString("hex"),
+        Buffer.from(expectedSignatures[1]).toString("hex"),
+      );
+    });
   });
 
   describe("addProposal", () => {
@@ -196,16 +200,16 @@ describe("api", async () => {
         proposalIdInput,
         voteStart,
       );
-      const signaturesKeypair = Keypair.generate();
+
       const mock = new QueryProxyMock({});
       const mockSignatures = mock.sign(ethProposalResponseBytes);
-      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      let { guardianSignatureAccount } = await stakeConnection.postSignatures(mockSignatures, guardianSignaturesSeed++);
       const mockGuardianSetIndex = 5;
 
       await stakeConnection.addProposal(
         proposalIdInput,
         ethProposalResponseBytes,
-        signaturesKeypair.publicKey,
+        guardianSignatureAccount,
         mockGuardianSetIndex,
       );
 
@@ -234,16 +238,15 @@ describe("api", async () => {
         "hex",
       );
 
-      const signaturesKeypair = Keypair.generate();
-      await stakeConnection.postSignatures(
+      let { guardianSignatureAccount } = await stakeConnection.postSignatures(
         sepoliaEthProposalResponse.signatures,
-        signaturesKeypair,
+        guardianSignaturesSeed++,
       );
 
       await stakeConnection.addProposal(
         proposalIdArray,
         Buffer.from(sepoliaEthProposalResponse.bytes, "hex"),
-        signaturesKeypair.publicKey,
+        guardianSignatureAccount,
         0,
       );
 
@@ -276,17 +279,16 @@ describe("api", async () => {
           voteStart,
         );
 
-      const signaturesKeypair = Keypair.generate();
       const mock = new QueryProxyMock({});
       const mockSignatures = mock.sign(nonFinalizedEthProposalResponseBytes);
-      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      let { guardianSignatureAccount } = await stakeConnection.postSignatures(mockSignatures, guardianSignaturesSeed++);
       const mockGuardianSetIndex = 5;
 
       try {
         await stakeConnection.addProposal(
           proposalIdInput,
           nonFinalizedEthProposalResponseBytes,
-          signaturesKeypair.publicKey,
+          guardianSignatureAccount,
           mockGuardianSetIndex,
           true,
         );
@@ -312,17 +314,16 @@ describe("api", async () => {
           voteStart,
         );
 
-      const signaturesKeypair = Keypair.generate();
       const mock = new QueryProxyMock({});
       const mockSignatures = mock.sign(invalidQueryEthProposalResponseBytes);
-      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      let { guardianSignatureAccount } = await stakeConnection.postSignatures(mockSignatures, guardianSignaturesSeed++);
       const mockGuardianSetIndex = 5;
 
       try {
         await stakeConnection.addProposal(
           proposalIdInput,
           invalidQueryEthProposalResponseBytes,
-          signaturesKeypair.publicKey,
+          guardianSignatureAccount,
           mockGuardianSetIndex,
           true,
         );
@@ -349,17 +350,16 @@ describe("api", async () => {
           voteStart,
         );
 
-      const signaturesKeypair = Keypair.generate();
       const mock = new QueryProxyMock({});
       const mockSignatures = mock.sign(invalidResponseEthProposalResponseBytes);
-      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      let { guardianSignatureAccount } = await stakeConnection.postSignatures(mockSignatures, guardianSignaturesSeed++);
       const mockGuardianSetIndex = 5;
 
       try {
         await stakeConnection.addProposal(
           proposalIdInput,
           invalidResponseEthProposalResponseBytes,
-          signaturesKeypair.publicKey,
+          guardianSignatureAccount,
           mockGuardianSetIndex,
           true,
         );
@@ -386,19 +386,18 @@ describe("api", async () => {
           voteStart,
         );
 
-      const signaturesKeypair = Keypair.generate();
       const mock = new QueryProxyMock({});
       const mockSignatures = mock.sign(
         invalidFunctionSignatureEthProposalResponseBytes,
       );
-      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      let { guardianSignatureAccount } = await stakeConnection.postSignatures(mockSignatures, guardianSignaturesSeed++);
       const mockGuardianSetIndex = 5;
 
       try {
         await stakeConnection.addProposal(
           proposalIdInput,
           invalidFunctionSignatureEthProposalResponseBytes,
-          signaturesKeypair.publicKey,
+          guardianSignatureAccount,
           mockGuardianSetIndex,
           true,
         );
@@ -422,17 +421,17 @@ describe("api", async () => {
         proposalIdInput,
         voteStart,
       );
-      const signaturesKeypair = Keypair.generate();
+
       const mock = new QueryProxyMock({});
       const mockSignatures = mock.sign(ethProposalResponseBytes);
-      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      let { guardianSignatureAccount } = await stakeConnection.postSignatures(mockSignatures, guardianSignaturesSeed++);
       const mockGuardianSetIndex = 5;
 
       try {
         await stakeConnection.addProposal(
           proposalIdInput,
           ethProposalResponseBytes,
-          signaturesKeypair.publicKey,
+          guardianSignatureAccount,
           mockGuardianSetIndex,
           true,
         );
@@ -457,17 +456,17 @@ describe("api", async () => {
         proposalIdInput,
         voteStart,
       );
-      const signaturesKeypair = Keypair.generate();
+
       const mock = new QueryProxyMock({});
       const mockSignatures = mock.sign(ethProposalResponseBytes);
-      await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+      let { guardianSignatureAccount } = await stakeConnection.postSignatures(mockSignatures, guardianSignaturesSeed++);
       const mockGuardianSetIndex = 5;
 
       try {
         await stakeConnection.addProposal(
           proposalIdInput,
           ethProposalResponseBytes,
-          signaturesKeypair.publicKey,
+          guardianSignatureAccount,
           mockGuardianSetIndex,
           true,
         );
@@ -482,37 +481,38 @@ describe("api", async () => {
     });
   });
 
-  it("proposalVotes", async () => {
-    const proposalIdInput = crypto
-      .createHash("sha256")
-      .update("proposalId2")
-      .digest();
-    const voteStart = Math.floor(Date.now() / 1000);
+  describe("proposalVotes", () => {
+    it("should correctly add a proposal", async () => {
+      const proposalIdInput = crypto
+        .createHash("sha256")
+        .update("proposalId2")
+        .digest();
+      const voteStart = Math.floor(Date.now() / 1000);
 
-    const ethProposalResponseBytes = createProposalQueryResponseBytes(
-      proposalIdInput,
-      voteStart,
-    );
-    const signaturesKeypair = Keypair.generate();
-    const mock = new QueryProxyMock({});
-    const mockSignatures = mock.sign(ethProposalResponseBytes);
-    await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
-    const mockGuardianSetIndex = 5;
+      const ethProposalResponseBytes = createProposalQueryResponseBytes(
+        proposalIdInput,
+        voteStart,
+      );
+      const mock = new QueryProxyMock({});
+      const mockSignatures = mock.sign(ethProposalResponseBytes);
+      let { guardianSignatureAccount } = await stakeConnection.postSignatures(mockSignatures, guardianSignaturesSeed++);
+      const mockGuardianSetIndex = 5;
 
-    await stakeConnection.addProposal(
-      proposalIdInput,
-      ethProposalResponseBytes,
-      signaturesKeypair.publicKey,
-      mockGuardianSetIndex,
-    );
+      await stakeConnection.addProposal(
+        proposalIdInput,
+        ethProposalResponseBytes,
+        guardianSignatureAccount,
+        mockGuardianSetIndex,
+      );
 
-    const { proposalId, againstVotes, forVotes, abstainVotes } =
-      await stakeConnection.proposalVotes(proposalIdInput);
+      const { proposalId, againstVotes, forVotes, abstainVotes } =
+        await stakeConnection.proposalVotes(proposalIdInput);
 
-    assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
-    assert.equal(againstVotes.toString(), "0");
-    assert.equal(forVotes.toString(), "0");
-    assert.equal(abstainVotes.toString(), "0");
+      assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
+      assert.equal(againstVotes.toString(), "0");
+      assert.equal(forVotes.toString(), "0");
+      assert.equal(abstainVotes.toString(), "0");
+    });
   });
 
   describe("delegate", () => {
@@ -886,6 +886,7 @@ describe("api", async () => {
       let proposalIdInput = await addTestProposal(
         user6StakeConnection,
         Math.floor(Date.now() / 1000) + 3,
+        guardianSignaturesSeed++
       );
 
       let stakeAccountMetadataAddress =
@@ -934,6 +935,7 @@ describe("api", async () => {
       let proposalIdInput = await addTestProposal(
         user3StakeConnection,
         Math.floor(Date.now() / 1000) + 12,
+        guardianSignaturesSeed++
       );
 
       await user3StakeConnection.castVote(
@@ -978,6 +980,7 @@ describe("api", async () => {
       let proposalIdInput = await addTestProposal(
         user4StakeConnection,
         voteStart,
+        guardianSignaturesSeed++
       );
       const { proposalAccount } =
         await user4StakeConnection.fetchProposalAccount(proposalIdInput);
@@ -1055,6 +1058,7 @@ describe("api", async () => {
       let proposalIdInput = await addTestProposal(
         user4StakeConnection,
         Math.floor(Date.now() / 1000) + 12,
+        guardianSignaturesSeed++
       );
 
       const { proposalAccount } =
@@ -1136,6 +1140,7 @@ describe("api", async () => {
       let proposalIdInput = await addTestProposal(
         user5StakeConnection,
         Math.floor(Date.now() / 1000),
+        guardianSignaturesSeed++
       );
 
       await user5StakeConnection.castVote(
@@ -1159,6 +1164,7 @@ describe("api", async () => {
       let proposalId = await addTestProposal(
         user2StakeConnection,
         Math.floor(Date.now() / 1000) + 12,
+        guardianSignaturesSeed++
       );
 
       await user2StakeConnection.delegate(
@@ -1200,6 +1206,7 @@ describe("api", async () => {
 async function addTestProposal(
   stakeConnection: StakeConnection,
   voteStart: number,
+  seed: number
 ) {
   const proposalIdInput = crypto
     .createHash("sha256")
@@ -1210,16 +1217,15 @@ async function addTestProposal(
     proposalIdInput,
     voteStart,
   );
-  const signaturesKeypair = Keypair.generate();
   const mock = new QueryProxyMock({});
   const mockSignatures = mock.sign(ethProposalResponseBytes);
-  await stakeConnection.postSignatures(mockSignatures, signaturesKeypair);
+  let { guardianSignatureAccount } = await stakeConnection.postSignatures(mockSignatures, seed);
   const mockGuardianSetIndex = 5;
 
   await stakeConnection.addProposal(
     proposalIdInput,
     ethProposalResponseBytes,
-    signaturesKeypair.publicKey,
+    guardianSignatureAccount,
     mockGuardianSetIndex,
   );
 

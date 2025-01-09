@@ -233,6 +233,18 @@ export class StakeConnection {
     return account !== null ? stakeMetadataAccount : undefined;
   }
 
+  async getGuardianSignaturesAccount(
+    payerAddress: PublicKey,
+    seed: number
+  ) {
+    const guardianSignatureAccount = PublicKey.findProgramAddressSync(
+      [utils.bytes.utf8.encode(wasm.Constants.POST_SIGNATURES_SEED()), payerAddress.toBuffer(), Buffer.from([seed])],
+      this.program.programId,
+    )[0];
+
+    return { guardianSignatureAccount };
+  }
+
   async fetchProposalAccount(proposalId: Buffer) {
     const proposalAccount = PublicKey.findProgramAddressSync(
       [utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()), proposalId],
@@ -262,9 +274,11 @@ export class StakeConnection {
     return { proposalAccountData };
   }
 
-  async fetchGuardianSignaturesData(address: PublicKey) {
+  async fetchGuardianSignaturesData(seed: number) {
+    const { guardianSignatureAccount } = await this.getGuardianSignaturesAccount(this.userPublicKey(), seed);
+
     const guardianSignaturesData =
-      await this.program.account.guardianSignatures.fetch(address);
+      await this.program.account.guardianSignatures.fetch(guardianSignatureAccount);
 
     return { guardianSignaturesData };
   }
@@ -681,14 +695,23 @@ export class StakeConnection {
   /** Post signatures */
   public async postSignatures(
     querySignatures: string[],
-    signaturesKeypair: Keypair,
+    seed: number
   ) {
+    const { guardianSignatureAccount } = await this.getGuardianSignaturesAccount(this.userPublicKey(), seed);
     const signatureData = signaturesToSolanaArray(querySignatures);
-    await this.program.methods
-      .postSignatures(signatureData, signatureData.length)
-      .accounts({ guardianSignatures: signaturesKeypair.publicKey })
-      .signers([signaturesKeypair])
-      .rpc();
+    
+    const instructions: TransactionInstruction[] = [];
+    
+    instructions.push(
+      await this.program.methods
+      .postSignatures(signatureData, signatureData.length, seed)
+      .accountsPartial({ guardianSignatures: guardianSignatureAccount })
+      .instruction()
+    );
+
+    await this.sendAndConfirmAsVersionedTransaction(instructions);
+
+    return { guardianSignatureAccount }
   }
 
   public async addProposal(
