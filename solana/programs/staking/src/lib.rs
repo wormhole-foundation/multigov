@@ -459,9 +459,18 @@ pub mod staking {
                 .current_delegate_stake_account_checkpoints
                 .load()?;
             if loaded_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
-                ctx.accounts
-                    .current_delegate_stake_account_metadata
-                    .stake_account_checkpoints_last_index += 1;
+                if ctx.accounts.current_delegate_stake_account_metadata.key() 
+                    != ctx.accounts.stake_account_metadata.key()
+                {
+                    ctx.accounts
+                        .current_delegate_stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                }
+                else {
+                    ctx.accounts
+                        .stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                }
             }
             drop(loaded_checkpoints);
         }
