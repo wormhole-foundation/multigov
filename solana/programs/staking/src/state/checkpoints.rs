@@ -311,6 +311,7 @@ pub fn find_checkpoint_le(
         let checkpoint = read_checkpoint_at_index(account_info, mid)?;
 
         if checkpoint.timestamp <= target_timestamp {
+            result = Some((mid, checkpoint));
             low = mid + 1;
         } else {
             high = mid;

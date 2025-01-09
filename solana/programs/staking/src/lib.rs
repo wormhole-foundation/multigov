@@ -201,9 +201,18 @@ pub mod staking {
                         VestingError::InvalidVestingBalancePDA
                     );
 
-                    vesting_balance.stake_account_metadata = stake_account_metadata.key();
-                    stake_account_metadata
-                        .update_recorded_vesting_balance(vesting_balance.total_vesting_balance);
+                    if vesting_balance.stake_account_metadata == Pubkey::default() {
+                        vesting_balance.stake_account_metadata = stake_account_metadata.key();
+
+                        let new_recorded_vesting_balance = stake_account_metadata
+                            .recorded_vesting_balance
+                            .checked_add(vesting_balance.total_vesting_balance)
+                            .ok_or(VestingError::Overflow)?;
+
+                        // Update the recorded vesting balance
+                        stake_account_metadata
+                            .update_recorded_vesting_balance(new_recorded_vesting_balance);
+                    }
                 }
             }
         }
@@ -710,6 +719,12 @@ pub mod staking {
             bump: ctx.bumps.message_received,
         });
 
+        require!(
+            posted_vaa.payload.1.wormhole_chain_id.clone()
+                == ctx.accounts.message_executor.spoke_chain_id.clone(),
+            MessageExecutorError::InvalidWormholeChainId
+        );
+
         // Execute the instructions in the message.
         for instruction in posted_vaa.payload.1.instructions.clone() {
             // Prepare AccountInfo vector for the instruction.
@@ -840,6 +855,7 @@ pub mod staking {
         ctx: Context<PostSignatures>,
         guardian_signatures: Vec<[u8; 66]>,
         total_signatures: u8,
+        _random_seed: [u8; 32],
     ) -> Result<()> {
         _post_signatures(ctx, guardian_signatures, total_signatures)
     }
