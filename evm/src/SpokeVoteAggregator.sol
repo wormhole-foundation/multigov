@@ -176,7 +176,7 @@ contract SpokeVoteAggregator is EIP712, Nonces, Ownable, SpokeCountingFractional
   /// @return True if the proposal is active, false otherwise.
   function voteActiveInternal(uint256 _proposalId) public view returns (bool) {
     SpokeMetadataCollector.Proposal memory _proposal = spokeMetadataCollector.getProposal(_proposalId);
-    return VOTING_TOKEN.clock() >= _proposal.voteStart;
+    return VOTING_TOKEN.clock() > _proposal.voteStart;
   }
 
   /// @notice Returns the vote weight for a given account at a specific timepoint.
