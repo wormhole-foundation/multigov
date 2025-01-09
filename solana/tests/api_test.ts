@@ -78,6 +78,7 @@ describe("api", async () => {
   let user4StakeConnection: StakeConnection;
   let user5StakeConnection: StakeConnection;
   let user6StakeConnection: StakeConnection;
+  let user7StakeConnection: StakeConnection;
 
   let controller;
   let owner;
@@ -85,6 +86,7 @@ describe("api", async () => {
   let user3;
   let user4;
   let user6;
+  let user7;
   let delegate;
 
   const confirm = async (signature: string): Promise<string> => {
@@ -163,6 +165,16 @@ describe("api", async () => {
       WHTokenBalance.fromString("1000"),
     );
     user6 = user6StakeConnection.provider.wallet.publicKey;
+
+    user7StakeConnection = await newUserStakeConnection(
+      stakeConnection,
+      Keypair.generate(),
+      config,
+      whMintAccount,
+      whMintAuthority,
+      WHTokenBalance.fromString("1000"),
+    );
+    user7 = user7StakeConnection.provider.wallet.publicKey;
   });
 
   it("postSignatures", async () => {
@@ -965,6 +977,47 @@ describe("api", async () => {
       assert.equal(againstVotes.toString(), "20");
       assert.equal(forVotes.toString(), "37");
       assert.equal(abstainVotes.toString(), "22");
+    });
+
+    it("should cast vote with the correct weight", async () => {
+      let stakeAccountCheckpointsAddress;
+      let proposalIdInput;
+
+      // Create 6 checkpoints, 1 second apart
+      for (let i = 0; i < 6; i++) {
+        stakeAccountCheckpointsAddress = await user7StakeConnection.delegate(
+          user7,
+          WHTokenBalance.fromString("50"),
+        );
+
+        // Create a proposal with a start time 10 seconds in the future in iteration 5
+        // We do this because the vote weight window is 10 seconds
+        if (i == 4) {
+          proposalIdInput = await addTestProposal(
+            user7StakeConnection,
+            Math.floor(Date.now() / 1000) + 10,
+          );
+        }
+
+        await sleep(1000);
+      }
+
+      await user7StakeConnection.castVote(
+        proposalIdInput,
+        new BN(10),
+        new BN(20),
+        new BN(12),
+        0,
+      );
+
+      const { proposalId, againstVotes, forVotes, abstainVotes } =
+        await user7StakeConnection.proposalVotes(proposalIdInput);
+
+      assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
+      assert.equal(againstVotes.toString(), "10");
+      assert.equal(forVotes.toString(), "20");
+      assert.equal(abstainVotes.toString(), "12");
+
     });
 
     it("should fail to castVote if next voter checkpoints are invalid", async () => {
