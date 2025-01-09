@@ -844,6 +844,7 @@ pub mod staking {
         ctx: Context<PostSignatures>,
         guardian_signatures: Vec<[u8; 66]>,
         total_signatures: u8,
+        _random_seed: [u8; 32],
     ) -> Result<()> {
         _post_signatures(ctx, guardian_signatures, total_signatures)
     }
