@@ -60,6 +60,9 @@ contract HubProposalExtender is Ownable, IVoteExtender {
   /// @notice Thrown when unauthorized address initializes this contract.
   error UnauthorizedInitialize(address);
 
+  /// @notice Thrown when the deployer is set to the zero address.
+  error DeployerIsZeroAddress();
+
   /// @param _voteExtenderAdmin Address of the trusted actor able to extend proposals.
   /// @param _extensionDuration Amount of time for which target proposals will be extended.
   /// @param _owner Owner of the contract.
@@ -72,6 +75,7 @@ contract HubProposalExtender is Ownable, IVoteExtender {
     address _deployer,
     uint48 _minimumExtensionDuration
   ) Ownable(_owner) {
+    if (_deployer == address(0)) revert DeployerIsZeroAddress();
     _setExtensionDuration(_extensionDuration);
     _setVoteExtenderAdmin(_voteExtenderAdmin);
     MINIMUM_EXTENSION_DURATION = _minimumExtensionDuration;
