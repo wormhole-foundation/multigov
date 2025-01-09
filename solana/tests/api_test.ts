@@ -935,7 +935,7 @@ describe("api", async () => {
         user6StakeConnection,
         Math.floor(Date.now() / 1000) + 3,
       );
-      await sleep(3000);
+      await sleep(4000);
 
       let stakeAccountMetadataAddress =
         await user6StakeConnection.getStakeMetadataAddress(
@@ -984,7 +984,7 @@ describe("api", async () => {
         user3StakeConnection,
         Math.floor(Date.now() / 1000) + 12,
       );
-      await sleep(12000);
+      await sleep(13000);
 
       await user3StakeConnection.castVote(
         proposalIdInput,
@@ -1041,7 +1041,7 @@ describe("api", async () => {
           WHTokenBalance.fromString("5"),
         );
       }
-      await sleep(4000);
+      await sleep(5000);
 
       let currentStakeAccountCheckpointsAddress =
         await user4StakeConnection.getStakeAccountCheckpointsAddress(
@@ -1108,7 +1108,7 @@ describe("api", async () => {
         user4StakeConnection,
         Math.floor(Date.now() / 1000) + 11,
       );
-      await sleep(11000);
+      await sleep(12000);
 
       const { proposalAccount } =
         await user4StakeConnection.fetchProposalAccount(proposalIdInput);
