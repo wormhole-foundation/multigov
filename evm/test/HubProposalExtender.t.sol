@@ -65,6 +65,13 @@ contract Constructor is HubProposalExtenderTest {
     assertEq(hubExtender.owner(), _owner);
     assertEq(hubExtender.MINIMUM_EXTENSION_DURATION(), _minimumExtensionDuration);
   }
+
+  function test_RevertIf_DeployerIsZeroAddress() public {
+    vm.expectRevert(HubProposalExtender.DeployerIsZeroAddress.selector);
+    new HubProposalExtenderHarness(
+      whitelistedExtender, extensionDuration, address(timelock), address(0), minimumTime, voteWeightWindow, minimumTime
+    );
+  }
 }
 
 contract Initialize is HubProposalExtenderTest {
