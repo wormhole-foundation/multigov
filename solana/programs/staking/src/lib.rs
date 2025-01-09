@@ -378,37 +378,10 @@ pub mod staking {
     pub fn withdraw_tokens(
         ctx: Context<WithdrawTokens>,
         amount: u64,
-        current_delegate_stake_account_metadata_owner: Pubkey,
-        stake_account_metadata_owner: Pubkey,
+        _current_delegate_stake_account_metadata_owner: Pubkey,
+        _stake_account_metadata_owner: Pubkey,
     ) -> Result<()> {
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
-
-        let expected_current_delegate_stake_account_metadata_pda = Pubkey::find_program_address(
-            &[
-                STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                current_delegate_stake_account_metadata_owner.as_ref(),
-            ],
-            &crate::ID,
-        )
-        .0;
-        require!(
-            expected_current_delegate_stake_account_metadata_pda
-                == ctx.accounts.current_delegate_stake_account_metadata.key(),
-            ErrorCode::InvalidStakeAccountMetadata
-        );
-
-        let expected_stake_account_metadata_pda = Pubkey::find_program_address(
-            &[
-                STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                stake_account_metadata_owner.as_ref(),
-            ],
-            &crate::ID,
-        )
-        .0;
-        require!(
-            expected_stake_account_metadata_pda == stake_account_metadata.key(),
-            ErrorCode::InvalidStakeAccountMetadata
-        );
 
         let destination_account = &ctx.accounts.destination;
         let signer = &ctx.accounts.payer;

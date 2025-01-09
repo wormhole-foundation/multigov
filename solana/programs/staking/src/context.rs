@@ -497,7 +497,7 @@ pub struct CreateCheckpoints<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(amount: u64, current_delegate_stake_account_metadata_owner: Pubkey, stake_account_metadata_owner: Pubkey
+#[instruction(amount: u64, _current_delegate_stake_account_metadata_owner: Pubkey, _stake_account_metadata_owner: Pubkey
 )]
 pub struct WithdrawTokens<'info> {
     // Native payer:
@@ -518,7 +518,7 @@ pub struct WithdrawTokens<'info> {
         AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_metadata_owner.as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), _current_delegate_stake_account_metadata_owner.as_ref()],
         bump = current_delegate_stake_account_metadata.metadata_bump
     )]
     pub current_delegate_stake_account_metadata:
@@ -530,9 +530,9 @@ pub struct WithdrawTokens<'info> {
     // Stake program accounts:
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_metadata_owner.as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), _stake_account_metadata_owner.as_ref()],
         bump = stake_account_metadata.metadata_bump,
-        constraint = stake_account_metadata.delegate == current_delegate_stake_account_metadata_owner
+        constraint = stake_account_metadata.delegate == _current_delegate_stake_account_metadata_owner
             @ ErrorCode::InvalidCurrentDelegate
     )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
