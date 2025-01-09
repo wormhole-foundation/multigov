@@ -33,10 +33,10 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   HubVotePool public immutable HUB_VOTE_POOL;
 
   /// @notice The decimals of the token on the hub
-  uint8 public HUB_TOKEN_DECIMALS;
+  uint8 public immutable HUB_TOKEN_DECIMALS;
 
   /// @notice The decimals of the token on solana
-  uint8 public SOLANA_TOKEN_DECIMALS;
+  uint8 public immutable SOLANA_TOKEN_DECIMALS;
 
   error TooManySolanaPdaResults(uint256 resultsLength);
   error InvalidDataSlice();

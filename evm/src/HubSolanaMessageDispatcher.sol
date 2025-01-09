@@ -58,10 +58,11 @@ contract HubSolanaMessageDispatcher is WormholeDispatcher, IMessageDispatcher {
 
     if (instructions.length == 0) revert EmptyInstructionSet();
 
-    bytes memory payload = abi.encode(nextMessageId, _wormholeChainId, instructions);
+    uint256 messageId = nextMessageId;
+    bytes memory payload = abi.encode(messageId, _wormholeChainId, instructions);
     _publishMessage(payload, msg.value);
 
-    emit MessageDispatched(nextMessageId, payload);
-    nextMessageId++;
+    emit MessageDispatched(messageId, payload);
+    nextMessageId = messageId + 1;
   }
 }
