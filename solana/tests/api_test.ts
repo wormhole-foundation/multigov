@@ -79,6 +79,7 @@ describe("api", async () => {
   let user5StakeConnection: StakeConnection;
   let user6StakeConnection: StakeConnection;
   let user7StakeConnection: StakeConnection;
+  let user8StakeConnection: StakeConnection;
 
   let controller;
   let owner;
@@ -87,6 +88,7 @@ describe("api", async () => {
   let user4;
   let user6;
   let user7;
+  let user8;
   let delegate;
 
   const confirm = async (signature: string): Promise<string> => {
@@ -175,6 +177,16 @@ describe("api", async () => {
       WHTokenBalance.fromString("1000"),
     );
     user7 = user7StakeConnection.provider.wallet.publicKey;
+
+    user8StakeConnection = await newUserStakeConnection(
+      stakeConnection,
+      Keypair.generate(),
+      config,
+      whMintAccount,
+      whMintAuthority,
+      WHTokenBalance.fromString("1000"),
+    );
+    user8 = user7StakeConnection.provider.wallet.publicKey;
   });
 
   it("postSignatures", async () => {
@@ -879,6 +891,70 @@ describe("api", async () => {
       } catch (e) {
         assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
       }
+    });
+
+    it("should withdraw tokens when a user self delegates and properly update the last checkpoint index", async () => {
+      await sleep(1000);
+      await user8StakeConnection.delegate(
+        user8StakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("5"),
+      );
+      
+      let currentStakeAccountCheckpointsAddress =
+        await user8StakeConnection.getStakeAccountCheckpointsAddress(
+          user8StakeConnection.userPublicKey(),
+          0,
+        );
+      
+      let currentStakeAccountCheckpoints: CheckpointAccount =
+        await user8StakeConnection.fetchCheckpointAccount(
+          currentStakeAccountCheckpointsAddress,
+        );
+
+      let currentCheckpointCount = currentStakeAccountCheckpoints.getCheckpointCount();
+      
+      // Fill all bar 1 checkpoints in the limit. Leave 1 space for the withdraw checkpoint
+      for (currentCheckpointCount; currentCheckpointCount < TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1; currentCheckpointCount++) {
+        await sleep(1000);
+        await user8StakeConnection.delegate(
+          user8StakeConnection.userPublicKey(),
+          WHTokenBalance.fromString("5"),
+        );
+      }
+
+      let stakeAccount = await user8StakeConnection.loadStakeAccount(
+        currentStakeAccountCheckpointsAddress,
+      );
+
+      let stakeAccountMetadata = await user8StakeConnection.fetchStakeAccountMetadata(user8StakeConnection.userPublicKey());
+
+      let previousCheckpointAccountIndex = stakeAccountMetadata.stakeAccountCheckpointsLastIndex;
+      let balanceBefore = stakeAccount.tokenBalance;
+
+      // This withdraw action fills up the checkpoint account, which should increment the checkpoint account index
+      await sleep(1000);
+      await user8StakeConnection.withdrawTokens(
+        stakeAccount,
+        WHTokenBalance.fromString("5"),
+      );
+
+      stakeAccount = await user8StakeConnection.loadStakeAccount(
+        currentStakeAccountCheckpointsAddress,
+      );
+
+      stakeAccountMetadata = await user8StakeConnection.fetchStakeAccountMetadata(user8StakeConnection.userPublicKey());
+
+      
+      let newCheckpointAccountIndex = stakeAccountMetadata.stakeAccountCheckpointsLastIndex;
+      let balanceAfter = stakeAccount.tokenBalance;
+
+      // Both the checkpoint index and the balance should be properly update
+      assert.equal(previousCheckpointAccountIndex + 1, newCheckpointAccountIndex);
+      assert.equal(
+        balanceBefore - balanceAfter,
+        5000000,
+      );
+      
     });
   });
 
