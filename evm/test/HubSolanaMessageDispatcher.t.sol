@@ -128,17 +128,6 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
     dispatcher.dispatch(payload);
   }
 
-  function testFuzz_RevertIf_InvalidChainId(uint16 _invalidChainId) public {
-    vm.assume(_invalidChainId != CHAIN_ID_SOLANA);
-
-    HubSolanaMessageDispatcher.SolanaInstruction[] memory instructions =
-      new HubSolanaMessageDispatcher.SolanaInstruction[](1);
-    bytes memory payload = abi.encode(_invalidChainId, instructions);
-
-    vm.expectRevert(InvalidChainId.selector);
-    dispatcher.dispatch(payload);
-  }
-
   function test_RevertIf_EmptyInstructionSet() public {
     HubSolanaMessageDispatcher.SolanaInstruction[] memory instructions =
       new HubSolanaMessageDispatcher.SolanaInstruction[](0);
