@@ -239,6 +239,13 @@ pub mod staking {
             total_delegated_votes,
         });
 
+        emit_cpi!(DelegateChanged {
+            delegator: ctx.accounts.payer.key(),
+            from_delegate: current_delegate,
+            to_delegate: delegatee,
+            total_delegated_votes,
+        });
+
         let current_timestamp: u64 = utils::clock::get_current_time().try_into().unwrap();
 
         if current_delegate != delegatee {
@@ -634,6 +641,15 @@ pub mod staking {
                 for_votes,
                 abstain_votes
             });
+
+            emit_cpi!(VoteCast {
+                voter: ctx.accounts.owner.key(),
+                proposal_id,
+                weight: total_weight,
+                against_votes,
+                for_votes,
+                abstain_votes
+            });
         } else {
             return Err(error!(ErrorCode::CheckpointNotFound));
         }
@@ -971,6 +987,11 @@ pub mod staking {
             let _ = proposal.add_proposal(proposal_data.proposal_id, proposal_data.vote_start);
 
             emit!(ProposalCreated {
+                proposal_id: proposal_data.proposal_id,
+                vote_start: proposal_data.vote_start,
+            });
+
+            emit_cpi!(ProposalCreated {
                 proposal_id: proposal_data.proposal_id,
                 vote_start: proposal_data.vote_start,
             });
