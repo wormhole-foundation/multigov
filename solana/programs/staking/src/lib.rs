@@ -67,7 +67,9 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-declare_id!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
+const PROGRAM_ID: Pubkey = pubkey!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
+
+declare_id!(PROGRAM_ID);
 #[program]
 pub mod staking {
     /// Creates a global config for the program
@@ -752,10 +754,18 @@ pub mod staking {
             };
 
             // Use invoke_signed with the correct signer_seeds
-            let signer_seeds: &[&[&[u8]]] =
-                &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
+            if ix.program_id != PROGRAM_ID {
+                let signer_seeds: &[&[&[u8]]] =
+                    &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
 
-            invoke_signed(&ix, &account_infos, signer_seeds)?;
+                invoke_signed(&ix, &account_infos, signer_seeds)?;
+            }
+            else  {
+                let signer_seeds: &[&[&[u8]]] =
+                    &[&[AIRLOCK_SELF_CALL_SEED.as_bytes(), &[ctx.accounts.airlock_self_call.bump]]];
+
+                invoke_signed(&ix, &account_infos, signer_seeds)?;
+            }
         }
 
         let balance_after = ctx.accounts.payer.lamports();
@@ -771,7 +781,9 @@ pub mod staking {
     //------------------------------------ ------------------------------------------------
     pub fn initialize_spoke_airlock(ctx: Context<InitializeSpokeAirlock>) -> Result<()> {
         let airlock = &mut ctx.accounts.airlock;
+        let airlock_self_call = &mut ctx.accounts.airlock_self_call;
         airlock.bump = ctx.bumps.airlock;
+        airlock_self_call.bump = ctx.bumps.airlock_self_call;
         Ok(())
     }
 
@@ -804,7 +816,7 @@ pub mod staking {
             require!(ctx.accounts.payer.key() == ctx.accounts.config.governance_authority, ErrorCode::NotGovernanceAuthority);
         }
         else {
-            require!(ctx.accounts.airlock.to_account_info().is_signer, ErrorCode::AirlockNotSigner);
+            require!(ctx.accounts.airlock_self_call.to_account_info().is_signer, ErrorCode::AirlockNotSigner);
         }
 
         let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);
