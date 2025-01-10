@@ -899,20 +899,20 @@ describe("api", async () => {
         user8StakeConnection.userPublicKey(),
         WHTokenBalance.fromString("5"),
       );
-      
+
       let currentStakeAccountCheckpointsAddress =
         await user8StakeConnection.getStakeAccountCheckpointsAddress(
           user8StakeConnection.userPublicKey(),
           0,
         );
-      
+
       let currentStakeAccountCheckpoints: CheckpointAccount =
         await user8StakeConnection.fetchCheckpointAccount(
           currentStakeAccountCheckpointsAddress,
         );
 
       let currentCheckpointCount = currentStakeAccountCheckpoints.getCheckpointCount();
-      
+
       // Fill all bar 1 checkpoints in the limit. Leave 1 space for the withdraw checkpoint
       for (currentCheckpointCount; currentCheckpointCount < TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1; currentCheckpointCount++) {
         await sleep(1000);
@@ -944,7 +944,7 @@ describe("api", async () => {
 
       stakeAccountMetadata = await user8StakeConnection.fetchStakeAccountMetadata(user8StakeConnection.userPublicKey());
 
-      
+
       let newCheckpointAccountIndex = stakeAccountMetadata.stakeAccountCheckpointsLastIndex;
       let balanceAfter = stakeAccount.tokenBalance;
 
@@ -954,7 +954,7 @@ describe("api", async () => {
         balanceBefore - balanceAfter,
         5000000,
       );
-      
+
     });
   });
 

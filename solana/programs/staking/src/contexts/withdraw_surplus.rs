@@ -1,4 +1,4 @@
-use crate::context::VESTING_CONFIG_SEED;
+use crate::context::{VESTING_CONFIG_SEED, CONFIG_SEED};
 use crate::error::VestingError;
 use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
@@ -6,10 +6,15 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
+use crate::state::global_config::GlobalConfig;
 
 #[derive(Accounts)]
 pub struct WithdrawSurplus<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = global_config.vesting_admin == admin.key()
+            @ VestingError::InvalidVestingAdmin
+    )]
     admin: Signer<'info>,
     #[account(
         mut,
@@ -33,6 +38,11 @@ pub struct WithdrawSurplus<'info> {
         bump = config.bump
     )]
     config: Account<'info, VestingConfig>,
+    #[account(
+        seeds = [CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
     system_program: Program<'info, System>,
@@ -46,7 +56,6 @@ impl<'info> WithdrawSurplus<'info> {
 
         let signer_seeds = [&[
             VESTING_CONFIG_SEED.as_bytes(),
-            self.config.admin.as_ref(),
             self.config.mint.as_ref(),
             &seed,
             &bump,

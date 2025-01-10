@@ -154,7 +154,6 @@ impl<'info> ClaimVesting<'info> {
 
         let signer_seeds = [&[
             VESTING_CONFIG_SEED.as_bytes(),
-            self.config.admin.as_ref(),
             self.config.mint.as_ref(),
             &seed,
             &bump,
