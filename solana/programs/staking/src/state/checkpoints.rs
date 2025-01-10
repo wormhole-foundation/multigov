@@ -116,7 +116,7 @@ pub fn push_checkpoint<'info>(
     current_timestamp: u64,
     payer_account_info: &AccountInfo<'info>,
     system_program_account_info: &AccountInfo<'info>,
-) -> Result<()> {
+) -> Result<DelegateVotesChanged> {
     // Step 1: Immutable borrow to get latest_index and latest_checkpoint
     let (current_index, latest_checkpoint, owner) = {
         let checkpoint_data = checkpoints_loader.load()?;
@@ -172,6 +172,12 @@ pub fn push_checkpoint<'info>(
                 previous_balance: latest_checkpoint.value,
                 new_balance: new_checkpoint.value
             });
+
+            Ok(DelegateVotesChanged {
+                delegate: owner,
+                previous_balance: latest_checkpoint.value,
+                new_balance: new_checkpoint.value,
+            })
         } else {
             let new_checkpoint = calc_new_checkpoint(
                 latest_checkpoint.value,
@@ -191,6 +197,12 @@ pub fn push_checkpoint<'info>(
                 previous_balance: latest_checkpoint.value,
                 new_balance: new_checkpoint.value
             });
+
+            Ok(DelegateVotesChanged {
+                delegate: owner,
+                previous_balance: latest_checkpoint.value,
+                new_balance: new_checkpoint.value,
+            })
         }
     } else {
         // write first checkpoint
@@ -223,8 +235,13 @@ pub fn push_checkpoint<'info>(
             previous_balance: 0,
             new_balance: new_checkpoint.value
         });
+
+        Ok(DelegateVotesChanged {
+            delegate: owner,
+            previous_balance: 0,
+            new_balance: new_checkpoint.value,
+        })
     }
-    Ok(())
 }
 
 pub fn push_checkpoint_init<'info>(
