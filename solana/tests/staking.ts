@@ -167,7 +167,7 @@ describe("staking", async () => {
       [
         utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
         owner.toBuffer(),
-        Buffer.from([0]),
+        Buffer.from([0, 0]),
       ],
       program.programId,
     )[0];

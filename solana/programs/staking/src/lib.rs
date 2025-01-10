@@ -121,7 +121,7 @@ pub mod staking {
             ctx.bumps.custody_authority,
             &owner,
             &owner,
-            0u8,
+            0u16,
         );
 
         let stake_account_checkpoints = &mut ctx.accounts.stake_account_checkpoints.load_init()?;
@@ -478,7 +478,7 @@ pub mod staking {
         against_votes: u64,
         for_votes: u64,
         abstain_votes: u64,
-        stake_account_checkpoints_index: u8,
+        stake_account_checkpoints_index: u16,
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
         let config = &ctx.accounts.config;

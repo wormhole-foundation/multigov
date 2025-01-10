@@ -556,7 +556,6 @@ describe("api", async () => {
       let stakeAccountMetadataAddress =
         await stakeConnection.getStakeMetadataAddress(owner);
       assert.equal(stakeAccountMetadataAddress, undefined);
-
       await sleep(2000);
       await stakeConnection.delegate(owner, WHTokenBalance.fromString("100"));
       stakeAccountMetadataAddress =

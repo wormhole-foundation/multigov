@@ -174,7 +174,7 @@ export class StakeConnection {
       [
         utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
         user.toBuffer(),
-        Buffer.from([index]),
+        Buffer.from([index, 0]),
       ],
       this.program.programId,
     )[0];
@@ -205,7 +205,7 @@ export class StakeConnection {
       [
         utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
         account.owner.toBuffer(),
-        Buffer.from([currentIndex]),
+        Buffer.from([currentIndex, 0]),
       ],
       this.program.programId,
     )[0];
@@ -385,7 +385,7 @@ export class StakeConnection {
       [
         utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
         owner.toBuffer(),
-        Buffer.from([0]),
+        Buffer.from([0, 0]),
       ],
       this.program.programId,
     )[0];
