@@ -1,12 +1,17 @@
-use crate::context::VESTING_CONFIG_SEED;
+use crate::context::{VESTING_CONFIG_SEED, CONFIG_SEED};
 use crate::error::VestingError;
 use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use crate::state::global_config::GlobalConfig;
 
 #[derive(Accounts)]
 pub struct Finalize<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = global_config.vesting_admin == admin.key()
+            @ VestingError::InvalidVestingAdmin
+    )]
     pub admin: Signer<'info>,
     pub mint: InterfaceAccount<'info, Mint>,
     // Initialize a vault for us to store our money in escrow for vesting
@@ -21,10 +26,15 @@ pub struct Finalize<'info> {
     #[account(
         mut,
         constraint = !config.finalized @ VestingError::VestingFinalized,
-        seeds = [VESTING_CONFIG_SEED.as_bytes(), admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [VESTING_CONFIG_SEED.as_bytes(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
     config: Account<'info, VestingConfig>,
+    #[account(
+        seeds = [CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
     token_program: Interface<'info, TokenInterface>,
 }
 
