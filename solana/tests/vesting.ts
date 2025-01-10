@@ -125,7 +125,6 @@ describe("vesting", () => {
     config = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-        whMintAuthority.publicKey.toBuffer(),
         whMintAccount.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
       ],
@@ -371,7 +370,6 @@ describe("vesting", () => {
     fakeConfig = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-        whMintAuthority.publicKey.toBuffer(),
         fakeMintAccount.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
       ],
@@ -533,7 +531,6 @@ describe("vesting", () => {
     fakeConfig = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-        fakeVestingAdmin.publicKey.toBuffer(),
         whMintAccount.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
       ],

@@ -29,7 +29,7 @@ pub struct WithdrawSurplus<'info> {
         mut,
         constraint = vault.amount > config.vested @ VestingError::NotInSurplus,
         has_one = recovery,
-        seeds = [VESTING_CONFIG_SEED.as_bytes(), admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [VESTING_CONFIG_SEED.as_bytes(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
     config: Account<'info, VestingConfig>,
