@@ -32,6 +32,7 @@ pub struct ClaimVesting<'info> {
     vester_ta: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
+        has_one = admin,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
         seeds = [VESTING_CONFIG_SEED.as_bytes(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
@@ -39,7 +40,7 @@ pub struct ClaimVesting<'info> {
     config: Account<'info, VestingConfig>,
     #[account(
         mut,
-        close = vester,
+        close = admin,
         constraint = Clock::get()?.unix_timestamp >= vest.maturation @ VestingError::NotFullyVested,
         has_one = vester_ta, // This check is arbitrary, as ATA is baked into the PDA
         has_one = config, // This check is arbitrary, as ATA is baked into the PDA
@@ -66,6 +67,9 @@ pub struct ClaimVesting<'info> {
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
 
+    /// CHECK: The admin is the refund recipient for the vest account and is checked in the config account constraints
+    #[account(mut)]
+    admin: AccountInfo<'info>,
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
     system_program: Program<'info, System>,
