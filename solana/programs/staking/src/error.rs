@@ -55,6 +55,10 @@ pub enum ErrorCode {
     InvalidCheckpointAccountLimit,
     #[msg("Zero withdrawals not permitted")]
     ZeroWithdrawal,
+    #[msg("Not governance authority")]
+    NotGovernanceAuthority,
+    #[msg("Airlock is not a signer")]
+    AirlockNotSigner,
     #[msg("Other")]
     Other,
 }

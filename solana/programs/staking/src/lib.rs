@@ -799,7 +799,24 @@ pub mod staking {
         new_hub_proposal_metadata: [u8; 20],
     ) -> Result<()> {
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+
+        if spoke_metadata_collector.updates_controlled_by_governance {
+            require!(ctx.accounts.payer.key() == ctx.accounts.config.governance_authority, ErrorCode::NotGovernanceAuthority);
+        }
+        else {
+            require!(ctx.accounts.airlock.to_account_info().is_signer, ErrorCode::AirlockNotSigner);
+        }
+
         let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);
+
+        Ok(())
+    }
+
+    pub fn relinquish_admin_control_over_hub_proposal_metadata(
+        ctx: Context<RelinquishAdminControlOverHubProposalMetadata>
+    ) -> Result<()> {
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+        spoke_metadata_collector.updates_controlled_by_governance = false;
 
         Ok(())
     }

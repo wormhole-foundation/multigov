@@ -211,6 +211,28 @@ pub struct InitializeSpokeMetadataCollector<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateHubProposalMetadata<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        bump = airlock.bump,
+    )]
+    pub airlock: Account<'info, SpokeAirlock>,
+
+    #[account(
+        mut,
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
+        bump = spoke_metadata_collector.bump
+    )]
+    pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+}
+
+#[derive(Accounts)]
+pub struct RelinquishAdminControlOverHubProposalMetadata<'info> {
     #[account(mut, address = config.governance_authority)]
     pub governance_authority: Signer<'info>,
 
