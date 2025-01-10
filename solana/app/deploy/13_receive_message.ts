@@ -9,6 +9,7 @@ import {
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
+import BN from "bn.js";
 import { CORE_BRIDGE_PID } from "../../tests/executor";
 import {
   hubSolanaMessageDispatcherPublicKey,
@@ -83,7 +84,7 @@ async function main() {
 
     // Invoke receive_message instruction
     await program.methods
-      .receiveMessage()
+      .receiveMessage(new BN(100000000))
       .accounts({
         payer: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
         // @ts-ignore

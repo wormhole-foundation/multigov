@@ -183,7 +183,7 @@ describe("receive_message", () => {
 
     try {
       await stakeConnection.program.methods
-        .receiveMessage()
+        .receiveMessage(new BN(100000000))
         .accounts({
           payer: payer.publicKey,
           messageReceived: messageReceivedPDA,
@@ -237,7 +237,7 @@ describe("receive_message", () => {
 
     // Invoke receive_message instruction
     await stakeConnection.program.methods
-      .receiveMessage()
+      .receiveMessage(new BN(100000000))
       .accounts({
         payer: payer.publicKey,
         messageReceived: messageReceivedPDA,
@@ -285,7 +285,7 @@ describe("receive_message", () => {
 
     try {
       await stakeConnection.program.methods
-        .receiveMessage()
+        .receiveMessage(new BN(100000000))
         .accounts({
           payer: payer.publicKey,
           messageReceived: messageReceivedPDA,
@@ -353,7 +353,7 @@ describe("receive_message", () => {
 
     // Invoke receiveMessage instruction
     await stakeConnection.program.methods
-      .receiveMessage()
+      .receiveMessage(new BN(100000000))
       .accounts({
         payer: payer.publicKey,
         messageReceived: messageReceivedPDA,
@@ -424,7 +424,7 @@ describe("receive_message", () => {
     try {
       // Invoke receiveMessage instruction
       await stakeConnection.program.methods
-        .receiveMessage()
+        .receiveMessage(new BN(100000000))
         .accounts({
           payer: payer.publicKey,
           messageReceived: messageReceivedPDA,
@@ -493,7 +493,7 @@ describe("receive_message", () => {
 
     // Invoke receiveMessage instruction
     await stakeConnection.program.methods
-      .receiveMessage()
+      .receiveMessage(new BN(100000000))
       .accounts({
         payer: payer.publicKey,
         messageReceived: messageReceivedPDA,

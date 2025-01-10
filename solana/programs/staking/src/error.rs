@@ -167,4 +167,6 @@ pub enum MessageExecutorError {
     MissedRemainingAccount,
     #[msg("Message is not meant for this chain")]
     InvalidWormholeChainId,
+    #[msg("The executed instructions exceeded max lamports")]
+    ExceededMaxLamports,
 }

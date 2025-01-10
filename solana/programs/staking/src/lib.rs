@@ -698,7 +698,8 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn receive_message(ctx: Context<ReceiveMessage>) -> Result<()> {
+    pub fn receive_message(ctx: Context<ReceiveMessage>, max_lamports: u64) -> Result<()> {
+        let balance_before = ctx.accounts.payer.lamports();
         let posted_vaa = &ctx.accounts.posted_vaa;
 
         ctx.accounts.message_received.set_inner(MessageReceived {
@@ -756,6 +757,12 @@ pub mod staking {
 
             invoke_signed(&ix, &account_infos, signer_seeds)?;
         }
+
+        let balance_after = ctx.accounts.payer.lamports();
+        require!(
+            balance_before <= balance_after + max_lamports,
+            MessageExecutorError::ExceededMaxLamports
+        );
 
         Ok(())
     }
