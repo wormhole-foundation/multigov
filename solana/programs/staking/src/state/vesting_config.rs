@@ -4,7 +4,6 @@ use std::mem::size_of;
 #[account]
 pub struct VestingConfig {
     pub mint: Pubkey,
-    pub admin: Pubkey,
     pub recovery: Pubkey,
     pub seed: u64,
     pub vested: u64,

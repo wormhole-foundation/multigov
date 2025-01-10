@@ -54,7 +54,6 @@ impl<'info> Initialize<'info> {
     pub fn initialize(&mut self, seed: u64, bump: u8) -> Result<()> {
         self.config.set_inner(VestingConfig {
             mint: self.mint.key(),
-            admin: self.admin.key(),
             recovery: self.recovery.key(),
             vested: 0,
             finalized: false,
