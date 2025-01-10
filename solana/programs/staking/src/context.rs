@@ -30,6 +30,7 @@ pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR_SEED: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
+pub const AIRLOCK_SELF_CALL_SEED: &str = "airlock_self_call";
 pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
 pub const VOTE_WEIGHT_WINDOW_LENGTHS_SEED: &str = "vote_weight_window_lengths";
 pub const GUARDIAN_SIGNATURES_SEED: &str = "guardian_signatures";
@@ -142,7 +143,7 @@ pub struct Delegate<'info> {
         _against_votes: u64,
         _for_votes: u64,
         _abstain_votes: u64,
-        stake_account_checkpoints_index: u8)]
+        stake_account_checkpoints_index: u16)]
 pub struct CastVote<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -211,6 +212,28 @@ pub struct InitializeSpokeMetadataCollector<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateHubProposalMetadata<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        seeds = [AIRLOCK_SELF_CALL_SEED.as_bytes()],
+        bump = airlock_self_call.bump,
+    )]
+    pub airlock_self_call: Account<'info, SpokeAirlock>,
+
+    #[account(
+        mut,
+        seeds = [SPOKE_METADATA_COLLECTOR_SEED.as_bytes()],
+        bump = spoke_metadata_collector.bump
+    )]
+    pub spoke_metadata_collector: Account<'info, SpokeMetadataCollector>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
+    pub config: Box<Account<'info, global_config::GlobalConfig>>,
+}
+
+#[derive(Accounts)]
+pub struct RelinquishAdminControlOverHubProposalMetadata<'info> {
     #[account(mut, address = config.governance_authority)]
     pub governance_authority: Signer<'info>,
 
@@ -429,7 +452,7 @@ pub struct CreateStakeAccount<'info> {
     // Stake program accounts:
     #[account(
         init,
-        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref(), 0u8.to_le_bytes().as_ref()],
+        seeds = [CHECKPOINT_DATA_SEED.as_bytes(), payer.key().as_ref(), 0u16.to_le_bytes().as_ref()],
         bump,
         payer = payer,
         space = checkpoints::CheckpointData::LEN,
@@ -497,7 +520,7 @@ pub struct CreateCheckpoints<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(amount: u64, current_delegate_stake_account_metadata_owner: Pubkey, stake_account_metadata_owner: Pubkey
+#[instruction(amount: u64, _current_delegate_stake_account_metadata_owner: Pubkey, _stake_account_metadata_owner: Pubkey
 )]
 pub struct WithdrawTokens<'info> {
     // Native payer:
@@ -518,7 +541,7 @@ pub struct WithdrawTokens<'info> {
         AccountLoader<'info, checkpoints::CheckpointData>,
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), current_delegate_stake_account_metadata_owner.as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), _current_delegate_stake_account_metadata_owner.as_ref()],
         bump = current_delegate_stake_account_metadata.metadata_bump
     )]
     pub current_delegate_stake_account_metadata:
@@ -530,9 +553,9 @@ pub struct WithdrawTokens<'info> {
     // Stake program accounts:
     #[account(
         mut,
-        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), stake_account_metadata_owner.as_ref()],
+        seeds = [STAKE_ACCOUNT_METADATA_SEED.as_bytes(), _stake_account_metadata_owner.as_ref()],
         bump = stake_account_metadata.metadata_bump,
-        constraint = stake_account_metadata.delegate == current_delegate_stake_account_metadata_owner
+        constraint = stake_account_metadata.delegate == _current_delegate_stake_account_metadata_owner
             @ ErrorCode::InvalidCurrentDelegate
     )]
     pub stake_account_metadata: Box<Account<'info, stake_account::StakeAccountMetadata>>,
@@ -622,6 +645,12 @@ pub struct ReceiveMessage<'info> {
     pub airlock: Box<Account<'info, SpokeAirlock>>,
 
     #[account(
+        seeds = [AIRLOCK_SELF_CALL_SEED.as_bytes()],
+        bump = airlock_self_call.bump,
+    )]
+    pub airlock_self_call: Box<Account<'info, SpokeAirlock>>,
+
+    #[account(
         seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
         bump = message_executor.bump,
         constraint = message_executor.wormhole_core == wormhole_program.key() @ MessageExecutorError::InvalidWormholeCoreProgram
@@ -650,6 +679,15 @@ pub struct InitializeSpokeAirlock<'info> {
         bump
     )]
     pub airlock: Account<'info, SpokeAirlock>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = SpokeAirlock::LEN,
+        seeds = [AIRLOCK_SELF_CALL_SEED.as_bytes()],
+        bump
+    )]
+    pub airlock_self_call: Account<'info, SpokeAirlock>,
     pub system_program: Program<'info, System>,
 }
 
@@ -680,11 +718,11 @@ pub struct UpdateVoteWeightWindowLengths<'info> {
     pub payer: Signer<'info>,
 
     #[account(
-        seeds = [AIRLOCK_SEED.as_bytes()],
-        bump = airlock.bump,
+        seeds = [AIRLOCK_SELF_CALL_SEED.as_bytes()],
+        bump = airlock_self_call.bump,
         signer
     )]
-    pub airlock: Account<'info, SpokeAirlock>,
+    pub airlock_self_call: Account<'info, SpokeAirlock>,
 
     #[account(
         mut,

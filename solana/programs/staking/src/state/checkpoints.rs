@@ -299,7 +299,7 @@ pub fn find_checkpoint_le(
     let header_size = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE;
     let data = &data[header_size..];
 
-    let element_size = 16;
+    let element_size = CheckpointData::CHECKPOINT_SIZE;
     let total_elements = data.len() / element_size;
 
     let mut low = 0;

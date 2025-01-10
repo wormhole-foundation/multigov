@@ -67,7 +67,9 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-declare_id!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
+const PROGRAM_ID: Pubkey = pubkey!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
+
+declare_id!(PROGRAM_ID);
 #[program]
 pub mod staking {
     /// Creates a global config for the program
@@ -80,6 +82,12 @@ pub mod staking {
         config_account.governance_authority = global_config.governance_authority;
         config_account.voting_token_mint = global_config.voting_token_mint;
         config_account.vesting_admin = global_config.vesting_admin;
+        // Make sure the caller can't set the checkpoint account limit too high
+        // We don't want to be able to fill up a checkpoint account and cause a DoS
+        // Solana accounts are 10MB maximum = 10485760 bytes
+        // The checkpoint account contains 8 + 32 + 8 = 48 bytes of fixed data
+        // Every checkpoint is 8 + 8 = 16 bytes, so we can fit in (10485760 - 48) / 16 = 655,357 checkpoints
+        require!(global_config.max_checkpoints_account_limit <= 655_000, ErrorCode::InvalidCheckpointAccountLimit);
         config_account.max_checkpoints_account_limit = global_config.max_checkpoints_account_limit;
 
         Ok(())
@@ -115,7 +123,7 @@ pub mod staking {
             ctx.bumps.custody_authority,
             &owner,
             &owner,
-            0u8,
+            0u16,
         );
 
         let stake_account_checkpoints = &mut ctx.accounts.stake_account_checkpoints.load_init()?;
@@ -372,37 +380,12 @@ pub mod staking {
     pub fn withdraw_tokens(
         ctx: Context<WithdrawTokens>,
         amount: u64,
-        current_delegate_stake_account_metadata_owner: Pubkey,
-        stake_account_metadata_owner: Pubkey,
+        _current_delegate_stake_account_metadata_owner: Pubkey,
+        _stake_account_metadata_owner: Pubkey,
     ) -> Result<()> {
+        require!(amount != 0, ErrorCode::ZeroWithdrawal);
+
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
-
-        let expected_current_delegate_stake_account_metadata_pda = Pubkey::find_program_address(
-            &[
-                STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                current_delegate_stake_account_metadata_owner.as_ref(),
-            ],
-            &crate::ID,
-        )
-        .0;
-        require!(
-            expected_current_delegate_stake_account_metadata_pda
-                == ctx.accounts.current_delegate_stake_account_metadata.key(),
-            ErrorCode::InvalidStakeAccountMetadata
-        );
-
-        let expected_stake_account_metadata_pda = Pubkey::find_program_address(
-            &[
-                STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                stake_account_metadata_owner.as_ref(),
-            ],
-            &crate::ID,
-        )
-        .0;
-        require!(
-            expected_stake_account_metadata_pda == stake_account_metadata.key(),
-            ErrorCode::InvalidStakeAccountMetadata
-        );
 
         let destination_account = &ctx.accounts.destination;
         let signer = &ctx.accounts.payer;
@@ -425,64 +408,62 @@ pub mod staking {
         let recorded_balance = &stake_account_metadata.recorded_balance;
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
 
-        if stake_account_metadata.delegate != Pubkey::default() {
-            let config = &ctx.accounts.config;
-            let loaded_checkpoints = ctx
-                .accounts
-                .current_delegate_stake_account_checkpoints
-                .load()?;
-            require!(
-                loaded_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
-                ErrorCode::TooManyCheckpoints,
-            );
-            drop(loaded_checkpoints);
+        let config = &ctx.accounts.config;
+        let loaded_checkpoints = ctx
+            .accounts
+            .current_delegate_stake_account_checkpoints
+            .load()?;
+        require!(
+            loaded_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
+            ErrorCode::TooManyCheckpoints,
+        );
+        drop(loaded_checkpoints);
 
-            let current_delegate_account_info = ctx
-                .accounts
-                .current_delegate_stake_account_checkpoints
-                .to_account_info();
+        let current_delegate_account_info = ctx
+            .accounts
+            .current_delegate_stake_account_checkpoints
+            .to_account_info();
 
-            let current_timestamp: u64 = utils::clock::get_current_time().try_into().unwrap();
+        let current_timestamp: u64 = utils::clock::get_current_time().try_into().unwrap();
 
-            let (amount_delta, operation) = if current_stake_balance > recorded_balance {
-                (current_stake_balance - recorded_balance, Operation::Add)
-            } else {
-                (
-                    recorded_balance - current_stake_balance,
-                    Operation::Subtract,
-                )
-            };
+        let (amount_delta, operation) = if current_stake_balance > recorded_balance {
+            (current_stake_balance - recorded_balance, Operation::Add)
+        } else {
+            (
+                recorded_balance - current_stake_balance,
+                Operation::Subtract,
+            )
+        };
 
-            push_checkpoint(
-                &mut ctx.accounts.current_delegate_stake_account_checkpoints,
-                &current_delegate_account_info,
-                amount_delta,
-                operation,
-                current_timestamp,
-                &ctx.accounts.payer.to_account_info(),
-                &ctx.accounts.system_program.to_account_info(),
-            )?;
+        push_checkpoint(
+            &mut ctx.accounts.current_delegate_stake_account_checkpoints,
+            &current_delegate_account_info,
+            amount_delta,
+            operation,
+            current_timestamp,
+            &ctx.accounts.payer.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+        )?;
 
-            let loaded_checkpoints = ctx
-                .accounts
-                .current_delegate_stake_account_checkpoints
-                .load()?;
-            if loaded_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
-                if ctx.accounts.current_delegate_stake_account_metadata.key() 
-                    != ctx.accounts.stake_account_metadata.key()
-                {
-                    ctx.accounts
-                        .current_delegate_stake_account_metadata
-                        .stake_account_checkpoints_last_index += 1;
-                }
-                else {
-                    ctx.accounts
-                        .stake_account_metadata
-                        .stake_account_checkpoints_last_index += 1;
-                }
+        let loaded_checkpoints = ctx
+            .accounts
+            .current_delegate_stake_account_checkpoints
+            .load()?;
+        if loaded_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
+            if ctx.accounts.current_delegate_stake_account_metadata.key() 
+                != ctx.accounts.stake_account_metadata.key()
+            {
+                ctx.accounts
+                    .current_delegate_stake_account_metadata
+                    .stake_account_checkpoints_last_index += 1;
             }
-            drop(loaded_checkpoints);
+            else {
+                ctx.accounts
+                    .stake_account_metadata
+                    .stake_account_checkpoints_last_index += 1;
+            }
         }
+        drop(loaded_checkpoints);
 
         ctx.accounts
             .stake_account_metadata
@@ -497,7 +478,7 @@ pub mod staking {
         against_votes: u64,
         for_votes: u64,
         abstain_votes: u64,
-        stake_account_checkpoints_index: u8,
+        stake_account_checkpoints_index: u16,
     ) -> Result<()> {
         let proposal = &mut ctx.accounts.proposal;
         let config = &ctx.accounts.config;
@@ -719,7 +700,8 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn receive_message(ctx: Context<ReceiveMessage>) -> Result<()> {
+    pub fn receive_message(ctx: Context<ReceiveMessage>, max_lamports: u64) -> Result<()> {
+        let balance_before = ctx.accounts.payer.lamports();
         let posted_vaa = &ctx.accounts.posted_vaa;
 
         ctx.accounts.message_received.set_inner(MessageReceived {
@@ -772,11 +754,30 @@ pub mod staking {
             };
 
             // Use invoke_signed with the correct signer_seeds
-            let signer_seeds: &[&[&[u8]]] =
-                &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
+            if ix.program_id != PROGRAM_ID {
+                let signer_seeds: &[&[&[u8]]] =
+                    &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
 
-            invoke_signed(&ix, &account_infos, signer_seeds)?;
+                invoke_signed(&ix, &account_infos, signer_seeds)?;
+            }
+            else  {
+                let signer_seeds: &[&[&[u8]]] =
+                    &[&[AIRLOCK_SELF_CALL_SEED.as_bytes(), &[ctx.accounts.airlock_self_call.bump]]];
+
+                invoke_signed(&ix, &account_infos, signer_seeds)?;
+            }
         }
+
+        let balance_after = ctx.accounts.payer.lamports();
+        require!(
+            balance_before <= balance_after + max_lamports,
+            MessageExecutorError::ExceededMaxLamports
+        );
+
+        require!(
+            ctx.accounts.payer.owner.key() == ctx.accounts.system_program.key(),
+            MessageExecutorError::SignerAccountOwernshipChanged
+        );
 
         Ok(())
     }
@@ -785,7 +786,9 @@ pub mod staking {
     //------------------------------------ ------------------------------------------------
     pub fn initialize_spoke_airlock(ctx: Context<InitializeSpokeAirlock>) -> Result<()> {
         let airlock = &mut ctx.accounts.airlock;
+        let airlock_self_call = &mut ctx.accounts.airlock_self_call;
         airlock.bump = ctx.bumps.airlock;
+        airlock_self_call.bump = ctx.bumps.airlock_self_call;
         Ok(())
     }
 
@@ -813,7 +816,24 @@ pub mod staking {
         new_hub_proposal_metadata: [u8; 20],
     ) -> Result<()> {
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+
+        if spoke_metadata_collector.updates_controlled_by_governance {
+            require!(ctx.accounts.payer.key() == ctx.accounts.config.governance_authority, ErrorCode::NotGovernanceAuthority);
+        }
+        else {
+            require!(ctx.accounts.airlock_self_call.to_account_info().is_signer, ErrorCode::AirlockNotSigner);
+        }
+
         let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);
+
+        Ok(())
+    }
+
+    pub fn relinquish_admin_control_over_hub_proposal_metadata(
+        ctx: Context<RelinquishAdminControlOverHubProposalMetadata>
+    ) -> Result<()> {
+        let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
+        spoke_metadata_collector.updates_controlled_by_governance = false;
 
         Ok(())
     }

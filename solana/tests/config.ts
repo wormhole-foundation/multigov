@@ -55,6 +55,7 @@ describe("config", async () => {
 
   let program;
   let controller;
+  let airlockAddress
 
   let configAccount: PublicKey;
   let bump: number;
@@ -84,6 +85,27 @@ describe("config", async () => {
       }),
     ];
     await program.provider.sendAndConfirm(tx, [program.provider.wallet.payer]);
+
+    airlockAddress =
+      PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(
+            wasm.Constants.AIRLOCK_SEED(),
+          ),
+        ],
+        program.programId,
+      )[0];
+
+      // Initialize the airlock account
+      await program.methods
+      .initializeSpokeAirlock()
+      .accounts({
+        payer: program.provider.wallet.payer,
+        airlock: airlockAddress,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([program.provider.wallet.payer])
+      .rpc();
   });
 
   it("initializes config", async () => {
@@ -278,20 +300,20 @@ describe("config", async () => {
     try {
       await program.methods
         .updateHubProposalMetadata(hubProposalMetadataUint8Array)
-        .accounts({ governanceAuthority: randomUser.publicKey })
+        .accounts({ payer: randomUser.publicKey, airlock: airlockAddress})
         .signers([randomUser])
         .rpc();
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "ConstraintAddress");
+      assert((e as AnchorError).error?.errorCode?.code === "NotGovernanceAuthority");
     }
   });
 
   it("should successfully update HubProposalMetadata", async () => {
     await program.methods
       .updateHubProposalMetadata(hubProposalMetadataUint8Array)
-      .accounts({ governanceAuthority: program.provider.wallet.publicKey })
+      .accounts({ payer: program.provider.wallet.publicKey, airlock: airlockAddress })
       .rpc({ skipPreflight: true });
 
     const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
@@ -322,6 +344,45 @@ describe("config", async () => {
       spokeMetadataCollectorAccountData.wormholeCore.toString("hex"),
       CORE_BRIDGE_ADDRESS.toString("hex"),
     );
+  });
+
+  it("should revoke admin rights for updating HubProposalMetadata", async () => {
+    await program.methods
+      .relinquishAdminControlOverHubProposalMetadata()
+      .accounts({ governanceAuthority: program.provider.wallet.publicKey })
+      .rpc({ skipPreflight: true });
+
+    const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(
+            wasm.Constants.SPOKE_METADATA_COLLECTOR_SEED(),
+          ),
+        ],
+        program.programId,
+      );
+
+    const spokeMetadataCollectorAccountData =
+      await program.account.spokeMetadataCollector.fetch(
+        spokeMetadataCollectorAccount,
+      );
+
+    assert.equal(
+      spokeMetadataCollectorAccountData.updatesControlledByGovernance,
+      false,
+    );
+
+    try {
+      await program.methods
+        .updateHubProposalMetadata(hubProposalMetadataUint8Array)
+        .accounts({ payer: randomUser.publicKey, airlock: airlockAddress})
+        .signers([randomUser])
+        .rpc();
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "AirlockNotSigner");
+    }
   });
 
   it("create account", async () => {

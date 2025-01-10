@@ -14,7 +14,6 @@ pub struct Finalize<'info> {
     )]
     pub admin: Signer<'info>,
     pub mint: InterfaceAccount<'info, Mint>,
-    // Initialize a vault for us to store our money in escrow for vesting
     #[account(
         mut,
         associated_token::mint = mint,
@@ -22,7 +21,6 @@ pub struct Finalize<'info> {
         associated_token::token_program = token_program
     )]
     vault: InterfaceAccount<'info, TokenAccount>,
-    // Initialize a vesting config for a specific admin, mint and seed
     #[account(
         mut,
         constraint = !config.finalized @ VestingError::VestingFinalized,

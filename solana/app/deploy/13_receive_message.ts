@@ -9,6 +9,7 @@ import {
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
+import BN from "bn.js";
 import { CORE_BRIDGE_PID } from "../../tests/executor";
 import {
   hubSolanaMessageDispatcherPublicKey,
@@ -66,6 +67,11 @@ async function main() {
       program.programId,
     )[0];
 
+    const airlockSelfCallPDA: PublicKey = PublicKey.findProgramAddressSync(
+      [Buffer.from("airlock_self_call")],
+      program.programId,
+    )[0];
+
     // Prepare the messageReceivedPDA seeds
     const messageReceivedSeed = Buffer.from("message_received");
     const emitterChainSeed = Buffer.alloc(HUB_CHAIN_ID);
@@ -83,12 +89,13 @@ async function main() {
 
     // Invoke receive_message instruction
     await program.methods
-      .receiveMessage()
+      .receiveMessage(new BN(100000000))
       .accounts({
         payer: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
         // @ts-ignore
         messageReceived: messageReceivedPDA,
         airlock: airlockPDA,
+        airlockSelfCall: airlockSelfCallPDA,
         messageExecutor: messageExecutorPDA,
         postedVaa: POSTED_VAA_ADDRESS,
         wormholeProgram: CORE_BRIDGE_PID,

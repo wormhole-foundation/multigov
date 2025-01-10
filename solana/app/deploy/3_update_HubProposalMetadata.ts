@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
-import { Connection } from "@solana/web3.js";
+import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
 import { hubProposalMetadataUint8Array } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import { Staking } from "../../target/types/staking";
@@ -22,9 +22,14 @@ async function main() {
       provider,
     );
 
+    const airlockPDA: PublicKey = PublicKey.findProgramAddressSync(
+      [Buffer.from("airlock")],
+      program.programId,
+    )[0];
+
     await program.methods
       .updateHubProposalMetadata(Array.from(hubProposalMetadataUint8Array))
-      .accounts({ governanceAuthority: DEPLOYER_AUTHORITY_KEYPAIR.publicKey })
+      .accounts({ payer: DEPLOYER_AUTHORITY_KEYPAIR.publicKey, airlock: airlockPDA })
       .rpc();
   } catch (err) {
     console.error("Error:", err);

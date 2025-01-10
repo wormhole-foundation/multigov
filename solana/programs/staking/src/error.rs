@@ -49,6 +49,14 @@ pub enum ErrorCode {
     InvalidNextVoterCheckpoints,
     #[msg("Proposal inactive")]
     ProposalInactive,
+    #[msg("Checkpoint account limit too high")]
+    InvalidCheckpointAccountLimit,
+    #[msg("Zero withdrawals not permitted")]
+    ZeroWithdrawal,
+    #[msg("Not governance authority")]
+    NotGovernanceAuthority,
+    #[msg("Airlock is not a signer")]
+    AirlockNotSigner,
     #[msg("Other")]
     Other,
 }
@@ -161,4 +169,8 @@ pub enum MessageExecutorError {
     MissedRemainingAccount,
     #[msg("Message is not meant for this chain")]
     InvalidWormholeChainId,
+    #[msg("The executed instructions exceeded max lamports")]
+    ExceededMaxLamports,
+    #[msg("The account owner of the signer was changed")]
+    SignerAccountOwernshipChanged,
 }

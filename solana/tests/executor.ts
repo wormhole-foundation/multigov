@@ -68,6 +68,7 @@ describe("receive_message", () => {
   let controller;
   let payer: Keypair;
   let airlockPDA: PublicKey;
+  let selfCallAirlockPDA: PublicKey;
   let messageExecutorPDA: PublicKey;
   let messageExecutor: PublicKey;
   let externalProgram: Program<ExternalProgram>;
@@ -112,6 +113,11 @@ describe("receive_message", () => {
       stakeConnection.program.programId,
     );
 
+    [selfCallAirlockPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("airlock_self_call")],
+      stakeConnection.program.programId,
+    );
+
     [messageExecutorPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("spoke_message_executor")],
       stakeConnection.program.programId,
@@ -123,6 +129,7 @@ describe("receive_message", () => {
       .accounts({
         payer: payer.publicKey,
         airlock: airlockPDA,
+        airlockSelfCall: selfCallAirlockPDA,
         systemProgram: SystemProgram.programId,
       })
       .signers([payer])
@@ -183,11 +190,12 @@ describe("receive_message", () => {
 
     try {
       await stakeConnection.program.methods
-        .receiveMessage()
+        .receiveMessage(new BN(100000000))
         .accounts({
           payer: payer.publicKey,
           messageReceived: messageReceivedPDA,
           airlock: airlockPDA,
+          airlockSelfCall: selfCallAirlockPDA,
           messageExecutor: messageExecutorPDA,
           postedVaa: publicKey,
           wormholeProgram: CORE_BRIDGE_PID,
@@ -237,11 +245,12 @@ describe("receive_message", () => {
 
     // Invoke receive_message instruction
     await stakeConnection.program.methods
-      .receiveMessage()
+      .receiveMessage(new BN(100000000))
       .accounts({
         payer: payer.publicKey,
         messageReceived: messageReceivedPDA,
         airlock: airlockPDA,
+        airlockSelfCall: selfCallAirlockPDA,
         messageExecutor: messageExecutorPDA,
         postedVaa: publicKey,
         wormholeProgram: CORE_BRIDGE_PID,
@@ -285,11 +294,12 @@ describe("receive_message", () => {
 
     try {
       await stakeConnection.program.methods
-        .receiveMessage()
+        .receiveMessage(new BN(100000000))
         .accounts({
           payer: payer.publicKey,
           messageReceived: messageReceivedPDA,
           airlock: airlockPDA,
+          airlockSelfCall: selfCallAirlockPDA,
           messageExecutor: messageExecutorPDA,
           postedVaa: publicKey,
           wormholeProgram: CORE_BRIDGE_PID,
@@ -353,11 +363,12 @@ describe("receive_message", () => {
 
     // Invoke receiveMessage instruction
     await stakeConnection.program.methods
-      .receiveMessage()
+      .receiveMessage(new BN(100000000))
       .accounts({
         payer: payer.publicKey,
         messageReceived: messageReceivedPDA,
         airlock: airlockPDA,
+        airlockSelfCall: selfCallAirlockPDA,
         messageExecutor: messageExecutorPDA,
         postedVaa: publicKey,
         wormholeProgram: CORE_BRIDGE_PID,
@@ -383,6 +394,7 @@ describe("receive_message", () => {
       await generateUpdateVoteWeightWindowLengthsInstruction(
         stakeConnection,
         airlockPDA,
+        selfCallAirlockPDA,
         new BN(windowLength),
       );
 
@@ -412,7 +424,8 @@ describe("receive_message", () => {
     );
 
     let remainingAccountsModified = remainingAccounts.map((a) => {
-      if (a.pubkey.toBase58() === airlockPDA.toBase58()) {
+      if (a.pubkey.toBase58() === airlockPDA.toBase58()
+        || a.pubkey.toBase58() === selfCallAirlockPDA.toBase58()) {
         return {
           pubkey: a.pubkey,
           isWritable: a.isWritable,
@@ -424,11 +437,12 @@ describe("receive_message", () => {
     try {
       // Invoke receiveMessage instruction
       await stakeConnection.program.methods
-        .receiveMessage()
+        .receiveMessage(new BN(100000000))
         .accounts({
           payer: payer.publicKey,
           messageReceived: messageReceivedPDA,
           airlock: airlockPDA,
+          airlockSelfCall: selfCallAirlockPDA,
           messageExecutor: messageExecutorPDA,
           postedVaa: publicKey,
           wormholeProgram: CORE_BRIDGE_PID,
@@ -453,6 +467,7 @@ describe("receive_message", () => {
       await generateUpdateVoteWeightWindowLengthsInstruction(
         stakeConnection,
         airlockPDA,
+        selfCallAirlockPDA,
         new BN(windowLength),
       );
 
@@ -482,7 +497,8 @@ describe("receive_message", () => {
     );
 
     let remainingAccountsModified = remainingAccounts.map((a) => {
-      if (a.pubkey.toBase58() === airlockPDA.toBase58()) {
+      if (a.pubkey.toBase58() === airlockPDA.toBase58()
+        || a.pubkey.toBase58() === selfCallAirlockPDA.toBase58()) {
         return {
           pubkey: a.pubkey,
           isWritable: a.isWritable,
@@ -493,11 +509,12 @@ describe("receive_message", () => {
 
     // Invoke receiveMessage instruction
     await stakeConnection.program.methods
-      .receiveMessage()
+      .receiveMessage(new BN(100000000))
       .accounts({
         payer: payer.publicKey,
         messageReceived: messageReceivedPDA,
         airlock: airlockPDA,
+        airlockSelfCall: selfCallAirlockPDA,
         messageExecutor: messageExecutorPDA,
         postedVaa: publicKey,
         wormholeProgram: CORE_BRIDGE_PID,
@@ -689,6 +706,7 @@ export async function generateExternalProgramInstruction(
 export async function generateUpdateVoteWeightWindowLengthsInstruction(
   stakeConnection: StakeConnection,
   airlockPDA: PublicKey,
+  selfCallAirlockPDA: PublicKey,
   windowLength: BN,
 ): Promise<{ messagePayloadBuffer: Buffer; remainingAccounts: any[] }> {
   const [voteWeightWindowLengthsAccountAddress, _] =
@@ -707,6 +725,7 @@ export async function generateUpdateVoteWeightWindowLengthsInstruction(
     .accounts({
       payer: stakeConnection.userPublicKey(),
       airlock: airlockPDA,
+      airlockSelfCall: selfCallAirlockPDA,
       voteWeightWindowLengths: voteWeightWindowLengthsAccountAddress,
       systemProgram: SystemProgram.programId,
     })

@@ -138,7 +138,7 @@ pub fn find_window_length_le(
     let header_size = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE;
     let data = &data[header_size..];
 
-    let element_size = 16;
+    let element_size = VoteWeightWindowLengths::WINDOW_LENGTH_SIZE;
     let total_elements = data.len() / element_size;
 
     let mut low = 0;

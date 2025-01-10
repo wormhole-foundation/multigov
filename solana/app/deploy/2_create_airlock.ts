@@ -26,12 +26,18 @@ async function main() {
       program.programId,
     )[0];
 
+    const airlockSelfCallPDA: PublicKey = PublicKey.findProgramAddressSync(
+      [Buffer.from("airlock_self_call")],
+      program.programId,
+    )[0];
+
     await program.methods
       .initializeSpokeAirlock()
       .accounts({
         payer: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
         // @ts-ignore
         airlock: airlockPDA,
+        airlockSelfCall: airlockSelfCallPDA,
         systemProgram: SystemProgram.programId,
       })
       .rpc({ skipPreflight: DEBUG });

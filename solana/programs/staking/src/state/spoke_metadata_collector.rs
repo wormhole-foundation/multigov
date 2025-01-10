@@ -22,6 +22,8 @@ pub struct SpokeMetadataCollector {
     pub hub_proposal_metadata: [u8; 20],
     // Wormhole contract handling messages
     pub wormhole_core: Pubkey,
+    // Updates to hub_proposal_metadata are governance controlled
+    pub updates_controlled_by_governance: bool
 }
 
 impl SpokeMetadataCollector {
@@ -39,6 +41,7 @@ impl SpokeMetadataCollector {
         self.hub_chain_id = hub_chain_id;
         self.hub_proposal_metadata = hub_proposal_metadata;
         self.wormhole_core = wormhole_core;
+        self.updates_controlled_by_governance = true;
 
         Ok(())
     }
