@@ -1422,7 +1422,7 @@ describe("api", async () => {
           [
             utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
             user9StakeConnection.userPublicKey().toBuffer(),
-            Buffer.from([1]),
+            Buffer.from([1, 0]),
           ],
           user9StakeConnection.program.programId,
         )[0];
