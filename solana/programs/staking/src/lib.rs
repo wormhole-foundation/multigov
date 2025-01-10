@@ -526,9 +526,7 @@ pub mod staking {
             );
 
             let mut total_weight = window_start_checkpoint.value;
-
-            let mut checkpoint_index = window_start_checkpoint_index;
-
+            let mut checkpoint_index = window_start_checkpoint_index + 1;
             let mut reading_from_next_account = false;
 
             // The loop below is guaranteed to exit because:
@@ -536,8 +534,6 @@ pub mod staking {
             // 2. It breaks when a checkpoint's timestamp exceeds the `vote_start` timestamp.
             // This ensures that the loop will not run indefinitely
             loop {
-                checkpoint_index += 1;
-
                 if !reading_from_next_account
                     && (checkpoint_index as u32) == config.max_checkpoints_account_limit
                 {
@@ -606,6 +602,8 @@ pub mod staking {
                     if checkpoint.value < total_weight {
                         total_weight = checkpoint.value;
                     }
+
+                    checkpoint_index += 1;
                 }
             }
 
