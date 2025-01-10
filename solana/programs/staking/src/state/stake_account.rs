@@ -55,7 +55,7 @@ impl StakeAccountMetadata {
         self.stake_account_checkpoints_last_index = stake_account_checkpoints_last;
     }
 
-    pub fn update_recorded_balance(&mut self, new_recorded_balance: u64) {
+    pub fn update_recorded_balance(&mut self, new_recorded_balance: u64) -> RecordedBalanceChanged {
         emit!(RecordedBalanceChanged {
             owner: self.owner,
             previous_balance: self.recorded_balance,
@@ -63,9 +63,18 @@ impl StakeAccountMetadata {
         });
 
         self.recorded_balance = new_recorded_balance;
+
+        RecordedBalanceChanged {
+            owner: self.owner,
+            previous_balance: self.recorded_balance,
+            new_balance: new_recorded_balance,
+        }
     }
 
-    pub fn update_recorded_vesting_balance(&mut self, new_recorded_vesting_balance: u64) {
+    pub fn update_recorded_vesting_balance(
+        &mut self,
+        new_recorded_vesting_balance: u64,
+    ) -> RecordedVestingBalanceChanged {
         emit!(RecordedVestingBalanceChanged {
             owner: self.owner,
             previous_balance: self.recorded_vesting_balance,
@@ -73,6 +82,12 @@ impl StakeAccountMetadata {
         });
 
         self.recorded_vesting_balance = new_recorded_vesting_balance;
+
+        RecordedVestingBalanceChanged {
+            owner: self.owner,
+            previous_balance: self.recorded_vesting_balance,
+            new_balance: new_recorded_vesting_balance,
+        }
     }
 }
 

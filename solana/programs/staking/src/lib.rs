@@ -218,8 +218,8 @@ pub mod staking {
                             .ok_or(VestingError::Overflow)?;
 
                         // Update the recorded vesting balance
-                        stake_account_metadata
-                            .update_recorded_vesting_balance(new_recorded_vesting_balance);
+                        emit_cpi!(stake_account_metadata
+                            .update_recorded_vesting_balance(new_recorded_vesting_balance));
                     }
                 }
             }
@@ -465,9 +465,10 @@ pub mod staking {
         }
         drop(loaded_checkpoints);
 
-        ctx.accounts
+        emit_cpi!(ctx
+            .accounts
             .stake_account_metadata
-            .update_recorded_balance(*current_stake_balance);
+            .update_recorded_balance(*current_stake_balance));
 
         Ok(())
     }
