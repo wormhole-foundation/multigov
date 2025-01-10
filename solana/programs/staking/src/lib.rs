@@ -255,7 +255,7 @@ pub mod staking {
                     .current_delegate_stake_account_checkpoints
                     .to_account_info();
 
-                emit_cpi!(push_checkpoint(
+                let delegate_votes_changed = push_checkpoint(
                     &mut ctx.accounts.current_delegate_stake_account_checkpoints,
                     &current_delegate_checkpoints_account_info,
                     prev_recorded_total_balance,
@@ -263,7 +263,8 @@ pub mod staking {
                     current_timestamp,
                     &ctx.accounts.payer.to_account_info(),
                     &ctx.accounts.system_program.to_account_info(),
-                )?);
+                )?;
+                emit_cpi!(delegate_votes_changed);
             }
 
             if total_delegated_votes > 0 {
@@ -272,7 +273,7 @@ pub mod staking {
                     .delegatee_stake_account_checkpoints
                     .to_account_info();
 
-                emit_cpi!(push_checkpoint(
+                let delegate_votes_changed = push_checkpoint(
                     &mut ctx.accounts.delegatee_stake_account_checkpoints,
                     &delegatee_checkpoints_account_info,
                     total_delegated_votes,
@@ -280,7 +281,8 @@ pub mod staking {
                     current_timestamp,
                     &ctx.accounts.payer.to_account_info(),
                     &ctx.accounts.system_program.to_account_info(),
-                )?);
+                )?;
+                emit_cpi!(delegate_votes_changed);
             }
         } else if total_delegated_votes != prev_recorded_total_balance {
             let delegatee_checkpoints_account_info = ctx
@@ -304,7 +306,7 @@ pub mod staking {
                 )
             };
 
-            emit_cpi!(push_checkpoint(
+            let delegate_votes_changed = push_checkpoint(
                 &mut ctx.accounts.delegatee_stake_account_checkpoints,
                 &delegatee_checkpoints_account_info,
                 amount_delta,
@@ -312,7 +314,8 @@ pub mod staking {
                 current_timestamp,
                 &ctx.accounts.payer.to_account_info(),
                 &ctx.accounts.system_program.to_account_info(),
-            )?);
+            )?;
+            emit_cpi!(delegate_votes_changed);
         }
 
         if current_stake_balance != stake_account_metadata.recorded_balance {
@@ -442,7 +445,7 @@ pub mod staking {
             )
         };
 
-        emit_cpi!(push_checkpoint(
+        let delegate_votes_changed = push_checkpoint(
             &mut ctx.accounts.current_delegate_stake_account_checkpoints,
             &current_delegate_account_info,
             amount_delta,
@@ -450,7 +453,8 @@ pub mod staking {
             current_timestamp,
             &ctx.accounts.payer.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
-        )?);
+        )?;
+        emit_cpi!(delegate_votes_changed);
 
         let loaded_checkpoints = ctx
             .accounts
