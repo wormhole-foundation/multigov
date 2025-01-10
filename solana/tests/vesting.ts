@@ -148,7 +148,6 @@ describe("vesting", () => {
     config = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-        whMintAuthority.publicKey.toBuffer(),
         whMintAccount.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
       ],
@@ -157,7 +156,6 @@ describe("vesting", () => {
     config2 = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-        whMintAuthority.publicKey.toBuffer(),
         whMintAccount.publicKey.toBuffer(),
         seed2.toBuffer("le", 8),
       ],
@@ -557,7 +555,6 @@ describe("vesting", () => {
     fakeConfig = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-        whMintAuthority.publicKey.toBuffer(),
         fakeMintAccount.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
       ],
@@ -653,22 +650,6 @@ describe("vesting", () => {
       await stakeConnection.program.methods
         .initializeVestingConfig(seed)
         .accounts({
-          ...accounts,
-          admin: fakeVestingAdmin.publicKey,
-        })
-        .signers([fakeVestingAdmin])
-        .rpc()
-        .then(confirm);
-
-      assert.fail("Expected error was not thrown");
-    } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
-    }
-
-    try {
-      await stakeConnection.program.methods
-        .initializeVestingConfig(seed)
-        .accounts({
           admin: fakeVestingAdmin.publicKey,
           mint: whMintAccount.publicKey,
           recovery: adminAta,
@@ -710,27 +691,25 @@ describe("vesting", () => {
   });
 
   it("should fail to create vesting balance with invalid admin", async () => {
-    try {
-      await stakeConnection.program.methods
-        .createVestingBalance()
-        .accounts({
-          ...accounts,
-          vestingBalance: vestingBalance,
-          admin: fakeVestingAdmin.publicKey,
-        })
-        .signers([fakeVestingAdmin])
-        .rpc()
-        .then(confirm);
+      try {
+          await stakeConnection.program.methods
+              .createVestingBalance()
+              .accounts({
+                  ...accounts,
+                  vestingBalance: vestingBalance,
+                  admin: fakeVestingAdmin.publicKey,
+              })
+              .signers([fakeVestingAdmin])
+              .rpc()
+              .then(confirm);
 
-      assert.fail("Expected error was not thrown");
-    } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
-    }
-
-    fakeConfig = PublicKey.findProgramAddressSync(
+          assert.fail("Expected error was not thrown");
+      } catch (e) {
+          assert((e as AnchorError).error?.errorCode?.code === "InvalidVestingAdmin");
+      }
+      fakeConfig = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-        fakeVestingAdmin.publicKey.toBuffer(),
         whMintAccount.publicKey.toBuffer(),
         seed.toBuffer("le", 8),
       ],
@@ -753,7 +732,7 @@ describe("vesting", () => {
       assert.fail("Expected error was not thrown");
     } catch (e) {
       assert(
-        (e as AnchorError).error?.errorCode?.code === "AccountNotInitialized",
+        (e as AnchorError).error?.errorCode?.code === "InvalidVestingAdmin",
       );
     }
   });
@@ -839,7 +818,7 @@ describe("vesting", () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
+      assert((e as AnchorError).error?.errorCode?.code === "InvalidVestingAdmin");
     }
   });
 
@@ -1086,7 +1065,7 @@ describe("vesting", () => {
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
+      assert((e as AnchorError).error?.errorCode?.code === "InvalidVestingAdmin");
     }
   });
 
@@ -1367,7 +1346,6 @@ describe("vesting", () => {
     const vestingConfig2 = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-        whMintAuthority.publicKey.toBuffer(),
         whMintAccount.publicKey.toBuffer(),
         seed2.toBuffer("le", 8),
       ],

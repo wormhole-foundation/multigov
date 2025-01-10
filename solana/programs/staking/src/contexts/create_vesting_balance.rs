@@ -1,18 +1,24 @@
-use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED};
+use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, CONFIG_SEED};
 use crate::state::{VestingBalance, VestingConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use crate::state::global_config::GlobalConfig;
+use crate::error::VestingError;
 
 #[derive(Accounts)]
 #[instruction()]
 pub struct CreateVestingBalance<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = global_config.vesting_admin == admin.key()
+            @ VestingError::InvalidVestingAdmin
+    )]
     admin: Signer<'info>,
     mint: InterfaceAccount<'info, Mint>,
     #[account(
         mut,
-        seeds = [VESTING_CONFIG_SEED.as_bytes(), admin.key().as_ref(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
+        seeds = [VESTING_CONFIG_SEED.as_bytes(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
     config: Account<'info, VestingConfig>,
@@ -30,7 +36,11 @@ pub struct CreateVestingBalance<'info> {
         associated_token::token_program = token_program
     )]
     vester_ta: InterfaceAccount<'info, TokenAccount>,
-
+    #[account(
+        seeds = [CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
     associated_token_program: Program<'info, AssociatedToken>,
     token_program: Interface<'info, TokenInterface>,
     system_program: Program<'info, System>,
