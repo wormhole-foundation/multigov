@@ -47,6 +47,8 @@ pub enum ErrorCode {
     ExceedsMaxAllowableVoteWeightWindowLength,
     #[msg("Invalid next voter checkpoints")]
     InvalidNextVoterCheckpoints,
+    #[msg("Proposal inactive")]
+    ProposalInactive,
     #[msg("Other")]
     Other,
 }
@@ -157,4 +159,6 @@ pub enum MessageExecutorError {
     VaaNotFinalized,
     #[msg("Missing Remaining account")]
     MissedRemainingAccount,
+    #[msg("Message is not meant for this chain")]
+    InvalidWormholeChainId,
 }

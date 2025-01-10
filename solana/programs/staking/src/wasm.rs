@@ -177,6 +177,7 @@ reexport_seed_const!(VESTING_BALANCE_SEED);
 reexport_seed_const!(VEST_SEED);
 reexport_seed_const!(SPOKE_METADATA_COLLECTOR_SEED);
 reexport_seed_const!(VOTE_WEIGHT_WINDOW_LENGTHS_SEED);
+reexport_seed_const!(GUARDIAN_SIGNATURES_SEED);
 
 #[wasm_bindgen]
 impl Constants {

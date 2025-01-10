@@ -150,6 +150,7 @@ pub fn find_window_length_le(
         let window_length = read_window_length_at_index(account_info, mid)?;
 
         if window_length.timestamp <= target_timestamp {
+            result = Some((mid, window_length));
             low = mid + 1;
         } else {
             high = mid;

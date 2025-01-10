@@ -201,9 +201,18 @@ pub mod staking {
                         VestingError::InvalidVestingBalancePDA
                     );
 
-                    vesting_balance.stake_account_metadata = stake_account_metadata.key();
-                    stake_account_metadata
-                        .update_recorded_vesting_balance(vesting_balance.total_vesting_balance);
+                    if vesting_balance.stake_account_metadata == Pubkey::default() {
+                        vesting_balance.stake_account_metadata = stake_account_metadata.key();
+
+                        let new_recorded_vesting_balance = stake_account_metadata
+                            .recorded_vesting_balance
+                            .checked_add(vesting_balance.total_vesting_balance)
+                            .ok_or(VestingError::Overflow)?;
+
+                        // Update the recorded vesting balance
+                        stake_account_metadata
+                            .update_recorded_vesting_balance(new_recorded_vesting_balance);
+                    }
                 }
             }
         }
@@ -459,9 +468,18 @@ pub mod staking {
                 .current_delegate_stake_account_checkpoints
                 .load()?;
             if loaded_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
-                ctx.accounts
-                    .current_delegate_stake_account_metadata
-                    .stake_account_checkpoints_last_index += 1;
+                if ctx.accounts.current_delegate_stake_account_metadata.key() 
+                    != ctx.accounts.stake_account_metadata.key()
+                {
+                    ctx.accounts
+                        .current_delegate_stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                }
+                else {
+                    ctx.accounts
+                        .stake_account_metadata
+                        .stake_account_checkpoints_last_index += 1;
+                }
             }
             drop(loaded_checkpoints);
         }
@@ -484,7 +502,9 @@ pub mod staking {
         let proposal = &mut ctx.accounts.proposal;
         let config = &ctx.accounts.config;
 
+        let current_timestamp: u64 = utils::clock::get_current_time().try_into()?;
         let vote_start = proposal.vote_start;
+        require!(current_timestamp > vote_start, ErrorCode::ProposalInactive);
 
         let (_, window_length) = find_window_length_le(
             &ctx.accounts.vote_weight_window_lengths.to_account_info(),
@@ -506,9 +526,7 @@ pub mod staking {
             );
 
             let mut total_weight = window_start_checkpoint.value;
-
-            let mut checkpoint_index = window_start_checkpoint_index;
-
+            let mut checkpoint_index = window_start_checkpoint_index + 1;
             let mut reading_from_next_account = false;
 
             // The loop below is guaranteed to exit because:
@@ -516,8 +534,6 @@ pub mod staking {
             // 2. It breaks when a checkpoint's timestamp exceeds the `vote_start` timestamp.
             // This ensures that the loop will not run indefinitely
             loop {
-                checkpoint_index += 1;
-
                 if !reading_from_next_account
                     && (checkpoint_index as u32) == config.max_checkpoints_account_limit
                 {
@@ -586,6 +602,8 @@ pub mod staking {
                     if checkpoint.value < total_weight {
                         total_weight = checkpoint.value;
                     }
+
+                    checkpoint_index += 1;
                 }
             }
 
@@ -707,6 +725,12 @@ pub mod staking {
         ctx.accounts.message_received.set_inner(MessageReceived {
             bump: ctx.bumps.message_received,
         });
+
+        require!(
+            posted_vaa.payload.1.wormhole_chain_id.clone()
+                == ctx.accounts.message_executor.spoke_chain_id.clone(),
+            MessageExecutorError::InvalidWormholeChainId
+        );
 
         // Execute the instructions in the message.
         for instruction in posted_vaa.payload.1.instructions.clone() {
@@ -838,6 +862,7 @@ pub mod staking {
         ctx: Context<PostSignatures>,
         guardian_signatures: Vec<[u8; 66]>,
         total_signatures: u8,
+        _random_seed: [u8; 32],
     ) -> Result<()> {
         _post_signatures(ctx, guardian_signatures, total_signatures)
     }
