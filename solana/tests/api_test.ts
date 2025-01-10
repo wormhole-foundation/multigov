@@ -1191,14 +1191,15 @@ describe("api", async () => {
           user8StakeAccountMetadataAddress,
           false,
         );
-      let user8StakeAccountCheckpointsAddress = PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-          user8StakeConnection.userPublicKey().toBuffer(),
-          Buffer.from([1]),
-        ],
-        user8StakeConnection.program.programId,
-      )[0];
+      let user8StakeAccountCheckpointsAddress =
+        PublicKey.findProgramAddressSync(
+          [
+            utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+            user8StakeConnection.userPublicKey().toBuffer(),
+            Buffer.from([1]),
+          ],
+          user8StakeConnection.program.programId,
+        )[0];
 
       let user6StakeAccountMetadataAddress =
         await user6StakeConnection.getStakeMetadataAddress(
@@ -1220,7 +1221,10 @@ describe("api", async () => {
       );
       instructions.push(
         await user8StakeConnection.program.methods
-          .delegate(user8StakeConnection.userPublicKey(), user8StakeConnection.userPublicKey())
+          .delegate(
+            user8StakeConnection.userPublicKey(),
+            user8StakeConnection.userPublicKey(),
+          )
           .accountsPartial({
             currentDelegateStakeAccountCheckpoints:
               previousUser8StakeAccountCheckpointsAddress,
@@ -1237,7 +1241,8 @@ describe("api", async () => {
           .createCheckpoints()
           .accounts({
             payer: user8StakeConnection.userPublicKey(),
-            stakeAccountCheckpoints: previousUser8StakeAccountCheckpointsAddress,
+            stakeAccountCheckpoints:
+              previousUser8StakeAccountCheckpointsAddress,
             newStakeAccountCheckpoints: user8StakeAccountCheckpointsAddress,
             stakeAccountMetadata: user8StakeAccountMetadataAddress,
           })
@@ -1245,7 +1250,10 @@ describe("api", async () => {
       );
       instructions.push(
         await user8StakeConnection.program.methods
-          .delegate(user6StakeConnection.userPublicKey(), user8StakeConnection.userPublicKey())
+          .delegate(
+            user6StakeConnection.userPublicKey(),
+            user8StakeConnection.userPublicKey(),
+          )
           .accountsPartial({
             currentDelegateStakeAccountCheckpoints:
               user8StakeAccountCheckpointsAddress,
@@ -1257,7 +1265,9 @@ describe("api", async () => {
           })
           .instruction(),
       );
-      await user8StakeConnection.sendAndConfirmAsVersionedTransaction(instructions);
+      await user8StakeConnection.sendAndConfirmAsVersionedTransaction(
+        instructions,
+      );
 
       await sleep(2000);
       await user8StakeConnection.delegate(
@@ -1269,8 +1279,14 @@ describe("api", async () => {
         await user8StakeConnection.fetchCheckpointAccount(
           user8StakeAccountCheckpointsAddress,
         );
-      assert.equal(user8StakeAccountCheckpoints.checkpoints[0].value.toString(), "0");
-      assert.equal(user8StakeAccountCheckpoints.checkpoints[1].value.toString(), "225000000");
+      assert.equal(
+        user8StakeAccountCheckpoints.checkpoints[0].value.toString(),
+        "0",
+      );
+      assert.equal(
+        user8StakeAccountCheckpoints.checkpoints[1].value.toString(),
+        "225000000",
+      );
 
       let proposalIdInput = await addTestProposal(
         user8StakeConnection,
@@ -1297,9 +1313,7 @@ describe("api", async () => {
 
         assert.fail("Expected an error but none was thrown");
       } catch (e) {
-        assert(
-          (e as AnchorError).error?.errorCode?.code === "NoWeight",
-        );
+        assert((e as AnchorError).error?.errorCode?.code === "NoWeight");
       }
     });
 
