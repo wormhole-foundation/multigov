@@ -31,7 +31,7 @@ import {
 import { SolanaSendSigner } from "@wormhole-foundation/sdk-solana";
 import { signAndSendWait } from "@wormhole-foundation/sdk-connect";
 import { Chain, contracts } from "@wormhole-foundation/sdk-base";
-import { Program, utils } from "@coral-xyz/anchor";
+import { AnchorError, Program, utils } from "@coral-xyz/anchor";
 import { ExternalProgram } from "./artifacts/external_program.ts";
 import externalProgramIdl from "./artifacts/external_program.json";
 import BN from "bn.js";
@@ -71,6 +71,17 @@ describe("receive_message", () => {
   let messageExecutorPDA: PublicKey;
   let messageExecutor: PublicKey;
   let externalProgram: Program<ExternalProgram>;
+
+  const confirm = async (signature: string): Promise<string> => {
+    const block =
+      await stakeConnection.provider.connection.getLatestBlockhash();
+    await stakeConnection.provider.connection.confirmTransaction({
+      signature,
+      ...block,
+    });
+
+    return signature;
+  };
 
   before(async () => {
     // Read the Anchor configuration from the specified path
@@ -139,6 +150,60 @@ describe("receive_message", () => {
   after(async () => {
     // Abort the controller to clean up after the test
     controller.abort();
+  });
+
+  it("should fail if invalid wormhole chain id", async () => {
+    const { messagePayloadBuffer, remainingAccounts } =
+      await generateTransferInstruction(stakeConnection, payer, BigInt(2));
+
+    // Generate the VAA
+    const { publicKey, hash } = await postReceiveMessageVaa(
+      stakeConnection.provider.connection,
+      payer,
+      MOCK_GUARDIANS,
+      Array.from(Buffer.alloc(32, "f0", "hex")),
+      BigInt(1),
+      messagePayloadBuffer,
+      { sourceChain: "Ethereum" },
+    );
+
+    // Prepare the seeds
+    const messageReceivedSeed = Buffer.from("message_received");
+    const emitterChainSeed = Buffer.alloc(2);
+    emitterChainSeed.writeUInt16BE(2, 0);
+    const emitterAddressSeed = Buffer.alloc(32, "f0", "hex");
+    const sequenceSeed = Buffer.alloc(8);
+    sequenceSeed.writeBigUInt64BE(BigInt(1), 0);
+
+    // Prepare PDA for message_received
+    const [messageReceivedPDA] = PublicKey.findProgramAddressSync(
+      [messageReceivedSeed, emitterChainSeed, emitterAddressSeed, sequenceSeed],
+      stakeConnection.program.programId,
+    );
+
+    try {
+      await stakeConnection.program.methods
+        .receiveMessage()
+        .accounts({
+          payer: payer.publicKey,
+          messageReceived: messageReceivedPDA,
+          airlock: airlockPDA,
+          messageExecutor: messageExecutorPDA,
+          postedVaa: publicKey,
+          wormholeProgram: CORE_BRIDGE_PID,
+          systemProgram: SystemProgram.programId,
+        })
+        .remainingAccounts(remainingAccounts)
+        .signers([payer])
+        .rpc()
+        .then(confirm);
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "InvalidWormholeChainId",
+      );
+    }
   });
 
   it("should process receive_message correctly", async () => {
@@ -467,6 +532,7 @@ describe("receive_message", () => {
 export async function generateTransferInstruction(
   stakeConnection: StakeConnection,
   payer: Keypair,
+  wormholeChainId: bigint = BigInt(1),
 ): Promise<{ messagePayloadBuffer: Buffer; remainingAccounts: any[] }> {
   const recipientKeypair = Keypair.generate();
   const lamportsForRecipient =
@@ -511,7 +577,6 @@ export async function generateTransferInstruction(
 
   // Prepare the message
   const messageId = BigInt(1);
-  const wormholeChainId = BigInt(1);
   const instructions = [instructionData];
 
   // Prepare the message without instructionsLength
