@@ -987,12 +987,16 @@ describe("api", async () => {
         WHTokenBalance.fromString("150"),
       );
 
+      let voteStart = Math.floor(Date.now() / 1000) + 12;
       let proposalIdInput = await addTestProposal(
         user3StakeConnection,
-        Math.floor(Date.now() / 1000) + 12,
+        voteStart,
       );
-      await sleep(13000);
 
+      while (voteStart >= Math.floor(Date.now() / 1000)) {
+        await sleep(1000);
+      }
+      await sleep(1000);
       await user3StakeConnection.castVote(
         proposalIdInput,
         new BN(10),
@@ -1027,6 +1031,7 @@ describe("api", async () => {
     it("should cast vote with the correct weight", async () => {
       let stakeAccountCheckpointsAddress;
       let proposalIdInput;
+      let voteStart;
 
       // Create 6 checkpoints, 1 second apart
       for (let i = 0; i < 6; i++) {
@@ -1038,15 +1043,20 @@ describe("api", async () => {
         // Create a proposal with a start time 10 seconds in the future in iteration 5
         // We do this because the vote weight window is 10 seconds
         if (i == 4) {
+          voteStart = Math.floor(Date.now() / 1000) + 10;
           proposalIdInput = await addTestProposal(
             user7StakeConnection,
-            Math.floor(Date.now() / 1000) + 10,
+            voteStart,
           );
         }
 
         await sleep(1000);
       }
 
+      while (voteStart >= Math.floor(Date.now() / 1000)) {
+        await sleep(1000);
+      }
+      await sleep(1000);
       await user7StakeConnection.castVote(
         proposalIdInput,
         new BN(10),
@@ -1062,7 +1072,6 @@ describe("api", async () => {
       assert.equal(againstVotes.toString(), "10");
       assert.equal(forVotes.toString(), "20");
       assert.equal(abstainVotes.toString(), "12");
-
     });
 
     it("should fail to castVote if next voter checkpoints are invalid", async () => {
@@ -1090,6 +1099,9 @@ describe("api", async () => {
         );
       }
       await sleep(5000);
+      while (voteStart >= Math.floor(Date.now() / 1000)) {
+        await sleep(1000);
+      }
 
       let currentStakeAccountCheckpointsAddress =
         await user4StakeConnection.getStakeAccountCheckpointsAddress(

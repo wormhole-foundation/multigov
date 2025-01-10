@@ -550,11 +550,11 @@ describe("vesting", () => {
 
     await stakeConnection.program.methods
       .initializeVestingConfig(seed2)
-        .accounts({
-          ...accounts,
-          config: config2,
-          vault: vault2,
-        })
+      .accounts({
+        ...accounts,
+        config: config2,
+        vault: vault2,
+      })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
@@ -675,12 +675,12 @@ describe("vesting", () => {
   it("Create another matured vests", async () => {
     await stakeConnection.program.methods
       .createVesting(NOW, new BN(100e6))
-        .accounts({
-          ...accounts,
-          config: config2,
-          vestingBalance: vestingBalance2,
-          vest: vestNow2,
-        })
+      .accounts({
+        ...accounts,
+        config: config2,
+        vestingBalance: vestingBalance2,
+        vest: vestNow2,
+      })
       .signers([whMintAuthority])
       .rpc({
         skipPreflight: true,
@@ -1015,12 +1015,13 @@ describe("vesting", () => {
     );
 
     await sleep(2000);
-    let stakeAccountCheckpointsAddress = await vesterStakeConnection.delegateWithVest(
-      vesterStakeConnection.userPublicKey(),
-      WHTokenBalance.fromString("0"),
-      true,
-      config2,
-    );
+    let stakeAccountCheckpointsAddress =
+      await vesterStakeConnection.delegateWithVest(
+        vesterStakeConnection.userPublicKey(),
+        WHTokenBalance.fromString("0"),
+        true,
+        config2,
+      );
 
     let stakeAccountCheckpointsData =
       await vesterStakeConnection.program.account.checkpointData.fetch(
