@@ -85,6 +85,7 @@ describe("api", async () => {
   let user6StakeConnection: StakeConnection;
   let user7StakeConnection: StakeConnection;
   let user8StakeConnection: StakeConnection;
+  let user9StakeConnection: StakeConnection;
 
   let controller;
   let owner;
@@ -94,6 +95,7 @@ describe("api", async () => {
   let user6;
   let user7;
   let user8;
+  let user9;
   let delegate;
 
   const confirm = async (signature: string): Promise<string> => {
@@ -192,6 +194,16 @@ describe("api", async () => {
       WHTokenBalance.fromString("1000"),
     );
     user8 = user8StakeConnection.provider.wallet.publicKey;
+
+    user9StakeConnection = await newUserStakeConnection(
+        stakeConnection,
+        Keypair.generate(),
+        config,
+        whMintAccount,
+        whMintAuthority,
+        WHTokenBalance.fromString("1000"),
+    );
+    user9 = user9StakeConnection.provider.wallet.publicKey;
   });
 
   it("postSignatures", async () => {
@@ -1288,29 +1300,29 @@ describe("api", async () => {
       // filling the checkpoint account to the limit
       for (let i = 0; i < TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1; i++) {
         await sleep(1000);
-        await user8StakeConnection.delegate(
-          user8StakeConnection.userPublicKey(),
+        await user9StakeConnection.delegate(
+          user9StakeConnection.userPublicKey(),
           WHTokenBalance.fromString("5"),
         );
       }
 
-      let user8StakeAccountMetadataAddress =
-        await user8StakeConnection.getStakeMetadataAddress(
-          user8StakeConnection.userPublicKey(),
+      let user9StakeAccountMetadataAddress =
+        await user9StakeConnection.getStakeMetadataAddress(
+          user9StakeConnection.userPublicKey(),
         );
-      let previousUser8StakeAccountCheckpointsAddress =
-        await user8StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
-          user8StakeAccountMetadataAddress,
+      let previousUser9StakeAccountCheckpointsAddress =
+        await user9StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+          user9StakeAccountMetadataAddress,
           false,
         );
-      let user8StakeAccountCheckpointsAddress =
+      let user9StakeAccountCheckpointsAddress =
         PublicKey.findProgramAddressSync(
           [
             utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-            user8StakeConnection.userPublicKey().toBuffer(),
+            user9StakeConnection.userPublicKey().toBuffer(),
             Buffer.from([1]),
           ],
-          user8StakeConnection.program.programId,
+          user9StakeConnection.program.programId,
         )[0];
 
       let user6StakeAccountMetadataAddress =
@@ -1326,89 +1338,89 @@ describe("api", async () => {
       await sleep(2000);
       const instructions: TransactionInstruction[] = [];
       instructions.push(
-        await user8StakeConnection.buildTransferInstruction(
-          user8StakeConnection.userPublicKey(),
+        await user9StakeConnection.buildTransferInstruction(
+          user9StakeConnection.userPublicKey(),
           WHTokenBalance.fromString("5").toBN(),
         ),
       );
       instructions.push(
-        await user8StakeConnection.program.methods
+        await user9StakeConnection.program.methods
           .delegate(
-            user8StakeConnection.userPublicKey(),
-            user8StakeConnection.userPublicKey(),
+            user9StakeConnection.userPublicKey(),
+            user9StakeConnection.userPublicKey(),
           )
           .accountsPartial({
             currentDelegateStakeAccountCheckpoints:
-              previousUser8StakeAccountCheckpointsAddress,
+              previousUser9StakeAccountCheckpointsAddress,
             delegateeStakeAccountCheckpoints:
-              previousUser8StakeAccountCheckpointsAddress,
+              previousUser9StakeAccountCheckpointsAddress,
             vestingConfig: null,
             vestingBalance: null,
-            mint: user8StakeConnection.config.votingTokenMint,
+            mint: user9StakeConnection.config.votingTokenMint,
           })
           .instruction(),
       );
       instructions.push(
-        await user8StakeConnection.program.methods
+        await user9StakeConnection.program.methods
           .createCheckpoints()
           .accounts({
-            payer: user8StakeConnection.userPublicKey(),
+            payer: user9StakeConnection.userPublicKey(),
             stakeAccountCheckpoints:
-              previousUser8StakeAccountCheckpointsAddress,
-            newStakeAccountCheckpoints: user8StakeAccountCheckpointsAddress,
-            stakeAccountMetadata: user8StakeAccountMetadataAddress,
+              previousUser9StakeAccountCheckpointsAddress,
+            newStakeAccountCheckpoints: user9StakeAccountCheckpointsAddress,
+            stakeAccountMetadata: user9StakeAccountMetadataAddress,
           })
           .instruction(),
       );
       instructions.push(
-        await user8StakeConnection.program.methods
+        await user9StakeConnection.program.methods
           .delegate(
             user6StakeConnection.userPublicKey(),
-            user8StakeConnection.userPublicKey(),
+            user9StakeConnection.userPublicKey(),
           )
           .accountsPartial({
             currentDelegateStakeAccountCheckpoints:
-              user8StakeAccountCheckpointsAddress,
+              user9StakeAccountCheckpointsAddress,
             delegateeStakeAccountCheckpoints:
               user6StakeAccountCheckpointsAddress,
             vestingConfig: null,
             vestingBalance: null,
-            mint: user8StakeConnection.config.votingTokenMint,
+            mint: user9StakeConnection.config.votingTokenMint,
           })
           .instruction(),
       );
-      await user8StakeConnection.sendAndConfirmAsVersionedTransaction(
+      await user9StakeConnection.sendAndConfirmAsVersionedTransaction(
         instructions,
       );
 
       await sleep(2000);
-      await user8StakeConnection.delegate(
-        user8StakeConnection.userPublicKey(),
+      await user9StakeConnection.delegate(
+        user9StakeConnection.userPublicKey(),
         WHTokenBalance.fromString("150"),
       );
 
-      let user8StakeAccountCheckpoints: CheckpointAccount =
-        await user8StakeConnection.fetchCheckpointAccount(
-          user8StakeAccountCheckpointsAddress,
+      let user9StakeAccountCheckpoints: CheckpointAccount =
+        await user9StakeConnection.fetchCheckpointAccount(
+            user9StakeAccountCheckpointsAddress,
         );
       assert.equal(
-        user8StakeAccountCheckpoints.checkpoints[0].value.toString(),
+          user9StakeAccountCheckpoints.checkpoints[0].value.toString(),
         "0",
       );
       assert.equal(
-        user8StakeAccountCheckpoints.checkpoints[1].value.toString(),
+          user9StakeAccountCheckpoints.checkpoints[1].value.toString(),
         "225000000",
       );
 
       let proposalIdInput = await addTestProposal(
-        user8StakeConnection,
+          user9StakeConnection,
         Math.floor(Date.now() / 1000),
       );
       const { proposalAccount } =
-        await user8StakeConnection.fetchProposalAccount(proposalIdInput);
+        await user9StakeConnection.fetchProposalAccount(proposalIdInput);
 
       try {
-        await user8StakeConnection.program.methods
+        await user9StakeConnection.program.methods
           .castVote(
             Array.from(proposalIdInput),
             new BN(10),
@@ -1418,8 +1430,8 @@ describe("api", async () => {
           )
           .accountsPartial({
             proposal: proposalAccount,
-            voterCheckpoints: previousUser8StakeAccountCheckpointsAddress,
-            voterCheckpointsNext: user8StakeAccountCheckpointsAddress,
+            voterCheckpoints: previousUser9StakeAccountCheckpointsAddress,
+            voterCheckpointsNext: user9StakeAccountCheckpointsAddress,
           })
           .rpc();
 
