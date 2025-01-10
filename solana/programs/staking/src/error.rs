@@ -173,4 +173,6 @@ pub enum MessageExecutorError {
     InvalidWormholeChainId,
     #[msg("The executed instructions exceeded max lamports")]
     ExceededMaxLamports,
+    #[msg("The account owner of the signer was changed")]
+    SignerAccountOwernshipChanged,
 }

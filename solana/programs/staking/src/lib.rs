@@ -774,6 +774,11 @@ pub mod staking {
             MessageExecutorError::ExceededMaxLamports
         );
 
+        require!(
+            ctx.accounts.payer.owner.key() == ctx.accounts.system_program.key(),
+            MessageExecutorError::SignerAccountOwernshipChanged
+        );
+
         Ok(())
     }
 
