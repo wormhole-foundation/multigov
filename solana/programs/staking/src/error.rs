@@ -49,6 +49,8 @@ pub enum ErrorCode {
     ExceedsMaxAllowableVoteWeightWindowLength,
     #[msg("Invalid next voter checkpoints")]
     InvalidNextVoterCheckpoints,
+    #[msg("Proposal inactive")]
+    ProposalInactive,
     #[msg("Other")]
     Other,
 }
