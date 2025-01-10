@@ -41,7 +41,7 @@ pub struct Finalize<'info> {
 impl<'info> Finalize<'info> {
     pub fn finalize(&mut self) -> Result<()> {
         require!(
-            self.vault.amount == self.config.vested,
+            self.vault.amount >= self.config.vested,
             VestingError::VestedBalanceMismatch
         );
 

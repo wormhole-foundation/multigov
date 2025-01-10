@@ -39,8 +39,6 @@ pub enum ErrorCode {
     InvalidCurrentDelegate,
     #[msg("Invalid stake account metadata")]
     InvalidStakeAccountMetadata,
-    #[msg("Invalid stake account checkpoints provided")]
-    InvalidStakeAccountCheckpoints,
     #[msg("Window length not found")]
     WindowLengthNotFound,
     #[msg("Next checkpoint data account is required")]
@@ -69,7 +67,7 @@ pub enum VestingError {
     Overflow,
     #[msg("Integer underflow")]
     Underflow,
-    #[msg("Invalid stake account delegate")]
+    #[msg("Invalid stake account checkpoints")]
     InvalidStakeAccountCheckpoints,
     #[msg("Error parsing stake_account_metadata and stake_account_checkpoints")]
     ErrorOfStakeAccountParsing,
