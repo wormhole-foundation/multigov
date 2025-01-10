@@ -104,6 +104,25 @@ impl<'info> crate::contexts::TransferVesting<'info> {
             return err!(VestingError::TransferVestToMyself);
         }
 
+        let mut delegate_duplication = false;
+        if let (
+            Some(_stake_account_metadata),
+            Some(_delegate_stake_account_metadata),
+            Some(delegate_stake_account_checkpoints),
+            Some(_new_stake_account_metadata),
+            Some(_new_delegate_stake_account_metadata),
+            Some(new_delegate_stake_account_checkpoints),
+        ) = (
+            &mut self.stake_account_metadata,
+            &mut self.delegate_stake_account_metadata,
+            &mut self.delegate_stake_account_checkpoints,
+            &mut self.new_stake_account_metadata,
+            &mut self.new_delegate_stake_account_metadata,
+            &mut self.new_delegate_stake_account_checkpoints,
+        ) {
+            delegate_duplication = delegate_stake_account_checkpoints.key() == new_delegate_stake_account_checkpoints.key();
+        }
+
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
             if let (
                 Some(stake_account_metadata),
@@ -185,23 +204,25 @@ impl<'info> crate::contexts::TransferVesting<'info> {
 
                 let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
 
-                push_checkpoint(
-                    delegate_stake_account_checkpoints,
-                    &delegate_checkpoints_account_info,
-                    self.vest.amount,
-                    Operation::Subtract,
-                    current_timestamp,
-                    &self.vester.to_account_info(),
-                    &self.system_program.to_account_info(),
-                )?;
-                let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
-                if loaded_checkpoints.next_index
-                    >= self.global_config.max_checkpoints_account_limit.into()
-                {
-                    if delegate_stake_account_metadata.key() == stake_account_metadata.key() {
-                        stake_account_metadata.stake_account_checkpoints_last_index += 1;
-                    } else {
-                        delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                if !delegate_duplication {
+                    push_checkpoint(
+                        delegate_stake_account_checkpoints,
+                        &delegate_checkpoints_account_info,
+                        self.vest.amount,
+                        Operation::Subtract,
+                        current_timestamp,
+                        &self.vester.to_account_info(),
+                        &self.system_program.to_account_info(),
+                    )?;
+                    let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
+                    if loaded_checkpoints.next_index
+                        >= self.global_config.max_checkpoints_account_limit.into()
+                    {
+                        if delegate_stake_account_metadata.key() == stake_account_metadata.key() {
+                            stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                        } else {
+                            delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                        }
                     }
                 }
             } else {
@@ -289,26 +310,28 @@ impl<'info> crate::contexts::TransferVesting<'info> {
 
                 let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
 
-                push_checkpoint(
-                    new_delegate_stake_account_checkpoints,
-                    &current_delegate_checkpoints_account_info,
-                    self.vest.amount,
-                    Operation::Add,
-                    current_timestamp,
-                    &self.vester.to_account_info(),
-                    &self.system_program.to_account_info(),
-                )?;
+                if !delegate_duplication {
+                    push_checkpoint(
+                        new_delegate_stake_account_checkpoints,
+                        &current_delegate_checkpoints_account_info,
+                        self.vest.amount,
+                        Operation::Add,
+                        current_timestamp,
+                        &self.vester.to_account_info(),
+                        &self.system_program.to_account_info(),
+                    )?;
 
-                let loaded_checkpoints = new_delegate_stake_account_checkpoints.load()?;
-                if loaded_checkpoints.next_index
-                    >= self.global_config.max_checkpoints_account_limit.into()
-                {
-                    if new_delegate_stake_account_metadata.key() == new_stake_account_metadata.key()
+                    let loaded_checkpoints = new_delegate_stake_account_checkpoints.load()?;
+                    if loaded_checkpoints.next_index
+                        >= self.global_config.max_checkpoints_account_limit.into()
                     {
-                        new_stake_account_metadata.stake_account_checkpoints_last_index += 1;
-                    } else {
-                        new_delegate_stake_account_metadata.stake_account_checkpoints_last_index +=
-                            1;
+                        if new_delegate_stake_account_metadata.key() == new_stake_account_metadata.key()
+                        {
+                            new_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                        } else {
+                            new_delegate_stake_account_metadata.stake_account_checkpoints_last_index +=
+                                1;
+                        }
                     }
                 }
             } else {
