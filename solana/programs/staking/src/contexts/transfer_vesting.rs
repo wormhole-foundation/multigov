@@ -2,9 +2,9 @@ use crate::context::{
     CHECKPOINT_DATA_SEED, CONFIG_SEED, STAKE_ACCOUNT_METADATA_SEED, VESTING_BALANCE_SEED,
     VESTING_CONFIG_SEED, VEST_SEED,
 };
-use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
+use crate::state::checkpoints::{push_checkpoint, CheckpointData, DelegateVotesChanged, Operation};
 use crate::state::global_config::GlobalConfig;
-use crate::state::stake_account::StakeAccountMetadata;
+use crate::state::stake_account::{RecordedVestingBalanceChanged, StakeAccountMetadata};
 use crate::state::{Vesting, VestingBalance, VestingConfig};
 use crate::{error::ErrorCode, error::VestingError};
 use anchor_lang::prelude::*;
@@ -12,6 +12,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use std::convert::TryInto;
 
+#[event_cpi]
 #[derive(Accounts)]
 pub struct TransferVesting<'info> {
     #[account(mut)]
@@ -94,12 +95,29 @@ pub struct TransferVesting<'info> {
     system_program: Program<'info, System>,
 }
 
+#[derive(AnchorDeserialize, AnchorSerialize)]
+pub struct StakeAccountMetadataEvents {
+    pub recorded_vesting_balance_changed: RecordedVestingBalanceChanged,
+    pub delegate_votes_changed: Option<DelegateVotesChanged>,
+}
+
+#[derive(AnchorDeserialize, AnchorSerialize)]
+pub struct TransferVestingEvents {
+    pub stake_account_metadata: Option<StakeAccountMetadataEvents>,
+    pub new_stake_account_metadata: Option<StakeAccountMetadataEvents>,
+}
+
 impl<'info> crate::contexts::TransferVesting<'info> {
     pub fn transfer_vesting(
         &mut self,
         new_vest_bump: u8,
         new_vesting_balance_bump: u8,
-    ) -> Result<()> {
+    ) -> Result<TransferVestingEvents> {
+        let mut transfer_vesting_events = TransferVestingEvents {
+            stake_account_metadata: None,
+            new_stake_account_metadata: None,
+        };
+
         if self.new_vester_ta.owner.key() == self.vester_ta.owner.key() {
             return err!(VestingError::TransferVestToMyself);
         }
@@ -195,7 +213,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     .checked_sub(self.vest.amount)
                     .ok_or(VestingError::Underflow)?;
 
-                stake_account_metadata
+                let recorded_vesting_balance_changed = stake_account_metadata
                     .update_recorded_vesting_balance(new_recorded_vesting_balance);
 
                 // Update checkpoints
@@ -204,8 +222,9 @@ impl<'info> crate::contexts::TransferVesting<'info> {
 
                 let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
 
+                let mut delegate_votes_changed = None;
                 if !delegate_duplication {
-                    push_checkpoint(
+                    delegate_votes_changed = Some(push_checkpoint(
                         delegate_stake_account_checkpoints,
                         &delegate_checkpoints_account_info,
                         self.vest.amount,
@@ -213,7 +232,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                         current_timestamp,
                         &self.vester.to_account_info(),
                         &self.system_program.to_account_info(),
-                    )?;
+                    )?);
                     let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
                     if loaded_checkpoints.next_index
                         >= self.global_config.max_checkpoints_account_limit.into()
@@ -225,6 +244,11 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                         }
                     }
                 }
+
+                transfer_vesting_events.stake_account_metadata = Some(StakeAccountMetadataEvents {
+                    recorded_vesting_balance_changed,
+                    delegate_votes_changed,
+                });
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
             }
@@ -302,7 +326,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     .checked_add(self.vest.amount)
                     .ok_or(VestingError::Overflow)?;
 
-                new_stake_account_metadata
+                let recorded_vesting_balance_changed = new_stake_account_metadata
                     .update_recorded_vesting_balance(new_recorded_vesting_balance);
 
                 let current_delegate_checkpoints_account_info =
@@ -310,8 +334,9 @@ impl<'info> crate::contexts::TransferVesting<'info> {
 
                 let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
 
+                let mut delegate_votes_changed = None;
                 if !delegate_duplication {
-                    push_checkpoint(
+                    delegate_votes_changed = Some(push_checkpoint(
                         new_delegate_stake_account_checkpoints,
                         &current_delegate_checkpoints_account_info,
                         self.vest.amount,
@@ -319,7 +344,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                         current_timestamp,
                         &self.vester.to_account_info(),
                         &self.system_program.to_account_info(),
-                    )?;
+                    )?);
 
                     let loaded_checkpoints = new_delegate_stake_account_checkpoints.load()?;
                     if loaded_checkpoints.next_index
@@ -334,6 +359,12 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                         }
                     }
                 }
+
+                transfer_vesting_events.new_stake_account_metadata =
+                    Some(StakeAccountMetadataEvents {
+                        recorded_vesting_balance_changed,
+                        delegate_votes_changed,
+                    });
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
             }
@@ -368,6 +399,6 @@ impl<'info> crate::contexts::TransferVesting<'info> {
             .checked_sub(self.vest.amount)
             .ok_or(VestingError::Underflow)?;
 
-        Ok(())
+        Ok(transfer_vesting_events)
     }
 }

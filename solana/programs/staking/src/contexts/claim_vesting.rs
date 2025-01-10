@@ -1,7 +1,7 @@
 use crate::context::{CONFIG_SEED, VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
-use crate::state::checkpoints::{push_checkpoint, CheckpointData, Operation};
+use crate::state::checkpoints::{push_checkpoint, CheckpointData, DelegateVotesChanged, Operation};
 use crate::state::global_config::GlobalConfig;
-use crate::state::stake_account::StakeAccountMetadata;
+use crate::state::stake_account::{RecordedVestingBalanceChanged, StakeAccountMetadata};
 use crate::{
     error::{ErrorCode, VestingError},
     state::{Vesting, VestingBalance, VestingConfig},
@@ -13,6 +13,7 @@ use anchor_spl::token_interface::{
 };
 use std::convert::TryInto;
 
+#[event_cpi]
 #[derive(Accounts)]
 pub struct ClaimVesting<'info> {
     #[account(mut)]
@@ -80,8 +81,15 @@ pub struct ClaimVesting<'info> {
     system_program: Program<'info, System>,
 }
 
+#[derive(AnchorDeserialize, AnchorSerialize)]
+pub struct CloseVestingEvents {
+    pub recorded_vesting_balance_changed: RecordedVestingBalanceChanged,
+    pub delegate_votes_changed: DelegateVotesChanged,
+}
+
 impl<'info> ClaimVesting<'info> {
-    pub fn close_vesting(&mut self) -> Result<()> {
+    pub fn close_vesting(&mut self) -> Result<Option<CloseVestingEvents>> {
+        let mut close_vesting_events = None;
         // If vesting_balance.stake_account_metadata is not set it means that vester has not
         // delegated his vests
         if self.vesting_balance.stake_account_metadata != Pubkey::default() {
@@ -127,7 +135,7 @@ impl<'info> ClaimVesting<'info> {
                     .ok_or(VestingError::Underflow)?;
 
                 // Update the recorded vesting balance
-                stake_account_metadata
+                let recorded_vesting_balance_changed = stake_account_metadata
                     .update_recorded_vesting_balance(new_recorded_vesting_balance);
 
                 // Update checkpoints
@@ -136,7 +144,7 @@ impl<'info> ClaimVesting<'info> {
 
                 let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
 
-                push_checkpoint(
+                let delegate_votes_changed = push_checkpoint(
                     delegate_stake_account_checkpoints,
                     &current_delegate_checkpoints_account_info,
                     self.vest.amount,
@@ -156,6 +164,11 @@ impl<'info> ClaimVesting<'info> {
                         delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
                     }
                 }
+
+                close_vesting_events = Some(CloseVestingEvents {
+                    recorded_vesting_balance_changed,
+                    delegate_votes_changed,
+                })
             } else {
                 return err!(VestingError::ErrorOfStakeAccountParsing);
             }
@@ -194,6 +207,8 @@ impl<'info> ClaimVesting<'info> {
             &signer_seeds,
         );
 
-        transfer_checked(ctx, self.vest.amount, self.mint.decimals)
+        transfer_checked(ctx, self.vest.amount, self.mint.decimals)?;
+
+        Ok(close_vesting_events)
     }
 }

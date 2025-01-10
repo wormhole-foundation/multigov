@@ -255,7 +255,7 @@ pub mod staking {
                     .current_delegate_stake_account_checkpoints
                     .to_account_info();
 
-                push_checkpoint(
+                emit_cpi!(push_checkpoint(
                     &mut ctx.accounts.current_delegate_stake_account_checkpoints,
                     &current_delegate_checkpoints_account_info,
                     prev_recorded_total_balance,
@@ -263,7 +263,7 @@ pub mod staking {
                     current_timestamp,
                     &ctx.accounts.payer.to_account_info(),
                     &ctx.accounts.system_program.to_account_info(),
-                )?;
+                )?);
             }
 
             if total_delegated_votes > 0 {
@@ -272,7 +272,7 @@ pub mod staking {
                     .delegatee_stake_account_checkpoints
                     .to_account_info();
 
-                push_checkpoint(
+                emit_cpi!(push_checkpoint(
                     &mut ctx.accounts.delegatee_stake_account_checkpoints,
                     &delegatee_checkpoints_account_info,
                     total_delegated_votes,
@@ -280,7 +280,7 @@ pub mod staking {
                     current_timestamp,
                     &ctx.accounts.payer.to_account_info(),
                     &ctx.accounts.system_program.to_account_info(),
-                )?;
+                )?);
             }
         } else if total_delegated_votes != prev_recorded_total_balance {
             let delegatee_checkpoints_account_info = ctx
@@ -304,7 +304,7 @@ pub mod staking {
                 )
             };
 
-            push_checkpoint(
+            emit_cpi!(push_checkpoint(
                 &mut ctx.accounts.delegatee_stake_account_checkpoints,
                 &delegatee_checkpoints_account_info,
                 amount_delta,
@@ -312,11 +312,11 @@ pub mod staking {
                 current_timestamp,
                 &ctx.accounts.payer.to_account_info(),
                 &ctx.accounts.system_program.to_account_info(),
-            )?;
+            )?);
         }
 
         if current_stake_balance != stake_account_metadata.recorded_balance {
-            stake_account_metadata.update_recorded_balance(current_stake_balance);
+            emit_cpi!(stake_account_metadata.update_recorded_balance(current_stake_balance));
         }
 
         let delegatee_stake_account_checkpoints =
@@ -442,7 +442,7 @@ pub mod staking {
             )
         };
 
-        push_checkpoint(
+        emit_cpi!(push_checkpoint(
             &mut ctx.accounts.current_delegate_stake_account_checkpoints,
             &current_delegate_account_info,
             amount_delta,
@@ -450,7 +450,7 @@ pub mod staking {
             current_timestamp,
             &ctx.accounts.payer.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
-        )?;
+        )?);
 
         let loaded_checkpoints = ctx
             .accounts
@@ -682,13 +682,39 @@ pub mod staking {
 
     // Claim from and close a Vesting account
     pub fn claim_vesting(ctx: Context<ClaimVesting>) -> Result<()> {
-        ctx.accounts.close_vesting()
+        let close_vesting_events = ctx.accounts.close_vesting()?;
+
+        if let Some(close_vesting_events) = close_vesting_events {
+            emit_cpi!(close_vesting_events.recorded_vesting_balance_changed);
+            emit_cpi!(close_vesting_events.delegate_votes_changed);
+        }
+
+        Ok(())
     }
 
     // Transfer Vesting from and send to new Vester
     pub fn transfer_vesting(ctx: Context<TransferVesting>) -> Result<()> {
-        ctx.accounts
-            .transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)
+        let transfer_vesting_events = ctx
+            .accounts
+            .transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)?;
+
+        if let Some(stake_account_metadata) = transfer_vesting_events.stake_account_metadata {
+            emit_cpi!(stake_account_metadata.recorded_vesting_balance_changed);
+            if let Some(delegate_votes_changed) = stake_account_metadata.delegate_votes_changed {
+                emit_cpi!(delegate_votes_changed);
+            }
+        }
+
+        if let Some(new_stake_account_metadata) = transfer_vesting_events.new_stake_account_metadata
+        {
+            emit_cpi!(new_stake_account_metadata.recorded_vesting_balance_changed);
+            if let Some(delegate_votes_changed) = new_stake_account_metadata.delegate_votes_changed
+            {
+                emit_cpi!(delegate_votes_changed);
+            }
+        }
+
+        Ok(())
     }
 
     // Cancel and close a Vesting account for a non-finalized Config
