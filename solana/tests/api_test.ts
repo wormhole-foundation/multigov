@@ -819,6 +819,44 @@ describe("api", async () => {
       );
     });
 
+    it("should fail when trying to withdraw zero tokens", async () => {
+      let currentDelegate = await stakeConnection.delegates(owner);
+      assert.equal(currentDelegate.toBase58(), user2.toBase58());
+
+      let currentDelegateStakeAccountCheckpointsAddress =
+        await stakeConnection.getStakeAccountCheckpointsAddress(
+          currentDelegate,
+          0,
+        );
+
+      const toAccount = await getAssociatedTokenAddress(
+        stakeConnection.config.votingTokenMint,
+        owner,
+        true,
+      );
+
+      await sleep(2000);
+
+      try {
+        await stakeConnection.program.methods
+          .withdrawTokens(
+            WHTokenBalance.fromString("0").toBN(), // amount: u64
+            currentDelegate, // current_delegate_stake_account_metadata_owner: Pubkey
+            owner, // stake_account_metadata_owner: Pubkey
+          )
+          .accounts({
+            currentDelegateStakeAccountCheckpoints:
+            currentDelegateStakeAccountCheckpointsAddress,
+            destination: toAccount,
+          })
+          .rpc();
+
+        assert.fail("Expected an error but none was thrown");
+      } catch (e) {
+        assert((e as AnchorError).error?.errorCode?.code === "ZeroWithdrawal");
+      }
+    });
+
     it("should fail when withdrawal with an invalid current_delegate_stake_account_metadata_owner parameter", async () => {
       await sleep(2000);
       await user2StakeConnection.delegate(

@@ -53,6 +53,8 @@ pub enum ErrorCode {
     ProposalInactive,
     #[msg("Checkpoint account limit too high")]
     InvalidCheckpointAccountLimit,
+    #[msg("Zero withdrawals not permitted")]
+    ZeroWithdrawal,
     #[msg("Other")]
     Other,
 }

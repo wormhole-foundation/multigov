@@ -381,6 +381,8 @@ pub mod staking {
         _current_delegate_stake_account_metadata_owner: Pubkey,
         _stake_account_metadata_owner: Pubkey,
     ) -> Result<()> {
+        require!(amount != 0, ErrorCode::ZeroWithdrawal);
+
         let stake_account_metadata = &ctx.accounts.stake_account_metadata;
 
         let destination_account = &ctx.accounts.destination;
