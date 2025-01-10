@@ -22,6 +22,6 @@ pub mod tests {
 
     #[test]
     fn check_size() {
-        assert!(VestingConfig::INIT_SPACE == 8 + 32 + 32 + 32 + 8 + 8 + 8); // 128
+        assert!(VestingConfig::INIT_SPACE == 8 + 32 + 32 + 8 + 8 + 8); // 96
     }
 }
