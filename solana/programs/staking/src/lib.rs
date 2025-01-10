@@ -406,64 +406,62 @@ pub mod staking {
         let recorded_balance = &stake_account_metadata.recorded_balance;
         let current_stake_balance = &ctx.accounts.stake_account_custody.amount;
 
-        if stake_account_metadata.delegate != Pubkey::default() {
-            let config = &ctx.accounts.config;
-            let loaded_checkpoints = ctx
-                .accounts
-                .current_delegate_stake_account_checkpoints
-                .load()?;
-            require!(
-                loaded_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
-                ErrorCode::TooManyCheckpoints,
-            );
-            drop(loaded_checkpoints);
+        let config = &ctx.accounts.config;
+        let loaded_checkpoints = ctx
+            .accounts
+            .current_delegate_stake_account_checkpoints
+            .load()?;
+        require!(
+            loaded_checkpoints.next_index < config.max_checkpoints_account_limit.into(),
+            ErrorCode::TooManyCheckpoints,
+        );
+        drop(loaded_checkpoints);
 
-            let current_delegate_account_info = ctx
-                .accounts
-                .current_delegate_stake_account_checkpoints
-                .to_account_info();
+        let current_delegate_account_info = ctx
+            .accounts
+            .current_delegate_stake_account_checkpoints
+            .to_account_info();
 
-            let current_timestamp: u64 = utils::clock::get_current_time().try_into().unwrap();
+        let current_timestamp: u64 = utils::clock::get_current_time().try_into().unwrap();
 
-            let (amount_delta, operation) = if current_stake_balance > recorded_balance {
-                (current_stake_balance - recorded_balance, Operation::Add)
-            } else {
-                (
-                    recorded_balance - current_stake_balance,
-                    Operation::Subtract,
-                )
-            };
+        let (amount_delta, operation) = if current_stake_balance > recorded_balance {
+            (current_stake_balance - recorded_balance, Operation::Add)
+        } else {
+            (
+                recorded_balance - current_stake_balance,
+                Operation::Subtract,
+            )
+        };
 
-            push_checkpoint(
-                &mut ctx.accounts.current_delegate_stake_account_checkpoints,
-                &current_delegate_account_info,
-                amount_delta,
-                operation,
-                current_timestamp,
-                &ctx.accounts.payer.to_account_info(),
-                &ctx.accounts.system_program.to_account_info(),
-            )?;
+        push_checkpoint(
+            &mut ctx.accounts.current_delegate_stake_account_checkpoints,
+            &current_delegate_account_info,
+            amount_delta,
+            operation,
+            current_timestamp,
+            &ctx.accounts.payer.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+        )?;
 
-            let loaded_checkpoints = ctx
-                .accounts
-                .current_delegate_stake_account_checkpoints
-                .load()?;
-            if loaded_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
-                if ctx.accounts.current_delegate_stake_account_metadata.key() 
-                    != ctx.accounts.stake_account_metadata.key()
-                {
-                    ctx.accounts
-                        .current_delegate_stake_account_metadata
-                        .stake_account_checkpoints_last_index += 1;
-                }
-                else {
-                    ctx.accounts
-                        .stake_account_metadata
-                        .stake_account_checkpoints_last_index += 1;
-                }
+        let loaded_checkpoints = ctx
+            .accounts
+            .current_delegate_stake_account_checkpoints
+            .load()?;
+        if loaded_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
+            if ctx.accounts.current_delegate_stake_account_metadata.key() 
+                != ctx.accounts.stake_account_metadata.key()
+            {
+                ctx.accounts
+                    .current_delegate_stake_account_metadata
+                    .stake_account_checkpoints_last_index += 1;
             }
-            drop(loaded_checkpoints);
+            else {
+                ctx.accounts
+                    .stake_account_metadata
+                    .stake_account_checkpoints_last_index += 1;
+            }
         }
+        drop(loaded_checkpoints);
 
         ctx.accounts
             .stake_account_metadata
