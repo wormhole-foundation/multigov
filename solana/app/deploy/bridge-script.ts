@@ -89,13 +89,12 @@ In Solana:
 1) save signatures in solana account:
   result.signatures: ${result.signatures}
 
-  const signaturesKeypair = Keypair.generate();
   const signatureData = signaturesToSolanaArray(result.signatures);
+  const randomSeed = crypto.randomBytes(32);
 
   program.methods
-    .postSignatures(signatureData, signatureData.length)
-    .accounts({ guardianSignatures: signaturesKeypair.publicKey })
-    .signers([signaturesKeypair])
+    .postSignatures(signatureData, signatureData.length, Array.from(randomSeed))
+    .accounts({ payer: this.userPublicKey() })
     .rpc();
 2) call addProposal instruction:
   const ethProposalResponseBytes = Buffer.from(result.bytes, "hex");
@@ -109,6 +108,15 @@ In Solana:
     program.programId,
   )[0];
 
+  const [guardianSignaturesPda] = await PublicKey.findProgramAddress(
+    [
+      Buffer.from("guardian_signatures"),
+      this.userPublicKey().toBuffer(),
+      randomSeed,
+    ],
+    program.programId
+  );
+
   program.methods
     .addProposal(
       ethProposalResponseBytes,
@@ -117,7 +125,7 @@ In Solana:
     )
     .accountsPartial({
       proposal: proposalAccount,
-      guardianSignatures: signaturesKeypair.publicKey,
+      guardianSignatures: guardianSignaturesPda,
       guardianSet: guardianSet,
     });
 `);

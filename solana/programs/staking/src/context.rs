@@ -32,6 +32,7 @@ pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
 pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
 pub const VOTE_WEIGHT_WINDOW_LENGTHS_SEED: &str = "vote_weight_window_lengths";
+pub const GUARDIAN_SIGNATURES_SEED: &str = "guardian_signatures";
 
 #[derive(Accounts)]
 pub struct InitConfig<'info> {
@@ -225,7 +226,7 @@ pub struct UpdateHubProposalMetadata<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(_guardian_signatures: Vec<[u8; 66]>, total_signatures: u8)]
+#[instruction(_guardian_signatures: Vec<[u8; 66]>, total_signatures: u8, random_seed: [u8; 32])]
 pub struct PostSignatures<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -233,7 +234,9 @@ pub struct PostSignatures<'info> {
     #[account(
         init_if_needed,
         payer = payer,
-        space = 8 + GuardianSignatures::compute_size(usize::from(total_signatures))
+        space = 8 + GuardianSignatures::compute_size(usize::from(total_signatures)),
+        seeds = [GUARDIAN_SIGNATURES_SEED.as_bytes(), payer.key().as_ref(), random_seed.as_ref()],
+        bump
     )]
     pub guardian_signatures: Account<'info, GuardianSignatures>,
 

@@ -39,6 +39,7 @@ import {
 } from "./vote_weight_window_lengths";
 import { signaturesToSolanaArray } from "@wormhole-foundation/wormhole-query-sdk";
 import { deriveGuardianSetKey } from "./helpers/guardianSet";
+import crypto from "crypto";
 
 let wasm = importedWasm;
 export { wasm };
@@ -679,16 +680,29 @@ export class StakeConnection {
   }
 
   /** Post signatures */
-  public async postSignatures(
-    querySignatures: string[],
-    signaturesKeypair: Keypair,
-  ) {
+  public async postSignatures(querySignatures: string[]): Promise<PublicKey> {
     const signatureData = signaturesToSolanaArray(querySignatures);
+    const randomSeed = crypto.randomBytes(32);
+
     await this.program.methods
-      .postSignatures(signatureData, signatureData.length)
-      .accounts({ guardianSignatures: signaturesKeypair.publicKey })
-      .signers([signaturesKeypair])
+      .postSignatures(
+        signatureData,
+        signatureData.length,
+        Array.from(randomSeed),
+      )
+      .accounts({ payer: this.userPublicKey() })
       .rpc();
+
+    const [guardianSignaturesPda] = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.GUARDIAN_SIGNATURES_SEED()),
+        this.userPublicKey().toBuffer(),
+        randomSeed,
+      ],
+      this.program.programId,
+    );
+
+    return guardianSignaturesPda;
   }
 
   public async addProposal(
