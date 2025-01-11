@@ -218,8 +218,9 @@ pub mod staking {
                             .ok_or(VestingError::Overflow)?;
 
                         // Update the recorded vesting balance
-                        stake_account_metadata
+                        let recorded_vesting_balance_changed = stake_account_metadata
                             .update_recorded_vesting_balance(new_recorded_vesting_balance);
+                        emit_cpi!(recorded_vesting_balance_changed);
                     }
                 }
             }
@@ -239,6 +240,13 @@ pub mod staking {
             total_delegated_votes,
         });
 
+        emit_cpi!(DelegateChanged {
+            delegator: ctx.accounts.payer.key(),
+            from_delegate: current_delegate,
+            to_delegate: delegatee,
+            total_delegated_votes,
+        });
+
         let current_timestamp: u64 = utils::clock::get_current_time().try_into().unwrap();
 
         if current_delegate != delegatee {
@@ -248,7 +256,7 @@ pub mod staking {
                     .current_delegate_stake_account_checkpoints
                     .to_account_info();
 
-                push_checkpoint(
+                let delegate_votes_changed = push_checkpoint(
                     &mut ctx.accounts.current_delegate_stake_account_checkpoints,
                     &current_delegate_checkpoints_account_info,
                     prev_recorded_total_balance,
@@ -257,6 +265,7 @@ pub mod staking {
                     &ctx.accounts.payer.to_account_info(),
                     &ctx.accounts.system_program.to_account_info(),
                 )?;
+                emit_cpi!(delegate_votes_changed);
             }
 
             if total_delegated_votes > 0 {
@@ -265,7 +274,7 @@ pub mod staking {
                     .delegatee_stake_account_checkpoints
                     .to_account_info();
 
-                push_checkpoint(
+                let delegate_votes_changed = push_checkpoint(
                     &mut ctx.accounts.delegatee_stake_account_checkpoints,
                     &delegatee_checkpoints_account_info,
                     total_delegated_votes,
@@ -274,6 +283,7 @@ pub mod staking {
                     &ctx.accounts.payer.to_account_info(),
                     &ctx.accounts.system_program.to_account_info(),
                 )?;
+                emit_cpi!(delegate_votes_changed);
             }
         } else if total_delegated_votes != prev_recorded_total_balance {
             let delegatee_checkpoints_account_info = ctx
@@ -297,7 +307,7 @@ pub mod staking {
                 )
             };
 
-            push_checkpoint(
+            let delegate_votes_changed = push_checkpoint(
                 &mut ctx.accounts.delegatee_stake_account_checkpoints,
                 &delegatee_checkpoints_account_info,
                 amount_delta,
@@ -306,10 +316,13 @@ pub mod staking {
                 &ctx.accounts.payer.to_account_info(),
                 &ctx.accounts.system_program.to_account_info(),
             )?;
+            emit_cpi!(delegate_votes_changed);
         }
 
         if current_stake_balance != stake_account_metadata.recorded_balance {
-            stake_account_metadata.update_recorded_balance(current_stake_balance);
+            let recorded_balance_changed =
+                stake_account_metadata.update_recorded_balance(current_stake_balance);
+            emit_cpi!(recorded_balance_changed);
         }
 
         let delegatee_stake_account_checkpoints =
@@ -435,7 +448,7 @@ pub mod staking {
             )
         };
 
-        push_checkpoint(
+        let delegate_votes_changed = push_checkpoint(
             &mut ctx.accounts.current_delegate_stake_account_checkpoints,
             &current_delegate_account_info,
             amount_delta,
@@ -444,6 +457,7 @@ pub mod staking {
             &ctx.accounts.payer.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
         )?;
+        emit_cpi!(delegate_votes_changed);
 
         let loaded_checkpoints = ctx
             .accounts
@@ -465,9 +479,11 @@ pub mod staking {
         }
         drop(loaded_checkpoints);
 
-        ctx.accounts
+        let recorded_balance_changed = ctx
+            .accounts
             .stake_account_metadata
             .update_recorded_balance(*current_stake_balance);
+        emit_cpi!(recorded_balance_changed);
 
         Ok(())
     }
@@ -633,6 +649,15 @@ pub mod staking {
                 for_votes,
                 abstain_votes
             });
+
+            emit_cpi!(VoteCast {
+                voter: ctx.accounts.owner.key(),
+                proposal_id,
+                weight: total_weight,
+                against_votes,
+                for_votes,
+                abstain_votes
+            });
         } else {
             return Err(error!(ErrorCode::CheckpointNotFound));
         }
@@ -665,13 +690,39 @@ pub mod staking {
 
     // Claim from and close a Vesting account
     pub fn claim_vesting(ctx: Context<ClaimVesting>) -> Result<()> {
-        ctx.accounts.close_vesting()
+        let close_vesting_events = ctx.accounts.close_vesting()?;
+
+        if let Some(close_vesting_events) = close_vesting_events {
+            emit_cpi!(close_vesting_events.recorded_vesting_balance_changed);
+            emit_cpi!(close_vesting_events.delegate_votes_changed);
+        }
+
+        Ok(())
     }
 
     // Transfer Vesting from and send to new Vester
     pub fn transfer_vesting(ctx: Context<TransferVesting>) -> Result<()> {
-        ctx.accounts
-            .transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)
+        let transfer_vesting_events = ctx
+            .accounts
+            .transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)?;
+
+        if let Some(stake_account_metadata) = transfer_vesting_events.stake_account_metadata {
+            emit_cpi!(stake_account_metadata.recorded_vesting_balance_changed);
+            if let Some(delegate_votes_changed) = stake_account_metadata.delegate_votes_changed {
+                emit_cpi!(delegate_votes_changed);
+            }
+        }
+
+        if let Some(new_stake_account_metadata) = transfer_vesting_events.new_stake_account_metadata
+        {
+            emit_cpi!(new_stake_account_metadata.recorded_vesting_balance_changed);
+            if let Some(delegate_votes_changed) = new_stake_account_metadata.delegate_votes_changed
+            {
+                emit_cpi!(delegate_votes_changed);
+            }
+        }
+
+        Ok(())
     }
 
     // Cancel and close a Vesting account for a non-finalized Config
@@ -970,6 +1021,11 @@ pub mod staking {
             let _ = proposal.add_proposal(proposal_data.proposal_id, proposal_data.vote_start);
 
             emit!(ProposalCreated {
+                proposal_id: proposal_data.proposal_id,
+                vote_start: proposal_data.vote_start,
+            });
+
+            emit_cpi!(ProposalCreated {
                 proposal_id: proposal_data.proposal_id,
                 vote_start: proposal_data.vote_start,
             });

@@ -55,6 +55,7 @@ pub struct InitConfig<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[event_cpi]
 #[derive(Accounts)]
 #[instruction(delegatee: Pubkey, current_delegate_stake_account_owner: Pubkey)]
 pub struct Delegate<'info> {
@@ -138,6 +139,7 @@ pub struct Delegate<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[event_cpi]
 #[derive(Accounts)]
 #[instruction(proposal_id: [u8; 32],
         _against_votes: u64,
@@ -275,6 +277,7 @@ pub struct CloseSignatures<'info> {
     pub refund_recipient: Signer<'info>,
 }
 
+#[event_cpi]
 #[derive(Accounts)]
 #[instruction(_bytes: Vec<u8>, proposal_id : [u8; 32], guardian_set_index: u32)]
 pub struct AddProposal<'info> {
@@ -492,6 +495,7 @@ pub struct CreateStakeAccount<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[event_cpi]
 #[derive(Accounts)]
 pub struct CreateCheckpoints<'info> {
     // Native payer:
@@ -519,6 +523,7 @@ pub struct CreateCheckpoints<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[event_cpi]
 #[derive(Accounts)]
 #[instruction(amount: u64, _current_delegate_stake_account_metadata_owner: Pubkey, _stake_account_metadata_owner: Pubkey
 )]
