@@ -218,8 +218,9 @@ pub mod staking {
                             .ok_or(VestingError::Overflow)?;
 
                         // Update the recorded vesting balance
-                        emit_cpi!(stake_account_metadata
-                            .update_recorded_vesting_balance(new_recorded_vesting_balance));
+                        let recorded_vesting_balance_changed = stake_account_metadata
+                            .update_recorded_vesting_balance(new_recorded_vesting_balance);
+                        emit_cpi!(recorded_vesting_balance_changed);
                     }
                 }
             }
@@ -319,7 +320,9 @@ pub mod staking {
         }
 
         if current_stake_balance != stake_account_metadata.recorded_balance {
-            emit_cpi!(stake_account_metadata.update_recorded_balance(current_stake_balance));
+            let recorded_balance_changed =
+                stake_account_metadata.update_recorded_balance(current_stake_balance);
+            emit_cpi!(recorded_balance_changed);
         }
 
         let delegatee_stake_account_checkpoints =
@@ -476,10 +479,11 @@ pub mod staking {
         }
         drop(loaded_checkpoints);
 
-        emit_cpi!(ctx
+        let recorded_balance_changed = ctx
             .accounts
             .stake_account_metadata
-            .update_recorded_balance(*current_stake_balance));
+            .update_recorded_balance(*current_stake_balance);
+        emit_cpi!(recorded_balance_changed);
 
         Ok(())
     }
