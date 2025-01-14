@@ -447,8 +447,18 @@ export async function standardSetup(
 
   // Give the admin power back to globalConfig.governanceAuthority
   await program.methods
-    .updateGovernanceAuthority(globalConfig.governanceAuthority)
-    .accounts({ governanceSigner: user })
+    .updateGovernanceAuthority()
+    .accounts({
+      governanceSigner: user,
+      newAuthority: globalConfig.governanceAuthority,
+    })
+    .rpc();
+  await program.methods
+    .claimGovernanceAuthority()
+    .accounts({
+      newAuthority: globalConfig.governanceAuthority,
+    })
+    .signers([governanceAuthority])
     .rpc();
 
   const connection = getConnection(portNumber);

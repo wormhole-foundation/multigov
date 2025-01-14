@@ -442,7 +442,9 @@ describe("config", async () => {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     await expectFail(
-      samConnection.program.methods.updateGovernanceAuthority(new PublicKey(0)),
+      samConnection.program.methods.updateGovernanceAuthority().accounts({
+        newAuthority: new PublicKey(0),
+      }),
       "An address constraint was violated",
       errMap,
     );
@@ -451,7 +453,9 @@ describe("config", async () => {
   it("updates vesting admin", async () => {
     // governance authority can't update vesting admin
     await expectFail(
-      program.methods.updateVestingAdmin(program.provider.wallet.publicKey),
+      program.methods.updateVestingAdmin().accounts({
+        newVestingAdmin: program.provider.wallet.publicKey,
+      }),
       "An address constraint was violated",
       errMap,
     );
@@ -471,7 +475,13 @@ describe("config", async () => {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     await vestingAdminConnection.program.methods
-      .updateVestingAdmin(program.provider.wallet.publicKey)
+      .updateVestingAdmin()
+      .accounts({ newVestingAdmin: program.provider.wallet.publicKey })
+      .rpc({ skipPreflight: true });
+    await vestingAdminConnection.program.methods
+      .claimVestingAdmin()
+      .accounts({ newVestingAdmin: program.provider.wallet.publicKey })
+      .signers([program.provider.wallet])
       .rpc({ skipPreflight: true });
 
     let configAccountData =
@@ -489,7 +499,15 @@ describe("config", async () => {
     );
 
     // the authority gets returned to the original vesting admin
-    await program.methods.updateVestingAdmin(vestingAdmin).rpc();
+    await program.methods
+      .updateVestingAdmin()
+      .accounts({ newVestingAdmin: vestingAdmin })
+      .rpc();
+    await program.methods
+      .claimVestingAdmin()
+      .accounts({ newVestingAdmin: vestingAdmin })
+      .signers([vestingAdminKeypair])
+      .rpc();
 
     configAccountData = await program.account.globalConfig.fetch(configAccount);
 
