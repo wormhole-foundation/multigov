@@ -26,6 +26,6 @@ pub mod tests {
 
     #[test]
     fn check_size() {
-        assert!(GlobalConfig::LEN == 8 + 8 + 32 + 32 + 32) // == 112
+        assert!(GlobalConfig::LEN == 8 + 8 + 32 + 32 + 32 + 32 + 32) // == 176
     }
 }
