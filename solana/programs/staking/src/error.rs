@@ -57,6 +57,8 @@ pub enum ErrorCode {
     NotGovernanceAuthority,
     #[msg("Airlock is not a signer")]
     AirlockNotSigner,
+    #[msg("Invalid pending authority")]
+    InvalidPendingAuthority,
     #[msg("Other")]
     Other,
 }
