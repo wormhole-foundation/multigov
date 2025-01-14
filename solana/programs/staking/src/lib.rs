@@ -69,7 +69,7 @@ pub struct ProposalCreated {
 
 const PROGRAM_ID: Pubkey = pubkey!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
 
-declare_id!(PROGRAM_ID);
+declare_id!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
 #[program]
 pub mod staking {
     /// Creates a global config for the program
