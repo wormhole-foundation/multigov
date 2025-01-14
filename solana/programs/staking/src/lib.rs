@@ -93,21 +93,29 @@ pub mod staking {
         Ok(())
     }
 
-    pub fn update_governance_authority(
-        ctx: Context<UpdateGovernanceAuthority>,
-        new_authority: Pubkey,
-    ) -> Result<()> {
+    pub fn update_governance_authority(ctx: Context<UpdateGovernanceAuthority>) -> Result<()> {
         let config = &mut ctx.accounts.config;
-        config.governance_authority = new_authority;
+        config.pending_governance_authority = Some(ctx.accounts.new_authority.key());
         Ok(())
     }
 
-    pub fn update_vesting_admin(
-        ctx: Context<UpdateVestingAdmin>,
-        new_vesting_admin: Pubkey,
-    ) -> Result<()> {
+    pub fn claim_governance_authority(ctx: Context<ClaimGovernanceAuthority>) -> Result<()> {
         let config = &mut ctx.accounts.config;
-        config.vesting_admin = new_vesting_admin;
+        config.pending_governance_authority = None;
+        config.governance_authority = ctx.accounts.new_authority.key();
+        Ok(())
+    }
+
+    pub fn update_vesting_admin(ctx: Context<UpdateVestingAdmin>) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        config.pending_vesting_admin = Some(ctx.accounts.new_vesting_admin.key());
+        Ok(())
+    }
+
+    pub fn claim_vesting_admin(ctx: Context<ClaimVestingAdmin>) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        config.pending_vesting_admin = None;
+        config.vesting_admin = ctx.accounts.new_vesting_admin.key();
         Ok(())
     }
 
