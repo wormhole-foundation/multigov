@@ -297,6 +297,8 @@ export function makeTestConfig(
     votingTokenMint: whMint,
     vestingAdmin: vestingAdmin,
     maxCheckpointsAccountLimit: maxCheckpointsAccountLimit,
+    pendingVestingAdmin: null,
+    pendingGovernanceAuthority: null,
   };
 }
 
