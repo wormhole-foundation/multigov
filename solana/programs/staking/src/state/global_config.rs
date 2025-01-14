@@ -11,6 +11,9 @@ pub struct GlobalConfig {
     pub governance_authority: Pubkey,
     pub voting_token_mint: Pubkey,
     pub vesting_admin: Pubkey,
+    // Pending new authorities (before claiming ownership)
+    pub pending_governance_authority: Option<Pubkey>,
+    pub pending_vesting_admin: Option<Pubkey>,
 }
 
 impl GlobalConfig {
