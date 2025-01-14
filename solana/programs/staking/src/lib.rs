@@ -67,8 +67,6 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-const PROGRAM_ID: Pubkey = pubkey!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
-
 declare_id!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
 #[program]
 pub mod staking {
@@ -805,7 +803,7 @@ pub mod staking {
             };
 
             // Use invoke_signed with the correct signer_seeds
-            if ix.program_id != PROGRAM_ID {
+            if ix.program_id != crate::ID {
                 let signer_seeds: &[&[&[u8]]] =
                     &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
 
