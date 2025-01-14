@@ -89,6 +89,8 @@ pub mod staking {
         // Every checkpoint is 8 + 8 = 16 bytes, so we can fit in (10485760 - 48) / 16 = 655,357 checkpoints
         require!(global_config.max_checkpoints_account_limit <= 655_000, ErrorCode::InvalidCheckpointAccountLimit);
         config_account.max_checkpoints_account_limit = global_config.max_checkpoints_account_limit;
+        config_account.pending_governance_authority = None;
+        config_account.pending_vesting_admin = None;
 
         Ok(())
     }
