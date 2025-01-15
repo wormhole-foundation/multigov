@@ -6,34 +6,34 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
-import {
-  startValidator,
-  readAnchorConfig,
-  getPortNumber,
-  ANCHOR_CONFIG_PATH,
-  requestWHTokenAirdrop,
-} from "./utils/before";
-import { createMint, expectFail } from "./utils/utils";
-import assert from "assert";
-import path from "path";
 import * as wasm from "@wormhole/staking-wasm";
+import assert from "assert";
+import BN from "bn.js";
+import path from "path";
 import {
   StakeConnection,
   TEST_CHECKPOINTS_ACCOUNT_LIMIT,
   WH_TOKEN_DECIMALS,
   WHTokenBalance,
 } from "../app";
-import BN from "bn.js";
 import {
+  CORE_BRIDGE_ADDRESS,
   HUB_CHAIN_ID,
   hubProposalMetadataUint8Array,
-  CORE_BRIDGE_ADDRESS,
 } from "../app/constants";
 import { StakeAccountMetadata } from "../app/StakeConnection.ts";
 import {
-  WindowLengthsAccount,
   readWindowLengths,
+  WindowLengthsAccount,
 } from "../app/vote_weight_window_lengths";
+import {
+  ANCHOR_CONFIG_PATH,
+  getPortNumber,
+  readAnchorConfig,
+  requestWHTokenAirdrop,
+  startValidator,
+} from "./utils/before";
+import { createMint, expectFail } from "./utils/utils";
 
 // When DEBUG is turned on, we turn preflight transaction checking off
 // That way failed transactions show up in the explorer, which makes them
@@ -55,7 +55,7 @@ describe("config", async () => {
 
   let program;
   let controller;
-  let airlockAddress
+  let airlockAddress;
 
   let configAccount: PublicKey;
   let bump: number;
@@ -86,18 +86,13 @@ describe("config", async () => {
     ];
     await program.provider.sendAndConfirm(tx, [program.provider.wallet.payer]);
 
-    airlockAddress =
-      PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(
-            wasm.Constants.AIRLOCK_SEED(),
-          ),
-        ],
-        program.programId,
-      )[0];
+    airlockAddress = PublicKey.findProgramAddressSync(
+      [utils.bytes.utf8.encode(wasm.Constants.AIRLOCK_SEED())],
+      program.programId,
+    )[0];
 
-      // Initialize the airlock account
-      await program.methods
+    // Initialize the airlock account
+    await program.methods
       .initializeSpokeAirlock()
       .accounts({
         payer: program.provider.wallet.payer,
@@ -144,6 +139,8 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         votingTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
+        pendingVestingAdmin: null,
+        pendingGovernanceAuthority: null,
       }),
     );
   });
@@ -300,20 +297,25 @@ describe("config", async () => {
     try {
       await program.methods
         .updateHubProposalMetadata(hubProposalMetadataUint8Array)
-        .accounts({ payer: randomUser.publicKey, airlock: airlockAddress})
+        .accounts({ payer: randomUser.publicKey, airlock: airlockAddress })
         .signers([randomUser])
         .rpc();
 
       assert.fail("Expected error was not thrown");
     } catch (e) {
-      assert((e as AnchorError).error?.errorCode?.code === "NotGovernanceAuthority");
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "NotGovernanceAuthority",
+      );
     }
   });
 
   it("should successfully update HubProposalMetadata", async () => {
     await program.methods
       .updateHubProposalMetadata(hubProposalMetadataUint8Array)
-      .accounts({ payer: program.provider.wallet.publicKey, airlock: airlockAddress })
+      .accounts({
+        payer: program.provider.wallet.publicKey,
+        airlock: airlockAddress,
+      })
       .rpc({ skipPreflight: true });
 
     const [spokeMetadataCollectorAccount, spokeMetadataCollectorBump] =
@@ -375,7 +377,7 @@ describe("config", async () => {
     try {
       await program.methods
         .updateHubProposalMetadata(hubProposalMetadataUint8Array)
-        .accounts({ payer: randomUser.publicKey, airlock: airlockAddress})
+        .accounts({ payer: randomUser.publicKey, airlock: airlockAddress })
         .signers([randomUser])
         .rpc();
 
@@ -397,6 +399,8 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         votingTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
+        pendingVestingAdmin: null,
+        pendingGovernanceAuthority: null,
       }),
     );
 
@@ -474,43 +478,14 @@ describe("config", async () => {
     // Airdrops are not instant unfortunately, wait
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
+    // Set provider.wallet as new vesting admin
     await vestingAdminConnection.program.methods
       .updateVestingAdmin()
       .accounts({ newVestingAdmin: program.provider.wallet.publicKey })
-      .rpc({ skipPreflight: true });
-    await vestingAdminConnection.program.methods
-      .claimVestingAdmin()
-      .accounts({ newVestingAdmin: program.provider.wallet.publicKey })
-      .signers([program.provider.wallet])
       .rpc({ skipPreflight: true });
 
     let configAccountData =
       await program.account.globalConfig.fetch(configAccount);
-
-    assert.equal(
-      JSON.stringify(configAccountData),
-      JSON.stringify({
-        bump,
-        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-        governanceAuthority: program.provider.wallet.publicKey,
-        votingTokenMint: whMintAccount.publicKey,
-        vestingAdmin: program.provider.wallet.publicKey,
-      }),
-    );
-
-    // the authority gets returned to the original vesting admin
-    await program.methods
-      .updateVestingAdmin()
-      .accounts({ newVestingAdmin: vestingAdmin })
-      .rpc();
-    await program.methods
-      .claimVestingAdmin()
-      .accounts({ newVestingAdmin: vestingAdmin })
-      .signers([vestingAdminKeypair])
-      .rpc();
-
-    configAccountData = await program.account.globalConfig.fetch(configAccount);
-
     assert.equal(
       JSON.stringify(configAccountData),
       JSON.stringify({
@@ -519,6 +494,68 @@ describe("config", async () => {
         governanceAuthority: program.provider.wallet.publicKey,
         votingTokenMint: whMintAccount.publicKey,
         vestingAdmin: vestingAdmin,
+        pendingVestingAdmin: program.provider.wallet.publicKey,
+        pendingGovernanceAuthority: null,
+      }),
+    );
+
+    await vestingAdminConnection.program.methods
+      .claimVestingAdmin()
+      .accounts({ newVestingAdmin: program.provider.wallet.publicKey })
+      .signers([program.provider.wallet.payer])
+      .rpc({ skipPreflight: true });
+
+    configAccountData = await program.account.globalConfig.fetch(configAccount);
+    assert.equal(
+      JSON.stringify(configAccountData),
+      JSON.stringify({
+        bump,
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+        governanceAuthority: program.provider.wallet.publicKey,
+        votingTokenMint: whMintAccount.publicKey,
+        vestingAdmin: program.provider.wallet.publicKey,
+        pendingVestingAdmin: null,
+        pendingGovernanceAuthority: null,
+      }),
+    );
+
+    // the authority gets returned to the original vesting admin
+    await program.methods
+      .updateVestingAdmin()
+      .accounts({ newVestingAdmin: vestingAdmin })
+      .rpc();
+
+    configAccountData = await program.account.globalConfig.fetch(configAccount);
+    assert.equal(
+      JSON.stringify(configAccountData),
+      JSON.stringify({
+        bump,
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+        governanceAuthority: program.provider.wallet.publicKey,
+        votingTokenMint: whMintAccount.publicKey,
+        vestingAdmin: program.provider.wallet.publicKey,
+        pendingVestingAdmin: vestingAdmin,
+        pendingGovernanceAuthority: null,
+      }),
+    );
+
+    await program.methods
+      .claimVestingAdmin()
+      .accounts({ newVestingAdmin: vestingAdmin })
+      .signers([vestingAdminKeypair])
+      .rpc();
+
+    configAccountData = await program.account.globalConfig.fetch(configAccount);
+    assert.equal(
+      JSON.stringify(configAccountData),
+      JSON.stringify({
+        bump,
+        maxCheckpointsAccountLimit: TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+        governanceAuthority: program.provider.wallet.publicKey,
+        votingTokenMint: whMintAccount.publicKey,
+        vestingAdmin: vestingAdmin,
+        pendingVestingAdmin: null,
+        pendingGovernanceAuthority: null,
       }),
     );
   });
