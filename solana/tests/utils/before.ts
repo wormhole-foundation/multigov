@@ -281,9 +281,16 @@ export async function initConfig(
     program.programId,
   );
 
-  await program.methods.initConfig(globalConfig).rpc({
-    skipPreflight: true,
-  });
+  await program.methods
+    .initConfig({
+      governanceAuthority: globalConfig.governanceAuthority,
+      votingTokenMint: globalConfig.votingTokenMint,
+      vestingAdmin: globalConfig.vestingAdmin,
+      maxCheckpointsAccountLimit: globalConfig.maxCheckpointsAccountLimit,
+    })
+    .rpc({
+      skipPreflight: true,
+    });
 }
 
 export function makeTestConfig(
