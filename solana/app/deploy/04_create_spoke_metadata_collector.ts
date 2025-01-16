@@ -1,6 +1,9 @@
+// Usage: npx ts-node app/deploy/04_create_spoke_metadata_collector.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
-import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
+import { Connection } from "@solana/web3.js";
+import { HUB_CHAIN_ID, hubProposalMetadataUint8Array } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
@@ -21,26 +24,12 @@ async function main() {
       provider,
     );
 
-    const airlockPDA: PublicKey = PublicKey.findProgramAddressSync(
-      [Buffer.from("airlock")],
-      program.programId,
-    )[0];
-
-    const airlockSelfCallPDA: PublicKey = PublicKey.findProgramAddressSync(
-      [Buffer.from("airlock_self_call")],
-      program.programId,
-    )[0];
-
     await program.methods
-      .initializeSpokeAirlock()
-      .accounts({
-        payer: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
-        // @ts-ignore
-        airlock: airlockPDA,
-        airlockSelfCall: airlockSelfCallPDA,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc({ skipPreflight: DEBUG });
+      .initializeSpokeMetadataCollector(
+        HUB_CHAIN_ID,
+        Array.from(hubProposalMetadataUint8Array),
+      )
+      .rpc();
   } catch (err) {
     console.error("Error:", err);
   }

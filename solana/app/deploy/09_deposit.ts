@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/09_deposit.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import {
@@ -11,23 +13,14 @@ import { USER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
 
 async function main() {
   try {
-    const DEBUG = true;
-
-    const stakeAccountCheckpointsAddress = new PublicKey(
-      // stakeAccountSecret.publicKey generated in  3_create_stake_account.ts
-      "6TA6RXAuzeo58nFvtLkq128EyGEb96kHuHYprfME7dGM",
-    );
-
     const connection = new Connection(RPC_NODE);
-
     const provider = new AnchorProvider(
       connection,
       new Wallet(USER_AUTHORITY_KEYPAIR),
       {},
     );
-
+    const user = provider.wallet.publicKey;
     const idl = (await Program.fetchIdl(STAKING_ADDRESS, provider))!;
-
     const program = new Program(idl, provider);
 
     const transaction = new Transaction();
@@ -40,7 +33,7 @@ async function main() {
     const toAccount = PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode(wasm.Constants.CUSTODY_SEED()),
-        stakeAccountCheckpointsAddress.toBuffer(),
+        user.toBuffer(),
       ],
       program.programId,
     )[0];
@@ -51,11 +44,10 @@ async function main() {
       provider.wallet.publicKey,
       50,
     );
-
     transaction.add(ix);
 
     const tx = await provider.sendAndConfirm(transaction, [], {
-      skipPreflight: DEBUG,
+      skipPreflight: false,
     });
   } catch (err) {
     console.error("Error:", err);

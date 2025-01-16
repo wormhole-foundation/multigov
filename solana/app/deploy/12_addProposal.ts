@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/12_addProposal.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair } from "@solana/web3.js";
@@ -33,10 +35,10 @@ async function main() {
       ],
     };
 
-    const proposalIdArray = Buffer.from(
-      "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2",
-      "hex",
-    );
+    const proposalId = await input({ message: "Enter the proposal id:" });
+    const proposalIdHex = BigInt(proposalId).toString(16).padStart(64, "0");
+    //     console.log("proposalIdHex:", proposalIdHex);
+    const proposalIdArray = Buffer.from(proposalIdHex, "hex");
 
     const guardianSignaturesPda = await stakeConnection.postSignatures(
       sepoliaEthProposalResponse.signatures,

@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/01_init_staking.ts
+
 import { Wallet, AnchorProvider, Program } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { DEPLOYER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
