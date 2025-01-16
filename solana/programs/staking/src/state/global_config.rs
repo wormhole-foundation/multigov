@@ -11,6 +11,9 @@ pub struct GlobalConfig {
     pub governance_authority: Pubkey,
     pub voting_token_mint: Pubkey,
     pub vesting_admin: Pubkey,
+    // Pending new admins (before claiming ownership)
+    pub pending_vesting_admin: Option<Pubkey>,
+    pub pending_governance_authority: Option<Pubkey>,
 }
 
 impl GlobalConfig {
@@ -23,6 +26,6 @@ pub mod tests {
 
     #[test]
     fn check_size() {
-        assert!(GlobalConfig::LEN == 8 + 8 + 32 + 32 + 32) // == 112
+        assert!(GlobalConfig::LEN == 8 + 8 + 32 + 32 + 32 + 32 + 32) // == 176
     }
 }

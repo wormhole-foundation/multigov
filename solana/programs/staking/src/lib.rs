@@ -7,6 +7,7 @@
 // call a function that returns a Result and not handle the error
 
 use crate::error::MessageExecutorError;
+use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
 use anchor_spl::token::transfer;
 use context::*;
@@ -14,7 +15,6 @@ use contexts::*;
 use state::checkpoints::{
     find_checkpoint_le, push_checkpoint, push_checkpoint_init, read_checkpoint_at_index, Operation,
 };
-use state::global_config::GlobalConfig;
 use std::convert::TryInto;
 
 use wormhole_solana_consts::{CORE_BRIDGE_PROGRAM_ID, SOLANA_CHAIN};
@@ -42,6 +42,14 @@ mod state;
 mod utils;
 #[cfg(feature = "wasm")]
 pub mod wasm;
+
+#[derive(AnchorSerialize, AnchorDeserialize, Debug, BorshSchema)]
+pub struct InitConfigArgs {
+    pub max_checkpoints_account_limit: u32,
+    pub governance_authority: Pubkey,
+    pub voting_token_mint: Pubkey,
+    pub vesting_admin: Pubkey,
+}
 
 #[event]
 pub struct DelegateChanged {
@@ -76,38 +84,53 @@ pub mod staking {
     use super::*;
     use crate::state::MessageReceived;
 
-    pub fn init_config(ctx: Context<InitConfig>, global_config: GlobalConfig) -> Result<()> {
+    pub fn init_config(ctx: Context<InitConfig>, args: InitConfigArgs) -> Result<()> {
+        require!(
+            args.vesting_admin.key() != Pubkey::default()
+                && args.governance_authority.key() != Pubkey::default(),
+            ErrorCode::InvalidAuthority
+        );
         let config_account = &mut ctx.accounts.config_account;
         config_account.bump = ctx.bumps.config_account;
-        config_account.governance_authority = global_config.governance_authority;
-        config_account.voting_token_mint = global_config.voting_token_mint;
-        config_account.vesting_admin = global_config.vesting_admin;
+        config_account.governance_authority = args.governance_authority;
+        config_account.voting_token_mint = args.voting_token_mint;
+        config_account.vesting_admin = args.vesting_admin;
         // Make sure the caller can't set the checkpoint account limit too high
         // We don't want to be able to fill up a checkpoint account and cause a DoS
         // Solana accounts are 10MB maximum = 10485760 bytes
         // The checkpoint account contains 8 + 32 + 8 = 48 bytes of fixed data
         // Every checkpoint is 8 + 8 = 16 bytes, so we can fit in (10485760 - 48) / 16 = 655,357 checkpoints
-        require!(global_config.max_checkpoints_account_limit <= 655_000, ErrorCode::InvalidCheckpointAccountLimit);
-        config_account.max_checkpoints_account_limit = global_config.max_checkpoints_account_limit;
+        require!(args.max_checkpoints_account_limit <= 655_000, ErrorCode::InvalidCheckpointAccountLimit);
+        config_account.max_checkpoints_account_limit = args.max_checkpoints_account_limit;
+        config_account.pending_governance_authority = None;
+        config_account.pending_vesting_admin = None;
 
         Ok(())
     }
 
-    pub fn update_governance_authority(
-        ctx: Context<UpdateGovernanceAuthority>,
-        new_authority: Pubkey,
-    ) -> Result<()> {
+    pub fn update_governance_authority(ctx: Context<UpdateGovernanceAuthority>) -> Result<()> {
         let config = &mut ctx.accounts.config;
-        config.governance_authority = new_authority;
+        config.pending_governance_authority = Some(ctx.accounts.new_authority.key());
         Ok(())
     }
 
-    pub fn update_vesting_admin(
-        ctx: Context<UpdateVestingAdmin>,
-        new_vesting_admin: Pubkey,
-    ) -> Result<()> {
+    pub fn claim_governance_authority(ctx: Context<ClaimGovernanceAuthority>) -> Result<()> {
         let config = &mut ctx.accounts.config;
-        config.vesting_admin = new_vesting_admin;
+        config.pending_governance_authority = None;
+        config.governance_authority = ctx.accounts.new_authority.key();
+        Ok(())
+    }
+
+    pub fn update_vesting_admin(ctx: Context<UpdateVestingAdmin>) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        config.pending_vesting_admin = Some(ctx.accounts.new_vesting_admin.key());
+        Ok(())
+    }
+
+    pub fn claim_vesting_admin(ctx: Context<ClaimVestingAdmin>) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        config.pending_vesting_admin = None;
+        config.vesting_admin = ctx.accounts.new_vesting_admin.key();
         Ok(())
     }
 

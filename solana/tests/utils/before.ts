@@ -281,9 +281,16 @@ export async function initConfig(
     program.programId,
   );
 
-  await program.methods.initConfig(globalConfig).rpc({
-    skipPreflight: true,
-  });
+  await program.methods
+    .initConfig({
+      governanceAuthority: globalConfig.governanceAuthority,
+      votingTokenMint: globalConfig.votingTokenMint,
+      vestingAdmin: globalConfig.vestingAdmin,
+      maxCheckpointsAccountLimit: globalConfig.maxCheckpointsAccountLimit,
+    })
+    .rpc({
+      skipPreflight: true,
+    });
 }
 
 export function makeTestConfig(
@@ -297,6 +304,8 @@ export function makeTestConfig(
     votingTokenMint: whMint,
     vestingAdmin: vestingAdmin,
     maxCheckpointsAccountLimit: maxCheckpointsAccountLimit,
+    pendingVestingAdmin: null,
+    pendingGovernanceAuthority: null,
   };
 }
 
@@ -447,8 +456,18 @@ export async function standardSetup(
 
   // Give the admin power back to globalConfig.governanceAuthority
   await program.methods
-    .updateGovernanceAuthority(globalConfig.governanceAuthority)
-    .accounts({ governanceSigner: user })
+    .updateGovernanceAuthority()
+    .accounts({
+      governanceSigner: user,
+      newAuthority: globalConfig.governanceAuthority,
+    })
+    .rpc();
+  await program.methods
+    .claimGovernanceAuthority()
+    .accounts({
+      newAuthority: globalConfig.governanceAuthority,
+    })
+    .signers([governanceAuthority])
     .rpc();
 
   const connection = getConnection(portNumber);

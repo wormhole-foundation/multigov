@@ -436,6 +436,23 @@ pub struct UpdateGovernanceAuthority<'info> {
     pub governance_signer: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,
+    /// CHECK: This account will be the signer in the [claim_governance_authority] instruction.
+    pub new_authority: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimGovernanceAuthority<'info> {
+    #[account(
+        mut, 
+        seeds = [CONFIG_SEED.as_bytes()], 
+        bump = config.bump,
+        constraint = (
+            config.pending_governance_authority == Some(new_authority.key())
+            || config.governance_authority == new_authority.key()
+        ) @ ErrorCode::InvalidPendingAuthority
+    )]
+    pub config: Account<'info, global_config::GlobalConfig>,
+    pub new_authority: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -444,6 +461,23 @@ pub struct UpdateVestingAdmin<'info> {
     pub vesting_admin: Signer<'info>,
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, global_config::GlobalConfig>,
+    /// CHECK: This account will be the signer in the [claim_vesting_admin] instruction.
+    pub new_vesting_admin: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimVestingAdmin<'info> {
+    #[account(
+        mut, 
+        seeds = [CONFIG_SEED.as_bytes()], 
+        bump = config.bump,
+        constraint = (
+            config.pending_vesting_admin == Some(new_vesting_admin.key())
+            || config.vesting_admin == new_vesting_admin.key()
+        ) @ ErrorCode::InvalidPendingAuthority
+    )]
+    pub config: Account<'info, global_config::GlobalConfig>,
+    pub new_vesting_admin: Signer<'info>,
 }
 
 #[derive(Accounts)]
