@@ -23,7 +23,7 @@ async function main() {
     );
 
     const proposalIdHex =
-      "89813b2c3ac79b429a4143dc4df617bee40d585d44e5763c64994efc854b05db";
+      "d4f7d57dfcd821ab94216085fc40d00555544da4aecf6f5326ace11af4680712";
     console.log("proposalIdHex:", proposalIdHex);
 
     const proposalIdArray = Buffer.from(proposalIdHex, "hex");

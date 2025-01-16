@@ -38,16 +38,14 @@ async function main() {
       "hex",
     );
 
-    const signaturesKeypair = Keypair.generate();
-    await stakeConnection.postSignatures(
+    const guardianSignaturesPda = await stakeConnection.postSignatures(
       sepoliaEthProposalResponse.signatures,
-      signaturesKeypair,
     );
 
     await stakeConnection.addProposal(
       proposalIdArray,
       Buffer.from(sepoliaEthProposalResponse.bytes, "hex"),
-      signaturesKeypair.publicKey,
+      guardianSignaturesPda,
       guardianSetIndex,
     );
   } catch (err) {
