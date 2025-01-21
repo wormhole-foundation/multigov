@@ -1,10 +1,9 @@
 use crate::error::ErrorCode;
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
-use std::mem::size_of;
 
 #[account]
-#[derive(Debug, BorshSchema)]
+#[derive(Debug, BorshSchema, InitSpace)]
 pub struct ProposalData {
     pub id: [u8; 32],
     pub against_votes: u64,
@@ -14,7 +13,7 @@ pub struct ProposalData {
 }
 
 impl ProposalData {
-    pub const LEN: usize = ProposalData::DISCRIMINATOR.len() + size_of::<ProposalData>();
+    pub const LEN: usize = ProposalData::DISCRIMINATOR.len() + ProposalData::INIT_SPACE;
 
     fn initialize(&mut self, proposal_id: [u8; 32], vote_start: u64) {
         self.id = proposal_id;
