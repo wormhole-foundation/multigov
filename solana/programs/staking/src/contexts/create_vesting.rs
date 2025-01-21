@@ -2,10 +2,10 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
-use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED, CONFIG_SEED};
+use crate::context::{CONFIG_SEED, VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED};
 use crate::error::VestingError;
-use crate::state::{Vesting, VestingBalance, VestingConfig};
 use crate::state::global_config::GlobalConfig;
+use crate::state::{Vesting, VestingBalance, VestingConfig};
 
 #[derive(Accounts)]
 #[instruction(maturation: i64)]
@@ -34,7 +34,7 @@ pub struct CreateVesting<'info> {
     #[account(
         init,
         payer = admin,
-        space = Vesting::INIT_SPACE,
+        space = Vesting::LEN,
         seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), maturation.to_le_bytes().as_ref()],
         bump
     )]

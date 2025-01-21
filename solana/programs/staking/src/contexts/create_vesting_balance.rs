@@ -1,10 +1,10 @@
-use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, CONFIG_SEED};
+use crate::context::{CONFIG_SEED, VESTING_BALANCE_SEED, VESTING_CONFIG_SEED};
+use crate::error::VestingError;
+use crate::state::global_config::GlobalConfig;
 use crate::state::{VestingBalance, VestingConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-use crate::state::global_config::GlobalConfig;
-use crate::error::VestingError;
 
 #[derive(Accounts)]
 #[instruction()]
@@ -25,7 +25,7 @@ pub struct CreateVestingBalance<'info> {
     #[account(
         init,
         payer = admin,
-        space = VestingBalance::INIT_SPACE,
+        space = VestingBalance::LEN,
         seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref()],
         bump
     )]
