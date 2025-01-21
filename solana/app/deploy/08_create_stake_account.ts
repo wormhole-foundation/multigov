@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/08_create_stake_account.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";

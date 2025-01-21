@@ -199,11 +199,8 @@ async function addProposal() {
         signatures: rawResponse.signatures,
       };
 
-      const signaturesKeypair = Keypair.generate();
-
-      await stakeConnection.postSignatures(
+      const guardianSignaturesPda = await stakeConnection.postSignatures(
         sepoliaEthProposalResponse.signatures,
-        signaturesKeypair,
       );
 
       const info = await getWormholeBridgeData(connection, CORE_BRIDGE_ADDRESS);
@@ -212,7 +209,7 @@ async function addProposal() {
       await stakeConnection.addProposal(
         proposalIdArray,
         Buffer.from(sepoliaEthProposalResponse.bytes, "hex"),
-        signaturesKeypair.publicKey,
+        guardianSignaturesPda,
         guardianSetIndex,
       );
     } else {

@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/14_castVote.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
@@ -5,6 +7,7 @@ import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
 import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import BN from "bn.js";
+import input from "@inquirer/input";
 
 async function main() {
   try {
@@ -15,15 +18,16 @@ async function main() {
       {},
     );
 
+    const proposalId = await input({ message: "Enter the proposal id:" });
+    const proposalIdHex = BigInt(proposalId).toString(16).padStart(64, "0");
+    //     console.log("proposalIdHex:", proposalIdHex);
+    const proposalIdArray = Buffer.from(proposalIdHex, "hex");
+
     const user2StakeConnection = await StakeConnection.createStakeConnection(
       connection,
       user2Provider.wallet as Wallet,
       STAKING_ADDRESS,
     );
-
-    const proposalIdHex =
-      "a6d7c4e924a0b24dd00c25bdf4a4d6b8dac6f32496098f41ed5c9d9a31722d75";
-    const proposalIdArray = Buffer.from(proposalIdHex, "hex");
 
     await user2StakeConnection.castVote(
       proposalIdArray,

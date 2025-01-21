@@ -48,6 +48,7 @@ export type GlobalConfig = IdlAccounts<Staking>["globalConfig"];
 export type CheckpointData = IdlAccounts<Staking>["checkpointData"];
 export type StakeAccountMetadata = IdlAccounts<Staking>["stakeAccountMetadata"];
 
+/** This is the main class that provides an interface to interact with the staking program. */
 export class StakeConnection {
   program: Program<Staking>;
   provider: AnchorProvider;
@@ -72,6 +73,7 @@ export class StakeConnection {
     this.priorityFeeConfig = priorityFeeConfig ?? {};
   }
 
+  /** Confirms the transaction with the given signature by checking its inclusion in the latest block. */
   private async confirm(signature: string): Promise<string> {
     const block = await this.provider.connection.getLatestBlockhash();
     await this.provider.connection.confirmTransaction({
@@ -82,6 +84,7 @@ export class StakeConnection {
     return signature;
   }
 
+  /** Establishes a connection to the staking program using the provided connection and wallet. */
   public static async connect(
     connection: Connection,
     wallet: Wallet,
@@ -94,7 +97,7 @@ export class StakeConnection {
   }
 
   /** Creates a program connection and loads the staking config
-   *  the constructor cannot be async so we use a static method
+   *  the constructor cannot be async so we use a static method.
    */
   public static async createStakeConnection(
     connection: Connection,
@@ -131,6 +134,9 @@ export class StakeConnection {
     );
   }
 
+  /** Sends and confirms a batch of instructions as versioned transactions,
+   *  handling address lookup tables and priority fees.
+   */
   public async sendAndConfirmAsVersionedTransaction(
     instructions: TransactionInstruction[],
   ) {
@@ -160,12 +166,14 @@ export class StakeConnection {
     );
   }
 
-  /** The public key of the user of the staking program. This connection sends transactions as this user. */
+  /** The public key of the user of the staking program.
+   *  This connection sends transactions as this user.
+   */
   public userPublicKey(): PublicKey {
     return this.provider.wallet.publicKey;
   }
 
-  /** Gets the user's stake account CheckpointData address or undefined if it doesn't exist */
+  /** Gets the user's stake account CheckpointData address or undefined if it doesn't exist. */
   public async getStakeAccountCheckpointsAddress(
     user: PublicKey,
     index: number,
@@ -185,7 +193,9 @@ export class StakeConnection {
     return accountData !== null ? checkpointDataAccountPublicKey : undefined;
   }
 
-  /** Gets the user's stake account CheckpointData address or undefined if it doesn't exist using user's stake metadata account */
+  /** Gets the user's stake account CheckpointData address or undefined
+   *  if it doesn't exist using user's stake metadata account.
+   */
   public async getStakeAccountCheckpointsAddressByMetadata(
     stakeAccountAddress: PublicKey | undefined,
     previous: boolean,
@@ -216,6 +226,9 @@ export class StakeConnection {
     return accountData !== null ? checkpointDataAccountPublicKey : undefined;
   }
 
+  /** Gets the address of the stake metadata account for a given owner,
+   *  or returns undefined if the account does not exist.
+   */
   public async getStakeMetadataAddress(
     ownerAddress: PublicKey,
   ): Promise<PublicKey | undefined> {
@@ -234,6 +247,7 @@ export class StakeConnection {
     return account !== null ? stakeMetadataAccount : undefined;
   }
 
+  /** Fetches the public key of a proposal account based on the given proposal ID. */
   async fetchProposalAccount(proposalId: Buffer) {
     const proposalAccount = PublicKey.findProgramAddressSync(
       [utils.bytes.utf8.encode(wasm.Constants.PROPOSAL_SEED()), proposalId],
@@ -243,6 +257,7 @@ export class StakeConnection {
     return { proposalAccount };
   }
 
+  /** Fetches and parses the proposal account data into a Wasm-compatible format based on the given proposal ID. */
   async fetchProposalAccountWasm(proposalId: Buffer) {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
@@ -254,6 +269,7 @@ export class StakeConnection {
     return { proposalAccountWasm };
   }
 
+  /** Fetches and returns the proposal account data for the given proposal ID. */
   async fetchProposalAccountData(proposalId: Buffer) {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
 
@@ -263,6 +279,7 @@ export class StakeConnection {
     return { proposalAccountData };
   }
 
+  /** Fetches and returns the guardian signatures data for the specified address. */
   async fetchGuardianSignaturesData(address: PublicKey) {
     const guardianSignaturesData =
       await this.program.account.guardianSignatures.fetch(address);
@@ -270,10 +287,12 @@ export class StakeConnection {
     return { guardianSignaturesData };
   }
 
+  /** Fetches and returns the checkpoint account data for the specified address. */
   async fetchCheckpointAccount(address: PublicKey): Promise<CheckpointAccount> {
     return await readCheckpoints(this.provider.connection, address);
   }
 
+  /** Fetches and returns the window lengths account data for vote weight calculations. */
   async fetchWindowLengthsAccount(): Promise<WindowLengthsAccount> {
     let windowLengthsAccountAddress = PublicKey.findProgramAddressSync(
       [
@@ -290,6 +309,7 @@ export class StakeConnection {
     );
   }
 
+  /** Fetches and returns the stake account metadata for the specified address. */
   public async fetchStakeAccountMetadata(
     address: PublicKey,
   ): Promise<StakeAccountMetadata> {
@@ -307,7 +327,7 @@ export class StakeConnection {
     return fetchedData as StakeAccountMetadata;
   }
 
-  /** Stake accounts are loaded by a StakeConnection object */
+  /** Stake accounts are loaded by a StakeConnection object. */
   public async loadStakeAccount(address: PublicKey): Promise<StakeAccount> {
     const checkpointAccount = await this.fetchCheckpointAccount(address);
 
@@ -353,7 +373,7 @@ export class StakeConnection {
     );
   }
 
-  /** Gets the current unix time, as would be perceived by the on-chain program */
+  /** Gets the current unix time, as would be perceived by the on-chain program. */
   public async getTime(): Promise<BN> {
     // Using Sysvar clock
     const clockBuf =
@@ -363,6 +383,7 @@ export class StakeConnection {
     return new BN(wasm.getUnixTime(clockBuf!.data).toString());
   }
 
+  /** Creates a new stake account and sends the transaction for confirmation. */
   public async createStakeAccount(): Promise<void> {
     const instructions: TransactionInstruction[] = [];
 
@@ -377,6 +398,7 @@ export class StakeConnection {
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
+  /** Creates a new stake account with the specified owner, and adds the necessary instructions to the transaction. */
   public async withCreateStakeAccount(
     instructions: TransactionInstruction[],
     owner: PublicKey,
@@ -401,6 +423,9 @@ export class StakeConnection {
     return checkpointDataAddress;
   }
 
+  /** Builds a transfer instruction to move tokens from the user's associated token account
+   *  to the custody account of the specified stake account address.
+   */
   public async buildTransferInstruction(
     stakeAccountCheckpointsAddress: PublicKey,
     amount: BN,
@@ -429,6 +454,9 @@ export class StakeConnection {
     return ix;
   }
 
+  /** Delegates stake to a specified delegatee, optionally including vesting, and sends the transaction for confirmation.
+   *  It handles stake account metadata, checkpoints, and transfers the specified amount if greater than zero.
+   */
   public async delegateWithVest(
     delegatee: PublicKey,
     amount: WHTokenBalance,
@@ -528,6 +556,10 @@ export class StakeConnection {
     return stakeAccountCheckpointsAddress;
   }
 
+  /** Delegates a specified token amount from the user's stake account to the delegatee's stake account.
+   *  If the amount is zero, the delegate will be changed for all already staked tokens.
+   *  If the amount is greater than zero, the staked token amount will increase by the specified amount.
+   */
   public async delegate(
     delegatee: PublicKey | undefined,
     amount: WHTokenBalance,
@@ -616,6 +648,11 @@ export class StakeConnection {
     return stakeAccountCheckpointsAddress;
   }
 
+  /** Casts a vote on a proposal using the voter's stake account checkpoint data,
+   *  determined dynamically based on the user's public key and the provided checkpoint index.
+   *  The function constructs the transaction instructions with the given vote counts
+   *  for "against," "for," and "abstain," and submits the transaction for confirmation.
+   */
   public async castVote(
     proposalId: Buffer,
     againstVotes: BN,
@@ -660,6 +697,7 @@ export class StakeConnection {
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
+  /** Retrieves the current voting results (against, for, and abstain votes) for the specified proposal id. */
   public async proposalVotes(proposalId: Buffer): Promise<{
     proposalId: Buffer;
     againstVotes: BN;
@@ -679,7 +717,7 @@ export class StakeConnection {
     };
   }
 
-  /** Post signatures */
+  /** Posts a set of signatures to the program and returns the associated guardian signatures PDA. */
   public async postSignatures(querySignatures: string[]): Promise<PublicKey> {
     const signatureData = signaturesToSolanaArray(querySignatures);
     const randomSeed = crypto.randomBytes(32);
@@ -705,6 +743,9 @@ export class StakeConnection {
     return guardianSignaturesPda;
   }
 
+  /** Adds a proposal with the given details, including the guardian signatures and set index,
+   *  and sends the transaction for confirmation, either optimized or unoptimized.
+   */
   public async addProposal(
     proposalId: Buffer,
     ethProposalResponseBytes: Uint8Array,
@@ -740,13 +781,15 @@ export class StakeConnection {
     }
   }
 
-  /** Gets the current delegate's public key associated with the user public key */
+  /** Gets the current delegate's public key associated with the user public key. */
   public async delegates(user: PublicKey): Promise<PublicKey> {
     const stakeAccountMetadata = await this.fetchStakeAccountMetadata(user);
     return stakeAccountMetadata.delegate;
   }
 
-  /** Withdraws tokens */
+  /** Withdraws a specified wormhole token amount from the user's stake account.
+   *  The amount of votes will be deducted from the delegate's voting power.
+   */
   public async withdrawTokens(
     stakeAccount: StakeAccount,
     amount: WHTokenBalance,

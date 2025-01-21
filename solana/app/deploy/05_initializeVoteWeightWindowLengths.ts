@@ -1,10 +1,12 @@
+// Usage: npx ts-node app/deploy/05_initializeVoteWeightWindowLengths.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
-import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
-import { hubProposalMetadataUint8Array } from "../constants";
+import { Connection } from "@solana/web3.js";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
+import BN from "bn.js";
 
 async function main() {
   try {
@@ -22,15 +24,7 @@ async function main() {
       provider,
     );
 
-    const airlockPDA: PublicKey = PublicKey.findProgramAddressSync(
-      [Buffer.from("airlock")],
-      program.programId,
-    )[0];
-
-    await program.methods
-      .updateHubProposalMetadata(Array.from(hubProposalMetadataUint8Array))
-      .accounts({ payer: DEPLOYER_AUTHORITY_KEYPAIR.publicKey, airlock: airlockPDA })
-      .rpc();
+    await program.methods.initializeVoteWeightWindowLengths(new BN(10)).rpc();
   } catch (err) {
     console.error("Error:", err);
   }

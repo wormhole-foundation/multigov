@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/06_create_message_executor.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";

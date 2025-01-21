@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/10_proposalVotes.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";

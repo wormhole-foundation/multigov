@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/12_addProposal.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair } from "@solana/web3.js";
@@ -27,27 +29,25 @@ async function main() {
 
     const sepoliaEthProposalResponse = {
       bytes:
-        "0100003b7c62c2edf3d3eb4c4616c37cbe9062747c6f6a0ebc1bc9fea030ed7fca3f586980a5564e1efd4d266531ed37bfe10e853b8d1594ddeb060959f8a2d004bfb20000000063010000000001271203000000560000000830783665303830640000000966696e616c697a6564011a3e5624769c3dc9106347a239523e4a08d85c3800000024eb9b9838a6d7c4e924a0b24dd00c25bdf4a4d6b8dac6f32496098f41ed5c9d9a31722d75012712030000007500000000006e080df6ef6ca1e869e64440edae78e44c0ce41cad03e11280d1c4728660786464927a000628753cc398000100000040a6d7c4e924a0b24dd00c25bdf4a4d6b8dac6f32496098f41ed5c9d9a31722d75000000000000000000000000000000000000000000000000000000006750929a",
+        "010000043a7905dc1d4b285e608665a2b0e28c9d1400844afd80d84f4eec05cd86cf33115289b25f2ea6d9f7ac05ee3c48f17e310bd37c31a591cb323e0515a98cb3c70000000063010000000001271203000000560000000830783639323831350000000966696e616c697a6564012574802db8590ee5c9efc5ebebfef1e174b712fc00000024eb9b9838462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f20127120300000075000000000069281548a531278029348c7b21e7e2cdf20c4eba0cb34badd1d4dd90371788035bc18f000624a8d8e118000100000040462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f200000000000000000000000000000000000000000000000000000000670cd112",
       signatures: [
-        "9d659171c48b80bc842fc63cc23d8c14d920cf56ae4499888d89ec9306b779ee4fffab79d0ed838b1b56e1676b973efc352eb75d4447fe2fbef685244832d1c10000",
+        "3e2442b29e9054acafc3e9a39414ddf2d5e09cbbfd9ca86673249788d7d3571c66f0cb85737845db161c9e335b9e46b5d21d4af582d2ad0658eb5420db58bd470100",
       ],
     };
 
-    const proposalIdArray = Buffer.from(
-      "a6d7c4e924a0b24dd00c25bdf4a4d6b8dac6f32496098f41ed5c9d9a31722d75",
-      "hex",
-    );
+    const proposalId = await input({ message: "Enter the proposal id:" });
+    const proposalIdHex = BigInt(proposalId).toString(16).padStart(64, "0");
+    //     console.log("proposalIdHex:", proposalIdHex);
+    const proposalIdArray = Buffer.from(proposalIdHex, "hex");
 
-    const signaturesKeypair = Keypair.generate();
-    await stakeConnection.postSignatures(
+    const guardianSignaturesPda = await stakeConnection.postSignatures(
       sepoliaEthProposalResponse.signatures,
-      signaturesKeypair,
     );
 
     await stakeConnection.addProposal(
       proposalIdArray,
       Buffer.from(sepoliaEthProposalResponse.bytes, "hex"),
-      signaturesKeypair.publicKey,
+      guardianSignaturesPda,
       guardianSetIndex,
     );
   } catch (err) {

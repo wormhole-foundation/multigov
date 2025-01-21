@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/13_fetchProposalAccountData.ts
+
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
@@ -16,22 +18,17 @@ async function main() {
       {},
     );
 
+    const proposalId = await input({ message: "Enter the proposal id:" });
+    const proposalIdHex = BigInt(proposalId).toString(16).padStart(64, "0");
+    //     console.log("proposalIdHex:", proposalIdHex);
+    const proposalIdArray = Buffer.from(proposalIdHex, "hex");
+
     const stakeConnection = await StakeConnection.createStakeConnection(
       connection,
       provider.wallet as Wallet,
       STAKING_ADDRESS,
     );
 
-    const proposalIdHex =
-      "462c69856d29579a9fd5d80ced46f98862f1c83b47c04b928676f7e6919ad1f2";
-    console.log("proposalIdHex:", proposalIdHex);
-
-    const voteStartHex =
-      "00000000000000000000000000000000000000000000000000000000670cd112";
-    const voteStartInt = new BN(voteStartHex, 16).toString(10);
-    console.log("voteStartInt:", voteStartInt);
-
-    const proposalIdArray = Buffer.from(proposalIdHex, "hex");
     const { proposalAccountData } =
       await stakeConnection.fetchProposalAccountData(proposalIdArray);
 
