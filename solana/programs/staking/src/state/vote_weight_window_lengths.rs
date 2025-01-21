@@ -11,9 +11,9 @@ pub struct VoteWeightWindowLengths {
 }
 
 impl VoteWeightWindowLengths {
+    pub const WINDOW_LENGTH_SIZE: usize = WindowLength::INIT_SPACE;
     pub const VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE: usize =
         VoteWeightWindowLengths::DISCRIMINATOR.len() + size_of::<VoteWeightWindowLengths>();
-    pub const WINDOW_LENGTH_SIZE: usize = size_of::<WindowLength>();
     pub const LEN: usize = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE
         + VoteWeightWindowLengths::WINDOW_LENGTH_SIZE;
     pub const MAX_VOTE_WEIGHT_WINDOW_LENGTH: u64 = 850;
@@ -172,7 +172,7 @@ pub fn find_window_length_le(
     Ok(result)
 }
 
-#[derive(Clone, Copy, Default, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, Copy, Default, BorshSerialize, BorshDeserialize, InitSpace)]
 pub struct WindowLength {
     pub timestamp: u64,
     pub value: u64,
