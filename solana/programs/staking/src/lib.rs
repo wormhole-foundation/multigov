@@ -698,6 +698,11 @@ pub mod staking {
             .create_vesting_balance(ctx.bumps.vesting_balance)
     }
 
+    // Closes a vesting balance account
+    pub fn close_vesting_balance(ctx: Context<CloseVestingBalance>) -> Result<()> {
+        ctx.accounts.close_vesting_balance()
+    }
+
     // Finalize a Config, disabling any further creation or cancellation of Vesting accounts
     pub fn finalize_vesting_config(ctx: Context<Finalize>) -> Result<()> {
         ctx.accounts.finalize()
