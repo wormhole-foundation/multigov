@@ -53,6 +53,7 @@ impl<'info> CreateVestingBalance<'info> {
             stake_account_metadata: Pubkey::default(),
             total_vesting_balance: 0,
             bump,
+            rent_payer: self.admin.key(),
         });
 
         Ok(())

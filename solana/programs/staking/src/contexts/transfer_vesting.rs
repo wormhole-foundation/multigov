@@ -319,6 +319,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 .checked_add(self.vest.amount)
                 .ok_or(VestingError::Overflow)?,
             bump: new_vesting_balance_bump,
+            rent_payer: self.vester.key(),
         });
 
         self.vesting_balance.total_vesting_balance = self

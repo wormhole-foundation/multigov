@@ -15,6 +15,9 @@ pub struct CloseVestingBalance<'info> {
             @ VestingError::InvalidVestingAdmin
     )]
     admin: Signer<'info>,
+    #[account(mut)]
+    /// CHECK: This account is the original rent_payer for the vesting_balance account
+    rent_payer: UncheckedAccount<'info>,
     mint: InterfaceAccount<'info, Mint>,
     #[account(
         mut,
@@ -24,9 +27,10 @@ pub struct CloseVestingBalance<'info> {
     config: Account<'info, VestingConfig>,
     #[account(
         mut,
+        has_one = rent_payer,
         seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref()],
         bump,
-        close = admin,
+        close = rent_payer,
     )]
     vesting_balance: Account<'info, VestingBalance>,
     #[account(
