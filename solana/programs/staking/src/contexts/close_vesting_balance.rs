@@ -28,6 +28,7 @@ pub struct CloseVestingBalance<'info> {
     #[account(
         mut,
         has_one = rent_payer,
+        constraint = vesting_balance.total_vesting_balance == 0 @ VestingError::NotFullyVested,
         seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref()],
         bump,
         close = rent_payer,
