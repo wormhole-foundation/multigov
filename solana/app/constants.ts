@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 export const STAKING_ADDRESS = new PublicKey(
-  "DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY",
+  "AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap",
 );
 
 export const CORE_BRIDGE_ADDRESS = new PublicKey(

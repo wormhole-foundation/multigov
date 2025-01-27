@@ -7,6 +7,7 @@ import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS, CORE_BRIDGE_ADDRESS } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
 import { getWormholeBridgeData } from "../helpers/wormholeBridgeConfig";
+import input from "@inquirer/input";
 
 async function main() {
   try {
