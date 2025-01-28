@@ -8,6 +8,10 @@ The purpose of this program is to verify the proper execution of the `ReceiveMes
 The program consists of the following key elements:
 - **Initialize Instruction**: Sets up a configuration account with an admin address and initializes a counter to `0`.
 - **AdminAction Instruction**: Increments the counter only if the provided admin address matches the stored admin address.
+- **UpdateAdmin Instruction**: Allows a predefined super admin to update the admin address stored in the configuration account.
+
+### Purpose of UpdateAdmin
+The update_admin instruction ensures that only a predefined super admin (Di6Aa86NHTPc8SDNTognMamfjWVcHbYFkX5spuohPJbo) can update the admin address stored in the configuration account.
 
 ### Purpose of the Counter
 The counter is used to ensure that the `AdminAction` instruction executes successfully in the Solana devnet. Each successful call increments the counter, which is logged for verification.

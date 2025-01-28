@@ -44,7 +44,7 @@ function sleep(ms) {
 }
 
 const MAX_RETRIES = 5;
-const RETRY_DELAY = 5000; // 5 seconds
+const RETRY_DELAY = 10000; // 10 seconds
 async function getLatestFinalizedBlock(rpcUrl: string): Promise<number> {
   let attempt = 0;
 

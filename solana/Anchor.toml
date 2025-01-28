@@ -4,7 +4,10 @@ anchor_version = "0.30.1"
 seeds = true
 
 [workspace]
-members = ["programs/staking"]
+members = [
+  "programs/staking",
+  "programs/external_program_for_testing"
+]
 
 [programs.localnet]
 staking = "AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap"

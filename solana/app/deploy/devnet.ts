@@ -24,5 +24,5 @@ export const WORMHOLE_TOKEN = new PublicKey(
 export const RPC_NODE = "https://api.devnet.solana.com";
 
 export const AIRLOCK_PDA_ADDRESS = new PublicKey(
-  "2ejzW2eFPedskg1KcrjcFs9g1JorRVcMes1TBPpGbhdy",
+  "CiZYRpbpwC21ULotSYUyfNELALFf2KWpAuBx4v7iNkCQ",
 );
