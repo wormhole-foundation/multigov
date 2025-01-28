@@ -9,18 +9,11 @@ use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 #[derive(Accounts)]
 #[instruction()]
 pub struct CloseVestingBalance<'info> {
-    #[account(
-        mut,
-        constraint = global_config.vesting_admin == admin.key()
-            @ VestingError::InvalidVestingAdmin
-    )]
-    admin: Signer<'info>,
     #[account(mut)]
     /// CHECK: This account is the original rent_payer for the vesting_balance account
-    rent_payer: UncheckedAccount<'info>,
+    rent_payer: Signer<'info>,
     mint: InterfaceAccount<'info, Mint>,
     #[account(
-        mut,
         seeds = [VESTING_CONFIG_SEED.as_bytes(), mint.key().as_ref(), config.seed.to_le_bytes().as_ref()],
         bump = config.bump
     )]
