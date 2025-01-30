@@ -23,14 +23,14 @@ pub struct TransferVesting<'info> {
         associated_token::authority = vester_ta.owner,
         associated_token::token_program = token_program
     )]
-    vester_ta: InterfaceAccount<'info, TokenAccount>,
+    vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = new_vester_ta.owner,
         associated_token::token_program = token_program
     )]
-    new_vester_ta: InterfaceAccount<'info, TokenAccount>,
+    new_vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
@@ -131,7 +131,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 );
                 // The sender cannot transfer the vest to the recipient, who has delegated votes to the sender.
                 require!(
-                    stake_account_metadata.owner == new_stake_account_metadata.delegate,
+                    stake_account_metadata.owner != new_stake_account_metadata.delegate,
                     VestingError::StakeAccountDelegationLoop
                 );
             } else {
