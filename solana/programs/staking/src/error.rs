@@ -81,7 +81,7 @@ pub enum VestingError {
     Underflow,
     #[msg("Invalid stake account checkpoints")]
     InvalidStakeAccountCheckpoints,
-    #[msg("Error parsing stake_account_metadata and stake_account_checkpoints")]
+    #[msg("Error parsing stake_account_metadata or stake_account_checkpoints")]
     ErrorOfStakeAccountParsing,
     #[msg("Invalid stake account owner")]
     InvalidStakeAccountOwner,
@@ -91,12 +91,14 @@ pub enum VestingError {
     VestedBalanceMismatch,
     #[msg("Invalid stake account metadata PDA")]
     InvalidStakeAccountMetadataPDA,
-    #[msg("Invalid stake account checkpoints PDA")]
-    InvalidStakeAccountCheckpointsPDA,
     #[msg("Invalid vesting balance PDA")]
     InvalidVestingBalancePDA,
     #[msg("Transfer vest to myself")]
     TransferVestToMyself,
+    #[msg("Stake account delegates do not match")]
+    StakeAccountDelegatesMismatch,
+    #[msg("Stake account delegation loop detected")]
+    StakeAccountDelegationLoop,
 }
 
 #[error_code]
