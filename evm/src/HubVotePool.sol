@@ -70,10 +70,15 @@ contract HubVotePool is QueryResponse, Ownable {
 
   mapping(uint8 queryType => ISpokeVoteDecoder voteImpl) public voteTypeDecoder;
 
-  constructor(address _core, address _hubGovernor, address _owner) QueryResponse(_core) Ownable(_owner) {
+  Checkpoints.Trace256 public numSpokes;
+
+  address spokeVoteVerifier;
+
+  constructor(address _core, address _hubGovernor, address _owner, address _spokeVoteVerifier) QueryResponse(_core) Ownable(_owner) {
     HubEvmSpokeVoteDecoder evmDecoder = new HubEvmSpokeVoteDecoder(_core, address(this));
     _registerQueryType(address(evmDecoder), QueryResponse.QT_ETH_CALL_WITH_FINALITY);
     _setGovernor(_hubGovernor);
+    spokeVoteVerifier = _spokeVoteVerifier;
   }
 
   function getSpoke(uint16 _emitterChainId, uint256 _timepoint) external view returns (bytes32) {
@@ -130,6 +135,12 @@ contract HubVotePool is QueryResponse, Ownable {
       ISpokeVoteDecoder.ProposalVote memory _proposalVote = _voteQuery.proposalVote;
       ProposalVote memory _existingSpokeVote = spokeProposalVotes[_voteQuery.spokeProposalId];
 
+      // If we have a spoke vote verifier, use it here
+      if (spokeVoteVerifier != address(0)) {
+        uint256 totalVotes = _proposalVote.againstVotes + _proposalVote.forVotes + _proposalVote.abstainVotes;
+        spokeVoteVerifier.verifyVotes(_voteQuery.spokeProposalId, _voteQuery.proposalId, totalVotes);
+      }
+
       if (
         _existingSpokeVote.againstVotes > _proposalVote.againstVotes
           || _existingSpokeVote.forVotes > _proposalVote.forVotes
@@ -168,6 +179,7 @@ contract HubVotePool is QueryResponse, Ownable {
       _targetChain, bytes32(registeredAddressCheckpoint.upperLookup(block.timestamp)), _spokeVoteAddress
     );
     registeredAddressCheckpoint.push(block.timestamp, uint256(_spokeVoteAddress));
+    numSpokes.push(block.timestamp, numSpokes.upperLookup(block.timestamp) + 1);
   }
 
   function _registerQueryType(address _implementation, uint8 _queryType) internal {
