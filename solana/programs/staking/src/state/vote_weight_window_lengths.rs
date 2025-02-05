@@ -95,38 +95,98 @@ pub fn push_new_window_length<'info>(
     payer_account_info: &AccountInfo<'info>,
     system_program_account_info: &AccountInfo<'info>,
 ) -> Result<()> {
-    let current_index = {
-        let mut vote_weight_window_length = vote_weight_window_length_loader.load_mut()?;
-        let current_index = vote_weight_window_length.next_index;
-        vote_weight_window_length.next_index += 1;
-
-        let required_size = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE
-            + (vote_weight_window_length.next_index as usize)
-                * VoteWeightWindowLengths::WINDOW_LENGTH_SIZE;
-
-        drop(vote_weight_window_length);
-
-        if required_size > vote_weight_window_length_account_info.data_len() {
-            resize_account(
+    // Step 1: Immutable borrow to get latest_index and latest_window_length
+    let (current_index, latest_window_length) = {
+        let vote_weight_window_length = vote_weight_window_length_loader.load()?;
+        if vote_weight_window_length.next_index == 0 {
+            (0, None) // if next_index is 0, set to None
+        } else {
+            let latest_index = vote_weight_window_length.next_index - 1;
+            let latest_window_length = read_window_length_at_index(
                 vote_weight_window_length_account_info,
-                payer_account_info,
-                system_program_account_info,
-                required_size,
+                latest_index as usize,
+            )?;
+            (
+                vote_weight_window_length.next_index,
+                Some(latest_window_length),
+            )
+        }
+    };
+
+    if let Some(ref latest_window_length) = latest_window_length {
+        if latest_window_length.timestamp != current_timestamp {
+            // Step 2: Mutable borrow to update next_index and resize if needed
+            {
+                let mut vote_weight_window_length = vote_weight_window_length_loader.load_mut()?;
+                vote_weight_window_length.next_index += 1;
+
+                let required_size = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE
+                    + (vote_weight_window_length.next_index as usize)
+                        * VoteWeightWindowLengths::WINDOW_LENGTH_SIZE;
+
+                drop(vote_weight_window_length);
+
+                if required_size > vote_weight_window_length_account_info.data_len() {
+                    resize_account(
+                        vote_weight_window_length_account_info,
+                        payer_account_info,
+                        system_program_account_info,
+                        required_size,
+                    )?;
+                }
+            } // Mutable borrow ends here
+            let new_window_length = WindowLength {
+                timestamp: current_timestamp,
+                value: new_window_length_value,
+            };
+            write_window_length_at_index(
+                vote_weight_window_length_account_info,
+                current_index as usize,
+                &new_window_length,
+            )?;
+        } else {
+            // Overwrite window length with same current_timestamp
+            let new_window_length = WindowLength {
+                timestamp: current_timestamp,
+                value: new_window_length_value,
+            };
+            write_window_length_at_index(
+                vote_weight_window_length_account_info,
+                current_index as usize - 1,
+                &new_window_length,
             )?;
         }
-        current_index
-    }; // Mutable borrow ends here
+    } else {
+        // Write first window_length
+        {
+            let mut vote_weight_window_length = vote_weight_window_length_loader.load_mut()?;
+            vote_weight_window_length.next_index += 1;
 
-    let new_window_length = WindowLength {
-        timestamp: current_timestamp,
-        value: new_window_length_value,
-    };
-    write_window_length_at_index(
-        vote_weight_window_length_account_info,
-        current_index as usize,
-        &new_window_length,
-    )?;
+            let required_size = VoteWeightWindowLengths::VOTE_WEIGHT_WINDOW_LENGTHS_HEADER_SIZE
+                + (vote_weight_window_length.next_index as usize)
+                    * VoteWeightWindowLengths::WINDOW_LENGTH_SIZE;
 
+            drop(vote_weight_window_length);
+
+            if required_size > vote_weight_window_length_account_info.data_len() {
+                resize_account(
+                    vote_weight_window_length_account_info,
+                    payer_account_info,
+                    system_program_account_info,
+                    required_size,
+                )?;
+            }
+        } // Mutable borrow ends here
+        let new_window_length = WindowLength {
+            timestamp: current_timestamp,
+            value: new_window_length_value,
+        };
+        write_window_length_at_index(
+            vote_weight_window_length_account_info,
+            current_index as usize,
+            &new_window_length,
+        )?;
+    }
     Ok(())
 }
 
