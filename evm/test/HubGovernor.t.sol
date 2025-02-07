@@ -27,6 +27,7 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
   HubProposalExtender public extender;
 
   address initialOwner;
+  address guardianContract;
 
   uint48 constant VOTE_WEIGHT_WINDOW = 1 days;
   uint48 constant MINIMUM_VOTE_EXTENSION = 1 hours;
@@ -40,8 +41,9 @@ contract HubGovernorTest is WormholeEthQueryTest, ProposalTest {
     extender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, address(timelock), initialOwner, MINIMUM_VOTE_EXTENSION
     );
+    guardianContract = makeAddr("Guardian Contract");
 
-    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock));
+    hubVotePool = new HubVotePoolHarness(address(wormhole), initialOwner, address(timelock), guardianContract);
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",
@@ -178,17 +180,19 @@ contract Constructor is HubGovernorTest {
     uint208 _initialProposalThreshold,
     uint208 _initialQuorum,
     address _extenderOwner,
-    address _deployer
+    address _deployer,
+    address _guardianContract
   ) public {
     vm.assume(_initialVotingPeriod != 0);
     vm.assume(_extenderOwner != address(0) && _timelock != address(0));
     vm.assume(_extenderOwner != address(_timelock));
     vm.assume(_deployer != address(0));
+    vm.assume(_guardianContract != address(0));
 
     HubProposalExtender _voteExtender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, address(_extenderOwner), _deployer, MINIMUM_VOTE_EXTENSION
     );
-    HubVotePool hubVotePool = new HubVotePool(address(wormhole), address(0), address(timelock));
+    HubVotePool hubVotePool = new HubVotePool(address(wormhole), address(0), address(timelock), _guardianContract);
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: _name,

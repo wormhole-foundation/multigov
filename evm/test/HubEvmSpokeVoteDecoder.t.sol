@@ -26,6 +26,7 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
   HubEvmSpokeVoteDecoder hubCrossChainEvmVote;
   HubVotePoolHarness hubVotePool;
   address timelock;
+  address guardianContract;
 
   struct VoteParams {
     uint256 proposalId;
@@ -38,7 +39,8 @@ contract HubEvmSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     _setupWormhole();
     governor = new GovernorMock();
     timelock = makeAddr("Timelock");
-    hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), timelock);
+    guardianContract = makeAddr("Guardian Contract");
+    hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), timelock, guardianContract);
     hubCrossChainEvmVote = new HubEvmSpokeVoteDecoder(address(wormhole), address(hubVotePool));
   }
 

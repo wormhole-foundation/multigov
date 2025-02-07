@@ -53,8 +53,9 @@ contract HubEvmSpokeAggregateProposerTest is WormholeEthQueryTest, AddressUtils,
     address initialOwner = makeAddr("Initial Owner");
     timelock = new TimelockControllerFake(initialOwner);
     token = new ERC20VotesFake();
+    address guardianContract = makeAddr("Guardian Contract");
 
-    hubVotePool = new HubVotePool(address(wormhole), initialOwner, address(timelock));
+    hubVotePool = new HubVotePool(address(wormhole), initialOwner, address(timelock), guardianContract);
 
     extender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, address(timelock), address(timelock), MINIMUM_VOTE_EXTENSION

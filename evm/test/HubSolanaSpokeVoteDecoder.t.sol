@@ -48,12 +48,13 @@ contract HubSolanaSpokeVoteDecoderTest is WormholeEthQueryTest, AddressUtils {
     timelock = new TimelockControllerFake(initialOwner);
     address hubVotePoolOwner = address(timelock);
     token = new ERC20VotesFake();
+    address guardianContract = makeAddr("Guardian Contract");
 
     extender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, address(timelock), initialOwner, MINIMUM_VOTE_EXTENSION
     );
 
-    hubVotePool = new HubVotePoolHarness(address(wormhole), address(0), hubVotePoolOwner);
+    hubVotePool = new HubVotePoolHarness(address(wormhole), address(0), hubVotePoolOwner, guardianContract);
 
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Test Gov",

@@ -73,7 +73,7 @@ abstract contract DeployHubContractsBaseImpl is Script {
     );
 
     // Deploy `HubVotePool` which will revceive cross-chain votes.
-    HubVotePool hubVotePool = new HubVotePool(config.wormholeCore, address(0), wallet.addr);
+    HubVotePool hubVotePool = new HubVotePool(config.wormholeCore, address(0), wallet.addr, wallet.addr);
 
     HubGovernor.ConstructorParams memory hubGovernorParams = HubGovernor.ConstructorParams({
       name: config.name,

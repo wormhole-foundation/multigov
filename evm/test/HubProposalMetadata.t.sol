@@ -39,7 +39,8 @@ contract HubProposalMetadataTest is Test, ProposalTest {
     extender = new HubProposalExtender(
       initialOwner, VOTE_TIME_EXTENSION, address(timelock), initialOwner, MINIMUM_VOTE_EXTENSION
     );
-    HubVotePool hubVotePool = new HubVotePool(address(wormhole), address(0), address(timelock));
+    address guardianContract = makeAddr("Guardian Contract");
+    HubVotePool hubVotePool = new HubVotePool(address(wormhole), address(0), address(timelock), guardianContract);
     HubGovernor.ConstructorParams memory params = HubGovernor.ConstructorParams({
       name: "Example Gov",
       token: token,

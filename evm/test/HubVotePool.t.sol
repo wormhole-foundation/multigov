@@ -26,6 +26,7 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
   uint8 ethCallQuery;
   HubEvmSpokeVoteDecoder hubCrossChainEvmVote;
   address timelock;
+  address guardianContract;
 
   struct VoteParams {
     uint256 proposalId;
@@ -38,7 +39,8 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
     _setupWormhole();
     governor = new GovernorMock();
     timelock = makeAddr("Timelock");
-    hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), timelock);
+    guardianContract = makeAddr("Guardian Contract");
+    hubVotePool = new HubVotePoolHarness(address(wormhole), address(governor), timelock, guardianContract);
 
     hubCrossChainEvmVote = new HubEvmSpokeVoteDecoder(address(wormhole), address(hubVotePool));
 
@@ -134,35 +136,58 @@ contract HubVotePoolTest is WormholeEthQueryTest, AddressUtils {
 }
 
 contract Constructor is Test, AddressUtils {
-  function testFuzz_CorrectlySetConstructorArgs(address _core, address _hubGovernor, address _timelock) public {
+  function testFuzz_CorrectlySetConstructorArgs(
+    address _core,
+    address _hubGovernor,
+    address _timelock,
+    address _guardianContract
+  ) public {
     vm.assume(_core != address(0));
     vm.assume(_timelock != address(0));
+    vm.assume(_guardianContract != address(0));
 
-    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _timelock);
+    HubVotePool hubVotePool = new HubVotePool(_core, _hubGovernor, _timelock, _guardianContract);
 
     assertEq(address(hubVotePool.hubGovernor()), _hubGovernor);
     assertEq(hubVotePool.owner(), _timelock);
     assertNotEq(address(hubVotePool.voteTypeDecoder(hubVotePool.QT_ETH_CALL_WITH_FINALITY())), address(0));
   }
 
-  function testFuzz_EmitsHubGovernorUpdatedEvent(address _core, address _hubGovernor, address _timelock) public {
+  function testFuzz_EmitsHubGovernorUpdatedEvent(
+    address _core,
+    address _hubGovernor,
+    address _timelock,
+    address _guardianContract
+  ) public {
     vm.assume(_core != address(0));
     vm.assume(_timelock != address(0));
+    vm.assume(_guardianContract != address(0));
 
     vm.expectEmit();
     emit HubVotePool.HubGovernorUpdated(address(0), _hubGovernor);
-    new HubVotePool(_core, _hubGovernor, _timelock);
+    new HubVotePool(_core, _hubGovernor, _timelock, _guardianContract);
   }
 
-  function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, address _timelock) public {
+  function testFuzz_RevertIf_CoreIsZeroAddress(address _hubGovernor, address _timelock, address _guardianContract)
+    public
+  {
     vm.expectRevert(EmptyWormholeAddress.selector);
-    new HubVotePool(address(0), _hubGovernor, _timelock);
+    new HubVotePool(address(0), _hubGovernor, _timelock, _guardianContract);
   }
 
-  function testFuzz_RevertIf_TimelockIsZeroAddress(address _core, address _governor) public {
+  function testFuzz_RevertIf_TimelockIsZeroAddress(address _core, address _governor, address _guardianContract) public {
     vm.assume(_core != address(0));
     vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-    new HubVotePool(_core, _governor, address(0));
+    new HubVotePool(_core, _governor, address(0), _guardianContract);
+  }
+
+  function testFuzz_RevertIf_SpokeVotingPowerAdminIsZeroAddress(address _core, address _governor, address _timelock)
+    public
+  {
+    vm.assume(_core != address(0));
+    vm.assume(_timelock != address(0));
+    vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
+    new HubVotePool(_core, _governor, _timelock, address(0));
   }
 }
 
@@ -350,14 +375,112 @@ contract SetGovernor is HubVotePoolTest {
   }
 }
 
+contract SetSpokeVotingPowerAdmin is HubVotePoolTest {
+  function testFuzz_CorrectlySetsSpokeVotingPowerAdmin(address _newSpokeVotingPowerAdmin) public {
+    vm.prank(guardianContract);
+    hubVotePool.setSpokeVotingPowerAdmin(_newSpokeVotingPowerAdmin);
+    assertEq(hubVotePool.spokeVotingPowerAdmin(), _newSpokeVotingPowerAdmin);
+  }
+
+  function testFuzz_EmitsSpokeVotingPowerAdminUpdatedEvent(address _newSpokeVotingPowerAdmin) public {
+    vm.expectEmit();
+    emit HubVotePool.SpokeVotingPowerAdminUpdated(
+      address(hubVotePool.spokeVotingPowerAdmin()), _newSpokeVotingPowerAdmin
+    );
+    vm.prank(guardianContract);
+    hubVotePool.setSpokeVotingPowerAdmin(_newSpokeVotingPowerAdmin);
+  }
+
+  function testFuzz_RevertIf_NotCalledBySpokeVotingPowerAdmin(address _newSpokeVotingPowerAdmin, address _caller)
+    public
+  {
+    vm.assume(_caller != guardianContract);
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(HubVotePool.NotSpokeVotingPowerAdmin.selector));
+    hubVotePool.setSpokeVotingPowerAdmin(_newSpokeVotingPowerAdmin);
+  }
+}
+
+contract SetSpokeVotingPower is HubVotePoolTest {
+  function testFuzz_VotingPowerIsUpdatedCorrectly(uint256 _numSpokes, uint256 _votingPower) public {
+    _numSpokes = bound(_numSpokes, 0, type(uint8).max);
+
+    uint16[] memory chainIds = new uint16[](_numSpokes);
+    uint256[] memory votingPowers = new uint256[](_numSpokes);
+    for (uint256 i = 0; i < _numSpokes; i++) {
+      chainIds[i] = uint16(i + 1);
+      votingPowers[i] = _votingPower / (i + 1);
+    }
+
+    vm.prank(guardianContract);
+    hubVotePool.setSpokeVotingPower(chainIds, votingPowers);
+
+    for (uint256 i = 0; i < _numSpokes; i++) {
+      assertEq(hubVotePool.getSpokeVotingPower(uint16(i + 1)), _votingPower / (i + 1));
+    }
+  }
+
+  function testFuzz_RevertIf_ChainIdsAndVotingPowersNotSameLength(uint8 _chainIdLen, uint8 _votingPowerLen) public {
+    vm.assume(_chainIdLen != _votingPowerLen);
+
+    uint16[] memory chainIds = new uint16[](_chainIdLen);
+    uint256[] memory votingPowers = new uint256[](_votingPowerLen);
+
+    vm.prank(guardianContract);
+    vm.expectRevert(abi.encodeWithSelector(HubVotePool.InvalidSpokeVotingPowerUpdate.selector));
+    hubVotePool.setSpokeVotingPower(chainIds, votingPowers);
+  }
+
+  function testFuzz_RevertIf_ChainIdsAreNotOrdered(uint256 _numSpokes, uint256 _votingPower, uint256 _unorderedIndex)
+    public
+  {
+    _numSpokes = bound(_numSpokes, 2, type(uint8).max);
+    _unorderedIndex = bound(_unorderedIndex, 1, _numSpokes - 1);
+
+    uint16[] memory chainIds = new uint16[](_numSpokes);
+    uint256[] memory votingPowers = new uint256[](_numSpokes);
+    for (uint256 i = 0; i < _numSpokes; i++) {
+      chainIds[i] = uint16(i);
+      votingPowers[i] = _votingPower / (i + 1);
+    }
+
+    // Flip the first index with the unordered index
+    chainIds[_unorderedIndex] = 0;
+    chainIds[0] = uint16(_unorderedIndex);
+
+    vm.prank(guardianContract);
+    vm.expectRevert(abi.encodeWithSelector(HubVotePool.InvalidSpokeVotingPowerUpdate.selector));
+    hubVotePool.setSpokeVotingPower(chainIds, votingPowers);
+  }
+
+  function testFuzz_RevertIf_NotCalledBySpokeVotingPowerAdmin(uint8 _chainIdLen, address _caller) public {
+    vm.assume(_caller != guardianContract);
+    uint16[] memory chainIds = new uint16[](_chainIdLen);
+    uint256[] memory votingPowers = new uint256[](_chainIdLen);
+    vm.prank(_caller);
+    vm.expectRevert(abi.encodeWithSelector(HubVotePool.NotSpokeVotingPowerAdmin.selector));
+    hubVotePool.setSpokeVotingPower(chainIds, votingPowers);
+  }
+}
+
 contract CrossChainVote is HubVotePoolTest {
   function testFuzz_CorrectlyAddNewVote(VoteParams memory _voteParams, address _spokeContract, uint16 _queryChainId)
     public
   {
     vm.assume(_spokeContract != address(0));
+    vm.assume(_queryChainId != 0);
 
     vm.prank(timelock);
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
+
+    {
+      uint16[] memory chainIds = new uint16[](1);
+      uint256[] memory votingPower = new uint256[](1);
+      chainIds[0] = _queryChainId;
+      votingPower[0] = type(uint256).max;
+      vm.prank(guardianContract);
+      hubVotePool.setSpokeVotingPower(chainIds, votingPower);
+    }
 
     _sendCrossChainVote(_voteParams, _queryChainId, _spokeContract);
 
@@ -390,11 +513,21 @@ contract CrossChainVote is HubVotePoolTest {
     uint16 _queryChainId
   ) public {
     vm.assume(_spokeContract != address(0));
+    vm.assume(_queryChainId != 0);
     _queryChainId = uint16(bound(_queryChainId, 5, type(uint16).max));
 
     vm.startPrank(timelock);
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
     vm.stopPrank();
+
+    {
+      uint16[] memory chainIds = new uint16[](1);
+      uint256[] memory votingPower = new uint256[](1);
+      chainIds[0] = _queryChainId;
+      votingPower[0] = type(uint256).max;
+      vm.prank(guardianContract);
+      hubVotePool.setSpokeVotingPower(chainIds, votingPower);
+    }
 
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // random blockId: a hash of the block number
@@ -496,6 +629,17 @@ contract CrossChainVote is HubVotePoolTest {
     hubVotePool.registerSpoke(_queryChainId - 1, addressToBytes32(_spokeContract));
     vm.stopPrank();
 
+    {
+      uint16[] memory chainIds = new uint16[](2);
+      uint256[] memory votingPower = new uint256[](2);
+      chainIds[0] = _queryChainId - 1;
+      chainIds[1] = _queryChainId;
+      votingPower[0] = type(uint256).max;
+      votingPower[1] = type(uint256).max;
+      vm.prank(guardianContract);
+      hubVotePool.setSpokeVotingPower(chainIds, votingPower);
+    }
+
     bytes memory ethCall = QueryTest.buildEthCallWithFinalityRequestBytes(
       bytes("0x1296c33"), // random blockId: a hash of the block number
       "finalized", // finalized
@@ -579,11 +723,24 @@ contract CrossChainVote is HubVotePoolTest {
   ) public {
     vm.assume(_spokeContract1 != address(0) && _spokeContract2 != address(0));
     vm.assume(_queryChainId1 != _queryChainId2);
+    vm.assume(_queryChainId1 != 0);
+    vm.assume(_queryChainId2 != 0);
 
     vm.startPrank(timelock);
     hubVotePool.registerSpoke(_queryChainId1, addressToBytes32(_spokeContract1));
     hubVotePool.registerSpoke(_queryChainId2, addressToBytes32(_spokeContract2));
     vm.stopPrank();
+
+    {
+      uint16[] memory chainIds = new uint16[](2);
+      uint256[] memory votingPower = new uint256[](2);
+      chainIds[0] = _queryChainId1 > _queryChainId2 ? _queryChainId2 : _queryChainId1;
+      chainIds[1] = _queryChainId1 > _queryChainId2 ? _queryChainId1 : _queryChainId2;
+      votingPower[0] = type(uint256).max;
+      votingPower[1] = type(uint256).max;
+      vm.prank(guardianContract);
+      hubVotePool.setSpokeVotingPower(chainIds, votingPower);
+    }
 
     _sendCrossChainVote(_voteParams1, _queryChainId1, _spokeContract1);
     (uint256 _againstVotes1, uint256 _forVotes1, uint256 _abstainVotes1) =
@@ -683,9 +840,19 @@ contract CrossChainVote is HubVotePoolTest {
   ) public {
     vm.assume(_spokeContract != address(0));
     vm.assume(_againstVotes != 0);
+    vm.assume(_queryChainId != 0);
 
     vm.prank(timelock);
     hubVotePool.registerSpoke(_queryChainId, addressToBytes32(_spokeContract));
+
+    {
+      uint16[] memory chainIds = new uint16[](1);
+      uint256[] memory votingPower = new uint256[](1);
+      chainIds[0] = _queryChainId;
+      votingPower[0] = type(uint256).max;
+      vm.prank(guardianContract);
+      hubVotePool.setSpokeVotingPower(chainIds, votingPower);
+    }
 
     bytes memory _resp = _buildArbitraryQuery(
       VoteParams({
@@ -741,6 +908,64 @@ contract CrossChainVote is HubVotePoolTest {
 
     vm.expectRevert(InvalidContractAddress.selector);
     hubVotePool.crossChainVote(_resp, signatures);
+  }
+
+  function testFuzz_RevertIf_SpokeVotesExceedsSpokeVotingPower(
+    VoteParams memory _voteParams1,
+    address _spokeContract1,
+    uint16 _queryChainId1,
+    uint256 _initialVotingPower
+  ) public {
+    vm.assume(_spokeContract1 != address(0));
+    vm.assume(_queryChainId1 != 0);
+
+    uint256 votingSum =
+      uint256(_voteParams1.againstVotes) + uint256(_voteParams1.forVotes) + uint256(_voteParams1.abstainVotes);
+    vm.assume(votingSum != 0);
+    _initialVotingPower = bound(_initialVotingPower, 0, votingSum - 1);
+
+    vm.prank(timelock);
+    hubVotePool.registerSpoke(_queryChainId1, addressToBytes32(_spokeContract1));
+
+    {
+      uint16[] memory chainIds = new uint16[](1);
+      uint256[] memory votingPower = new uint256[](1);
+      chainIds[0] = _queryChainId1;
+      votingPower[0] = _initialVotingPower;
+      vm.prank(guardianContract);
+      hubVotePool.setSpokeVotingPower(chainIds, votingPower);
+    }
+
+    bytes memory _resp = _buildArbitraryQuery(_voteParams1, _queryChainId1, _spokeContract1);
+    IWormhole.Signature[] memory signatures = _getSignatures(_resp);
+
+    hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId1, _voteParams1.proposalId)));
+
+    vm.expectRevert(HubVotePool.NotEnoughVotingPower.selector);
+    hubVotePool.crossChainVote(_resp, signatures);
+
+    // After the intial vote fails, we do have the option to increase the voting power and try again
+    uint256 newVotingPower = bound(_initialVotingPower, votingSum, type(uint256).max);
+    {
+      uint16[] memory chainIds = new uint16[](1);
+      uint256[] memory votingPower = new uint256[](1);
+      chainIds[0] = _queryChainId1;
+      votingPower[0] = newVotingPower;
+      vm.prank(guardianContract);
+      hubVotePool.setSpokeVotingPower(chainIds, votingPower);
+    }
+
+    hubVotePool.crossChainVote(_resp, signatures);
+    (uint256 _againstVotes1, uint256 _forVotes1, uint256 _abstainVotes1) =
+      hubVotePool.spokeProposalVotes(keccak256(abi.encode(_queryChainId1, _voteParams1.proposalId)));
+    _assertVotesEq(
+      _voteParams1,
+      SpokeCountingFractional.ProposalVote({
+        againstVotes: _againstVotes1,
+        forVotes: _forVotes1,
+        abstainVotes: _abstainVotes1
+      })
+    );
   }
 
   function testFuzz_RevertIf_TooManyCalls(uint16 _queryChainId, address _spokeContract) public {

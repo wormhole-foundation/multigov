@@ -21,12 +21,24 @@ contract HubVotePool is QueryResponse, Ownable {
   /// @notice The governor where cross chain votes are submitted.
   IGovernor public hubGovernor;
 
+  /// @notice The admin of the spoke voting power
+  address public spokeVotingPowerAdmin;
+
   /// @notice A necessary param which is ignored when submitting a vote.
   uint8 private constant UNUSED_SUPPORT_PARAM = 1;
 
   /// @notice Thrown when the submitted spoke aggregator vote has a vote that is inconsistent with the previously
   /// submitted vote.
   error InvalidProposalVote();
+
+  /// @notice Thrown when the caller is not the spoke voting power admin
+  error NotSpokeVotingPowerAdmin();
+
+  /// @notice Thrown when the spoke voting power data is malformed
+  error InvalidSpokeVotingPowerUpdate();
+
+  /// @notice Thrown when the spoke does not have enough voting power to deliver those votes
+  error NotEnoughVotingPower();
 
   /// @notice Thrown if a query vote implementation is set to an address that does not support the
   /// `ISpokeVoteDecoder` interface.
@@ -37,6 +49,12 @@ contract HubVotePool is QueryResponse, Ownable {
 
   /// @notice Emitted when the Governor is updated.
   event HubGovernorUpdated(address oldGovernor, address newGovernor);
+
+  // @notice Emitted when a spoke voting power is updated
+  event SpokeVotingPowerUpdated(uint16 chainId, uint256 votingPower);
+
+  /// @notice Emitted when the spoke voting power admin is updated
+  event SpokeVotingPowerAdminUpdated(address oldSpokeVotingPowerAdmin, address newSpokeVotingPowerAdmin);
 
   /// @notice Emitted when a new query type is registered.
   event QueryTypeRegistered(uint8 indexed queryType, address oldQueryTypeImpl, address newQueryTypeImpl);
@@ -70,14 +88,25 @@ contract HubVotePool is QueryResponse, Ownable {
 
   mapping(uint8 queryType => ISpokeVoteDecoder voteImpl) public voteTypeDecoder;
 
-  constructor(address _core, address _hubGovernor, address _owner) QueryResponse(_core) Ownable(_owner) {
+  mapping(uint16 emitterChain => uint256 votingPower) public spokeVotingPower;
+
+  constructor(address _core, address _hubGovernor, address _owner, address _spokeVotingPowerAdmin)
+    QueryResponse(_core)
+    Ownable(_owner)
+  {
     HubEvmSpokeVoteDecoder evmDecoder = new HubEvmSpokeVoteDecoder(_core, address(this));
     _registerQueryType(address(evmDecoder), QueryResponse.QT_ETH_CALL_WITH_FINALITY);
     _setGovernor(_hubGovernor);
+    if (_spokeVotingPowerAdmin == address(0)) revert OwnableInvalidOwner(address(0));
+    _setSpokeVotingPowerAdmin(_spokeVotingPowerAdmin);
   }
 
   function getSpoke(uint16 _emitterChainId, uint256 _timepoint) external view returns (bytes32) {
     return bytes32(emitterRegistry[_emitterChainId].upperLookup(_timepoint));
+  }
+
+  function getSpokeVotingPower(uint16 _emitterChainId) external view returns (uint256) {
+    return spokeVotingPower[_emitterChainId];
   }
 
   /// @notice Registers or unregisters a query type implementation.
@@ -116,6 +145,39 @@ contract HubVotePool is QueryResponse, Ownable {
     _setGovernor(_newGovernor);
   }
 
+  /// @notice Updates the address of the spoke voting power admin.
+  /// @dev Can only be called by the current spoke voting power admin.
+  /// @param _newSpokeVotingPowerAdmin The address of the new spoke voting power admin.
+  function setSpokeVotingPowerAdmin(address _newSpokeVotingPowerAdmin) external {
+    if (msg.sender != spokeVotingPowerAdmin) revert NotSpokeVotingPowerAdmin();
+
+    _setSpokeVotingPowerAdmin(_newSpokeVotingPowerAdmin);
+  }
+
+  /// @notice Updates the voting power of a set of spokes
+  /// @dev Can only be called by the current spoke voting power admin.
+  /// @param chainIds The list of chain ids to update the voting power of.
+  /// @param votingPowers The list of voting powers for the given chain ids.
+  function setSpokeVotingPower(uint16[] memory chainIds, uint256[] memory votingPowers) public {
+    if (msg.sender != spokeVotingPowerAdmin) revert NotSpokeVotingPowerAdmin();
+
+    if (chainIds.length != votingPowers.length) revert InvalidSpokeVotingPowerUpdate();
+
+    uint16 lastChainId = 0;
+
+    for (uint256 i = 0; i < chainIds.length; i++) {
+      uint16 currentChainId = chainIds[i];
+      uint256 currentVotingPower = votingPowers[i];
+
+      // The chain ids must be in increasing order. Chain id 0 is not a valid chain id
+      if (currentChainId <= lastChainId) revert InvalidSpokeVotingPowerUpdate();
+
+      spokeVotingPower[currentChainId] = currentVotingPower;
+      lastChainId = currentChainId;
+      emit SpokeVotingPowerUpdated(currentChainId, currentVotingPower);
+    }
+  }
+
   /// @notice Processes cross chain votes from the spokes. Parses and verifies the Wormhole query response, then casts
   /// votes on the hub governor.
   /// @param _queryResponseRaw The raw bytes of the query response from Wormhole.
@@ -129,6 +191,12 @@ contract HubVotePool is QueryResponse, Ownable {
       ISpokeVoteDecoder.QueryVote memory _voteQuery = _voteQueryImpl.decode(_queryResponse.responses[i], hubGovernor);
       ISpokeVoteDecoder.ProposalVote memory _proposalVote = _voteQuery.proposalVote;
       ProposalVote memory _existingSpokeVote = spokeProposalVotes[_voteQuery.spokeProposalId];
+
+      // This will never overflow. If it somehow does, then something is broken, and the implicit overflow
+      // checks added by the compiler will cause a revert anyway
+      uint256 totalVotes = _proposalVote.againstVotes + _proposalVote.forVotes + _proposalVote.abstainVotes;
+
+      if (totalVotes > spokeVotingPower[_voteQuery.chainId]) revert NotEnoughVotingPower();
 
       if (
         _existingSpokeVote.againstVotes > _proposalVote.againstVotes
@@ -185,5 +253,10 @@ contract HubVotePool is QueryResponse, Ownable {
   function _setGovernor(address _newGovernor) internal {
     emit HubGovernorUpdated(address(hubGovernor), _newGovernor);
     hubGovernor = IGovernor(_newGovernor);
+  }
+
+  function _setSpokeVotingPowerAdmin(address _newSpokeVotingPowerAdmin) internal {
+    emit SpokeVotingPowerAdminUpdated(spokeVotingPowerAdmin, _newSpokeVotingPowerAdmin);
+    spokeVotingPowerAdmin = _newSpokeVotingPowerAdmin;
   }
 }
