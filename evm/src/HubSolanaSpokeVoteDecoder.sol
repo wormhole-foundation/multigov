@@ -169,7 +169,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     if (_fromDecimals == _toDecimals) return _amount;
 
     if (_fromDecimals > _toDecimals) return _amount / (10 ** (_fromDecimals - _toDecimals));
-    else return _amount * (10 ** (_toDecimals - _fromDecimals));
+    return _amount * (10 ** (_toDecimals - _fromDecimals));
   }
 
   /// @notice Reverse the endianness of the passed in integer.
