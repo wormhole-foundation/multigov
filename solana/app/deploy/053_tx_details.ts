@@ -1,5 +1,7 @@
+// Usage: npx ts-node app/deploy/053_tx_details.ts
+
 import { Connection } from "@solana/web3.js";
-import { RPC_NODE } from "./devnet";
+import { RPC_NODE } from "./devnet_consts";
 import {
   getProgramTransactions,
   printTransactionDetails,

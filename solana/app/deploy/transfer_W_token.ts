@@ -7,7 +7,7 @@ import {
   USER2_AUTHORITY_KEYPAIR,
   WORMHOLE_TOKEN,
   RPC_NODE,
-} from "./devnet";
+} from "./devnet_consts";
 import {
   createTransferInstruction,
   getAssociatedTokenAddressSync,

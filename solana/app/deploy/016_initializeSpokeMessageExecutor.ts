@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/06_create_message_executor.ts
+// Usage: npx ts-node app/deploy/016_initializeSpokeMessageExecutor.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
@@ -7,7 +7,7 @@ import {
   hubSolanaMessageDispatcherPublicKey,
   HUB_CHAIN_ID,
 } from "../constants";
-import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
 import { wasm } from "../StakeConnection";

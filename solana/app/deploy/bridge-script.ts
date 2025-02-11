@@ -23,7 +23,7 @@ import {
   HUB_CHAIN_ID,
   HUB_PROPOSAL_METADATA_ADDRESS,
 } from "../constants";
-import { RPC_NODE } from "./devnet";
+import { RPC_NODE } from "./devnet_consts";
 import { getWormholeBridgeData } from "../helpers/wormholeBridgeConfig";
 import { deriveGuardianSetKey } from "../helpers/guardianSet";
 

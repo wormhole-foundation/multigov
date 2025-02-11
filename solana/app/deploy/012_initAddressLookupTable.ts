@@ -1,8 +1,8 @@
-// Usage: npx ts-node app/deploy/02_create_account_lookup_table.ts
+// Usage: npx ts-node app/deploy/012_initAddressLookupTable.ts
 
 import { Wallet, AnchorProvider } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
-import { DEPLOYER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
+import { DEPLOYER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet_consts";
 import { initAddressLookupTable } from "../../tests/utils/utils";
 
 async function main() {

@@ -6,7 +6,7 @@ import {
   PublicKey,
   SystemProgram,
 } from "@solana/web3.js";
-import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
 import BN from "bn.js";

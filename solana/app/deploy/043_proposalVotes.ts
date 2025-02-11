@@ -1,11 +1,11 @@
-// Usage: npx ts-node app/deploy/10_proposalVotes.ts
+// Usage: npx ts-node app/deploy/043_proposalVotes.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
-import { USER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { USER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
 
 async function main() {
   try {

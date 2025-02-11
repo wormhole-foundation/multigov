@@ -1,10 +1,10 @@
-// Usage: npx ts-node app/deploy/04_create_spoke_metadata_collector.ts
+// Usage: npx ts-node app/deploy/014_initializeSpokeMetadataCollector.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { HUB_CHAIN_ID, hubProposalMetadataUint8Array } from "../constants";
-import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
 import { Staking } from "../../target/types/staking";
 import fs from "fs";
 

@@ -5,7 +5,7 @@ import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
-import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "../deploy/devnet";
+import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "../deploy/devnet_consts";
 import BN from "bn.js";
 import { WHTokenBalance } from "../whTokenBalance";
 import input from "@inquirer/input";

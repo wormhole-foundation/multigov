@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/10_withdraw.ts
+// Usage: npx ts-node app/deploy/033_withdrawTokens.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
@@ -6,7 +6,7 @@ import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { WHTokenBalance } from "../whTokenBalance";
 import { STAKING_ADDRESS } from "../constants";
-import { USER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { USER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
 
 async function main() {
   try {

@@ -1,11 +1,11 @@
-// Usage: npx ts-node app/deploy/14_castVote.ts
+// Usage: npx ts-node app/deploy/042_castVote.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
-import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
 import BN from "bn.js";
 import input from "@inquirer/input";
 

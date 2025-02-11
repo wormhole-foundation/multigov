@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/08_create_stake_account.ts
+// Usage: npx ts-node app/deploy/031_createStakeAccount.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
@@ -6,7 +6,7 @@ import { Connection } from "@solana/web3.js";
 import * as wasm from "@wormhole/staking-wasm";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
-import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
 import { Staking } from "../../target/types/staking";
 
 async function main() {

@@ -16,7 +16,7 @@ import {
   DEPLOYER_AUTHORITY_KEYPAIR,
   RPC_NODE,
   AIRLOCK_PDA_ADDRESS,
-} from "../deploy/devnet";
+} from "../deploy/devnet_consts";
 import { v4 as uuidv4 } from "uuid";
 
 // Define the ABI types

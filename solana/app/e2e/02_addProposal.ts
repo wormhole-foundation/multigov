@@ -21,7 +21,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
-import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "../deploy/devnet";
+import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "../deploy/devnet_consts";
 import { getWormholeBridgeData } from "../helpers/wormholeBridgeConfig";
 import * as fs from "fs";
 

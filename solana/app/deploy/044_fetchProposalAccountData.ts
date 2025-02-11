@@ -1,11 +1,11 @@
-// Usage: npx ts-node app/deploy/13_fetchProposalAccountData.ts
+// Usage: npx ts-node app/deploy/044_fetchProposalAccountData.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
-import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
 import BN from "bn.js";
 import { ethers } from "ethers";
 

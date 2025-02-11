@@ -1,11 +1,11 @@
-// Usage: npx ts-node app/deploy/12_addProposal.ts
+// Usage: npx ts-node app/deploy/041_addProposal.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS, CORE_BRIDGE_ADDRESS } from "../constants";
-import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet";
+import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
 import { getWormholeBridgeData } from "../helpers/wormholeBridgeConfig";
 
 async function main() {

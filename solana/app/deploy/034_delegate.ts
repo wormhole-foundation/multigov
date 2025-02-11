@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/11_delegate.ts
+// Usage: npx ts-node app/deploy/034_delegate.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
@@ -10,7 +10,7 @@ import {
   USER_AUTHORITY_KEYPAIR,
   USER2_AUTHORITY_KEYPAIR,
   RPC_NODE,
-} from "./devnet";
+} from "./devnet_consts";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

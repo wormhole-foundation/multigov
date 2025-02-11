@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/09_deposit.ts
+// Usage: npx ts-node app/deploy/032_deposit.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
@@ -9,7 +9,7 @@ import {
 import { PublicKey, Transaction, Connection } from "@solana/web3.js";
 import * as wasm from "@wormhole/staking-wasm";
 import { STAKING_ADDRESS } from "../constants";
-import { USER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet";
+import { USER_AUTHORITY_KEYPAIR, WORMHOLE_TOKEN, RPC_NODE } from "./devnet_consts";
 
 async function main() {
   try {
