@@ -179,12 +179,14 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// https://github.com/wormholelabs-xyz/example-queries-solana-pda/blob/4a01a0a6018b36a1d38d326362bfb672c5061c5f/src/OwnerVerifier.sol#L52.
   function _reverse(uint64 _input) internal pure returns (uint64) {
     uint64 v = _input;
-    // swap bytes
-    v = ((v & 0xFF00FF00FF00FF00) >> 8) | ((v & 0x00FF00FF00FF00FF) << 8);
-    // swap 2-byte long pairs
-    v = ((v & 0xFFFF0000FFFF0000) >> 16) | ((v & 0x0000FFFF0000FFFF) << 16);
-    // swap 4-byte long pairs
-    v = (v >> 32) | (v << 32);
+    unchecked {
+      // swap bytes
+      v = ((v & 0xFF00FF00FF00FF00) >> 8) | ((v & 0x00FF00FF00FF00FF) << 8);
+      // swap 2-byte long pairs
+      v = ((v & 0xFFFF0000FFFF0000) >> 16) | ((v & 0x0000FFFF0000FFFF) << 16);
+      // swap 4-byte long pairs
+      v = (v >> 32) | (v << 32);
+    }
     return v;
   }
 }
