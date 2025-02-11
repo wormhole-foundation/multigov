@@ -12,7 +12,7 @@ async function main() {
   //   const transactionSignature = '3er1rCAdfVkKjmyURX4HJJxqFsY4EjnCdyC3M4NCqMb4RErKh7USgacYQAsb42W6Syf9Dx1hn4kk3wzSPQrcGpsw';
   //   await printTransactionEvents(connection, transactionSignature);
 
-  const programId = "DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY";
+  const programId = "AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap";
   const limit = 3;
 
   try {

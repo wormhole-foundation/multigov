@@ -9,7 +9,7 @@ import {
 
 async function main() {
   const connection = new Connection(RPC_NODE, "confirmed");
-  const programId = "DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY";
+  const programId = "AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap";
   const limit = 2;
 
   try {
