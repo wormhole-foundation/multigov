@@ -7,6 +7,11 @@ export const DEPLOYER_AUTHORITY_KEYPAIR = loadKeypair(
   homedir() + DEPLOYER_AUTHORITY_PATH,
 );
 
+export const GOVERNANCE_AUTHORITY_PATH = "/.config/solana/governanceAuthority.json";
+export const GOVERNANCE_AUTHORITY_KEYPAIR = loadKeypair(
+  homedir() + GOVERNANCE_AUTHORITY_PATH,
+);
+
 export const USER_AUTHORITY_PATH = "/.config/solana/user.json";
 export const USER_AUTHORITY_KEYPAIR = loadKeypair(
   homedir() + USER_AUTHORITY_PATH,
