@@ -51,7 +51,6 @@ pub struct InitConfig<'info> {
     pub config_account: Account<'info, global_config::GlobalConfig>,
 
     // Primitive accounts
-    pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
 
@@ -524,7 +523,6 @@ pub struct CreateStakeAccount<'info> {
     )]
     pub stake_account_custody: Box<Account<'info, TokenAccount>>,
     // Primitive accounts :
-    pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
