@@ -272,7 +272,7 @@ pub struct CloseSignatures<'info> {
     #[account(mut, has_one = refund_recipient, close = refund_recipient)]
     pub guardian_signatures: Account<'info, GuardianSignatures>,
 
-    #[account(address = guardian_signatures.refund_recipient)]
+    #[account(mut, address = guardian_signatures.refund_recipient)]
     pub refund_recipient: Signer<'info>,
 }
 
@@ -296,7 +296,7 @@ pub struct AddProposal<'info> {
     pub guardian_signatures: Account<'info, GuardianSignatures>,
 
     /// CHECK: This account is the refund recipient for the above signature_set
-    #[account(address = guardian_signatures.refund_recipient)]
+    #[account(mut, address = guardian_signatures.refund_recipient)]
     pub refund_recipient: AccountInfo<'info>,
 
     #[account(mut)]
