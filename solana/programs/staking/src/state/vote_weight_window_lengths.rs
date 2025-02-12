@@ -99,6 +99,7 @@ pub fn push_new_window_length<'info>(
     let (current_index, latest_timestamp) = {
         let vote_weight_window_length = vote_weight_window_length_loader.load()?;
         if vote_weight_window_length.next_index == 0 {
+            // NOTE: this should never happen as we initialize vote_weight_window_length with next_index set to 1
             (0, None) // if next_index is 0, set latest_timestamp to None
         } else {
             let latest_window_length = read_window_length_at_index(
