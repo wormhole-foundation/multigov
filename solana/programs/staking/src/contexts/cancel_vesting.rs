@@ -33,6 +33,7 @@ pub struct CancelVesting<'info> {
     #[account(
         mut,
         close = admin,
+        has_one = vester_ta,
         has_one = config, // This check is arbitrary, as ATA is baked into the PDA
         seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vest.vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump = vest.bump
