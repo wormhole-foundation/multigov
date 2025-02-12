@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/new_wallet.ts
+
 import { Keypair } from '@solana/web3.js';
 import fs from 'fs';
 
@@ -12,5 +14,6 @@ console.log('Public Key:', publicKey);
 console.log('Secret Key (base64):', secretKey);
 
 // Save the secret key to a file
-fs.writeFileSync('app/deploy/user3.json', JSON.stringify([...newWallet.secretKey]));
-console.log('Wallet saved to app/deploy/user3.json');
+const fileName = `app/keypairs/secretKey_${publicKey}.json`;
+fs.writeFileSync(fileName, JSON.stringify([...newWallet.secretKey]));
+console.log(`Wallet secret key saved to ${fileName}`);
