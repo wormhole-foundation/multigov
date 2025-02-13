@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/018_fetchSpokeMetadataCollector.ts
+// Usage: npx ts-node app/deploy/062_fetchSpokeMetadataCollector.ts
 
 import { Wallet, AnchorProvider, utils } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";

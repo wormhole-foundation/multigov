@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/044_fetchProposalAccountData.ts
+// Usage: npx ts-node app/deploy/064_fetchProposalAccountData.ts
 
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";

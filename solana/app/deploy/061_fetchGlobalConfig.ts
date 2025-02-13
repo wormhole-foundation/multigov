@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/017_fetchGlobalConfig.ts
+// Usage: npx ts-node app/deploy/061_fetchGlobalConfig.ts
 
 import { Wallet, AnchorProvider, utils } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";

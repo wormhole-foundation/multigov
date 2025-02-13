@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/019_fetchVoteWeightWindowLengths.ts
+// Usage: npx ts-node app/deploy/063_fetchVoteWeightWindowLengths.ts
 
 import { Wallet, AnchorProvider, utils } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";
