@@ -12,19 +12,14 @@ contract RegisterSpokesOnHubTestnet is Script {
   bytes32 SOLANA_SPOKE = bytes32(0xabd58849f17e52708082849880f862589c11f972cb372d73b0cd219722cd0f22);
   address TIMELOCK = 0x1054f49899Af83e0c55375d54D2F57488cFC8606; // TODO Timelock address
 
-  // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
-  // should be set.
-  uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
-    uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
-
   error InvalidAddressConfiguration();
 
+  /// @notice Creates a wallet for deployment using the private key from environment
+  /// @dev Requires DEPLOYER_PRIVATE_KEY to be set in the environment
+  /// @return wallet The wallet to be used for deployment
   function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
-    uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
-
-    Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
-    if (deployerPrivateKey == DEFAULT_DEPLOYER_PRIVATE_KEY) revert InvalidAddressConfiguration();
-    return wallet;
+    uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+    return vm.createWallet(deployerPrivateKey);
   }
 
   function run() public virtual {

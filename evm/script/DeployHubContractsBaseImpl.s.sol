@@ -16,11 +16,6 @@ import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
 import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
 
 abstract contract DeployHubContractsBaseImpl is Script {
-  // This key should not be used for a production deploy. Instead, the `DEPLOYER_PRIVATE_KEY` environment variable
-  // should be set.
-  uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
-    uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
-
   struct DeploymentConfiguration {
     uint256 minDelay;
     string name;
@@ -55,12 +50,12 @@ abstract contract DeployHubContractsBaseImpl is Script {
 
   function _getDeploymentConfiguration() internal virtual returns (DeploymentConfiguration memory);
 
+  /// @notice Creates a wallet for deployment using the private key from environment
+  /// @dev Requires DEPLOYER_PRIVATE_KEY to be set in the environment
+  /// @return wallet The wallet to be used for deployment
   function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
-    uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
-
-    Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
-    if (deployerPrivateKey == DEFAULT_DEPLOYER_PRIVATE_KEY) revert InvalidAddressConfiguration();
-    return wallet;
+    uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+    return vm.createWallet(deployerPrivateKey);
   }
 
   function run() public virtual returns (DeployedContracts memory) {
