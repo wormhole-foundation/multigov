@@ -8,9 +8,9 @@ import { Staking } from "../../target/types/staking";
 import fs from "fs";
 
 async function main() {
-  const client = new Connection(RPC_NODE);
+  const connection = new Connection(RPC_NODE);
   const provider = new AnchorProvider(
-    client,
+    connection,
     new Wallet(DEPLOYER_AUTHORITY_KEYPAIR),
     {},
   );
