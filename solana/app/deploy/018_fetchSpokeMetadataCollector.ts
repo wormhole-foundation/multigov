@@ -9,7 +9,6 @@ import {
 } from "./devnet_consts";
 import { STAKING_ADDRESS, HUB_CHAIN_ID, hubProposalMetadataUint8Array } from "../constants";
 import { StakeConnection } from "../StakeConnection";
-import fs from "fs";
 
 async function main() {
   const connection = new Connection(RPC_NODE);

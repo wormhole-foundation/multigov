@@ -12,7 +12,6 @@ import {
 } from "./devnet_consts";
 import { CHECKPOINTS_ACCOUNT_LIMIT, STAKING_ADDRESS } from "../constants";
 import { StakeConnection } from "../StakeConnection";
-import fs from "fs";
 
 async function main() {
   const connection = new Connection(RPC_NODE);

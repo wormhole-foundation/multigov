@@ -36,3 +36,5 @@ export const RPC_NODE = "https://api.devnet.solana.com";
 export const AIRLOCK_PDA_ADDRESS = new PublicKey(
   "2ejzW2eFPedskg1KcrjcFs9g1JorRVcMes1TBPpGbhdy",
 );
+
+export const VOTE_WEIGHT_WINDOW_LENGTHS = 10 * 60; // 10 minutes

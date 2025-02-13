@@ -6,7 +6,6 @@ import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
 import { STAKING_ADDRESS } from "../constants";
 import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "./devnet_consts";
-import BN from "bn.js";
 import { ethers } from "ethers";
 
 async function main() {
