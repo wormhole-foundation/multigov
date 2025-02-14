@@ -115,22 +115,27 @@ impl<'info> crate::contexts::TransferVesting<'info> {
             new_stake_account_metadata: None,
         };
 
+        // Self transfers are not allowed
         if self.new_vester_ta.owner.key() == self.vester_ta.owner.key() {
             return err!(VestingError::TransferVestToMyself);
         }
 
-        if self.vesting_balance.stake_account_metadata != Pubkey::default()
-            && self.new_vesting_balance.stake_account_metadata != Pubkey::default() {
+        let sender_has_delegated_vest = self.vesting_balance.stake_account_metadata != Pubkey::default();
+        let recipient_has_delegated_vest = self.new_vesting_balance.stake_account_metadata != Pubkey::default();
 
-            if let (
-                Some(stake_account_metadata),
-                Some(new_stake_account_metadata),
-            ) = (
-                &mut self.stake_account_metadata,
-                &mut self.new_stake_account_metadata,
-            ) {
-                // If the recipient has delegated their votes, the sender must first delegate to the same address.
-                // If the recipient has not delegated their votes, the sender must first delegate to recipient.
+        // There are only 3 valid input account permutations.
+        let delegate_votes_changed = match (
+            sender_has_delegated_vest,
+            recipient_has_delegated_vest,
+            &mut self.delegate_stake_account_checkpoints,
+            &mut self.delegate_stake_account_metadata,
+            &mut self.stake_account_metadata,
+            &mut self.new_stake_account_metadata,
+        ) {
+            // If the sender and recipient have delegated their vests, then we don't need the delegate accounts as we enforce below that the delegates
+            // have to be the same. Thus, no there is no net change in delegate voting power and no new checkpoints are needed
+            (true, true, None, None, Some(stake_account_metadata), Some(new_stake_account_metadata)) => {
+                // The sender must be delegated to the same address as the recipient.
                 require!(
                     stake_account_metadata.delegate == new_stake_account_metadata.delegate,
                     VestingError::StakeAccountDelegatesMismatch
@@ -140,140 +145,10 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     stake_account_metadata.owner != new_stake_account_metadata.delegate,
                     VestingError::StakeAccountDelegationLoop
                 );
-            } else {
-                return err!(VestingError::ErrorOfStakeAccountParsing);
-            }
-        }
 
-        if self.vesting_balance.stake_account_metadata != Pubkey::default() {
-            if let (
-                Some(stake_account_metadata),
-            ) = (
-                &mut self.stake_account_metadata,
-            ) {
-                // Additional checks to ensure the owner matches
-                require!(
-                    stake_account_metadata.owner == self.vesting_balance.vester,
-                    VestingError::InvalidStakeAccountOwner
-                );
+                // We update the recorded vesting balance of the recipient below. We don't update the recorded vesting balance
+                // of the sender here, we instead do it later outside of the match cases
 
-                let mut delegate_votes_changed = None;
-                if self.new_vesting_balance.stake_account_metadata == Pubkey::default() {
-                    if let (
-                        Some(delegate_stake_account_metadata),
-                        Some(delegate_stake_account_checkpoints),
-                    ) = (
-                        &mut self.delegate_stake_account_metadata,
-                        &mut self.delegate_stake_account_checkpoints,
-                    ) {
-                        // Check if stake account checkpoints is out of bounds
-                        let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
-                        require!(
-                            loaded_checkpoints.next_index
-                                < self.global_config.max_checkpoints_account_limit.into(),
-                            ErrorCode::TooManyCheckpoints,
-                        );
-
-                        // Verify that the actual delegate_stake_account_checkpoints address matches the expected one
-                        require!(
-                            stake_account_metadata.delegate.key() == loaded_checkpoints.owner,
-                            VestingError::InvalidStakeAccountCheckpoints
-                        );
-                        drop(loaded_checkpoints);  
-
-                        // Verify that the actual delegate_stake_account_metadata address matches the expected one
-                        require!(
-                            stake_account_metadata.delegate == delegate_stake_account_metadata.owner,
-                            VestingError::InvalidDelegateStakeAccountOwner
-                        );
-
-                        let (expected_delegate_stake_account_checkpoints_pda, _) =
-                            Pubkey::find_program_address(
-                                &[
-                                    CHECKPOINT_DATA_SEED.as_bytes(),
-                                    stake_account_metadata.delegate.key().as_ref(),
-                                    delegate_stake_account_metadata
-                                        .stake_account_checkpoints_last_index
-                                        .to_le_bytes()
-                                        .as_ref(),
-                                ],
-                                &crate::ID,
-                            );
-                        require!(
-                            expected_delegate_stake_account_checkpoints_pda
-                                == delegate_stake_account_checkpoints.key(),
-                            VestingError::InvalidStakeAccountCheckpointsPDA
-                        );
-
-                        // Update checkpoints
-                        let delegate_checkpoints_account_info =
-                            delegate_stake_account_checkpoints.to_account_info();
-
-                        let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
-
-                        delegate_votes_changed = Some(push_checkpoint(
-                            delegate_stake_account_checkpoints,
-                            &delegate_checkpoints_account_info,
-                            self.vest.amount,
-                            Operation::Subtract,
-                            current_timestamp,
-                            &self.vester.to_account_info(),
-                            &self.system_program.to_account_info(),
-                        )?);
-                        let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
-                        if loaded_checkpoints.next_index
-                            >= self.global_config.max_checkpoints_account_limit.into()
-                        {
-                            if delegate_stake_account_metadata.key() == stake_account_metadata.key() {
-                                stake_account_metadata.stake_account_checkpoints_last_index += 1;
-                            } else {
-                                delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
-                            }
-                        }
-                    } else {
-                        return err!(VestingError::ErrorOfStakeAccountParsing);
-                    }
-                }
-
-                let (expected_stake_account_metadata_pda, _) = Pubkey::find_program_address(
-                    &[
-                        STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
-                        self.vester.key().as_ref(),
-                    ],
-                    &crate::ID,
-                );
-                require!(
-                    expected_stake_account_metadata_pda == stake_account_metadata.key(),
-                    VestingError::InvalidStakeAccountMetadataPDA
-                );
-
-                let new_recorded_vesting_balance = stake_account_metadata
-                    .recorded_vesting_balance
-                    .checked_sub(self.vest.amount)
-                    .ok_or(VestingError::Underflow)?;
-
-                let recorded_vesting_balance_changed = stake_account_metadata
-                    .update_recorded_vesting_balance(new_recorded_vesting_balance);
-
-                transfer_vesting_events.stake_account_metadata = Some(StakeAccountMetadataEvents {
-                    recorded_vesting_balance_changed,
-                    delegate_votes_changed,
-                });
-            } else {
-                return err!(VestingError::ErrorOfStakeAccountParsing);
-            }
-        }
-
-        if self.new_vesting_balance.stake_account_metadata != Pubkey::default() {
-            if self.vesting_balance.stake_account_metadata == Pubkey::default() {
-                return err!(VestingError::NoStakeAccountMetadata);
-            }
-
-            if let (
-                Some(new_stake_account_metadata),
-            ) = (
-                &mut self.new_stake_account_metadata,
-            ) {
                 // Additional checks to ensure the owner matches
                 require!(
                     new_stake_account_metadata.owner == self.new_vesting_balance.vester,
@@ -303,11 +178,124 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 transfer_vesting_events.new_stake_account_metadata =
                     Some(StakeAccountMetadataEvents {
                         recorded_vesting_balance_changed,
-                        delegate_votes_changed,
+                        delegate_votes_changed
                     });
-            } else {
-                return err!(VestingError::ErrorOfStakeAccountParsing);
-            }
+                
+                Ok(None)
+            },
+            // If the sender has delegated their vest, but the recipient hasn't then all bar the new_stake_account_metadata account must be provided
+            (true, false, Some(delegate_stake_account_checkpoints), Some(delegate_stake_account_metadata), Some(stake_account_metadata), None) => {
+                // In this case the current delegate will have their voting balance reduced. That's what we do below.
+                // We don't update the recorded vesting balance of the sender here, we instead do it later outside of the match cases
+                
+                // Check if stake account checkpoints is out of bounds
+                let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
+                require!(
+                    loaded_checkpoints.next_index
+                        < self.global_config.max_checkpoints_account_limit.into(),
+                    ErrorCode::TooManyCheckpoints,
+                );
+
+                // Verify that the actual delegate_stake_account_checkpoints address matches the expected one
+                require!(
+                    stake_account_metadata.delegate.key() == loaded_checkpoints.owner,
+                    VestingError::InvalidStakeAccountCheckpoints
+                );
+                drop(loaded_checkpoints);  
+
+                // Verify that the actual delegate_stake_account_metadata address matches the expected one
+                require!(
+                    stake_account_metadata.delegate == delegate_stake_account_metadata.owner,
+                    VestingError::InvalidDelegateStakeAccountOwner
+                );
+
+                let (expected_delegate_stake_account_checkpoints_pda, _) =
+                    Pubkey::find_program_address(
+                        &[
+                            CHECKPOINT_DATA_SEED.as_bytes(),
+                            stake_account_metadata.delegate.key().as_ref(),
+                            delegate_stake_account_metadata
+                                .stake_account_checkpoints_last_index
+                                .to_le_bytes()
+                                .as_ref(),
+                        ],
+                        &crate::ID,
+                    );
+                require!(
+                    expected_delegate_stake_account_checkpoints_pda
+                        == delegate_stake_account_checkpoints.key(),
+                    VestingError::InvalidStakeAccountCheckpointsPDA
+                );
+
+                // Update checkpoints
+                let delegate_checkpoints_account_info =
+                    delegate_stake_account_checkpoints.to_account_info();
+
+                let current_timestamp: u64 = Clock::get()?.unix_timestamp.try_into()?;
+
+                let delegate_votes_changed = Some(push_checkpoint(
+                    delegate_stake_account_checkpoints,
+                    &delegate_checkpoints_account_info,
+                    self.vest.amount,
+                    Operation::Subtract,
+                    current_timestamp,
+                    &self.vester.to_account_info(),
+                    &self.system_program.to_account_info(),
+                )?);
+                let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
+                if loaded_checkpoints.next_index
+                    >= self.global_config.max_checkpoints_account_limit.into()
+                {
+                    if delegate_stake_account_metadata.key() == stake_account_metadata.key() {
+                        stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    } else {
+                        delegate_stake_account_metadata.stake_account_checkpoints_last_index += 1;
+                    }
+                }
+
+                Ok(delegate_votes_changed)
+            },
+            // If neither the sender or receiver has delegated their vests, then none of the optional accounts are needed
+            // No changes need to be made to any accounts apart from the vesting balance accounts
+            (false, false, None, None, None, None) => { Ok(None) },
+            // Any other combination is invalid
+            _ => err!(VestingError::ErrorOfAccountParsing),
+        }?;
+
+        // This can be true in 2 of the above cases, so we do it here to avoid code duplication
+        if sender_has_delegated_vest {
+            // We are guaranteed to have the stake_account_metadata account here now, so we can just unwrap directly
+            let stake_account_metadata = self.stake_account_metadata.as_mut().unwrap();
+            // Additional checks to ensure the owner matches
+            require!(
+                stake_account_metadata.owner == self.vesting_balance.vester,
+                VestingError::InvalidStakeAccountOwner
+            );
+
+            let (expected_stake_account_metadata_pda, _) = Pubkey::find_program_address(
+                &[
+                    STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
+                    self.vester.key().as_ref(),
+                ],
+                &crate::ID,
+            );
+            require!(
+                expected_stake_account_metadata_pda == stake_account_metadata.key(),
+                VestingError::InvalidStakeAccountMetadataPDA
+            );
+
+            let new_recorded_vesting_balance = stake_account_metadata
+                .recorded_vesting_balance
+                .checked_sub(self.vest.amount)
+                .ok_or(VestingError::Underflow)?;
+
+            let recorded_vesting_balance_changed = stake_account_metadata
+                .update_recorded_vesting_balance(new_recorded_vesting_balance);
+
+            transfer_vesting_events.stake_account_metadata = Some(StakeAccountMetadataEvents {
+                recorded_vesting_balance_changed,
+                delegate_votes_changed,
+            });
         }
 
         self.new_vest.set_inner(Vesting {

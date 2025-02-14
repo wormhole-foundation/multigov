@@ -81,8 +81,8 @@ pub enum VestingError {
     Underflow,
     #[msg("Invalid stake account checkpoints")]
     InvalidStakeAccountCheckpoints,
-    #[msg("Error parsing stake_account_metadata or stake_account_checkpoints")]
-    ErrorOfStakeAccountParsing,
+    #[msg("Error parsing input accounts")]
+    ErrorOfAccountParsing,
     #[msg("The vesting_balance.stake_account_metadata is not set")]
     NoStakeAccountMetadata,
     #[msg("Invalid stake account owner")]
