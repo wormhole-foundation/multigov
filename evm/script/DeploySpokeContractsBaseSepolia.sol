@@ -11,7 +11,7 @@ contract DeploySpokeContractsBaseSepolia is DeploySpokeContractsBaseImpl {
       hubProposalMetadata: 0x1A3E5624769C3Dc9106347A239523e4A08d85C38,
       votingToken: 0x12Fb7f85dea3A3F83018E4A647dC8B0456dF9B39,
       voteWeightWindow: 10 minutes,
-      hubDispatcher: 0x000000000000000000000000027e445be20889f0e6ddd30372842e6c183d3648b,
+      hubDispatcher: bytes32(uint256(uint160(0x27E445Be20889F0e6DDD30372842E6c183D3648B))),
       spokeChainId: 10_004 // Base Sepolia Wormhole chain ID
     });
   }
