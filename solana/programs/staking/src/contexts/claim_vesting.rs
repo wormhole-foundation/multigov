@@ -170,7 +170,7 @@ impl<'info> ClaimVesting<'info> {
                     delegate_votes_changed,
                 })
             } else {
-                return err!(VestingError::ErrorOfStakeAccountParsing);
+                return err!(VestingError::ErrorOfAccountParsing);
             }
         }
         self.config.vested = self
