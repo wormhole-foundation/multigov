@@ -21,6 +21,7 @@ import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 /// @title HubSolanaSpokeVoteDecoder
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice A contract that parses a specific wormhole query type from the Solana `SpokeVoteAggregator`.
+/// @dev This contract handles decimal scaling to match the hub chain's decimals when decoding votes from Solana.
 contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   using BytesParsing for bytes;
 
@@ -35,7 +36,8 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @notice The decimals of the token on the hub
   uint8 public immutable HUB_TOKEN_DECIMALS;
 
-  /// @notice The decimals of the token on solana
+  /// @notice The decimals of the token on Solana (typically 6 for SPL tokens)
+  /// @dev Used to scale vote amounts from Solana to match the hub chain's decimal precision
   uint8 public immutable SOLANA_TOKEN_DECIMALS;
 
   error TooManySolanaPdaResults(uint256 resultsLength);
