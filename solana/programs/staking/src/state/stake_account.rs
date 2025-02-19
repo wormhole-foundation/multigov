@@ -56,38 +56,32 @@ impl StakeAccountMetadata {
     }
 
     pub fn update_recorded_balance(&mut self, new_recorded_balance: u64) -> RecordedBalanceChanged {
-        emit!(RecordedBalanceChanged {
+        let recorded_balance_changed = RecordedBalanceChanged {
             owner: self.owner,
             previous_balance: self.recorded_balance,
             new_balance: new_recorded_balance,
-        });
+        };
 
         self.recorded_balance = new_recorded_balance;
 
-        RecordedBalanceChanged {
-            owner: self.owner,
-            previous_balance: self.recorded_balance,
-            new_balance: new_recorded_balance,
-        }
+        emit!(recorded_balance_changed);
+        recorded_balance_changed
     }
 
     pub fn update_recorded_vesting_balance(
         &mut self,
         new_recorded_vesting_balance: u64,
     ) -> RecordedVestingBalanceChanged {
-        emit!(RecordedVestingBalanceChanged {
+        let recorded_vesting_balance_changed = RecordedVestingBalanceChanged {
             owner: self.owner,
             previous_balance: self.recorded_vesting_balance,
             new_balance: new_recorded_vesting_balance,
-        });
+        };
 
         self.recorded_vesting_balance = new_recorded_vesting_balance;
 
-        RecordedVestingBalanceChanged {
-            owner: self.owner,
-            previous_balance: self.recorded_vesting_balance,
-            new_balance: new_recorded_vesting_balance,
-        }
+        emit!(recorded_vesting_balance_changed);
+        recorded_vesting_balance_changed
     }
 }
 
