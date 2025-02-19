@@ -32,7 +32,7 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = admin,
-        space = VestingConfig::INIT_SPACE,
+        space = VestingConfig::LEN,
         seeds = [VESTING_CONFIG_SEED.as_bytes(), mint.key().as_ref(), seed.to_le_bytes().as_ref()],
         bump
     )]

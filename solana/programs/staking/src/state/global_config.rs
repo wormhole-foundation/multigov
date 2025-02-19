@@ -1,9 +1,8 @@
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
-use std::mem::size_of;
 
 #[account]
-#[derive(Default, Debug, BorshSchema)]
+#[derive(Default, Debug, BorshSchema, InitSpace)]
 pub struct GlobalConfig {
     pub bump: u8,
     // Maximum number of checkpoints that can be stored in a single account
@@ -17,7 +16,7 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub const LEN: usize = GlobalConfig::DISCRIMINATOR.len() + size_of::<GlobalConfig>();
+    pub const LEN: usize = GlobalConfig::DISCRIMINATOR.len() + GlobalConfig::INIT_SPACE;
 }
 
 #[cfg(test)]
@@ -26,6 +25,6 @@ pub mod tests {
 
     #[test]
     fn check_size() {
-        assert!(GlobalConfig::LEN == 8 + 8 + 32 + 32 + 32 + 32 + 32) // == 176
+        assert!(GlobalConfig::LEN == 8 + 1 + 4 + 32 + 32 + 32 + 33 + 33) // == 175
     }
 }

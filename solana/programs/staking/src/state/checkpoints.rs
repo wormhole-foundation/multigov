@@ -24,7 +24,7 @@ pub struct DelegateVotesChanged {
 }
 
 impl CheckpointData {
-    pub const CHECKPOINT_SIZE: usize = size_of::<Checkpoint>();
+    pub const CHECKPOINT_SIZE: usize = Checkpoint::INIT_SPACE;
     pub const CHECKPOINT_DATA_HEADER_SIZE: usize =
         CheckpointData::DISCRIMINATOR.len() + size_of::<CheckpointData>();
     pub const LEN: usize = CheckpointData::CHECKPOINT_DATA_HEADER_SIZE;
@@ -350,7 +350,7 @@ pub fn find_checkpoint_le(
     Ok(result)
 }
 
-#[derive(Clone, Copy, Default, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, Copy, Default, BorshSerialize, BorshDeserialize, InitSpace)]
 pub struct Checkpoint {
     pub timestamp: u64,
     pub value: u64,

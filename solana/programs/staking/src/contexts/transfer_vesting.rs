@@ -50,7 +50,7 @@ pub struct TransferVesting<'info> {
     #[account(
         init_if_needed,
         payer = vester,
-        space = Vesting::INIT_SPACE,
+        space = Vesting::LEN,
         seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), new_vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump
     )]
@@ -65,7 +65,7 @@ pub struct TransferVesting<'info> {
     #[account(
         init_if_needed,
         payer = vester,
-        space = VestingBalance::INIT_SPACE,
+        space = VestingBalance::LEN,
         seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), new_vester_ta.owner.key().as_ref()],
         bump
     )]
