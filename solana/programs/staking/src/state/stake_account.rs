@@ -1,6 +1,5 @@
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
-use std::mem::size_of;
 
 /// This is the metadata account for each staker
 /// It is derived from the checkpoints account with seeds "stake_metadata"
@@ -8,7 +7,7 @@ use std::mem::size_of;
 /// It stores some PDA bumps, owner and delegate accounts
 
 #[account]
-#[derive(Default, Debug, BorshSchema)]
+#[derive(Default, Debug, BorshSchema, InitSpace)]
 pub struct StakeAccountMetadata {
     pub metadata_bump: u8,
     pub custody_bump: u8,
@@ -36,7 +35,7 @@ pub struct RecordedVestingBalanceChanged {
 
 impl StakeAccountMetadata {
     pub const LEN: usize =
-        StakeAccountMetadata::DISCRIMINATOR.len() + size_of::<StakeAccountMetadata>();
+        StakeAccountMetadata::DISCRIMINATOR.len() + StakeAccountMetadata::INIT_SPACE;
 
     pub fn initialize(
         &mut self,
@@ -56,38 +55,32 @@ impl StakeAccountMetadata {
     }
 
     pub fn update_recorded_balance(&mut self, new_recorded_balance: u64) -> RecordedBalanceChanged {
-        emit!(RecordedBalanceChanged {
+        let recorded_balance_changed = RecordedBalanceChanged {
             owner: self.owner,
             previous_balance: self.recorded_balance,
             new_balance: new_recorded_balance,
-        });
+        };
 
         self.recorded_balance = new_recorded_balance;
 
-        RecordedBalanceChanged {
-            owner: self.owner,
-            previous_balance: self.recorded_balance,
-            new_balance: new_recorded_balance,
-        }
+        emit!(recorded_balance_changed);
+        recorded_balance_changed
     }
 
     pub fn update_recorded_vesting_balance(
         &mut self,
         new_recorded_vesting_balance: u64,
     ) -> RecordedVestingBalanceChanged {
-        emit!(RecordedVestingBalanceChanged {
+        let recorded_vesting_balance_changed = RecordedVestingBalanceChanged {
             owner: self.owner,
             previous_balance: self.recorded_vesting_balance,
             new_balance: new_recorded_vesting_balance,
-        });
+        };
 
         self.recorded_vesting_balance = new_recorded_vesting_balance;
 
-        RecordedVestingBalanceChanged {
-            owner: self.owner,
-            previous_balance: self.recorded_vesting_balance,
-            new_balance: new_recorded_vesting_balance,
-        }
+        emit!(recorded_vesting_balance_changed);
+        recorded_vesting_balance_changed
     }
 }
 
@@ -97,6 +90,6 @@ pub mod tests {
 
     #[test]
     fn check_size() {
-        assert!(StakeAccountMetadata::LEN == 8 + 8 + 8 + 8 + 32 + 32); // == 96
+        assert!(StakeAccountMetadata::LEN == 8 + 3 + 8 + 8 + 32 + 32 + 2); // == 93
     }
 }

@@ -2,10 +2,9 @@ use crate::Pubkey;
 use anchor_lang::account;
 use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
-use std::mem::size_of;
 
 #[account]
-#[derive(BorshSchema)]
+#[derive(BorshSchema, InitSpace)]
 pub struct ProposalVotersWeightCast {
     pub proposal_id: [u8; 32],
     pub voter: Pubkey,
@@ -14,7 +13,7 @@ pub struct ProposalVotersWeightCast {
 
 impl ProposalVotersWeightCast {
     pub const LEN: usize =
-        ProposalVotersWeightCast::DISCRIMINATOR.len() + size_of::<ProposalVotersWeightCast>();
+        ProposalVotersWeightCast::DISCRIMINATOR.len() + ProposalVotersWeightCast::INIT_SPACE;
 
     pub fn initialize(&mut self, proposal_id: [u8; 32], voter: &Pubkey) {
         self.proposal_id = proposal_id;
