@@ -9,6 +9,7 @@ crate-type = ["cdylib", "lib"]
 name = "staking"
 
 [features]
+testing = []
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
@@ -17,7 +18,7 @@ wasm = ["no-entrypoint", "js-sys", "bincode"]
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build", "wormhole-anchor-sdk/idl-build"]
 default = ["testnet", "idl-build"]
 localnet = ["wormhole-solana-consts/localnet"]
-testnet = ["wormhole-solana-consts/testnet", "wormhole-anchor-sdk/solana-devnet"]
+testnet = ["testing", "wormhole-solana-consts/testnet", "wormhole-anchor-sdk/solana-devnet"]
 mainnet = ["wormhole-solana-consts/mainnet", "wormhole-anchor-sdk/mainnet"]
 
 [dependencies]

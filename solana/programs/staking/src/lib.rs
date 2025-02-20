@@ -99,6 +99,12 @@ pub mod staking {
         // The checkpoint account contains 8 + 32 + 8 = 48 bytes of fixed data
         // Every checkpoint is 8 + 8 = 16 bytes, so we can fit in (10485760 - 48) / 16 = 655,357 checkpoints
         require!(args.max_checkpoints_account_limit <= 655_000, ErrorCode::InvalidCheckpointAccountLimit);
+        // Similarly make sure max_checkpoints_account_limit > MAX_VOTE_WEIGHT_WINDOW_LENGTH so we can't have
+        // 3 checkpoint accounts fall across a window. We don't mind for our tests
+        #[cfg(not(feature = "testing"))]
+        {
+            require!(args.max_checkpoints_account_limit > state::vote_weight_window_lengths::VoteWeightWindowLengths::MAX_VOTE_WEIGHT_WINDOW_LENGTH as u32, ErrorCode::InvalidCheckpointAccountLimit);
+        }
         config_account.max_checkpoints_account_limit = args.max_checkpoints_account_limit;
         config_account.pending_governance_authority = None;
         config_account.pending_vesting_admin = None;
