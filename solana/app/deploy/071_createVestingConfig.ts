@@ -1,3 +1,5 @@
+// Usage: npx ts-node app/deploy/071_createVestingConfig.ts
+
 import { Wallet, AnchorProvider } from "@coral-xyz/anchor";
 import {
   Connection,
@@ -6,7 +8,7 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
-  DEPLOYER_AUTHORITY_KEYPAIR,
+  VESTING_ADMIN_KEYPAIR,
   USER_AUTHORITY_KEYPAIR,
   WORMHOLE_TOKEN,
   RPC_NODE,
@@ -25,21 +27,15 @@ import {
 } from "@solana/spl-token";
 
 async function main() {
-  const admin = DEPLOYER_AUTHORITY_KEYPAIR;
+  const admin = VESTING_ADMIN_KEYPAIR;
   const vester = USER_AUTHORITY_KEYPAIR;
 
   const connection = new Connection(RPC_NODE);
   const provider = new AnchorProvider(connection, new Wallet(admin), {});
-  const vesterProvider = new AnchorProvider(connection, new Wallet(vester), {});
 
   const stakeConnection = await StakeConnection.createStakeConnection(
     connection,
     provider.wallet as Wallet,
-    STAKING_ADDRESS,
-  );
-  const vesterStakeConnection = await StakeConnection.createStakeConnection(
-    connection,
-    vesterProvider.wallet as Wallet,
     STAKING_ADDRESS,
   );
 
@@ -57,24 +53,29 @@ async function main() {
   const NOW = new BN(Math.floor(new Date().getTime() / 1000));
   const LATER = NOW.add(new BN(1000));
   const EVEN_LATER = LATER.add(new BN(1000));
+  console.log("Vesting claim times:");
+  console.log(`NOW: ${NOW.toString()} (${new Date(NOW.toNumber() * 1000).toISOString()})`);
+  console.log(`LATER: ${LATER.toString()} (${new Date(LATER.toNumber() * 1000).toISOString()})`);
+  console.log(`EVEN_LATER: ${EVEN_LATER.toString()} (${new Date(EVEN_LATER.toNumber() * 1000).toISOString()})`);
 
   const seed = new BN(randomBytes(8));
+  console.log("Vesting config random seed:", seed);
   const config = PublicKey.findProgramAddressSync(
     [
       Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
-      admin.publicKey.toBuffer(),
       WORMHOLE_TOKEN.toBuffer(),
       seed.toBuffer("le", 8),
     ],
     stakeConnection.program.programId,
   )[0];
+  console.log("Vesting config account:", config);
+
   const vault = getAssociatedTokenAddressSync(
     WORMHOLE_TOKEN,
     config,
     true,
     TOKEN_PROGRAM_ID,
   );
-
   const vesterTa = getAssociatedTokenAddressSync(
     WORMHOLE_TOKEN,
     vester.publicKey,
@@ -88,25 +89,6 @@ async function main() {
     TOKEN_PROGRAM_ID,
   );
 
-  const vestNow = PublicKey.findProgramAddressSync(
-    [
-      Buffer.from(wasm.Constants.VEST_SEED()),
-      config.toBuffer(),
-      vesterTa.toBuffer(),
-      NOW.toBuffer("le", 8),
-    ],
-    stakeConnection.program.programId,
-  )[0];
-  const vestLater = PublicKey.findProgramAddressSync(
-    [
-      Buffer.from(wasm.Constants.VEST_SEED()),
-      config.toBuffer(),
-      vesterTa.toBuffer(),
-      LATER.toBuffer("le", 8),
-    ],
-    stakeConnection.program.programId,
-  )[0];
-
   const vestingBalance = PublicKey.findProgramAddressSync(
     [
       Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
@@ -115,24 +97,10 @@ async function main() {
     ],
     stakeConnection.program.programId,
   )[0];
-
-  let adminStakeAccountCheckpointsAddress =
-    await stakeConnection.getStakeAccountCheckpointsAddress(admin.publicKey);
-  if (!adminStakeAccountCheckpointsAddress) {
-    await stakeConnection.createStakeAccount();
-  }
-
-  let vesterStakeAccountCheckpointsAddress =
-    await vesterStakeConnection.getStakeAccountCheckpointsAddress(
-      vester.publicKey,
-    );
-  if (!vesterStakeAccountCheckpointsAddress) {
-    await vesterStakeConnection.createStakeAccount();
-  }
+  console.log("Vesting balance account for vester:", vestingBalance);
 
   let accounts = {
     admin: admin.publicKey,
-    payer: admin.publicKey,
     mint: WORMHOLE_TOKEN,
     config,
     vault,
@@ -143,53 +111,74 @@ async function main() {
     associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     tokenProgram: TOKEN_PROGRAM_ID,
     systemProgram: SystemProgram.programId,
-    vestingBalance: vestingBalance,
+    vestingBalance,
   };
 
+  console.log("Initializing vesting config...");
   await stakeConnection.program.methods
     .initializeVestingConfig(seed)
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
     .then(confirm);
+  console.log("Vesting config initialized");
 
+  console.log("Creating vesting balance for vester...");
   await stakeConnection.program.methods
     .createVestingBalance()
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
     .then(confirm);
+  console.log("Vesting balance for vester created");
 
+  console.log(`Creating vest for vester at NOW (${NOW.toString()})...`);
   await stakeConnection.program.methods
     .createVesting(NOW, new BN(20e6))
     .accounts({ ...accounts })
     .signers([admin])
-    .rpc({
-      skipPreflight: true,
-    })
+    .rpc()
     .then(confirm);
+  console.log(`Vest for vester at NOW (${NOW.toString()}) created`);
 
+  console.log(`Creating vest for vester at LATER (${LATER.toString()})...`);
   await stakeConnection.program.methods
     .createVesting(LATER, new BN(20e6))
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
     .then(confirm);
+  console.log(`Vest for vester at LATER (${LATER.toString()}) created`);
 
+  console.log(`Creating vest for vester at EVEN_LATER (${EVEN_LATER.toString()})...`);
   await stakeConnection.program.methods
     .createVesting(EVEN_LATER, new BN(20e6))
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
     .then(confirm);
+  console.log(`Vest for vester at EVEN_LATER (${EVEN_LATER.toString()}) created`);
 
+  const vestLater = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from(wasm.Constants.VEST_SEED()),
+      config.toBuffer(),
+      vesterTa.toBuffer(),
+      LATER.toBuffer("le", 8),
+    ],
+    stakeConnection.program.programId,
+  )[0];
+
+  console.log(`Canceling vest for vester at LATER (${LATER.toString()})...`);
   await stakeConnection.program.methods
     .cancelVesting()
     .accountsPartial({ ...accounts, vest: vestLater })
     .signers([admin])
     .rpc()
     .then(confirm);
+  console.log(`Vest for vester at LATER (${LATER.toString()}) canceled`);
 
+  console.log("Transferring WH tokens to Vault...");
   const tx = new Transaction();
   tx.add(
     createTransferCheckedInstruction(
@@ -197,53 +186,32 @@ async function main() {
       WORMHOLE_TOKEN,
       vault,
       admin.publicKey,
-      50e6,
+      100e6,
       6,
       undefined,
       TOKEN_PROGRAM_ID,
     ),
   );
   await stakeConnection.provider.sendAndConfirm(tx, [admin]);
+  console.log("WH tokens transferred to Vault");
 
+  console.log("Withdrawing surplus...");
   await stakeConnection.program.methods
     .withdrawSurplus()
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
     .then(confirm);
+  console.log("Surplus withdrawn");
 
+  console.log("Finalizing vesting config...");
   await stakeConnection.program.methods
     .finalizeVestingConfig()
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
     .then(confirm);
-
-  let stakeAccountCheckpointsAddress =
-    await vesterStakeConnection.delegateWithVest(
-      vester.publicKey,
-      WHTokenBalance.fromString("0"),
-      true,
-      config,
-    );
-
-  let stakeAccountMetadataAddress =
-    await vesterStakeConnection.getStakeMetadataAddress(
-      stakeAccountCheckpointsAddress,
-    );
-
-  await stakeConnection.program.methods
-    .claimVesting()
-    .accountsPartial({
-      ...accounts,
-      vest: vestNow,
-      stakeAccountCheckpoints: stakeAccountCheckpointsAddress,
-      stakeAccountMetadata: stakeAccountMetadataAddress,
-      globalConfig: stakeConnection.configAddress,
-    })
-    .signers([vester])
-    .rpc({ skipPreflight: true })
-    .then(confirm);
+  console.log("Vesting config finalized");
 }
 
 main();
