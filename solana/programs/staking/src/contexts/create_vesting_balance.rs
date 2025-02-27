@@ -4,7 +4,8 @@ use crate::state::global_config::GlobalConfig;
 use crate::state::{VestingBalance, VestingConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use anchor_spl::token_interface::{Mint, TokenAccount};
+use anchor_spl::token::Token;
 
 #[derive(Accounts)]
 #[instruction()]
@@ -42,7 +43,7 @@ pub struct CreateVestingBalance<'info> {
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
+    token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
 

@@ -9,8 +9,9 @@ use crate::{
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+    transfer_checked, Mint, TokenAccount, TransferChecked,
 };
+use anchor_spl::token::Token;
 use std::convert::TryInto;
 
 #[event_cpi]
@@ -77,7 +78,7 @@ pub struct ClaimVesting<'info> {
     )]
     admin: AccountInfo<'info>,
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
+    token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
 

@@ -9,7 +9,8 @@ use crate::state::{Vesting, VestingBalance, VestingConfig};
 use crate::{error::ErrorCode, error::VestingError};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use anchor_spl::token_interface::{Mint, TokenAccount};
+use anchor_spl::token::Token;
 
 #[event_cpi]
 #[derive(Accounts)]
@@ -88,7 +89,7 @@ pub struct TransferVesting<'info> {
     pub new_stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
 
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
+    token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
 

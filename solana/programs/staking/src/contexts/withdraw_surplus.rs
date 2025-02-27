@@ -4,8 +4,9 @@ use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+    transfer_checked, Mint, TokenAccount, TransferChecked,
 };
+use anchor_spl::token::Token;
 use crate::state::global_config::GlobalConfig;
 
 #[derive(Accounts)]
@@ -44,7 +45,7 @@ pub struct WithdrawSurplus<'info> {
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
+    token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
 

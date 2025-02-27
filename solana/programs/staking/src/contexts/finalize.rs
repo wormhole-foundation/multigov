@@ -2,7 +2,8 @@ use crate::context::{VESTING_CONFIG_SEED, CONFIG_SEED};
 use crate::error::VestingError;
 use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use anchor_spl::token_interface::{Mint, TokenAccount};
+use anchor_spl::token::Token;
 use crate::state::global_config::GlobalConfig;
 
 #[derive(Accounts)]
@@ -33,7 +34,7 @@ pub struct Finalize<'info> {
         bump = global_config.bump,
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
-    token_program: Interface<'info, TokenInterface>,
+    token_program: Program<'info, Token>,
 }
 
 impl<'info> Finalize<'info> {
