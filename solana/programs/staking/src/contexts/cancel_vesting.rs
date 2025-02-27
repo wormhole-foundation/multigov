@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{Mint, TokenAccount};
-use anchor_spl::token::Token;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED, CONFIG_SEED};
 use crate::error::VestingError;
 use crate::state::{Vesting, VestingBalance, VestingConfig};
@@ -15,13 +14,13 @@ pub struct CancelVesting<'info> {
             @ VestingError::InvalidVestingAdmin
     )]
     admin: Signer<'info>,
-    mint: InterfaceAccount<'info, Mint>,
+    mint: Account<'info, Mint>,
     #[account(
         associated_token::mint = mint,
         associated_token::authority = vester_ta.owner,
         associated_token::token_program = token_program
     )]
-    vester_ta: InterfaceAccount<'info, TokenAccount>,
+    vester_ta: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint = !config.finalized @ VestingError::VestingFinalized, // Vesting cannot be cancelled after vest is finalized

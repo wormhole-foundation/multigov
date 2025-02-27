@@ -9,29 +9,28 @@ use crate::state::{Vesting, VestingBalance, VestingConfig};
 use crate::{error::ErrorCode, error::VestingError};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{Mint, TokenAccount};
-use anchor_spl::token::Token;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[event_cpi]
 #[derive(Accounts)]
 pub struct TransferVesting<'info> {
     #[account(mut)]
     vester: Signer<'info>,
-    mint: Box<InterfaceAccount<'info, Mint>>,
+    mint: Box<Account<'info, Mint>>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = vester_ta.owner,
         associated_token::token_program = token_program
     )]
-    vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
+    vester_ta: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = new_vester_ta.owner,
         associated_token::token_program = token_program
     )]
-    new_vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
+    new_vester_ta: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,

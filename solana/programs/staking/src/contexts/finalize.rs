@@ -2,8 +2,7 @@ use crate::context::{VESTING_CONFIG_SEED, CONFIG_SEED};
 use crate::error::VestingError;
 use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{Mint, TokenAccount};
-use anchor_spl::token::Token;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 use crate::state::global_config::GlobalConfig;
 
 #[derive(Accounts)]
@@ -14,14 +13,14 @@ pub struct Finalize<'info> {
             @ VestingError::InvalidVestingAdmin
     )]
     pub admin: Signer<'info>,
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Account<'info, Mint>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = config,
         associated_token::token_program = token_program
     )]
-    vault: InterfaceAccount<'info, TokenAccount>,
+    vault: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint = !config.finalized @ VestingError::VestingFinalized,

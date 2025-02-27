@@ -4,8 +4,7 @@ use crate::state::global_config::GlobalConfig;
 use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{Mint, TokenAccount};
-use anchor_spl::token::Token;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
@@ -13,7 +12,7 @@ pub struct Initialize<'info> {
     #[account(mut)]
     admin: Signer<'info>,
     #[account(address = global_config.voting_token_mint)]
-    mint: InterfaceAccount<'info, Mint>,
+    mint: Account<'info, Mint>,
     // Initialize a vault for us to store our money in escrow for vesting
     #[account(
         init,
@@ -22,13 +21,13 @@ pub struct Initialize<'info> {
         associated_token::authority = config,
         associated_token::token_program = token_program
     )]
-    vault: InterfaceAccount<'info, TokenAccount>,
+    vault: Account<'info, TokenAccount>,
     // Set a recovery address for recovering surplus funds from the contract
     #[account(
         token::mint = mint,
         token::token_program = token_program
     )]
-    recovery: InterfaceAccount<'info, TokenAccount>,
+    recovery: Account<'info, TokenAccount>,
     // Initialize a vesting config for a specific admin, mint and seed
     #[account(
         init,
