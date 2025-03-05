@@ -9,6 +9,7 @@ pub struct VestingBalance {
     pub total_vesting_balance: u64,
     pub bump: u8,
     pub stake_account_metadata: Pubkey,
+    pub rent_payer: Pubkey,
 }
 
 impl VestingBalance {
@@ -21,6 +22,6 @@ pub mod tests {
 
     #[test]
     fn check_size() {
-        assert!(VestingBalance::LEN == 8 + 32 + 8 + 1 + 32); // 81
+        assert!(VestingBalance::LEN == 8 + 32 + 8 + 1 + 32 + 32); // 113
     }
 }

@@ -102,6 +102,13 @@ pub mod staking {
             args.max_checkpoints_account_limit <= 655_000,
             ErrorCode::InvalidCheckpointAccountLimit
         );
+        // Similarly make sure max_checkpoints_account_limit > MAX_VOTE_WEIGHT_WINDOW_LENGTH so we can't have
+        // 3 checkpoint accounts fall across a window. We don't mind for our tests
+        #[cfg(not(feature = "testing"))]
+        {
+            require!(args.max_checkpoints_account_limit > state::vote_weight_window_lengths::VoteWeightWindowLengths::MAX_VOTE_WEIGHT_WINDOW_LENGTH as u32,
+            ErrorCode::InvalidCheckpointAccountLimit);
+        }
         config_account.max_checkpoints_account_limit = args.max_checkpoints_account_limit;
         config_account.pending_governance_authority = None;
         config_account.pending_vesting_admin = None;
@@ -698,6 +705,11 @@ pub mod staking {
     pub fn create_vesting_balance(ctx: Context<CreateVestingBalance>) -> Result<()> {
         ctx.accounts
             .create_vesting_balance(ctx.bumps.vesting_balance)
+    }
+
+    // Closes a vesting balance account
+    pub fn close_vesting_balance(ctx: Context<CloseVestingBalance>) -> Result<()> {
+        ctx.accounts.close_vesting_balance()
     }
 
     // Finalize a Config, disabling any further creation or cancellation of Vesting accounts

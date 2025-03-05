@@ -748,7 +748,165 @@ describe("vesting", () => {
       .then(confirm);
   });
 
+  it("Close and re-create vesting balance", async () => {
+    await stakeConnection.program.methods
+      .closeVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: vestingBalance,
+        rentPayer: whMintAuthority.publicKey,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .createVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: vestingBalance,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+  });
+
+  it("should fail to close vesting balance account with incorrect rent payer", async () => {
+    try {
+      await stakeConnection.program.methods
+        .closeVestingBalance()
+        .accounts({
+          ...accounts,
+          vestingBalance: vestingBalance,
+          rentPayer: vester.publicKey,
+        })
+        .signers([vester])
+        .rpc()
+        .then(confirm);
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "ConstraintHasOne");
+    }
+  });
+
   it("Create another vesting balance", async () => {
+    await stakeConnection.program.methods
+      .createVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: vesting2Balance,
+        vesterTa: vester2Ta,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .createVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: vesting3Balance,
+        vesterTa: vester3Ta,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .createVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: newVestingBalance,
+        vesterTa: newVesterTa,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .createVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: newVesting2Balance,
+        vesterTa: newVester2Ta,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .createVestingBalance()
+      .accounts({
+        ...accounts,
+        config: config2,
+        vestingBalance: vestingBalance2,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+  });
+
+  it("Close and re-create another vesting balance", async () => {
+    await stakeConnection.program.methods
+      .closeVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: vesting2Balance,
+        vesterTa: vester2Ta,
+        rentPayer: whMintAuthority.publicKey,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .closeVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: vesting3Balance,
+        vesterTa: vester3Ta,
+        rentPayer: whMintAuthority.publicKey,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .closeVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: newVestingBalance,
+        vesterTa: newVesterTa,
+        rentPayer: whMintAuthority.publicKey,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .closeVestingBalance()
+      .accounts({
+        ...accounts,
+        vestingBalance: newVesting2Balance,
+        vesterTa: newVester2Ta,
+        rentPayer: whMintAuthority.publicKey,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
+    await stakeConnection.program.methods
+      .closeVestingBalance()
+      .accounts({
+        ...accounts,
+        config: config2,
+        vestingBalance: vestingBalance2,
+        rentPayer: whMintAuthority.publicKey,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
+
     await stakeConnection.program.methods
       .createVestingBalance()
       .accounts({
@@ -3383,6 +3541,10 @@ describe("vesting", () => {
       updatedNewVestingBalance.vester.toString("hex"),
       vesterWithoutAccount.publicKey.toString("hex"),
     );
+    assert.equal(
+      updatedNewVestingBalance.rentPayer.toString("hex"),
+      newVester.publicKey.toString("hex"),
+    );
 
     let newVesterStakeCheckpointsAfter: CheckpointAccount =
       await newVesterStakeConnection.fetchCheckpointAccount(
@@ -3392,6 +3554,25 @@ describe("vesting", () => {
       newVesterStakeCheckpointsAfter.getLastCheckpoint().value.toString(),
       "662000000",
     );
+  });
+
+  it("should fail to close vesting balance account when balance is not 0", async () => {
+    try {
+      await stakeConnection.program.methods
+        .closeVestingBalance()
+        .accounts({
+          ...accounts,
+          rentPayer: newVester.publicKey,
+          vestingBalance: vestingBalanceWithoutAccount,
+          vesterTa: vesterTaWithoutAccount,
+        })
+        .signers([newVester])
+        .rpc()
+        .then(confirm);
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert((e as AnchorError).error?.errorCode?.code === "NotFullyVested");
+    }
   });
 
   it("should fail to transfer vest if newVestingBalance has stake account metadata and vestingBalance has no stake account metadata", async () => {

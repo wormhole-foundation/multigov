@@ -8,9 +8,7 @@ use crate::{
 };
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
+use anchor_spl::token::{Mint, Token, TokenAccount, transfer_checked, TransferChecked};
 use std::convert::TryInto;
 
 #[event_cpi]
@@ -18,21 +16,21 @@ use std::convert::TryInto;
 pub struct ClaimVesting<'info> {
     #[account(mut)]
     vester: Signer<'info>,
-    mint: InterfaceAccount<'info, Mint>,
+    mint: Account<'info, Mint>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = config,
         associated_token::token_program = token_program
     )]
-    vault: InterfaceAccount<'info, TokenAccount>,
+    vault: Account<'info, TokenAccount>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = vester,
         associated_token::token_program = token_program
     )]
-    vester_ta: InterfaceAccount<'info, TokenAccount>,
+    vester_ta: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
@@ -77,7 +75,7 @@ pub struct ClaimVesting<'info> {
     )]
     admin: AccountInfo<'info>,
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
+    token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
 

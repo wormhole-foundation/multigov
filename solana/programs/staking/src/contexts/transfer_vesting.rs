@@ -9,28 +9,28 @@ use crate::state::{Vesting, VestingBalance, VestingConfig};
 use crate::{error::ErrorCode, error::VestingError};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[event_cpi]
 #[derive(Accounts)]
 pub struct TransferVesting<'info> {
     #[account(mut)]
     vester: Signer<'info>,
-    mint: Box<InterfaceAccount<'info, Mint>>,
+    mint: Box<Account<'info, Mint>>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = vester_ta.owner,
         associated_token::token_program = token_program
     )]
-    vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
+    vester_ta: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = new_vester_ta.owner,
         associated_token::token_program = token_program
     )]
-    new_vester_ta: Box<InterfaceAccount<'info, TokenAccount>>,
+    new_vester_ta: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         constraint = config.finalized @ VestingError::VestingUnfinalized,
@@ -88,7 +88,7 @@ pub struct TransferVesting<'info> {
     pub new_stake_account_metadata: Option<Box<Account<'info, StakeAccountMetadata>>>,
 
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
+    token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
 
@@ -335,6 +335,11 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 .checked_add(self.vest.amount)
                 .ok_or(VestingError::Overflow)?,
             bump: new_vesting_balance_bump,
+            rent_payer: if self.new_vesting_balance.rent_payer == Pubkey::default() {
+                self.vester.key()
+            } else {
+                self.new_vesting_balance.rent_payer
+            },
         });
 
         self.vesting_balance.total_vesting_balance = self
