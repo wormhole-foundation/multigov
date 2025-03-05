@@ -385,7 +385,6 @@ describe("vesting", () => {
       ],
       stakeConnection.program.programId,
     )[0];
-
     vestingBalanceWithoutAccount = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),

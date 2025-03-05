@@ -3,7 +3,6 @@
 import { ethers } from "ethers";
 import * as fs from "fs";
 import "dotenv/config";
-import { PublicKey } from "@solana/web3.js";
 import axios from "axios";
 import {
   PerChainQueryRequest,
@@ -11,7 +10,6 @@ import {
   QueryRequest,
   QueryResponse,
   SolanaPdaQueryRequest,
-  SolanaPdaQueryResponse,
   signaturesToEvmStruct,
 } from "@wormhole-foundation/wormhole-query-sdk";
 import {
@@ -20,7 +18,7 @@ import {
   HUB_SOLANA_SPOKE_VOTE_DECODER_ADDRESS,
   HUB_VOTE_POOL_ADDRESS,
   HUB_CHAIN_ID,
-} from "../constants";
+} from "../deploy/devnet/constants";
 import * as wasm from "@wormhole/staking-wasm";
 import input from "@inquirer/input";
 
@@ -76,7 +74,10 @@ async function getSolanaQueryResponse(): Promise<{
   ).data;
   //   console.log("queryResponse: ", queryResponse);
 
-  //   const queryResponseHex = QueryResponse.from(Buffer.from(queryResponse.bytes, "hex"));
+  const queryResponseHex = QueryResponse.from(
+    Buffer.from(queryResponse.bytes, "hex"),
+  );
+  console.log("queryResponseHex: ", queryResponseHex);
 
   const bytes = "0x" + queryResponse["bytes"];
   const signatures = queryResponse["signatures"];

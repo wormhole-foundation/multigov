@@ -3,12 +3,11 @@
 import { ethers } from "ethers";
 import * as fs from "fs";
 import "dotenv/config";
-import { signaturesToEvmStruct } from "@wormhole-foundation/wormhole-query-sdk";
 import {
   HUB_SOLANA_MESSAGE_DISPATCHER_ADDRESS,
   HUB_GOVERNOR_ADDRESS,
   HUB_CHAIN_ID,
-} from "../constants";
+} from "../deploy/devnet/constants";
 import input from "@inquirer/input";
 
 const HubGovernorAbiPath = "./app/e2e/abi/HubGovernor.json";

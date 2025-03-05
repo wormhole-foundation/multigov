@@ -22,20 +22,17 @@ import BN from "bn.js";
 import toml from "toml";
 import path from "path";
 import os from "os";
-import {
-  StakeConnection,
-  WHTokenBalance,
-  WH_TOKEN_DECIMALS,
-  CHECKPOINTS_ACCOUNT_LIMIT,
-  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-} from "../../app";
+import { StakeConnection, WHTokenBalance, WH_TOKEN_DECIMALS } from "../../app";
 import { GlobalConfig } from "../../app/StakeConnection";
-import { createMint, initAddressLookupTable } from "./utils";
+import { createMint } from "./utils";
+import { initAddressLookupTable } from "../../app/helpers/utils/lookup_table";
 import { loadKeypair } from "./keys";
 import {
   HUB_CHAIN_ID,
   hubProposalMetadataUint8Array,
-} from "../../app/constants";
+  CHECKPOINTS_ACCOUNT_LIMIT,
+  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+} from "./constants";
 
 export const ANCHOR_CONFIG_PATH = "./Anchor.toml";
 export interface AnchorConfig {
@@ -343,7 +340,6 @@ export async function newUserStakeConnection(
   const userStakeConnection = await StakeConnection.createStakeConnection(
     connection,
     provider.wallet as Wallet,
-    new PublicKey(config.programs.localnet.staking),
   );
 
   await transferSolFromValidatorWallet(
@@ -438,8 +434,9 @@ export async function standardSetup(
   const lookupTableAddress = await initAddressLookupTable(
     provider,
     whMintAccount.publicKey,
+    program.programId,
   );
-  //   console.log("Lookup table address: ", lookupTableAddress.toBase58());
+  // console.log("Lookup table address: ", lookupTableAddress.toBase58());
 
   await program.methods
     .initializeSpokeMetadataCollector(
@@ -475,7 +472,7 @@ export async function standardSetup(
   const stakeConnection = await StakeConnection.createStakeConnection(
     connection,
     provider.wallet as Wallet,
-    new PublicKey(config.programs.localnet.staking),
+    lookupTableAddress,
   );
 
   return { controller, stakeConnection };

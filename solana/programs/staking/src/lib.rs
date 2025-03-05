@@ -75,7 +75,7 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-declare_id!("DgCSKsLDXXufYeEkvf21YSX5DMnFK89xans5WdSsUbeY");
+declare_id!("AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap");
 #[program]
 pub mod staking {
     /// Creates a global config for the program
@@ -98,12 +98,16 @@ pub mod staking {
         // Solana accounts are 10MB maximum = 10485760 bytes
         // The checkpoint account contains 8 + 32 + 8 = 48 bytes of fixed data
         // Every checkpoint is 8 + 8 = 16 bytes, so we can fit in (10485760 - 48) / 16 = 655,357 checkpoints
-        require!(args.max_checkpoints_account_limit <= 655_000, ErrorCode::InvalidCheckpointAccountLimit);
+        require!(
+            args.max_checkpoints_account_limit <= 655_000,
+            ErrorCode::InvalidCheckpointAccountLimit
+        );
         // Similarly make sure max_checkpoints_account_limit > MAX_VOTE_WEIGHT_WINDOW_LENGTH so we can't have
         // 3 checkpoint accounts fall across a window. We don't mind for our tests
         #[cfg(not(feature = "testing"))]
         {
-            require!(args.max_checkpoints_account_limit > state::vote_weight_window_lengths::VoteWeightWindowLengths::MAX_VOTE_WEIGHT_WINDOW_LENGTH as u32, ErrorCode::InvalidCheckpointAccountLimit);
+            require!(args.max_checkpoints_account_limit > state::vote_weight_window_lengths::VoteWeightWindowLengths::MAX_VOTE_WEIGHT_WINDOW_LENGTH as u32,
+            ErrorCode::InvalidCheckpointAccountLimit);
         }
         config_account.max_checkpoints_account_limit = args.max_checkpoints_account_limit;
         config_account.pending_governance_authority = None;
@@ -491,14 +495,13 @@ pub mod staking {
             .current_delegate_stake_account_checkpoints
             .load()?;
         if loaded_checkpoints.next_index >= config.max_checkpoints_account_limit.into() {
-            if ctx.accounts.current_delegate_stake_account_metadata.key() 
+            if ctx.accounts.current_delegate_stake_account_metadata.key()
                 != ctx.accounts.stake_account_metadata.key()
             {
                 ctx.accounts
                     .current_delegate_stake_account_metadata
                     .stake_account_checkpoints_last_index += 1;
-            }
-            else {
+            } else {
                 ctx.accounts
                     .stake_account_metadata
                     .stake_account_checkpoints_last_index += 1;
@@ -890,10 +893,15 @@ pub mod staking {
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
 
         if spoke_metadata_collector.updates_controlled_by_governance {
-            require!(ctx.accounts.payer.key() == ctx.accounts.config.governance_authority, ErrorCode::NotGovernanceAuthority);
-        }
-        else {
-            require!(ctx.accounts.airlock.to_account_info().is_signer, ErrorCode::AirlockNotSigner);
+            require!(
+                ctx.accounts.payer.key() == ctx.accounts.config.governance_authority,
+                ErrorCode::NotGovernanceAuthority
+            );
+        } else {
+            require!(
+                ctx.accounts.airlock.to_account_info().is_signer,
+                ErrorCode::AirlockNotSigner
+            );
         }
 
         let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);
@@ -902,7 +910,7 @@ pub mod staking {
     }
 
     pub fn relinquish_admin_control_over_hub_proposal_metadata(
-        ctx: Context<RelinquishAdminControlOverHubProposalMetadata>
+        ctx: Context<RelinquishAdminControlOverHubProposalMetadata>,
     ) -> Result<()> {
         let spoke_metadata_collector = &mut ctx.accounts.spoke_metadata_collector;
         spoke_metadata_collector.updates_controlled_by_governance = false;

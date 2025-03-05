@@ -26,11 +26,8 @@ import {
   createProposalQueryResponseBytesWithInvalidChainSpecificResponse,
   createProposalQueryResponseBytesWithInvalidFunctionSignature,
 } from "./utils/api_utils";
-import {
-  StakeConnection,
-  WHTokenBalance,
-  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-} from "../app";
+import { StakeConnection, WHTokenBalance } from "../app";
+import { TEST_CHECKPOINTS_ACCOUNT_LIMIT } from "./utils/constants";
 import { CheckpointAccount } from "../app/checkpoints";
 import crypto from "crypto";
 import {
@@ -196,12 +193,12 @@ describe("api", async () => {
     user8 = user8StakeConnection.provider.wallet.publicKey;
 
     user9StakeConnection = await newUserStakeConnection(
-        stakeConnection,
-        Keypair.generate(),
-        config,
-        whMintAccount,
-        whMintAuthority,
-        WHTokenBalance.fromString("1000"),
+      stakeConnection,
+      Keypair.generate(),
+      config,
+      whMintAccount,
+      whMintAuthority,
+      WHTokenBalance.fromString("1000"),
     );
     user9 = user9StakeConnection.provider.wallet.publicKey;
   });
@@ -845,7 +842,7 @@ describe("api", async () => {
           )
           .accounts({
             currentDelegateStakeAccountCheckpoints:
-            currentDelegateStakeAccountCheckpointsAddress,
+              currentDelegateStakeAccountCheckpointsAddress,
             destination: toAccount,
           })
           .rpc();
@@ -965,10 +962,15 @@ describe("api", async () => {
           currentStakeAccountCheckpointsAddress,
         );
 
-      let currentCheckpointCount = currentStakeAccountCheckpoints.getCheckpointCount();
+      let currentCheckpointCount =
+        currentStakeAccountCheckpoints.getCheckpointCount();
 
       // Fill all bar 1 checkpoints in the limit. Leave 1 space for the withdraw checkpoint
-      for (currentCheckpointCount; currentCheckpointCount < TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1; currentCheckpointCount++) {
+      for (
+        currentCheckpointCount;
+        currentCheckpointCount < TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1;
+        currentCheckpointCount++
+      ) {
         await sleep(1000);
         await user8StakeConnection.delegate(
           user8StakeConnection.userPublicKey(),
@@ -980,9 +982,13 @@ describe("api", async () => {
         currentStakeAccountCheckpointsAddress,
       );
 
-      let stakeAccountMetadata = await user8StakeConnection.fetchStakeAccountMetadata(user8StakeConnection.userPublicKey());
+      let stakeAccountMetadata =
+        await user8StakeConnection.fetchStakeAccountMetadata(
+          user8StakeConnection.userPublicKey(),
+        );
 
-      let previousCheckpointAccountIndex = stakeAccountMetadata.stakeAccountCheckpointsLastIndex;
+      let previousCheckpointAccountIndex =
+        stakeAccountMetadata.stakeAccountCheckpointsLastIndex;
       let balanceBefore = stakeAccount.tokenBalance;
 
       // This withdraw action fills up the checkpoint account, which should increment the checkpoint account index
@@ -996,19 +1002,21 @@ describe("api", async () => {
         currentStakeAccountCheckpointsAddress,
       );
 
-      stakeAccountMetadata = await user8StakeConnection.fetchStakeAccountMetadata(user8StakeConnection.userPublicKey());
+      stakeAccountMetadata =
+        await user8StakeConnection.fetchStakeAccountMetadata(
+          user8StakeConnection.userPublicKey(),
+        );
 
-
-      let newCheckpointAccountIndex = stakeAccountMetadata.stakeAccountCheckpointsLastIndex;
+      let newCheckpointAccountIndex =
+        stakeAccountMetadata.stakeAccountCheckpointsLastIndex;
       let balanceAfter = stakeAccount.tokenBalance;
 
       // Both the checkpoint index and the balance should be properly update
-      assert.equal(previousCheckpointAccountIndex + 1, newCheckpointAccountIndex);
       assert.equal(
-        balanceBefore - balanceAfter,
-        5000000,
+        previousCheckpointAccountIndex + 1,
+        newCheckpointAccountIndex,
       );
-
+      assert.equal(balanceBefore - balanceAfter, 5000000);
     });
   });
 
@@ -1503,19 +1511,19 @@ describe("api", async () => {
 
       let user9StakeAccountCheckpoints: CheckpointAccount =
         await user9StakeConnection.fetchCheckpointAccount(
-            user9StakeAccountCheckpointsAddress,
+          user9StakeAccountCheckpointsAddress,
         );
       assert.equal(
-          user9StakeAccountCheckpoints.checkpoints[0].value.toString(),
+        user9StakeAccountCheckpoints.checkpoints[0].value.toString(),
         "0",
       );
       assert.equal(
-          user9StakeAccountCheckpoints.checkpoints[1].value.toString(),
+        user9StakeAccountCheckpoints.checkpoints[1].value.toString(),
         "225000000",
       );
 
       let proposalIdInput = await addTestProposal(
-          user9StakeConnection,
+        user9StakeConnection,
         Math.floor(Date.now() / 1000),
       );
       const { proposalAccount } =

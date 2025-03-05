@@ -26,28 +26,23 @@ import { mocks } from "@wormhole-foundation/sdk-definitions/testing";
 import {
   SolanaWormholeCore,
   utils as coreUtils,
-  derivePostedVaaKey,
 } from "@wormhole-foundation/sdk-solana-core";
 import { SolanaSendSigner } from "@wormhole-foundation/sdk-solana";
 import { signAndSendWait } from "@wormhole-foundation/sdk-connect";
-import { Chain, contracts } from "@wormhole-foundation/sdk-base";
+import { Chain } from "@wormhole-foundation/sdk-base";
 import { AnchorError, Program, utils } from "@coral-xyz/anchor";
-import { ExternalProgram } from "./artifacts/external_program.ts";
+import { ExternalProgram } from "./artifacts/external_program";
 import externalProgramIdl from "./artifacts/external_program.json";
 import BN from "bn.js";
 import * as wasm from "@wormhole/staking-wasm";
 import {
   readWindowLengths,
   WindowLengthsAccount,
-} from "../app/vote_weight_window_lengths.ts";
+} from "../app/vote_weight_window_lengths";
+import { CORE_BRIDGE_PID } from "./utils/constants";
 
 // Define the port number for the test
 const portNumber = getPortNumber(path.basename(__filename));
-
-// Constants
-export const CORE_BRIDGE_PID = new PublicKey(
-  contracts.coreBridge.get("Testnet", "Solana")!,
-);
 
 export const GUARDIAN_KEY =
   "cfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0";
