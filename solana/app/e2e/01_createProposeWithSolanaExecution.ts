@@ -3,11 +3,6 @@
 import { ethers } from "ethers";
 import * as fs from "fs";
 import "dotenv/config";
-import {
-  HUB_SOLANA_MESSAGE_DISPATCHER_ADDRESS,
-  HUB_GOVERNOR_ADDRESS,
-  HUB_CHAIN_ID,
-} from "../constants";
 import { Connection } from "@solana/web3.js";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { ExternalProgram } from "./external_program/idl/external_program";
@@ -16,7 +11,10 @@ import {
   DEPLOYER_AUTHORITY_KEYPAIR,
   RPC_NODE,
   AIRLOCK_PDA_ADDRESS,
-} from "../deploy/devnet_consts";
+  HUB_SOLANA_MESSAGE_DISPATCHER_ADDRESS,
+  HUB_GOVERNOR_ADDRESS,
+  HUB_CHAIN_ID,
+} from "../deploy/devnet/constants";
 import { v4 as uuidv4 } from "uuid";
 
 // Define the ABI types

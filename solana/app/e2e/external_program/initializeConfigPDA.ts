@@ -1,11 +1,10 @@
-import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
 import {
   USER2_AUTHORITY_KEYPAIR,
   RPC_NODE,
   AIRLOCK_PDA_ADDRESS,
-} from "../../deploy/devnet_consts";
+} from "../../deploy/devnet/constants";
 import { ExternalProgram } from "./idl/external_program";
 import externalProgramIdl from "./idl/external_program.json";
 

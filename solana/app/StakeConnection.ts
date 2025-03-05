@@ -25,7 +25,7 @@ import BN from "bn.js";
 import { Staking } from "../target/types/staking";
 import IDL from "../target/idl/staking.json";
 import { WHTokenBalance } from "./whTokenBalance";
-import { CORE_BRIDGE_ADDRESS, STAKING_ADDRESS } from "./constants";
+import { contracts } from "@wormhole-foundation/sdk-base";
 import {
   PriorityFeeConfig,
   sendTransactions,
@@ -92,7 +92,6 @@ export class StakeConnection {
     return await StakeConnection.createStakeConnection(
       connection,
       wallet,
-      STAKING_ADDRESS,
     );
   }
 
@@ -102,7 +101,6 @@ export class StakeConnection {
   public static async createStakeConnection(
     connection: Connection,
     wallet: Wallet,
-    stakingProgramAddress: PublicKey,
     addressLookupTable?: PublicKey,
     priorityFeeConfig?: PriorityFeeConfig,
   ): Promise<StakeConnection> {
@@ -386,7 +384,6 @@ export class StakeConnection {
   /** Creates a new stake account and sends the transaction for confirmation. */
   public async createStakeAccount(): Promise<void> {
     const instructions: TransactionInstruction[] = [];
-
     instructions.push(
       await this.program.methods
         .createStakeAccount()
@@ -395,6 +392,7 @@ export class StakeConnection {
         })
         .instruction(),
     );
+
     await this.sendAndConfirmAsVersionedTransaction(instructions);
   }
 
@@ -754,7 +752,12 @@ export class StakeConnection {
     unoptimized?: boolean,
   ): Promise<void> {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
-
+    const networkType = this.provider.connection.rpcEndpoint.includes('mainnet') 
+      ? 'Mainnet' 
+      : 'Testnet';
+    const coreBridge = new PublicKey(
+      contracts.coreBridge.get(networkType, "Solana"), // Testnet - 3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5
+    );
     const methodsBuilder = this.program.methods
       .addProposal(
         Buffer.from(ethProposalResponseBytes),
@@ -765,7 +768,7 @@ export class StakeConnection {
         proposal: proposalAccount,
         guardianSignatures: guardianSignatures,
         guardianSet: deriveGuardianSetKey(
-          CORE_BRIDGE_ADDRESS,
+          coreBridge,
           guardianSetIndex,
         ),
       });

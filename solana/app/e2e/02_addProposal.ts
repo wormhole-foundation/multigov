@@ -14,14 +14,14 @@ import "dotenv/config";
 import {
   HUB_CHAIN_ID,
   HUB_PROPOSAL_METADATA_ADDRESS,
-  STAKING_ADDRESS,
-  CORE_BRIDGE_ADDRESS,
-} from "../constants";
-import * as anchor from "@coral-xyz/anchor";
+  CORE_BRIDGE_PID,
+  DEPLOYER_AUTHORITY_KEYPAIR,
+  RPC_NODE,
+} from "../deploy/devnet/constants";
+
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
-import { Connection, Keypair } from "@solana/web3.js";
+import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
-import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "../deploy/devnet_consts";
 import { getWormholeBridgeData } from "../helpers/wormholeBridgeConfig";
 import * as fs from "fs";
 
@@ -118,7 +118,7 @@ async function getProposalMetadata(
     data: encodeCalldata(encodedSignature, encodedParameters),
   };
 
-  const latestFinalizedBlock = await getLatestFinalizedBlock(rpcUrl);
+  const latestFinalizedBlock = await getLatestFinalizedBlock(rpcUrl!);
   console.log(
     "latestFinalizedBlock:",
     parseInt(latestFinalizedBlock.toString(), 16),
@@ -154,7 +154,6 @@ async function addProposal() {
     const stakeConnection = await StakeConnection.createStakeConnection(
       connection,
       provider.wallet as Wallet,
-      STAKING_ADDRESS,
     );
 
     const proposalId = await input({ message: "Enter the proposal id:" });
@@ -169,7 +168,7 @@ async function addProposal() {
 
     while (true) {
       const latestFinalizedBlockInt = parseInt(
-        (await getLatestFinalizedBlock(rpcUrl)).toString(),
+        (await getLatestFinalizedBlock(rpcUrl!)).toString(),
         16,
       );
       console.log("Latest finalized block:", latestFinalizedBlockInt);
@@ -203,7 +202,7 @@ async function addProposal() {
         sepoliaEthProposalResponse.signatures,
       );
 
-      const info = await getWormholeBridgeData(connection, CORE_BRIDGE_ADDRESS);
+      const info = await getWormholeBridgeData(connection, CORE_BRIDGE_PID);
       const guardianSetIndex = info.guardianSetIndex;
 
       await stakeConnection.addProposal(

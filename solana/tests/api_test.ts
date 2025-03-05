@@ -29,8 +29,8 @@ import {
 import {
   StakeConnection,
   WHTokenBalance,
-  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
 } from "../app";
+import { TEST_CHECKPOINTS_ACCOUNT_LIMIT } from "./utils/constants";
 import { CheckpointAccount } from "../app/checkpoints";
 import crypto from "crypto";
 import {

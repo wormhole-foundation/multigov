@@ -1,16 +1,13 @@
-// Usage: npx ts-node app/e2e/03_castVote.ts
+// Usage: npx ts-node app/deploy/devnet/tests/16_castVote.ts
 
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
-import { StakeConnection } from "../StakeConnection";
-import {
-  USER2_AUTHORITY_KEYPAIR,
-  RPC_NODE,
-} from "../deploy/devnet/constants";
-import { WHTokenBalance } from "../whTokenBalance";
+import { StakeConnection } from "../../../StakeConnection";
+import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "../constants";
+import BN from "bn.js";
 import input from "@inquirer/input";
 
-async function castVote() {
+async function main() {
   try {
     const connection = new Connection(RPC_NODE);
     const user2Provider = new AnchorProvider(
@@ -31,13 +28,13 @@ async function castVote() {
 
     await user2StakeConnection.castVote(
       proposalIdArray,
-      WHTokenBalance.fromString("2000").toBN(),
-      WHTokenBalance.fromString("3000000").toBN(),
-      WHTokenBalance.fromString("50000").toBN(),
+      new BN(2),
+      new BN(30),
+      new BN(3),
     );
   } catch (err) {
     console.error("Error:", err);
   }
 }
 
-castVote();
+main();
