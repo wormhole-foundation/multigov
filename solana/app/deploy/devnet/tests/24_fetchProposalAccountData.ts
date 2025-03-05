@@ -17,7 +17,9 @@ async function main() {
     );
 
     const inputProposalId = await input({ message: "Enter the proposal id:" });
-    const proposalIdHex = BigInt(inputProposalId).toString(16).padStart(64, "0");
+    const proposalIdHex = BigInt(inputProposalId)
+      .toString(16)
+      .padStart(64, "0");
     //     console.log("proposalIdHex:", proposalIdHex);
     const proposalIdArray = Buffer.from(proposalIdHex, "hex");
 

@@ -74,7 +74,9 @@ async function getSolanaQueryResponse(): Promise<{
   ).data;
   //   console.log("queryResponse: ", queryResponse);
 
-  const queryResponseHex = QueryResponse.from(Buffer.from(queryResponse.bytes, "hex"));
+  const queryResponseHex = QueryResponse.from(
+    Buffer.from(queryResponse.bytes, "hex"),
+  );
   console.log("queryResponseHex: ", queryResponseHex);
 
   const bytes = "0x" + queryResponse["bytes"];

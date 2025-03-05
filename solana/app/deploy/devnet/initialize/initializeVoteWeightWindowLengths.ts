@@ -2,7 +2,11 @@
 
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
-import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE, VOTE_WEIGHT_WINDOW_LENGTHS } from "../constants";
+import {
+  DEPLOYER_AUTHORITY_KEYPAIR,
+  RPC_NODE,
+  VOTE_WEIGHT_WINDOW_LENGTHS,
+} from "../constants";
 import { Staking } from "../../../../target/types/staking";
 import fs from "fs";
 import BN from "bn.js";
@@ -22,7 +26,9 @@ async function main() {
       provider,
     );
 
-    await program.methods.initializeVoteWeightWindowLengths(new BN(VOTE_WEIGHT_WINDOW_LENGTHS)).rpc();
+    await program.methods
+      .initializeVoteWeightWindowLengths(new BN(VOTE_WEIGHT_WINDOW_LENGTHS))
+      .rpc();
   } catch (err) {
     console.error("Error:", err);
   }

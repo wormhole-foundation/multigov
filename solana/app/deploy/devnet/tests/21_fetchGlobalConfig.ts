@@ -25,10 +25,19 @@ async function main() {
     provider.wallet as Wallet,
   );
 
-  console.log("DEPLOYER_AUTHORITY_KEYPAIR.publicKey:", DEPLOYER_AUTHORITY_KEYPAIR.publicKey);
+  console.log(
+    "DEPLOYER_AUTHORITY_KEYPAIR.publicKey:",
+    DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
+  );
   console.log("WORMHOLE_TOKEN.publicKey:", WORMHOLE_TOKEN);
-  console.log("GOVERNANCE_AUTHORITY_KEYPAIR.publicKey:", GOVERNANCE_AUTHORITY_KEYPAIR.publicKey);
-  console.log("VESTING_ADMIN_KEYPAIR.publicKey:", VESTING_ADMIN_KEYPAIR.publicKey);
+  console.log(
+    "GOVERNANCE_AUTHORITY_KEYPAIR.publicKey:",
+    GOVERNANCE_AUTHORITY_KEYPAIR.publicKey,
+  );
+  console.log(
+    "VESTING_ADMIN_KEYPAIR.publicKey:",
+    VESTING_ADMIN_KEYPAIR.publicKey,
+  );
   console.log("CHECKPOINTS_ACCOUNT_LIMIT:", CHECKPOINTS_ACCOUNT_LIMIT);
 
   const [configAccount, bump] = PublicKey.findProgramAddressSync(

@@ -24,17 +24,29 @@ async function main() {
   );
 
   console.log("HUB_CHAIN_ID:", HUB_CHAIN_ID);
-  console.log("hubSolanaMessageDispatcherPublicKey:", hubSolanaMessageDispatcherPublicKey);
-
-  const [spokeMessageExecutorAccountAddress, _] = PublicKey.findProgramAddressSync(
-    [utils.bytes.utf8.encode(wasm.Constants.SPOKE_MESSAGE_EXECUTOR_SEED())],
-    stakeConnection.program.programId,
+  console.log(
+    "hubSolanaMessageDispatcherPublicKey:",
+    hubSolanaMessageDispatcherPublicKey,
   );
-  console.log("spokeMessageExecutorAccountAddress:", spokeMessageExecutorAccountAddress);
+
+  const [spokeMessageExecutorAccountAddress, _] =
+    PublicKey.findProgramAddressSync(
+      [utils.bytes.utf8.encode(wasm.Constants.SPOKE_MESSAGE_EXECUTOR_SEED())],
+      stakeConnection.program.programId,
+    );
+  console.log(
+    "spokeMessageExecutorAccountAddress:",
+    spokeMessageExecutorAccountAddress,
+  );
 
   let spokeMessageExecutorAccountData =
-    await stakeConnection.program.account.spokeMessageExecutor.fetch(spokeMessageExecutorAccountAddress);
-  console.log("spokeMessageExecutorAccountData:", spokeMessageExecutorAccountData);
+    await stakeConnection.program.account.spokeMessageExecutor.fetch(
+      spokeMessageExecutorAccountAddress,
+    );
+  console.log(
+    "spokeMessageExecutorAccountData:",
+    spokeMessageExecutorAccountData,
+  );
 }
 
 main();

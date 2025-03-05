@@ -1,11 +1,7 @@
 // Usage: npx ts-node app/deploy/devnet/vesting/claimVesting.ts
 
 import { Wallet, AnchorProvider } from "@coral-xyz/anchor";
-import {
-  Connection,
-  PublicKey,
-  SystemProgram,
-} from "@solana/web3.js";
+import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
 import {
   VESTING_ADMIN_KEYPAIR,
   USER_AUTHORITY_KEYPAIR,
@@ -44,9 +40,7 @@ async function main() {
   };
 
   const NOW = new BN(1740006704);
-  const config = new PublicKey(
-    "BcJSiMQLggZxJ3v7kLLnQemB7Z6XJABV5Bci5LX7KhA3",
-  );
+  const config = new PublicKey("BcJSiMQLggZxJ3v7kLLnQemB7Z6XJABV5Bci5LX7KhA3");
 
   const vault = getAssociatedTokenAddressSync(
     WORMHOLE_TOKEN,
@@ -102,15 +96,10 @@ async function main() {
   };
 
   let stakeAccountMetadataAddress =
-    await vesterStakeConnection.getStakeMetadataAddress(
-      vester.publicKey,
-    );
+    await vesterStakeConnection.getStakeMetadataAddress(vester.publicKey);
   let stakeAccountMetadataData =
-    await vesterStakeConnection.fetchStakeAccountMetadata(
-      vester.publicKey,
-    );
-  let delegateStakeAccountCheckpointsOwner =
-    stakeAccountMetadataData.delegate;
+    await vesterStakeConnection.fetchStakeAccountMetadata(vester.publicKey);
+  let delegateStakeAccountCheckpointsOwner = stakeAccountMetadataData.delegate;
   let delegateStakeAccountMetadataAddress =
     await vesterStakeConnection.getStakeMetadataAddress(
       delegateStakeAccountCheckpointsOwner,

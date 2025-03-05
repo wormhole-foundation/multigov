@@ -10,11 +10,7 @@ import * as wasm from "@wormhole/staking-wasm";
 import assert from "assert";
 import BN from "bn.js";
 import path from "path";
-import {
-  StakeConnection,
-  WHTokenBalance,
-  WH_TOKEN_DECIMALS,
-} from "../app";
+import { StakeConnection, WHTokenBalance, WH_TOKEN_DECIMALS } from "../app";
 import {
   CORE_BRIDGE_PID,
   HUB_CHAIN_ID,

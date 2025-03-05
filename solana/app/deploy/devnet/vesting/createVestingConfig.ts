@@ -51,9 +51,15 @@ async function main() {
   const LATER = NOW.add(new BN(1000));
   const EVEN_LATER = LATER.add(new BN(1000));
   console.log("Vesting claim times:");
-  console.log(`NOW: ${NOW.toString()} (${new Date(NOW.toNumber() * 1000).toISOString()})`);
-  console.log(`LATER: ${LATER.toString()} (${new Date(LATER.toNumber() * 1000).toISOString()})`);
-  console.log(`EVEN_LATER: ${EVEN_LATER.toString()} (${new Date(EVEN_LATER.toNumber() * 1000).toISOString()})`);
+  console.log(
+    `NOW: ${NOW.toString()} (${new Date(NOW.toNumber() * 1000).toISOString()})`,
+  );
+  console.log(
+    `LATER: ${LATER.toString()} (${new Date(LATER.toNumber() * 1000).toISOString()})`,
+  );
+  console.log(
+    `EVEN_LATER: ${EVEN_LATER.toString()} (${new Date(EVEN_LATER.toNumber() * 1000).toISOString()})`,
+  );
 
   const seed = new BN(randomBytes(8));
   console.log("Vesting config random seed:", seed);
@@ -147,14 +153,18 @@ async function main() {
     .then(confirm);
   console.log(`Vest for vester at LATER (${LATER.toString()}) created`);
 
-  console.log(`Creating vest for vester at EVEN_LATER (${EVEN_LATER.toString()})...`);
+  console.log(
+    `Creating vest for vester at EVEN_LATER (${EVEN_LATER.toString()})...`,
+  );
   await stakeConnection.program.methods
     .createVesting(EVEN_LATER, new BN(20e6))
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
     .then(confirm);
-  console.log(`Vest for vester at EVEN_LATER (${EVEN_LATER.toString()}) created`);
+  console.log(
+    `Vest for vester at EVEN_LATER (${EVEN_LATER.toString()}) created`,
+  );
 
   const vestLater = PublicKey.findProgramAddressSync(
     [

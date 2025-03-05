@@ -8,7 +8,7 @@ import {
 import {
   CORE_BRIDGE_PID,
   DEPLOYER_AUTHORITY_KEYPAIR,
-  RPC_NODE
+  RPC_NODE,
 } from "../constants";
 import { Staking } from "../../../../target/types/staking";
 import fs from "fs";

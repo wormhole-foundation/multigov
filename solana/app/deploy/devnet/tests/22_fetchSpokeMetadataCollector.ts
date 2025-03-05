@@ -33,8 +33,13 @@ async function main() {
   console.log("spokeMetadataCollector:", spokeMetadataCollector);
 
   let spokeMetadataCollectorAccountData =
-    await stakeConnection.program.account.spokeMetadataCollector.fetch(spokeMetadataCollector);
-  console.log("spokeMetadataCollectorAccountData:", spokeMetadataCollectorAccountData);
+    await stakeConnection.program.account.spokeMetadataCollector.fetch(
+      spokeMetadataCollector,
+    );
+  console.log(
+    "spokeMetadataCollectorAccountData:",
+    spokeMetadataCollectorAccountData,
+  );
 }
 
 main();

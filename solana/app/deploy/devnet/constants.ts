@@ -64,7 +64,8 @@ export const DEPLOYER_AUTHORITY_KEYPAIR = loadKeypair(
   homedir() + DEPLOYER_AUTHORITY_PATH,
 );
 
-export const GOVERNANCE_AUTHORITY_PATH = "/.config/solana/governanceAuthority.json";
+export const GOVERNANCE_AUTHORITY_PATH =
+  "/.config/solana/governanceAuthority.json";
 export const GOVERNANCE_AUTHORITY_KEYPAIR = loadKeypair(
   homedir() + GOVERNANCE_AUTHORITY_PATH,
 );
@@ -79,7 +80,8 @@ export const USER_AUTHORITY_KEYPAIR = loadKeypair(
   homedir() + USER_AUTHORITY_PATH,
 );
 
-export const USER2_AUTHORITY_PATH = "/.config/solana/secretKey_617X3kwJzjfAbr6zHMa4rzbjaHQN8mzST8VAb8oE8xo8.json";
+export const USER2_AUTHORITY_PATH =
+  "/.config/solana/secretKey_617X3kwJzjfAbr6zHMa4rzbjaHQN8mzST8VAb8oE8xo8.json";
 export const USER2_AUTHORITY_KEYPAIR = loadKeypair(
   homedir() + USER2_AUTHORITY_PATH,
 );

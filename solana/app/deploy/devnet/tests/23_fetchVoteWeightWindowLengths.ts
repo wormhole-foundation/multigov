@@ -6,7 +6,7 @@ import * as wasm from "@wormhole/staking-wasm";
 import {
   DEPLOYER_AUTHORITY_KEYPAIR,
   RPC_NODE,
-  VOTE_WEIGHT_WINDOW_LENGTHS
+  VOTE_WEIGHT_WINDOW_LENGTHS,
 } from "../constants";
 import { StakeConnection } from "../../../StakeConnection";
 import {
@@ -26,7 +26,7 @@ async function main() {
     provider.wallet as Wallet,
   );
 
-  console.log("VOTE_WEIGHT_WINDOW_LENGTHS:", VOTE_WEIGHT_WINDOW_LENGTHS);  
+  console.log("VOTE_WEIGHT_WINDOW_LENGTHS:", VOTE_WEIGHT_WINDOW_LENGTHS);
 
   const [voteWeightWindowLengthsAccountAddress, _] =
     PublicKey.findProgramAddressSync(
@@ -37,15 +37,27 @@ async function main() {
       ],
       stakeConnection.program.programId,
     );
-  console.log("voteWeightWindowLengthsAccountAddress:", voteWeightWindowLengthsAccountAddress);
+  console.log(
+    "voteWeightWindowLengthsAccountAddress:",
+    voteWeightWindowLengthsAccountAddress,
+  );
 
   let windowLengthsAccount: WindowLengthsAccount = await readWindowLengths(
     connection,
     voteWeightWindowLengthsAccountAddress,
   );
-  console.log("windowLengthsAccount.getWindowLengthCount():", windowLengthsAccount.getWindowLengthCount());
-  console.log("windowLengthsAccount.voteWeightWindowLengths.nextIndex:", windowLengthsAccount.voteWeightWindowLengths.nextIndex);
-  console.log("windowLengthsAccount.getLastWindowLength().value.toString():", windowLengthsAccount.getLastWindowLength()?.value.toString());
+  console.log(
+    "windowLengthsAccount.getWindowLengthCount():",
+    windowLengthsAccount.getWindowLengthCount(),
+  );
+  console.log(
+    "windowLengthsAccount.voteWeightWindowLengths.nextIndex:",
+    windowLengthsAccount.voteWeightWindowLengths.nextIndex,
+  );
+  console.log(
+    "windowLengthsAccount.getLastWindowLength().value.toString():",
+    windowLengthsAccount.getLastWindowLength()?.value.toString(),
+  );
 }
 
 main();

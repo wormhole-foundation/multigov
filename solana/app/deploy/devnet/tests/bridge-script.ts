@@ -76,10 +76,7 @@ const scripts: {
     const info = await getWormholeBridgeData(connection, CORE_BRIDGE_PID);
     let guardianSetIndex = info.guardianSetIndex;
 
-    const guardianSet = deriveGuardianSetKey(
-      CORE_BRIDGE_PID,
-      guardianSetIndex,
-    );
+    const guardianSet = deriveGuardianSetKey(CORE_BRIDGE_PID, guardianSetIndex);
 
     console.log(`
 In Solana:

@@ -89,10 +89,7 @@ export class StakeConnection {
     connection: Connection,
     wallet: Wallet,
   ): Promise<StakeConnection> {
-    return await StakeConnection.createStakeConnection(
-      connection,
-      wallet,
-    );
+    return await StakeConnection.createStakeConnection(connection, wallet);
   }
 
   /** Creates a program connection and loads the staking config
@@ -752,9 +749,9 @@ export class StakeConnection {
     unoptimized?: boolean,
   ): Promise<void> {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
-    const networkType = this.provider.connection.rpcEndpoint.includes('mainnet') 
-      ? 'Mainnet' 
-      : 'Testnet';
+    const networkType = this.provider.connection.rpcEndpoint.includes("mainnet")
+      ? "Mainnet"
+      : "Testnet";
     const coreBridge = new PublicKey(
       contracts.coreBridge.get(networkType, "Solana"), // Testnet - 3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5
     );
@@ -767,10 +764,7 @@ export class StakeConnection {
       .accountsPartial({
         proposal: proposalAccount,
         guardianSignatures: guardianSignatures,
-        guardianSet: deriveGuardianSetKey(
-          coreBridge,
-          guardianSetIndex,
-        ),
+        guardianSet: deriveGuardianSetKey(coreBridge, guardianSetIndex),
       });
 
     if (unoptimized) {

@@ -32,7 +32,10 @@ async function main() {
 
     await program.methods
       .updateHubProposalMetadata(Array.from(hubProposalMetadataUint8Array))
-      .accounts({ payer: DEPLOYER_AUTHORITY_KEYPAIR.publicKey, airlock: airlockPDA })
+      .accounts({
+        payer: DEPLOYER_AUTHORITY_KEYPAIR.publicKey,
+        airlock: airlockPDA,
+      })
       .rpc();
   } catch (err) {
     console.error("Error:", err);

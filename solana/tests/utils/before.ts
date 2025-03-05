@@ -22,11 +22,7 @@ import BN from "bn.js";
 import toml from "toml";
 import path from "path";
 import os from "os";
-import {
-  StakeConnection,
-  WHTokenBalance,
-  WH_TOKEN_DECIMALS,
-} from "../../app";
+import { StakeConnection, WHTokenBalance, WH_TOKEN_DECIMALS } from "../../app";
 import { GlobalConfig } from "../../app/StakeConnection";
 import { createMint } from "./utils";
 import { initAddressLookupTable } from "../../app/helpers/utils/lookup_table";

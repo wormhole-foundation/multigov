@@ -120,8 +120,10 @@ impl<'info> crate::contexts::TransferVesting<'info> {
             return err!(VestingError::TransferVestToMyself);
         }
 
-        let sender_has_delegated_vest = self.vesting_balance.stake_account_metadata != Pubkey::default();
-        let recipient_has_delegated_vest = self.new_vesting_balance.stake_account_metadata != Pubkey::default();
+        let sender_has_delegated_vest =
+            self.vesting_balance.stake_account_metadata != Pubkey::default();
+        let recipient_has_delegated_vest =
+            self.new_vesting_balance.stake_account_metadata != Pubkey::default();
 
         // There are only 3 valid input account permutations.
         let delegate_votes_changed = match (
@@ -134,7 +136,14 @@ impl<'info> crate::contexts::TransferVesting<'info> {
         ) {
             // If the sender and recipient have delegated their vests, then we don't need the delegate accounts as we enforce below that the delegates
             // have to be the same. Thus, no there is no net change in delegate voting power and no new checkpoints are needed
-            (true, true, None, None, Some(stake_account_metadata), Some(new_stake_account_metadata)) => {
+            (
+                true,
+                true,
+                None,
+                None,
+                Some(stake_account_metadata),
+                Some(new_stake_account_metadata),
+            ) => {
                 // The sender must be delegated to the same address as the recipient.
                 require!(
                     stake_account_metadata.delegate == new_stake_account_metadata.delegate,
@@ -178,16 +187,23 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 transfer_vesting_events.new_stake_account_metadata =
                     Some(StakeAccountMetadataEvents {
                         recorded_vesting_balance_changed,
-                        delegate_votes_changed
+                        delegate_votes_changed,
                     });
-                
+
                 Ok(None)
-            },
+            }
             // If the sender has delegated their vest, but the recipient hasn't then all bar the new_stake_account_metadata account must be provided
-            (true, false, Some(delegate_stake_account_checkpoints), Some(delegate_stake_account_metadata), Some(stake_account_metadata), None) => {
+            (
+                true,
+                false,
+                Some(delegate_stake_account_checkpoints),
+                Some(delegate_stake_account_metadata),
+                Some(stake_account_metadata),
+                None,
+            ) => {
                 // In this case the current delegate will have their voting balance reduced. That's what we do below.
                 // We don't update the recorded vesting balance of the sender here, we instead do it later outside of the match cases
-                
+
                 // Check if stake account checkpoints is out of bounds
                 let loaded_checkpoints = delegate_stake_account_checkpoints.load()?;
                 require!(
@@ -201,7 +217,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                     stake_account_metadata.delegate.key() == loaded_checkpoints.owner,
                     VestingError::InvalidStakeAccountCheckpoints
                 );
-                drop(loaded_checkpoints);  
+                drop(loaded_checkpoints);
 
                 // Verify that the actual delegate_stake_account_metadata address matches the expected one
                 require!(
@@ -254,10 +270,10 @@ impl<'info> crate::contexts::TransferVesting<'info> {
                 }
 
                 Ok(delegate_votes_changed)
-            },
+            }
             // If neither the sender or receiver has delegated their vests, then none of the optional accounts are needed
             // No changes need to be made to any accounts apart from the vesting balance accounts
-            (false, false, None, None, None, None) => { Ok(None) },
+            (false, false, None, None, None, None) => Ok(None),
             // Any other combination is invalid
             _ => err!(VestingError::ErrorOfAccountParsing),
         }?;
