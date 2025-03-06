@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-
+use anchor_spl::token::{Mint, Token, TokenAccount};
 use crate::context::{VESTING_BALANCE_SEED, VESTING_CONFIG_SEED, VEST_SEED, CONFIG_SEED};
 use crate::error::VestingError;
 use crate::state::{Vesting, VestingBalance, VestingConfig};
@@ -15,13 +14,13 @@ pub struct CancelVesting<'info> {
             @ VestingError::InvalidVestingAdmin
     )]
     admin: Signer<'info>,
-    mint: InterfaceAccount<'info, Mint>,
+    mint: Account<'info, Mint>,
     #[account(
         associated_token::mint = mint,
         associated_token::authority = vester_ta.owner,
         associated_token::token_program = token_program
     )]
-    vester_ta: InterfaceAccount<'info, TokenAccount>,
+    vester_ta: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint = !config.finalized @ VestingError::VestingFinalized, // Vesting cannot be cancelled after vest is finalized
@@ -33,6 +32,7 @@ pub struct CancelVesting<'info> {
     #[account(
         mut,
         close = admin,
+        has_one = vester_ta,
         has_one = config, // This check is arbitrary, as ATA is baked into the PDA
         seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vest.vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump = vest.bump
@@ -50,7 +50,7 @@ pub struct CancelVesting<'info> {
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
+    token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
 

@@ -13,7 +13,7 @@ pub struct ProposalQueryRequestData {
 }
 
 #[account]
-#[derive(Default, Debug, BorshSchema)]
+#[derive(Default, Debug, BorshSchema, InitSpace)]
 pub struct SpokeMetadataCollector {
     pub bump: u8,
     // The hub chain id
@@ -23,12 +23,12 @@ pub struct SpokeMetadataCollector {
     // Wormhole contract handling messages
     pub wormhole_core: Pubkey,
     // Updates to hub_proposal_metadata are governance controlled
-    pub updates_controlled_by_governance: bool
+    pub updates_controlled_by_governance: bool,
 }
 
 impl SpokeMetadataCollector {
     pub const LEN: usize =
-        SpokeMetadataCollector::DISCRIMINATOR.len() + std::mem::size_of::<SpokeMetadataCollector>();
+        SpokeMetadataCollector::DISCRIMINATOR.len() + SpokeMetadataCollector::INIT_SPACE;
 
     pub fn initialize(
         &mut self,
@@ -120,6 +120,6 @@ mod tests {
 
     #[test]
     fn check_spoke_metadata_collector_size() {
-        assert!(SpokeMetadataCollector::LEN == 8 + 2 + 2 + 20 + 32); // 64
+        assert!(SpokeMetadataCollector::LEN == 8 + 1 + 2 + 20 + 32 + 1); // 64
     }
 }

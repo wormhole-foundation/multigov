@@ -3,9 +3,7 @@ use crate::error::VestingError;
 use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
+use anchor_spl::token::{Mint, Token, TokenAccount, transfer_checked, TransferChecked};
 use crate::state::global_config::GlobalConfig;
 
 #[derive(Accounts)]
@@ -21,15 +19,15 @@ pub struct WithdrawSurplus<'info> {
         token::mint = mint,
         token::token_program = token_program
     )]
-    recovery: InterfaceAccount<'info, TokenAccount>,
-    mint: InterfaceAccount<'info, Mint>,
+    recovery: Account<'info, TokenAccount>,
+    mint: Account<'info, Mint>,
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = config,
         associated_token::token_program = token_program
     )]
-    vault: InterfaceAccount<'info, TokenAccount>,
+    vault: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint = vault.amount > config.vested @ VestingError::NotInSurplus,
@@ -44,7 +42,7 @@ pub struct WithdrawSurplus<'info> {
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
     associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
+    token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
 

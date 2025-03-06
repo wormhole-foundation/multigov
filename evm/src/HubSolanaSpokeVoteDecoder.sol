@@ -21,6 +21,7 @@ import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 /// @title HubSolanaSpokeVoteDecoder
 /// @author [ScopeLift](https://scopelift.co)
 /// @notice A contract that parses a specific wormhole query type from the Solana `SpokeVoteAggregator`.
+/// @dev This contract handles decimal scaling to match the hub chain's decimals when decoding votes from Solana.
 contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   using BytesParsing for bytes;
 
@@ -35,7 +36,8 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// @notice The decimals of the token on the hub
   uint8 public immutable HUB_TOKEN_DECIMALS;
 
-  /// @notice The decimals of the token on solana
+  /// @notice The decimals of the token on Solana (typically 6 for SPL tokens)
+  /// @dev Used to scale vote amounts from Solana to match the hub chain's decimal precision
   uint8 public immutable SOLANA_TOKEN_DECIMALS;
 
   error TooManySolanaPdaResults(uint256 resultsLength);
@@ -169,7 +171,7 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
     if (_fromDecimals == _toDecimals) return _amount;
 
     if (_fromDecimals > _toDecimals) return _amount / (10 ** (_fromDecimals - _toDecimals));
-    else return _amount * (10 ** (_toDecimals - _fromDecimals));
+    return _amount * (10 ** (_toDecimals - _fromDecimals));
   }
 
   /// @notice Reverse the endianness of the passed in integer.
@@ -179,12 +181,14 @@ contract HubSolanaSpokeVoteDecoder is ISpokeVoteDecoder, QueryResponse, ERC165 {
   /// https://github.com/wormholelabs-xyz/example-queries-solana-pda/blob/4a01a0a6018b36a1d38d326362bfb672c5061c5f/src/OwnerVerifier.sol#L52.
   function _reverse(uint64 _input) internal pure returns (uint64) {
     uint64 v = _input;
-    // swap bytes
-    v = ((v & 0xFF00FF00FF00FF00) >> 8) | ((v & 0x00FF00FF00FF00FF) << 8);
-    // swap 2-byte long pairs
-    v = ((v & 0xFFFF0000FFFF0000) >> 16) | ((v & 0x0000FFFF0000FFFF) << 16);
-    // swap 4-byte long pairs
-    v = (v >> 32) | (v << 32);
+    unchecked {
+      // swap bytes
+      v = ((v & 0xFF00FF00FF00FF00) >> 8) | ((v & 0x00FF00FF00FF00FF) << 8);
+      // swap 2-byte long pairs
+      v = ((v & 0xFFFF0000FFFF0000) >> 16) | ((v & 0x0000FFFF0000FFFF) << 16);
+      // swap 4-byte long pairs
+      v = (v >> 32) | (v << 32);
+    }
     return v;
   }
 }

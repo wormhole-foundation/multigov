@@ -30,7 +30,6 @@ pub const VESTING_BALANCE_SEED: &str = "vesting_balance";
 pub const SPOKE_MESSAGE_EXECUTOR_SEED: &str = "spoke_message_executor";
 pub const MESSAGE_RECEIVED: &str = "message_received";
 pub const AIRLOCK_SEED: &str = "airlock";
-pub const AIRLOCK_SELF_CALL_SEED: &str = "airlock_self_call";
 pub const SPOKE_METADATA_COLLECTOR_SEED: &str = "spoke_metadata_collector";
 pub const VOTE_WEIGHT_WINDOW_LENGTHS_SEED: &str = "vote_weight_window_lengths";
 pub const GUARDIAN_SIGNATURES_SEED: &str = "guardian_signatures";
@@ -51,7 +50,6 @@ pub struct InitConfig<'info> {
     pub config_account: Account<'info, global_config::GlobalConfig>,
 
     // Primitive accounts
-    pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
 
@@ -218,10 +216,10 @@ pub struct UpdateHubProposalMetadata<'info> {
     pub payer: Signer<'info>,
 
     #[account(
-        seeds = [AIRLOCK_SELF_CALL_SEED.as_bytes()],
-        bump = airlock_self_call.bump,
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        bump = airlock.bump,
     )]
-    pub airlock_self_call: Account<'info, SpokeAirlock>,
+    pub airlock: Account<'info, SpokeAirlock>,
 
     #[account(
         mut,
@@ -273,7 +271,7 @@ pub struct CloseSignatures<'info> {
     #[account(mut, has_one = refund_recipient, close = refund_recipient)]
     pub guardian_signatures: Account<'info, GuardianSignatures>,
 
-    #[account(address = guardian_signatures.refund_recipient)]
+    #[account(mut, address = guardian_signatures.refund_recipient)]
     pub refund_recipient: Signer<'info>,
 }
 
@@ -297,7 +295,7 @@ pub struct AddProposal<'info> {
     pub guardian_signatures: Account<'info, GuardianSignatures>,
 
     /// CHECK: This account is the refund recipient for the above signature_set
-    #[account(address = guardian_signatures.refund_recipient)]
+    #[account(mut, address = guardian_signatures.refund_recipient)]
     pub refund_recipient: AccountInfo<'info>,
 
     #[account(mut)]
@@ -524,7 +522,6 @@ pub struct CreateStakeAccount<'info> {
     )]
     pub stake_account_custody: Box<Account<'info, TokenAccount>>,
     // Primitive accounts :
-    pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -684,12 +681,6 @@ pub struct ReceiveMessage<'info> {
     pub airlock: Box<Account<'info, SpokeAirlock>>,
 
     #[account(
-        seeds = [AIRLOCK_SELF_CALL_SEED.as_bytes()],
-        bump = airlock_self_call.bump,
-    )]
-    pub airlock_self_call: Box<Account<'info, SpokeAirlock>>,
-
-    #[account(
         seeds = [SPOKE_MESSAGE_EXECUTOR_SEED.as_bytes()],
         bump = message_executor.bump,
         constraint = message_executor.wormhole_core == wormhole_program.key() @ MessageExecutorError::InvalidWormholeCoreProgram
@@ -718,15 +709,6 @@ pub struct InitializeSpokeAirlock<'info> {
         bump
     )]
     pub airlock: Account<'info, SpokeAirlock>,
-
-    #[account(
-        init,
-        payer = payer,
-        space = SpokeAirlock::LEN,
-        seeds = [AIRLOCK_SELF_CALL_SEED.as_bytes()],
-        bump
-    )]
-    pub airlock_self_call: Account<'info, SpokeAirlock>,
     pub system_program: Program<'info, System>,
 }
 
@@ -757,11 +739,11 @@ pub struct UpdateVoteWeightWindowLengths<'info> {
     pub payer: Signer<'info>,
 
     #[account(
-        seeds = [AIRLOCK_SELF_CALL_SEED.as_bytes()],
-        bump = airlock_self_call.bump,
+        seeds = [AIRLOCK_SEED.as_bytes()],
+        bump = airlock.bump,
         signer
     )]
-    pub airlock_self_call: Account<'info, SpokeAirlock>,
+    pub airlock: Account<'info, SpokeAirlock>,
 
     #[account(
         mut,

@@ -2,13 +2,13 @@ use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
 
 #[account]
-#[derive(Default, Debug, BorshSchema)]
+#[derive(Default, Debug, BorshSchema, InitSpace)]
 pub struct SpokeAirlock {
     pub bump: u8,
 }
 
 impl SpokeAirlock {
-    pub const LEN: usize = SpokeAirlock::DISCRIMINATOR.len() + std::mem::size_of::<SpokeAirlock>();
+    pub const LEN: usize = SpokeAirlock::DISCRIMINATOR.len() + SpokeAirlock::INIT_SPACE;
 }
 
 #[cfg(test)]

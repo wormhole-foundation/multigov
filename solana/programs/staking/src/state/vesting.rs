@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
-use std::mem::size_of;
 
 #[account]
-#[derive(Default)]
+#[derive(Default, InitSpace)]
 pub struct Vesting {
     pub vester_ta: Pubkey,
     pub config: Pubkey,
@@ -11,17 +10,16 @@ pub struct Vesting {
     pub bump: u8,
 }
 
-impl Space for Vesting {
-    const INIT_SPACE: usize = Vesting::DISCRIMINATOR.len() + size_of::<Vesting>();
+impl Vesting {
+    pub const LEN: usize = Vesting::DISCRIMINATOR.len() + Vesting::INIT_SPACE;
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::Vesting;
-    use anchor_lang::Space;
 
     #[test]
     fn check_size() {
-        assert!(Vesting::INIT_SPACE == 8 + 32 + 32 + 8 + 8 + 8); // 96
+        assert!(Vesting::LEN == 8 + 32 + 32 + 8 + 8 + 1); // 89
     }
 }

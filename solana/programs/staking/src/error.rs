@@ -81,10 +81,14 @@ pub enum VestingError {
     Underflow,
     #[msg("Invalid stake account checkpoints")]
     InvalidStakeAccountCheckpoints,
-    #[msg("Error parsing stake_account_metadata and stake_account_checkpoints")]
-    ErrorOfStakeAccountParsing,
+    #[msg("Error parsing input accounts")]
+    ErrorOfAccountParsing,
+    #[msg("The vesting_balance.stake_account_metadata is not set")]
+    NoStakeAccountMetadata,
     #[msg("Invalid stake account owner")]
     InvalidStakeAccountOwner,
+    #[msg("Invalid delegate stake account owner")]
+    InvalidDelegateStakeAccountOwner,
     #[msg("Invalid vesting admin")]
     InvalidVestingAdmin,
     #[msg("Vested token balance does not match the balance in the vault")]
@@ -97,6 +101,10 @@ pub enum VestingError {
     InvalidVestingBalancePDA,
     #[msg("Transfer vest to myself")]
     TransferVestToMyself,
+    #[msg("Stake account delegates do not match")]
+    StakeAccountDelegatesMismatch,
+    #[msg("Stake account delegation loop detected")]
+    StakeAccountDelegationLoop,
 }
 
 #[error_code]

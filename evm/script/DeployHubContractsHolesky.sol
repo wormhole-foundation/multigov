@@ -22,7 +22,7 @@ contract DeployHubContractsHolesky is DeployHubContractsBaseImpl {
       minimumExtensionTime: 1 minutes,
       consistencyLevel: 0,
       initialMaxQueryTimestampOffset: 10 minutes,
-      solanaTokenDecimals: 8
+      solanaTokenDecimals: 6
     });
   }
 }

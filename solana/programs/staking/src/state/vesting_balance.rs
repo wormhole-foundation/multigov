@@ -1,28 +1,27 @@
 use anchor_lang::prelude::*;
-use std::mem::size_of;
 
 /// Used to store the total vesting balance of a single vester
 /// It is also used to delegate vesting
 #[account]
-#[derive(Default)]
+#[derive(Default, InitSpace)]
 pub struct VestingBalance {
     pub vester: Pubkey,
     pub total_vesting_balance: u64,
     pub bump: u8,
     pub stake_account_metadata: Pubkey,
+    pub rent_payer: Pubkey,
 }
 
-impl Space for VestingBalance {
-    const INIT_SPACE: usize = VestingBalance::DISCRIMINATOR.len() + size_of::<VestingBalance>();
+impl VestingBalance {
+    pub const LEN: usize = VestingBalance::DISCRIMINATOR.len() + VestingBalance::INIT_SPACE;
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::VestingBalance;
-    use anchor_lang::Space;
 
     #[test]
     fn check_size() {
-        assert!(VestingBalance::INIT_SPACE == 8 + 32 + 8 + 8 + 32); // 88
+        assert!(VestingBalance::LEN == 8 + 32 + 8 + 1 + 32 + 32); // 113
     }
 }

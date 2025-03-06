@@ -12,10 +12,6 @@ import {SpokeMessageExecutor} from "src/SpokeMessageExecutor.sol";
 import {SpokeAirlock} from "src/SpokeAirlock.sol";
 
 abstract contract DeploySpokeContractsBaseImpl is Script {
-  // This should not be used for a production deploy the correct address will be set as an environment variable.
-  uint256 constant DEFAULT_DEPLOYER_PRIVATE_KEY =
-    uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
-
   string constant DEFAULT_DEPLOY_VERSION = "v1";
 
   struct DeploymentConfiguration {
@@ -39,13 +35,12 @@ abstract contract DeploySpokeContractsBaseImpl is Script {
 
   function _getDeploymentConfiguration() internal virtual returns (DeploymentConfiguration memory);
 
+  /// @notice Creates a wallet for deployment using the private key from environment
+  /// @dev Requires DEPLOYER_PRIVATE_KEY to be set in the environment
+  /// @return wallet The wallet to be used for deployment
   function _deploymentWallet() internal virtual returns (Vm.Wallet memory) {
-    uint256 deployerPrivateKey = vm.envOr("DEPLOYER_PRIVATE_KEY", DEFAULT_DEPLOYER_PRIVATE_KEY);
-
-    Vm.Wallet memory wallet = vm.createWallet(deployerPrivateKey);
-    Vm.Wallet memory defaultWallet = vm.createWallet(DEFAULT_DEPLOYER_PRIVATE_KEY);
-    if (defaultWallet.addr == wallet.addr) revert InvalidAddressConfiguration();
-    return wallet;
+    uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+    return vm.createWallet(deployerPrivateKey);
   }
 
   function run() public returns (DeployedContracts memory) {

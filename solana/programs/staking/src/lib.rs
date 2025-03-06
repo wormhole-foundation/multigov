@@ -99,6 +99,12 @@ pub mod staking {
         // The checkpoint account contains 8 + 32 + 8 = 48 bytes of fixed data
         // Every checkpoint is 8 + 8 = 16 bytes, so we can fit in (10485760 - 48) / 16 = 655,357 checkpoints
         require!(args.max_checkpoints_account_limit <= 655_000, ErrorCode::InvalidCheckpointAccountLimit);
+        // Similarly make sure max_checkpoints_account_limit > MAX_VOTE_WEIGHT_WINDOW_LENGTH so we can't have
+        // 3 checkpoint accounts fall across a window. We don't mind for our tests
+        #[cfg(not(feature = "testing"))]
+        {
+            require!(args.max_checkpoints_account_limit > state::vote_weight_window_lengths::VoteWeightWindowLengths::MAX_VOTE_WEIGHT_WINDOW_LENGTH as u32, ErrorCode::InvalidCheckpointAccountLimit);
+        }
         config_account.max_checkpoints_account_limit = args.max_checkpoints_account_limit;
         config_account.pending_governance_authority = None;
         config_account.pending_vesting_admin = None;
@@ -698,6 +704,11 @@ pub mod staking {
             .create_vesting_balance(ctx.bumps.vesting_balance)
     }
 
+    // Closes a vesting balance account
+    pub fn close_vesting_balance(ctx: Context<CloseVestingBalance>) -> Result<()> {
+        ctx.accounts.close_vesting_balance()
+    }
+
     // Finalize a Config, disabling any further creation or cancellation of Vesting accounts
     pub fn finalize_vesting_config(ctx: Context<Finalize>) -> Result<()> {
         ctx.accounts.finalize()
@@ -825,19 +836,10 @@ pub mod staking {
                 data: instruction.data.clone(),
             };
 
-            // Use invoke_signed with the correct signer_seeds
-            if ix.program_id != crate::ID {
-                let signer_seeds: &[&[&[u8]]] =
-                    &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
+            let signer_seeds: &[&[&[u8]]] =
+                &[&[AIRLOCK_SEED.as_bytes(), &[ctx.accounts.airlock.bump]]];
 
-                invoke_signed(&ix, &account_infos, signer_seeds)?;
-            }
-            else  {
-                let signer_seeds: &[&[&[u8]]] =
-                    &[&[AIRLOCK_SELF_CALL_SEED.as_bytes(), &[ctx.accounts.airlock_self_call.bump]]];
-
-                invoke_signed(&ix, &account_infos, signer_seeds)?;
-            }
+            invoke_signed(&ix, &account_infos, signer_seeds)?;
         }
 
         let balance_after = ctx.accounts.payer.lamports();
@@ -858,9 +860,7 @@ pub mod staking {
     //------------------------------------ ------------------------------------------------
     pub fn initialize_spoke_airlock(ctx: Context<InitializeSpokeAirlock>) -> Result<()> {
         let airlock = &mut ctx.accounts.airlock;
-        let airlock_self_call = &mut ctx.accounts.airlock_self_call;
         airlock.bump = ctx.bumps.airlock;
-        airlock_self_call.bump = ctx.bumps.airlock_self_call;
         Ok(())
     }
 
@@ -893,7 +893,7 @@ pub mod staking {
             require!(ctx.accounts.payer.key() == ctx.accounts.config.governance_authority, ErrorCode::NotGovernanceAuthority);
         }
         else {
-            require!(ctx.accounts.airlock_self_call.to_account_info().is_signer, ErrorCode::AirlockNotSigner);
+            require!(ctx.accounts.airlock.to_account_info().is_signer, ErrorCode::AirlockNotSigner);
         }
 
         let _ = spoke_metadata_collector.update_hub_proposal_metadata(new_hub_proposal_metadata);

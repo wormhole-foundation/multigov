@@ -2,7 +2,7 @@ use anchor_lang::prelude::borsh::BorshSchema;
 use anchor_lang::prelude::*;
 
 #[account]
-#[derive(Default, Debug, BorshSchema)]
+#[derive(Default, Debug, BorshSchema, InitSpace)]
 pub struct SpokeMessageExecutor {
     pub bump: u8,
     // The hub dispatcher address
@@ -16,18 +16,18 @@ pub struct SpokeMessageExecutor {
 }
 
 #[account]
+#[derive(InitSpace)]
 pub struct MessageReceived {
     pub bump: u8,
 }
 
 impl SpokeMessageExecutor {
     pub const LEN: usize =
-        SpokeMessageExecutor::DISCRIMINATOR.len() + std::mem::size_of::<SpokeMessageExecutor>();
+        SpokeMessageExecutor::DISCRIMINATOR.len() + SpokeMessageExecutor::INIT_SPACE;
 }
 
 impl MessageReceived {
-    pub const LEN: usize =
-        MessageReceived::DISCRIMINATOR.len() + std::mem::size_of::<MessageReceived>();
+    pub const LEN: usize = MessageReceived::DISCRIMINATOR.len() + MessageReceived::INIT_SPACE;
 }
 
 #[cfg(test)]
@@ -36,7 +36,7 @@ pub mod tests {
 
     #[test]
     fn check_spoke_message_executor_size() {
-        assert!(SpokeMessageExecutor::LEN == 8 + 2 + 32 + 2 + 2 + 32); // 78
+        assert!(SpokeMessageExecutor::LEN == 8 + 1 + 32 + 2 + 2 + 32); // 77
     }
 
     #[test]
