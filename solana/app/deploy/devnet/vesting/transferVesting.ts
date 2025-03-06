@@ -1,7 +1,12 @@
 // Usage: npx ts-node app/deploy/devnet/vesting/transferVesting.ts
 
 import { Wallet, AnchorProvider } from "@coral-xyz/anchor";
-import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
 import {
   VESTING_ADMIN_KEYPAIR,
   USER_AUTHORITY_KEYPAIR,
@@ -9,7 +14,10 @@ import {
   WORMHOLE_TOKEN,
   RPC_NODE,
 } from "../constants";
-import { StakeAccountMetadata, StakeConnection } from "../../../StakeConnection";
+import {
+  StakeAccountMetadata,
+  StakeConnection,
+} from "../../../StakeConnection";
 import BN from "bn.js";
 import * as wasm from "@wormhole/staking-wasm";
 import {
@@ -106,20 +114,19 @@ async function main() {
   )[0];
 
   let stakeAccountMetadataAddress =
-    await vesterStakeConnection.getStakeMetadataAddress(
-      vester.publicKey
-    );
-//   console.log("stakeAccountMetadataAddress:", stakeAccountMetadataAddress)
+    await vesterStakeConnection.getStakeMetadataAddress(vester.publicKey);
+  //   console.log("stakeAccountMetadataAddress:", stakeAccountMetadataAddress)
   let newStakeAccountMetadataAddress =
-    await vesterStakeConnection.getStakeMetadataAddress(
-      newVester.publicKey,
-    );
+    await vesterStakeConnection.getStakeMetadataAddress(newVester.publicKey);
 
   let vestingBalanceAccount =
     await vesterStakeConnection.program.account.vestingBalance.fetch(
       vestingBalance,
     );
-  console.log("vestingBalanceAccount.totalVestingBalance: ", vestingBalanceAccount.totalVestingBalance.toString())
+  console.log(
+    "vestingBalanceAccount.totalVestingBalance: ",
+    vestingBalanceAccount.totalVestingBalance.toString(),
+  );
 
   let vesterDelegateStakeAccountOwner = await vesterStakeConnection.delegates(
     vester.publicKey,
@@ -157,7 +164,8 @@ async function main() {
     vestingBalance,
     newVestingBalance,
     globalConfig: vesterStakeConnection.configAddress,
-    delegateStakeAccountCheckpoints: newVesterDelegateStakeAccountCheckpointsAddress,
+    delegateStakeAccountCheckpoints:
+      newVesterDelegateStakeAccountCheckpointsAddress,
     delegateStakeAccountMetadata: newVesterDelegateStakeAccountMetadataAddress,
     stakeAccountMetadata: stakeAccountMetadataAddress,
     newStakeAccountMetadata: null,
@@ -209,35 +217,35 @@ async function main() {
   await vesterStakeConnection.provider.sendAndConfirm(tx, [vester]);
   console.log("transferVesting completed successfully.");
 
-//   console.log(`Delegate WH tokens with vests`);
-//   await vesterStakeConnection.delegateWithVest(
-//     newVesterDelegateStakeAccountOwner,
-//     WHTokenBalance.fromString("0"),
-//     true,
-//     config,
-//   );
-//   console.log(`WH tokens with vests successfully delegated`);
-//   await sleep(3000);
-//
-//   console.log("Starting transferVesting...");
-//     await vesterStakeConnection.program.methods
-//       .transferVesting()
-//       .accountsPartial({
-//         ...accounts
-//       })
-//       .rpc()
-//       .then(confirm);
-//   console.log("transferVesting completed successfully.");
-//   await sleep(3000);
-// 
-//   console.log(`Delegate WH tokens with vests`);
-//   await vesterStakeConnection.delegateWithVest(
-//     vesterDelegateStakeAccountOwner,
-//     WHTokenBalance.fromString("0"),
-//     true,
-//     config,
-//   );
-//   console.log(`WH tokens with vests successfully delegated`);
+  //   console.log(`Delegate WH tokens with vests`);
+  //   await vesterStakeConnection.delegateWithVest(
+  //     newVesterDelegateStakeAccountOwner,
+  //     WHTokenBalance.fromString("0"),
+  //     true,
+  //     config,
+  //   );
+  //   console.log(`WH tokens with vests successfully delegated`);
+  //   await sleep(3000);
+  //
+  //   console.log("Starting transferVesting...");
+  //     await vesterStakeConnection.program.methods
+  //       .transferVesting()
+  //       .accountsPartial({
+  //         ...accounts
+  //       })
+  //       .rpc()
+  //       .then(confirm);
+  //   console.log("transferVesting completed successfully.");
+  //   await sleep(3000);
+  //
+  //   console.log(`Delegate WH tokens with vests`);
+  //   await vesterStakeConnection.delegateWithVest(
+  //     vesterDelegateStakeAccountOwner,
+  //     WHTokenBalance.fromString("0"),
+  //     true,
+  //     config,
+  //   );
+  //   console.log(`WH tokens with vests successfully delegated`);
 
   vestingBalanceAccount =
     await vesterStakeConnection.program.account.vestingBalance.fetch(
@@ -247,8 +255,14 @@ async function main() {
     await vesterStakeConnection.program.account.vestingBalance.fetch(
       newVestingBalance,
     );
-  console.log("vestingBalanceAccount.totalVestingBalance: ", vestingBalanceAccount.totalVestingBalance.toString())
-  console.log("newVestingBalanceAccount.totalVestingBalance: ", newVestingBalanceAccount.totalVestingBalance.toString())
+  console.log(
+    "vestingBalanceAccount.totalVestingBalance: ",
+    vestingBalanceAccount.totalVestingBalance.toString(),
+  );
+  console.log(
+    "newVestingBalanceAccount.totalVestingBalance: ",
+    newVestingBalanceAccount.totalVestingBalance.toString(),
+  );
 
   let vesterStakeMetadata: StakeAccountMetadata =
     await vesterStakeConnection.fetchStakeAccountMetadata(vester.publicKey);
@@ -258,8 +272,14 @@ async function main() {
       false,
     );
 
-  console.log("vesterStakeMetadata.recordedVestingBalance: ", vesterStakeMetadata.recordedVestingBalance.toString())
-  console.log("vesterStakeMetadata.recordedBalance: ", vesterStakeMetadata.recordedBalance.toString())
+  console.log(
+    "vesterStakeMetadata.recordedVestingBalance: ",
+    vesterStakeMetadata.recordedVestingBalance.toString(),
+  );
+  console.log(
+    "vesterStakeMetadata.recordedBalance: ",
+    vesterStakeMetadata.recordedBalance.toString(),
+  );
 }
 
 main();

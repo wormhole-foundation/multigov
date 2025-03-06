@@ -441,8 +441,8 @@ pub struct UpdateGovernanceAuthority<'info> {
 #[derive(Accounts)]
 pub struct ClaimGovernanceAuthority<'info> {
     #[account(
-        mut, 
-        seeds = [CONFIG_SEED.as_bytes()], 
+        mut,
+        seeds = [CONFIG_SEED.as_bytes()],
         bump = config.bump,
         constraint = (
             config.pending_governance_authority == Some(new_authority.key())
@@ -466,8 +466,8 @@ pub struct UpdateVestingAdmin<'info> {
 #[derive(Accounts)]
 pub struct ClaimVestingAdmin<'info> {
     #[account(
-        mut, 
-        seeds = [CONFIG_SEED.as_bytes()], 
+        mut,
+        seeds = [CONFIG_SEED.as_bytes()],
         bump = config.bump,
         constraint = (
             config.pending_vesting_admin == Some(new_vesting_admin.key())

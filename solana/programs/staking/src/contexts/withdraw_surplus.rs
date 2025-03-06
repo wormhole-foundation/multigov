@@ -4,9 +4,7 @@ use crate::state::global_config::GlobalConfig;
 use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{
-    transfer_checked, Mint, TokenAccount, Token, TransferChecked,
-};
+use anchor_spl::token::{transfer_checked, Mint, Token, TokenAccount, TransferChecked};
 
 #[derive(Accounts)]
 pub struct WithdrawSurplus<'info> {

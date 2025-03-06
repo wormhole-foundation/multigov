@@ -42,7 +42,7 @@ async function main() {
   const NOW = new BN(1741270829);
 
   const seedBufferHex = "83cda9d4e2445bff";
-  const seedBuffer = Buffer.from(seedBufferHex, 'hex');
+  const seedBuffer = Buffer.from(seedBufferHex, "hex");
   const config = PublicKey.findProgramAddressSync(
     [
       Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
@@ -51,7 +51,7 @@ async function main() {
     ],
     vesterStakeConnection.program.programId,
   )[0];
-//   const config = new PublicKey("AHfPLNVnRGoACwMfoRCwWnCEJWjMX4x7Yq3ufg3tpjQQ");
+  //   const config = new PublicKey("AHfPLNVnRGoACwMfoRCwWnCEJWjMX4x7Yq3ufg3tpjQQ");
   console.log("Vesting config account:", config);
 
   const vault = getAssociatedTokenAddressSync(
