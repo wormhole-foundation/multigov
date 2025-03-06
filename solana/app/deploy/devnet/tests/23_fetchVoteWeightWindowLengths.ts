@@ -4,7 +4,7 @@ import { Wallet, AnchorProvider, utils } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";
 import * as wasm from "@wormhole/staking-wasm";
 import {
-  DEPLOYER_AUTHORITY_KEYPAIR,
+  USER2_AUTHORITY_KEYPAIR,
   RPC_NODE,
   VOTE_WEIGHT_WINDOW_LENGTHS,
 } from "../constants";
@@ -18,7 +18,7 @@ async function main() {
   const connection = new Connection(RPC_NODE);
   const provider = new AnchorProvider(
     connection,
-    new Wallet(DEPLOYER_AUTHORITY_KEYPAIR),
+    new Wallet(USER2_AUTHORITY_KEYPAIR),
     {},
   );
   const stakeConnection = await StakeConnection.createStakeConnection(

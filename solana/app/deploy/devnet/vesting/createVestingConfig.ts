@@ -24,6 +24,10 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function main() {
   const admin = VESTING_ADMIN_KEYPAIR;
   const vester = USER_AUTHORITY_KEYPAIR;
@@ -63,11 +67,15 @@ async function main() {
 
   const seed = new BN(randomBytes(8));
   console.log("Vesting config random seed:", seed);
+  const seedBuffer = seed.toBuffer("le", 8);
+  console.log("seedBuffer:", seedBuffer);
+  console.log("seedBufferHex:", seedBuffer.toString("hex"));
+
   const config = PublicKey.findProgramAddressSync(
     [
       Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
       WORMHOLE_TOKEN.toBuffer(),
-      seed.toBuffer("le", 8),
+      seedBuffer,
     ],
     stakeConnection.program.programId,
   )[0];
@@ -125,6 +133,7 @@ async function main() {
     .rpc()
     .then(confirm);
   console.log("Vesting config initialized");
+  await sleep(3000);
 
   console.log("Creating vesting balance for vester...");
   await stakeConnection.program.methods
@@ -134,6 +143,7 @@ async function main() {
     .rpc()
     .then(confirm);
   console.log("Vesting balance for vester created");
+  await sleep(3000);
 
   console.log(`Creating vest for vester at NOW (${NOW.toString()})...`);
   await stakeConnection.program.methods
@@ -143,6 +153,7 @@ async function main() {
     .rpc()
     .then(confirm);
   console.log(`Vest for vester at NOW (${NOW.toString()}) created`);
+  await sleep(3000);
 
   console.log(`Creating vest for vester at LATER (${LATER.toString()})...`);
   await stakeConnection.program.methods
@@ -152,6 +163,7 @@ async function main() {
     .rpc()
     .then(confirm);
   console.log(`Vest for vester at LATER (${LATER.toString()}) created`);
+  await sleep(3000);
 
   console.log(
     `Creating vest for vester at EVEN_LATER (${EVEN_LATER.toString()})...`,
@@ -165,6 +177,7 @@ async function main() {
   console.log(
     `Vest for vester at EVEN_LATER (${EVEN_LATER.toString()}) created`,
   );
+  await sleep(3000);
 
   const vestLater = PublicKey.findProgramAddressSync(
     [
@@ -184,6 +197,7 @@ async function main() {
     .rpc()
     .then(confirm);
   console.log(`Vest for vester at LATER (${LATER.toString()}) canceled`);
+  await sleep(3000);
 
   console.log("Transferring WH tokens to Vault...");
   const tx = new Transaction();
@@ -201,6 +215,7 @@ async function main() {
   );
   await stakeConnection.provider.sendAndConfirm(tx, [admin]);
   console.log("WH tokens transferred to Vault");
+  await sleep(3000);
 
   console.log("Withdrawing surplus...");
   await stakeConnection.program.methods
@@ -210,6 +225,7 @@ async function main() {
     .rpc()
     .then(confirm);
   console.log("Surplus withdrawn");
+  await sleep(3000);
 
   console.log("Finalizing vesting config...");
   await stakeConnection.program.methods

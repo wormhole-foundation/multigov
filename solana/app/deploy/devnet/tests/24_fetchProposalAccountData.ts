@@ -3,7 +3,7 @@
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../../../StakeConnection";
-import { DEPLOYER_AUTHORITY_KEYPAIR, RPC_NODE } from "../constants";
+import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "../constants";
 import { ethers } from "ethers";
 import input from "@inquirer/input";
 
@@ -12,7 +12,7 @@ async function main() {
     const connection = new Connection(RPC_NODE);
     const provider = new AnchorProvider(
       connection,
-      new Wallet(DEPLOYER_AUTHORITY_KEYPAIR),
+      new Wallet(USER2_AUTHORITY_KEYPAIR),
       {},
     );
 

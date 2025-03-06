@@ -11,7 +11,7 @@ import * as wasm from "@wormhole/staking-wasm";
 import {
   RPC_NODE,
   STAKING_ADDRESS,
-  USER_AUTHORITY_KEYPAIR,
+  USER2_AUTHORITY_KEYPAIR,
   WORMHOLE_TOKEN,
 } from "../constants";
 
@@ -20,7 +20,7 @@ async function main() {
     const connection = new Connection(RPC_NODE);
     const provider = new AnchorProvider(
       connection,
-      new Wallet(USER_AUTHORITY_KEYPAIR),
+      new Wallet(USER2_AUTHORITY_KEYPAIR),
       {},
     );
     const user = provider.wallet.publicKey;
@@ -46,7 +46,7 @@ async function main() {
       from_account,
       toAccount,
       provider.wallet.publicKey,
-      50,
+      500000000,
     );
     transaction.add(ix);
 

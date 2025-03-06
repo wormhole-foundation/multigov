@@ -6,7 +6,7 @@ import {
   TransactionSignature,
 } from "@solana/web3.js";
 import { BorshCoder } from "@coral-xyz/anchor";
-import IDL from "../../target/idl/staking.json";
+import IDL from "../../../target/idl/staking.json";
 
 // Gets program transactions
 export async function getProgramTransactions(

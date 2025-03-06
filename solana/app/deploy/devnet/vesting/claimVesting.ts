@@ -39,8 +39,20 @@ async function main() {
     return signature;
   };
 
-  const NOW = new BN(1740006704);
-  const config = new PublicKey("BcJSiMQLggZxJ3v7kLLnQemB7Z6XJABV5Bci5LX7KhA3");
+  const NOW = new BN(1741270829);
+
+  const seedBufferHex = "83cda9d4e2445bff";
+  const seedBuffer = Buffer.from(seedBufferHex, 'hex');
+  const config = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
+      WORMHOLE_TOKEN.toBuffer(),
+      seedBuffer,
+    ],
+    vesterStakeConnection.program.programId,
+  )[0];
+//   const config = new PublicKey("AHfPLNVnRGoACwMfoRCwWnCEJWjMX4x7Yq3ufg3tpjQQ");
+  console.log("Vesting config account:", config);
 
   const vault = getAssociatedTokenAddressSync(
     WORMHOLE_TOKEN,
@@ -80,21 +92,6 @@ async function main() {
     vesterStakeConnection.program.programId,
   )[0];
 
-  let accounts = {
-    admin: admin.publicKey,
-    mint: WORMHOLE_TOKEN,
-    config,
-    vault,
-    vester: vester.publicKey,
-    vesterTa,
-    adminAta,
-    recovery: adminAta,
-    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-    tokenProgram: TOKEN_PROGRAM_ID,
-    systemProgram: SystemProgram.programId,
-    vestingBalance: vestingBalance,
-  };
-
   let stakeAccountMetadataAddress =
     await vesterStakeConnection.getStakeMetadataAddress(vester.publicKey);
   let stakeAccountMetadataData =
@@ -110,17 +107,28 @@ async function main() {
       false,
     );
 
+  let accounts = {
+    vester: vester.publicKey,
+    mint: WORMHOLE_TOKEN,
+    vault,
+    vesterTa,
+    config,
+    vest: vestNow,
+    vestingBalance,
+    delegateStakeAccountCheckpoints: delegateStakeAccountCheckpointsAddress,
+    delegateStakeAccountMetadata: stakeAccountMetadataAddress,
+    stakeAccountMetadata: stakeAccountMetadataAddress,
+    globalConfig: vesterStakeConnection.configAddress,
+    admin: admin.publicKey,
+    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+    tokenProgram: TOKEN_PROGRAM_ID,
+    systemProgram: SystemProgram.programId,
+  };
+
   console.log("Starting claimVesting...");
   await vesterStakeConnection.program.methods
     .claimVesting()
-    .accountsPartial({
-      ...accounts,
-      vest: vestNow,
-      delegateStakeAccountCheckpoints: delegateStakeAccountCheckpointsAddress,
-      delegateStakeAccountMetadata: stakeAccountMetadataAddress,
-      stakeAccountMetadata: stakeAccountMetadataAddress,
-      globalConfig: vesterStakeConnection.configAddress,
-    })
+    .accountsPartial({ ...accounts })
     .signers([vester])
     .rpc()
     .then(confirm);

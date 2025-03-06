@@ -16,7 +16,7 @@ async function main() {
     vesterProvider.wallet as Wallet,
   );
 
-  const config = new PublicKey("BcJSiMQLggZxJ3v7kLLnQemB7Z6XJABV5Bci5LX7KhA3");
+  const config = new PublicKey("AHfPLNVnRGoACwMfoRCwWnCEJWjMX4x7Yq3ufg3tpjQQ");
 
   console.log(`Delegate WH tokens with vests`);
   await vesterStakeConnection.delegateWithVest(
