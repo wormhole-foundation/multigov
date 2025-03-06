@@ -1,9 +1,9 @@
-use crate::context::{VESTING_CONFIG_SEED, CONFIG_SEED};
+use crate::context::{CONFIG_SEED, VESTING_CONFIG_SEED};
 use crate::error::VestingError;
+use crate::state::global_config::GlobalConfig;
 use crate::state::VestingConfig;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-use crate::state::global_config::GlobalConfig;
 
 #[derive(Accounts)]
 pub struct Finalize<'info> {

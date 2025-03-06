@@ -10,18 +10,14 @@ import * as wasm from "@wormhole/staking-wasm";
 import assert from "assert";
 import BN from "bn.js";
 import path from "path";
+import { StakeConnection, WHTokenBalance, WH_TOKEN_DECIMALS } from "../app";
 import {
-  StakeConnection,
-  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
-  WH_TOKEN_DECIMALS,
-  WHTokenBalance,
-} from "../app";
-import {
-  CORE_BRIDGE_ADDRESS,
+  CORE_BRIDGE_PID,
   HUB_CHAIN_ID,
   hubProposalMetadataUint8Array,
-} from "../app/constants";
-import { StakeAccountMetadata } from "../app/StakeConnection.ts";
+  TEST_CHECKPOINTS_ACCOUNT_LIMIT,
+} from "./utils/constants";
+import { StakeAccountMetadata } from "../app/StakeConnection";
 import {
   readWindowLengths,
   WindowLengthsAccount,
@@ -234,7 +230,7 @@ describe("config", async () => {
     );
     assert.equal(
       spokeMetadataCollectorAccountData.wormholeCore.toString("hex"),
-      CORE_BRIDGE_ADDRESS.toString("hex"),
+      CORE_BRIDGE_PID.toString("hex"),
     );
   });
 
@@ -344,7 +340,7 @@ describe("config", async () => {
     );
     assert.equal(
       spokeMetadataCollectorAccountData.wormholeCore.toString("hex"),
-      CORE_BRIDGE_ADDRESS.toString("hex"),
+      CORE_BRIDGE_PID.toString("hex"),
     );
   });
 
@@ -434,7 +430,6 @@ describe("config", async () => {
     const samConnection = await StakeConnection.createStakeConnection(
       program.provider.connection,
       new Wallet(sam),
-      program.programId,
     );
 
     await samConnection.program.provider.connection.requestAirdrop(
@@ -467,7 +462,6 @@ describe("config", async () => {
     const vestingAdminConnection = await StakeConnection.createStakeConnection(
       program.provider.connection,
       new Wallet(vestingAdminKeypair),
-      program.programId,
     );
 
     await vestingAdminConnection.program.provider.connection.requestAirdrop(

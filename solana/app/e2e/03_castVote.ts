@@ -1,12 +1,9 @@
 // Usage: npx ts-node app/e2e/03_castVote.ts
 
-import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { StakeConnection } from "../StakeConnection";
-import { STAKING_ADDRESS } from "../constants";
-import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "../deploy/devnet";
-import BN from "bn.js";
+import { USER2_AUTHORITY_KEYPAIR, RPC_NODE } from "../deploy/devnet/constants";
 import { WHTokenBalance } from "../whTokenBalance";
 import input from "@inquirer/input";
 
@@ -27,7 +24,6 @@ async function castVote() {
     const user2StakeConnection = await StakeConnection.createStakeConnection(
       connection,
       user2Provider.wallet as Wallet,
-      STAKING_ADDRESS,
     );
 
     await user2StakeConnection.castVote(
