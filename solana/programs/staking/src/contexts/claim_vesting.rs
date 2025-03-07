@@ -8,7 +8,7 @@ use crate::{
 };
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{Mint, Token, TokenAccount, transfer_checked, TransferChecked};
+use anchor_spl::token::{transfer_checked, Mint, Token, TokenAccount, TransferChecked};
 use std::convert::TryInto;
 
 #[event_cpi]

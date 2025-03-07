@@ -9,3 +9,5 @@ snapshots
 /artifacts
 package-lock.json
 yarn.lock
+/app/e2e/log/*.json
+app/keypairs/deployer.json

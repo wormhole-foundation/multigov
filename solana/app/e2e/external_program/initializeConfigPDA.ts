@@ -1,13 +1,12 @@
 // Usage: npx ts-node app/e2e/external_program/initializeConfigPDA.ts
 
-import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
 import {
   DEPLOYER_AUTHORITY_KEYPAIR,
   RPC_NODE,
   AIRLOCK_PDA_ADDRESS,
-} from "../../deploy/devnet";
+} from "../../deploy/devnet/constants";
 import { ExternalProgram } from "./idl/external_program";
 import externalProgramIdl from "./idl/external_program.json";
 

@@ -1,10 +1,7 @@
-import { StakeAccount, StakeConnection } from "../../app/StakeConnection";
+import { StakeConnection } from "../../app/StakeConnection";
 import { PublicKey } from "@solana/web3.js";
 import { WHTokenBalance } from "../../app";
-import {
-  HUB_CHAIN_ID,
-  HUB_PROPOSAL_METADATA_ADDRESS,
-} from "../../app/constants";
+import { HUB_CHAIN_ID, HUB_PROPOSAL_METADATA_ADDRESS } from "./constants";
 import assert from "assert";
 import {
   QueryRequest,
@@ -42,8 +39,13 @@ export async function assertBalanceMatches(
   owner: PublicKey,
   expected: WHTokenBalance,
 ) {
-  const stakeAccountCheckpointsAddress =
-    await stakeConnection.getStakeAccountCheckpointsAddress(owner);
+  let stakeAccountMetadataAddress =
+    await stakeConnection.getStakeMetadataAddress(owner);
+  let stakeAccountCheckpointsAddress =
+    await stakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+      stakeAccountMetadataAddress,
+      false,
+    );
   let stakeAccount = await stakeConnection.loadStakeAccount(
     stakeAccountCheckpointsAddress,
   );

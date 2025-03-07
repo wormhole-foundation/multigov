@@ -4,13 +4,11 @@ import {
   getPortNumber,
   makeDefaultConfig,
   readAnchorConfig,
-  requestWHTokenAirdrop,
   standardSetup,
 } from "./utils/before";
 import path from "path";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { StakeConnection, WHTokenBalance } from "../app";
-import { BN, Wallet } from "@coral-xyz/anchor";
 import assert from "assert";
 
 const portNumber = getPortNumber(path.basename(__filename));
