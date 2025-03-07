@@ -31,12 +31,12 @@ async function main() {
     const { proposalAccountData } =
       await stakeConnection.fetchProposalAccountData(proposalIdArray);
 
-    const proposalId = new ethers.AbiCoder()
+    const proposalIdFromAccount = new ethers.AbiCoder()
       .decode(["uint256"], Buffer.from(proposalAccountData.id))[0]
       .toString();
 
     console.log("Parse proposalAccountData:");
-    console.log("proposalId:", proposalId);
+    console.log("proposalId:", proposalIdFromAccount);
     console.log("againstVotes:", proposalAccountData.againstVotes.toNumber());
     console.log("forVotes:", proposalAccountData.forVotes.toNumber());
     console.log("abstainVotes:", proposalAccountData.abstainVotes.toNumber());
