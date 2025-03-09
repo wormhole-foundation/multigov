@@ -33,6 +33,10 @@ const ProposalStateNames = [
   "Executed", // 7
 ];
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function proposalQueue(): Promise<void> {
   try {
     const provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -46,43 +50,57 @@ async function proposalQueue(): Promise<void> {
     let proposalIdHex = BigInt(proposalId).toString(16).padStart(64, "0");
     //     console.log("proposalIdHex:", proposalIdHex);
 
-    const proposalStateNumber = (
-      await contract.state.staticCall(proposalId)
-    ).toString();
-    console.log(
-      "Proposal State:",
-      ProposalStateNames[parseInt(proposalStateNumber)],
-    );
     console.log(
       "proposalVotes(proposalId):",
       await contract.proposalVotes.staticCall(proposalId),
     );
 
-    const fileName = `./app/e2e/log/${proposalId.toString()}.json`;
-    if (!fs.existsSync(fileName))
-      throw new Error(`Proposal file not found: ${fileName}`);
-    const savedProposalData = JSON.parse(fs.readFileSync(fileName, "utf8"));
-    console.log("savedProposalData:", savedProposalData);
+    let proposalStateNumber;
+    while (true) {
+      proposalStateNumber = (
+        await contract.state.staticCall(proposalId)
+      ).toString();
+      console.log(
+        "Proposal State:",
+        ProposalStateNames[parseInt(proposalStateNumber)],
+      );
 
-    // encoding payload with solana calldata
-    const iface = new ethers.Interface(HubSolanaMessageDispatcherAbi);
-    const calldata = iface.encodeFunctionData("dispatch", [
-      savedProposalData.solanaPayloadHex,
-    ]);
-    const descriptionHash = ethers.keccak256(
-      ethers.toUtf8Bytes(savedProposalData.proposalName),
-    );
-    const executeProposalPayload = [
-      [HUB_SOLANA_MESSAGE_DISPATCHER_ADDRESS],
-      [0],
-      [calldata],
-      descriptionHash,
-    ];
+      if (proposalStateNumber != 1) {
+        break;
+      } else {
+        await sleep(10000);
+      }
+    }
 
-    console.log("Queueing a proposal...");
-    await contract.queue.staticCall(...executeProposalPayload);
-    const queue_tx = await contract.queue(...executeProposalPayload);
-    console.log(queue_tx);
+    if (proposalStateNumber == 4) {
+      const fileName = `./app/e2e/log/${proposalId.toString()}.json`;
+      if (!fs.existsSync(fileName))
+        throw new Error(`Proposal file not found: ${fileName}`);
+      const savedProposalData = JSON.parse(fs.readFileSync(fileName, "utf8"));
+      console.log("savedProposalData:", savedProposalData);
+
+      // encoding payload with solana calldata
+      const iface = new ethers.Interface(HubSolanaMessageDispatcherAbi);
+      const calldata = iface.encodeFunctionData("dispatch", [
+        savedProposalData.solanaPayloadHex,
+      ]);
+      const descriptionHash = ethers.keccak256(
+        ethers.toUtf8Bytes(savedProposalData.proposalName),
+      );
+      const executeProposalPayload = [
+        [HUB_SOLANA_MESSAGE_DISPATCHER_ADDRESS],
+        [0],
+        [calldata],
+        descriptionHash,
+      ];
+
+      console.log("Queueing a proposal...");
+      await contract.queue.staticCall(...executeProposalPayload);
+      const queue_tx = await contract.queue(...executeProposalPayload);
+      console.log(queue_tx);
+    } else {
+      console.log("The proposal is not queued!!!!!");
+    }
   } catch (error) {
     console.error(error);
   }

@@ -42,7 +42,9 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  86,
+                  50
                 ]
               }
             ]
@@ -86,7 +88,9 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  86,
+                  50
                 ]
               }
             ]
@@ -99,7 +103,62 @@
       ],
       "args": [
         {
+          "name": "super_admin",
+          "type": "pubkey"
+        },
+        {
           "name": "admin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "update_admin",
+      "discriminator": [
+        161,
+        176,
+        40,
+        213,
+        60,
+        184,
+        179,
+        228
+      ],
+      "accounts": [
+        {
+          "name": "super_admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103,
+                  86,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_admin",
           "type": "pubkey"
         }
       ]
@@ -133,6 +192,19 @@
         42,
         155
       ]
+    },
+    {
+      "name": "UpdateAdminEvent",
+      "discriminator": [
+        225,
+        152,
+        171,
+        87,
+        246,
+        63,
+        66,
+        234
+      ]
     }
   ],
   "errors": [
@@ -165,12 +237,32 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "super_admin",
+            "type": "pubkey"
+          },
+          {
             "name": "admin",
             "type": "pubkey"
           },
           {
             "name": "counter",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateAdminEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previous_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_admin",
+            "type": "pubkey"
           }
         ]
       }
