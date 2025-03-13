@@ -82,6 +82,11 @@ export const VESTING_ADMIN_KEYPAIR = loadKeypair(
   homedir() + VESTING_ADMIN_PATH,
 );
 
+export const NEW_VESTING_ADMIN_PATH = "/.config/solana/newVestingAdmin.json";
+export const NEW_VESTING_ADMIN_KEYPAIR = loadKeypair(
+  homedir() + NEW_VESTING_ADMIN_PATH,
+);
+
 export const USER_AUTHORITY_PATH = "/.config/solana/user.json";
 export const USER_AUTHORITY_KEYPAIR = loadKeypair(
   homedir() + USER_AUTHORITY_PATH,

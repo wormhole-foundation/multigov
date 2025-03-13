@@ -1,10 +1,10 @@
-// Usage: npx ts-node app/deploy/devnet/update/updateVestingAdmin.ts
+// Usage: npx ts-node app/deploy/devnet/update/claimVestingAdmin.ts
 
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection } from "@solana/web3.js";
 import {
-  VESTING_ADMIN_KEYPAIR,
   RPC_NODE,
+  NEW_VESTING_ADMIN_KEYPAIR,
 } from "../constants";
 import { Staking } from "../../../../target/types/staking";
 import fs from "fs";
@@ -14,7 +14,7 @@ async function main() {
     const connection = new Connection(RPC_NODE);
     const provider = new AnchorProvider(
       connection,
-      new Wallet(VESTING_ADMIN_KEYPAIR),
+      new Wallet(NEW_VESTING_ADMIN_KEYPAIR),
       {},
     );
 
@@ -24,13 +24,10 @@ async function main() {
       provider,
     );
 
-    const NEW_VESTING_ADMIN_ADDRESS = new PublicKey(
-      "E1R3XdHgEYmsoLdZSQmhWrcD979bn5qK1bzr7pqMn2UQ",
-    );
-
     await program.methods
-      .updateVestingAdmin()
-      .accounts({ newVestingAdmin: NEW_VESTING_ADMIN_ADDRESS })
+      .claimVestingAdmin()
+      .accounts({ newVestingAdmin: NEW_VESTING_ADMIN_KEYPAIR.publicKey })
+      .signers([NEW_VESTING_ADMIN_KEYPAIR])
       .rpc();
   } catch (err) {
     console.error("Error:", err);
