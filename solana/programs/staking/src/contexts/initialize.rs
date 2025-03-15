@@ -15,7 +15,7 @@ pub struct Initialize<'info> {
     mint: Account<'info, Mint>,
     // Initialize a vault for us to store our money in escrow for vesting
     #[account(
-        init,
+        init_if_needed,
         payer = admin,
         associated_token::mint = mint,
         associated_token::authority = config,

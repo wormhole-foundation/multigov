@@ -10,6 +10,7 @@ import {
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
+  createAssociatedTokenAccountInstruction,
   createInitializeMintInstruction,
   createMintToInstruction,
   createTransferCheckedInstruction,
@@ -77,12 +78,15 @@ describe("vesting", () => {
   const vesterWithoutAccount = Keypair.generate();
   const seed = new BN(randomBytes(8));
   const seed2 = new BN(randomBytes(8));
+  const seed3 = new BN(randomBytes(8));
 
   let accounts,
     config,
     config2,
+    config3,
     vault,
     vault2,
+    vault3,
     vesterTa,
     vester2Ta,
     vester3Ta,
@@ -161,6 +165,14 @@ describe("vesting", () => {
       ],
       stakeConnection.program.programId,
     )[0];
+    config3 = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VESTING_CONFIG_SEED()),
+        whMintAccount.publicKey.toBuffer(),
+        seed3.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId,
+    )[0];
     vault = getAssociatedTokenAddressSync(
       whMintAccount.publicKey,
       config,
@@ -170,6 +182,12 @@ describe("vesting", () => {
     vault2 = getAssociatedTokenAddressSync(
       whMintAccount.publicKey,
       config2,
+      true,
+      TOKEN_PROGRAM_ID,
+    );
+    vault3 = getAssociatedTokenAddressSync(
+      whMintAccount.publicKey,
+      config3,
       true,
       TOKEN_PROGRAM_ID,
     );
@@ -668,6 +686,34 @@ describe("vesting", () => {
         (e as AnchorError).error?.errorCode?.code === "InvalidVestingAdmin",
       );
     }
+  });
+
+  it("should successfully initialize vesting config if vault ATA is pre-created by another user", async () => {
+    const tx = new Transaction();
+    tx.add(
+      createAssociatedTokenAccountInstruction(
+        vester.publicKey,        // payer
+        vault3,                  // associatedToken
+        config3,                 // owner
+        whMintAccount.publicKey, // mint
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID,
+      ),
+    );
+    await vesterStakeConnection.provider.sendAndConfirm(tx, [vester])
+      .then(confirm);
+    await sleep(1500);
+
+    await stakeConnection.program.methods
+      .initializeVestingConfig(seed3)
+      .accounts({
+        ...accounts,
+        config: config3,
+        vault: vault3,
+      })
+      .signers([whMintAuthority])
+      .rpc()
+      .then(confirm);
   });
 
   it("Initialize config", async () => {

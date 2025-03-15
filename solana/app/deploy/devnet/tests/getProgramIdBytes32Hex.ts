@@ -1,4 +1,4 @@
-// Usage: npx ts-node app/deploy/getProgramIdBytes32Hex.ts
+// Usage: npx ts-node app/deploy/devnet/tests/getProgramIdBytes32Hex.ts
 // AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap
 
 import { PublicKey } from "@solana/web3.js";
