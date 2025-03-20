@@ -674,7 +674,7 @@ pub mod staking {
             emit!(VoteCast {
                 voter: ctx.accounts.owner.key(),
                 proposal_id,
-                weight: total_weight,
+                weight: new_weight,
                 against_votes,
                 for_votes,
                 abstain_votes
@@ -683,7 +683,7 @@ pub mod staking {
             emit_cpi!(VoteCast {
                 voter: ctx.accounts.owner.key(),
                 proposal_id,
-                weight: total_weight,
+                weight: new_weight,
                 against_votes,
                 for_votes,
                 abstain_votes
