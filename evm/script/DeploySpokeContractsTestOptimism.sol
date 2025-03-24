@@ -8,8 +8,8 @@ contract DeploySpokeContractsOptimismTest is DeploySpokeContractsBaseImpl {
     return DeploymentConfiguration({
       wormholeCore: 0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722,
       hubChainId: 2,
-      hubProposalMetadata: 0xb2F162945eF0631F62FE4421dc6Ec5eCDf92EF59,
-      votingToken: 0xbb7F5Dd82ECf91b448526F88Bb6A525096A7246B,
+      hubProposalMetadata: 0xe1485b53e6E94aD4B82b19E48DA1911d2E19bFaE,
+      votingToken: 0x99169F25429fdC6E5358A1b317Df4b95f4EAF858,
       voteWeightWindow: 10 minutes,
       hubDispatcher: 0x000000000000000000000000b2f162945ef0631f62fe4421dc6ec5ecdf92ef59,
       spokeChainId: 24

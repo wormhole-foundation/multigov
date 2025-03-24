@@ -7,9 +7,9 @@ import {HubVotePool} from "src/HubVotePool.sol";
 
 contract RegisterSpokesOnHubMainnetTest is Script {
   address HUB_VOTE_POOL = 0x6D87469dC04aec896dB03Df9B1b9Ba29535CC206; // TODO: Replace with the hub vote pool address
-  address OPTIMISM_VOTE_AGGREGATOR = 0x557133FB5451aB1CB83FA271FC044eEBea8faaE2; // TODO: Replace with a real
-  address BASE_VOTE_AGGREGATOR = 0xdcd97449bFD93c554e06C4B0212A9faF66d9Ea3e; // TODO: Replace with a real
-  address ARBITRUM_VOTE_AGGREGATOR = 0x87D07772C1150A0e62C1D9171AdaF4C1F17888EB; // TODO: Replace with a real
+  address OPTIMISM_VOTE_AGGREGATOR = 0xB8368aFbFfB116a71f2060a68e93654Ad36ff869; // TODO: Replace with a real
+  address BASE_VOTE_AGGREGATOR = 0xfd59EF4f3E779cB6C0f7256205cF258318dF4519; // TODO: Replace with a real
+  address ARBITRUM_VOTE_AGGREGATOR = 0x53d1A3F2B71880F8383136F61509BA357b8c1423; // TODO: Replace with a real
 
     // address
   bytes32 SOLANA_SPOKE = bytes32(0xee7066afc36b670f4b52088b82a96da0ba563335db5ac099786d9f8800ff429e);
