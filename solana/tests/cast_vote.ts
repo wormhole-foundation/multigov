@@ -31,7 +31,7 @@ export { wasm };
 
 const portNumber = getPortNumber(path.basename(__filename));
 
-describe("api", async () => {
+describe("castVote", async () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
   const governanceAuthority = new Keypair();
@@ -43,15 +43,17 @@ describe("api", async () => {
   let user5StakeConnection: StakeConnection;
   let user6StakeConnection: StakeConnection;
   let user7StakeConnection: StakeConnection;
-
+  let user8StakeConnection: StakeConnection;
   let user9StakeConnection: StakeConnection;
 
   let controller;
+  let user2;
   let user3;
   let user4;
   let user5;
   let user6;
   let user7;
+  let user8;
   let user9;
 
   const confirm = async (signature: string): Promise<string> => {
@@ -89,6 +91,7 @@ describe("api", async () => {
       whMintAuthority,
       WHTokenBalance.fromString("1000"),
     );
+    user2 = user2StakeConnection.provider.wallet.publicKey;
 
     user3StakeConnection = await newUserStakeConnection(
       stakeConnection,
@@ -139,6 +142,16 @@ describe("api", async () => {
       WHTokenBalance.fromString("1000"),
     );
     user7 = user7StakeConnection.provider.wallet.publicKey;
+
+    user8StakeConnection = await newUserStakeConnection(
+      stakeConnection,
+      Keypair.generate(),
+      config,
+      whMintAccount,
+      whMintAuthority,
+      WHTokenBalance.fromString("1000"),
+    );
+    user8 = user8StakeConnection.provider.wallet.publicKey;
 
     user9StakeConnection = await newUserStakeConnection(
       stakeConnection,
@@ -297,13 +310,12 @@ describe("api", async () => {
   });
 
   it("should cast vote with the correct weight", async () => {
-    let stakeAccountCheckpointsAddress;
     let proposalIdInput;
     let voteStart;
 
     // Create 6 checkpoints, 1 second apart
     for (let i = 0; i < 6; i++) {
-      stakeAccountCheckpointsAddress = await user7StakeConnection.delegate(
+      await user7StakeConnection.delegate(
         user7,
         WHTokenBalance.fromString("50"),
       );
@@ -536,6 +548,152 @@ describe("api", async () => {
     assert.equal(abstainVotes.toString(), "12");
   });
 
+  it("should correctly handle last checkpoint skip when voter_checkpoints is full", async () => {
+    // filling the checkpoint account to the limit
+    for (let i = 0; i < TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1; i++) {
+      await sleep(1000);
+      await user8StakeConnection.delegate(
+        user8,
+        WHTokenBalance.fromString("5"),
+      );
+    }
+
+    let user8StakeAccountMetadataAddress =
+      await user8StakeConnection.getStakeMetadataAddress(
+        user8,
+      );
+    let previousUser8StakeAccountCheckpointsAddress =
+      await user8StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        user8StakeAccountMetadataAddress,
+        false,
+      );
+    let user8StakeAccountCheckpointsAddress =
+      PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+          user8.toBuffer(),
+          Buffer.from([1, 0]),
+        ],
+        user8StakeConnection.program.programId,
+      )[0];
+
+    let user6StakeAccountMetadataAddress =
+      await user6StakeConnection.getStakeMetadataAddress(
+        user6,
+      );
+    let user6StakeAccountCheckpointsAddress =
+      await user6StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        user6StakeAccountMetadataAddress,
+        false,
+      );
+
+    await sleep(1000);
+    const instructions: TransactionInstruction[] = [];
+    instructions.push(
+      await user8StakeConnection.buildTransferInstruction(
+        user8,
+        WHTokenBalance.fromString("5").toBN(),
+      ),
+    );
+    instructions.push(
+      await user8StakeConnection.program.methods
+        .delegate(
+          user6,
+          user8,
+        )
+        .accountsPartial({
+          currentDelegateStakeAccountCheckpoints:
+            previousUser8StakeAccountCheckpointsAddress,
+          delegateeStakeAccountCheckpoints:
+            user6StakeAccountCheckpointsAddress,
+          vestingConfig: null,
+          vestingBalance: null,
+          mint: user8StakeConnection.config.votingTokenMint,
+        })
+        .instruction(),
+    );
+    instructions.push(
+      await user8StakeConnection.program.methods
+        .createCheckpoints()
+        .accounts({
+          payer: user8,
+          stakeAccountCheckpoints:
+            previousUser8StakeAccountCheckpointsAddress,
+          newStakeAccountCheckpoints: user8StakeAccountCheckpointsAddress,
+          stakeAccountMetadata: user8StakeAccountMetadataAddress,
+        })
+        .instruction(),
+    );
+    instructions.push(
+      await user8StakeConnection.program.methods
+        .delegate(
+          user8,
+          user6,
+        )
+        .accountsPartial({
+          currentDelegateStakeAccountCheckpoints:
+            user6StakeAccountCheckpointsAddress,
+          delegateeStakeAccountCheckpoints:
+            user8StakeAccountCheckpointsAddress,
+          vestingConfig: null,
+          vestingBalance: null,
+          mint: user8StakeConnection.config.votingTokenMint,
+        })
+        .instruction(),
+    );
+    await user8StakeConnection.sendAndConfirmAsVersionedTransaction(
+      instructions,
+    );
+
+    await sleep(2000);
+    await user8StakeConnection.delegate(
+      user8,
+      WHTokenBalance.fromString("150"),
+    );
+
+    let previousUser8StakeAccountCheckpoints: CheckpointAccount =
+    await user8StakeConnection.fetchCheckpointAccount(
+      previousUser8StakeAccountCheckpointsAddress,
+    );
+    assert.equal(
+      previousUser8StakeAccountCheckpoints.checkpoints[TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1].value.toString(),
+      "0",
+    );
+
+    let user8StakeAccountCheckpoints: CheckpointAccount =
+      await user8StakeConnection.fetchCheckpointAccount(
+        user8StakeAccountCheckpointsAddress,
+      );
+    assert.equal(
+      user8StakeAccountCheckpoints.checkpoints[0].value.toString(),
+      "75000000",
+    );
+    assert.equal(
+      user8StakeAccountCheckpoints.checkpoints[1].value.toString(),
+      "225000000",
+    );
+
+    let proposalIdInput = await addTestProposal(
+      user8StakeConnection,
+      Math.floor(Date.now() / 1000),
+    );
+    await user8StakeConnection.castVote(
+      proposalIdInput,
+      new BN(10),
+      new BN(20),
+      new BN(12),
+      0,
+    );
+
+    const { proposalId, againstVotes, forVotes, abstainVotes } =
+    await user8StakeConnection.proposalVotes(proposalIdInput);
+
+    assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
+    assert.equal(againstVotes.toString(), "10");
+    assert.equal(forVotes.toString(), "20");
+    assert.equal(abstainVotes.toString(), "12");
+  });
+
   it("should fail to castVote with zeroing out the first checkpoint in new checkpoint account", async () => {
     // filling the checkpoint account to the limit
     for (let i = 0; i < TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1; i++) {
@@ -720,6 +878,77 @@ describe("api", async () => {
     } catch (e) {
       assert((e as AnchorError).error?.errorCode?.code === "ConstraintSeeds");
     }
+  });
+
+  it("should successfully castVote when voter_checkpoints is almost full (one checkpoint less than limit)", async () => {
+    let voteStart;
+    let proposalIdInput;
+
+    let stakeAccountMetadataAddress =
+      await user2StakeConnection.getStakeMetadataAddress(
+        user2,
+      );
+    let currentStakeAccountCheckpointsAddress =
+      await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
+        stakeAccountMetadataAddress,
+        false,
+      );
+    let currentStakeAccountCheckpoints: CheckpointAccount =
+      await user2StakeConnection.fetchCheckpointAccount(
+        currentStakeAccountCheckpointsAddress,
+      );
+    let checkpointCount = currentStakeAccountCheckpoints.getCheckpointCount();
+
+    assert.equal(
+      checkpointCount,
+      1,
+    );
+
+    // fill checkpoint account to one less than the limit
+    for (let i = 0; i < TEST_CHECKPOINTS_ACCOUNT_LIMIT - checkpointCount - 1; i++) {
+      await sleep(1000);
+      await user2StakeConnection.delegate(
+        user2,
+        WHTokenBalance.fromString("5")
+      );
+
+      if (i == 9) {
+        voteStart = Math.floor(Date.now() / 1000) + 10;
+        proposalIdInput = await addTestProposal(
+          user2StakeConnection,
+          voteStart,
+        );
+      }
+    }
+
+    let updatedCurrentStakeAccountCheckpoints: CheckpointAccount =
+    await user2StakeConnection.fetchCheckpointAccount(
+      currentStakeAccountCheckpointsAddress,
+    );
+    assert.equal(
+      updatedCurrentStakeAccountCheckpoints.getCheckpointCount(),
+      TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1,
+    );
+
+    while (voteStart >= Math.floor(Date.now() / 1000)) {
+      await sleep(1000);
+    }
+    await sleep(1000);
+    await user2StakeConnection.castVote(
+      proposalIdInput,
+      new BN(10),
+      new BN(20),
+      new BN(12),
+      0,
+    );
+
+    const { proposalId, againstVotes, forVotes, abstainVotes } =
+      await user2StakeConnection.proposalVotes(proposalIdInput);
+
+    assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
+    assert.equal(againstVotes.toString(), "10");
+    assert.equal(forVotes.toString(), "20");
+    assert.equal(abstainVotes.toString(), "12");
   });
 });
 
