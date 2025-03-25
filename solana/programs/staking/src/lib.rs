@@ -561,9 +561,19 @@ pub mod staking {
             // 2. It breaks when a checkpoint's timestamp exceeds the `vote_start` timestamp.
             // This ensures that the loop will not run indefinitely
             loop {
+                // We have to skip the last checkpoint in the filled checkpoints account.
+                // Instead of the last checkpoint of a filled checkpoints account,
+                // we should consider the first checkpoint of the next checkpoints account.
                 if !reading_from_next_account
-                    && (checkpoint_index as u32) == config.max_checkpoints_account_limit
+                    && config.max_checkpoints_account_limit == (checkpoint_index as u32) + 1
                 {
+                    let voter_checkpoints_loader = &ctx.accounts.voter_checkpoints;
+                    let voter_checkpoints_data = voter_checkpoints_loader.load()?;
+                    if checkpoint_index >= voter_checkpoints_data.next_index as usize {
+                        // If the checkpoint account is not completely filled, exit the loop
+                        break;
+                    }
+
                     // Switch to the next account
 
                     // Ensure the next voter checkpoints account exists
@@ -609,9 +619,7 @@ pub mod staking {
                             (voter_checkpoints_loader, voter_checkpoints_data)
                         };
 
-                    let next_index = voter_checkpoints_data.next_index;
-
-                    if checkpoint_index >= next_index as usize {
+                    if checkpoint_index >= voter_checkpoints_data.next_index as usize {
                         // No more checkpoints in account
                         break;
                     }
