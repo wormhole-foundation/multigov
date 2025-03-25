@@ -10,6 +10,7 @@ use crate::{error::ErrorCode, error::VestingError};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
+use spl_token::state::AccountState;
 
 #[event_cpi]
 #[derive(Accounts)]
@@ -114,6 +115,11 @@ impl<'info> crate::contexts::TransferVesting<'info> {
             stake_account_metadata: None,
             new_stake_account_metadata: None,
         };
+
+        // Check if vester_ta is frozen
+        if self.vester_ta.state == AccountState::Frozen {
+            return err!(VestingError::FrozenVesterAccount);
+        }
 
         // Self transfers are not allowed
         if self.new_vester_ta.owner.key() == self.vester_ta.owner.key() {
