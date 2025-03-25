@@ -399,7 +399,7 @@ export async function standardSetup(
     provider,
     whMintAccount,
     whMintAuthority.publicKey,
-    null,
+    whMintAuthority.publicKey,
     WH_TOKEN_DECIMALS,
   );
 

@@ -41,7 +41,6 @@ describe("config", async () => {
   const whMintAccount = new Keypair();
   const whMintAuthority = new Keypair();
   const randomUser = new Keypair();
-  const zeroPubkey = new PublicKey(0);
 
   const vestingAdminKeypair = new Keypair();
   const vestingAdmin = vestingAdminKeypair.publicKey;
@@ -68,7 +67,7 @@ describe("config", async () => {
       program.provider,
       whMintAccount,
       whMintAuthority.publicKey,
-      null,
+      whMintAuthority.publicKey,
       WH_TOKEN_DECIMALS,
     );
 
