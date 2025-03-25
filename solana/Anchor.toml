@@ -33,6 +33,9 @@ ledger_dir = "./.anchor/test-ledger"
 idl_path = "./target/idl/staking.json"
 binary_path = "./target/deploy/staking.so"
 
+[test.validator]
+deactivate_feature = ["EenyoWx9UMXYKpR8mW5Jmfmy2fRjzUtM7NduYMY8bx33"]
+
 ### Wormhole Core Bridge Guardian Set 0 (devnet)
 [guardian_set_0]
 address = "dxZtypiKT5D9LYzdPxjvSZER9MgYfeRVU5qpMTMTRs4"
