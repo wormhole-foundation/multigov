@@ -11,8 +11,10 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
   createAssociatedTokenAccountInstruction,
+  createFreezeAccountInstruction,
   createInitializeMintInstruction,
   createMintToInstruction,
+  createThawAccountInstruction,
   createTransferCheckedInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
@@ -3673,6 +3675,78 @@ describe("vesting", () => {
         (e as AnchorError).error?.errorCode?.code === "ErrorOfAccountParsing",
       );
     }
+  });
+
+  it("should fail to transfer vest if vester_ta is frozen", async () => {
+    let freezeTx = new Transaction();
+    freezeTx.add(
+      createFreezeAccountInstruction(
+        vester3Ta,
+        whMintAccount.publicKey,
+        whMintAuthority.publicKey,
+      )
+    );
+    await stakeConnection.provider.sendAndConfirm(freezeTx, [whMintAuthority]);
+
+    let vester3TaAccount = await getAccount(stakeConnection.provider.connection, vester3Ta);
+    assert.equal(vester3TaAccount.isFrozen, true, "vester3Ta should be frozen");
+
+    let stakeAccountMetadataAddress = await vester3StakeConnection.getStakeMetadataAddress(
+      vester3.publicKey
+    );
+    let newVester3StakeAccountMetadataAddress =
+      await newVester3StakeConnection.getStakeMetadataAddress(
+        newVester3.publicKey,
+      );
+
+    let newVester3Vest = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(wasm.Constants.VEST_SEED()),
+        config.toBuffer(),
+        newVester3Ta.toBuffer(),
+        FEW_LATER.toBuffer("le", 8),
+      ],
+      stakeConnection.program.programId
+    )[0];
+
+    try {
+      await vesterStakeConnection.program.methods
+        .transferVesting()
+        .accounts({
+          ...accounts,
+          vester: vester3.publicKey,
+          vest: vest3NowForTransfer,
+          vestingBalance: vesting3Balance,
+          delegateStakeAccountCheckpoints: null,
+          delegateStakeAccountMetadata: null,
+          stakeAccountMetadata: stakeAccountMetadataAddress,
+          newStakeAccountMetadata: newVester3StakeAccountMetadataAddress,
+          vesterTa: vester3Ta,
+          newVesterTa: newVester3Ta,
+          newVest: newVester3Vest,
+          newVestingBalance: newVesting3Balance,
+          globalConfig: vester3StakeConnection.configAddress,
+        })
+        .signers([vester3])
+        .rpc()
+        .then(confirm);
+
+      assert.fail("Expected error was not thrown");
+    } catch (e) {
+      assert(
+        (e as AnchorError).error?.errorCode?.code === "FrozenVesterAccount",
+      );
+    }
+
+    let thawTx = new Transaction();
+    thawTx.add(
+      createThawAccountInstruction(
+        vester3Ta,
+        whMintAccount.publicKey,
+        whMintAuthority.publicKey,
+      )
+    );
+    await stakeConnection.provider.sendAndConfirm(thawTx, [whMintAuthority]);
   });
 
   it("should fail to transfer vest if the sender hasn't delegated, but the recipient has", async () => {});
