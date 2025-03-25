@@ -4,10 +4,12 @@ import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
+  SendTransactionError,
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
 import {
+  AuthorityType,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
   createAssociatedTokenAccountInstruction,
@@ -16,6 +18,7 @@ import {
   createMintToInstruction,
   createThawAccountInstruction,
   createTransferCheckedInstruction,
+  createSetAuthorityInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
   getMinimumBalanceForRentExemptMint,
@@ -3747,6 +3750,39 @@ describe("vesting", () => {
       )
     );
     await stakeConnection.provider.sendAndConfirm(thawTx, [whMintAuthority]);
+  });
+
+  it("should confirm that the owner of vester3Ta can be changed", async () => {
+    const vester3TaAccountInitial = await getAccount(stakeConnection.provider.connection, vester3Ta);
+    assert.equal(
+      vester3TaAccountInitial.owner.toBase58(),
+      vester3.publicKey.toBase58(),
+      "Initial owner of vester3Ta should be vester3"
+    );
+
+    const newOwner = newVester3.publicKey;
+    assert.notEqual(
+      vester3TaAccountInitial.owner.toBase58(),
+      newOwner.toBase58()
+    );
+
+    const setAuthorityTx = new Transaction();
+    setAuthorityTx.add(
+      createSetAuthorityInstruction(
+        vester3Ta,
+        vester3.publicKey,
+        AuthorityType.AccountOwner,
+        newOwner,
+      )
+    );
+    await stakeConnection.provider.sendAndConfirm(setAuthorityTx, [vester3]);
+  
+    const vester3TaAccountAfter = await getAccount(stakeConnection.provider.connection, vester3Ta);
+    assert.equal(
+      vester3TaAccountAfter.owner.toBase58(),
+      newOwner.toBase58(),
+      "The owner of vester3Ta should change"
+    );
   });
 
   it("should fail to transfer vest if the sender hasn't delegated, but the recipient has", async () => {});
