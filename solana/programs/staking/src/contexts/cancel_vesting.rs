@@ -3,7 +3,6 @@ use crate::error::VestingError;
 use crate::state::global_config::GlobalConfig;
 use crate::state::{Vesting, VestingBalance, VestingConfig};
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
@@ -16,9 +15,9 @@ pub struct CancelVesting<'info> {
     admin: Signer<'info>,
     mint: Account<'info, Mint>,
     #[account(
-        associated_token::mint = mint,
-        associated_token::authority = vester_ta.owner,
-        associated_token::token_program = token_program
+        token::mint = mint,
+        token::authority = vester_ta.owner,
+        token::token_program = token_program
     )]
     vester_ta: Account<'info, TokenAccount>,
     #[account(
@@ -49,7 +48,6 @@ pub struct CancelVesting<'info> {
         bump = global_config.bump,
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
-    associated_token_program: Program<'info, AssociatedToken>,
     token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
