@@ -42,9 +42,9 @@ pub struct TransferVesting<'info> {
     #[account(
         mut,
         close = vester,
-        has_one = vester_ta, // This check is arbitrary, as ATA is baked into the PDA
+        constraint = vest.vester == vester_ta.owner @ VestingError::InvalidVester,
         has_one = config, // This check is arbitrary, as ATA is baked into the PDA
-        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
+        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump = vest.bump
     )]
     vest: Box<Account<'info, Vesting>>,
@@ -52,7 +52,7 @@ pub struct TransferVesting<'info> {
         init_if_needed,
         payer = vester,
         space = Vesting::LEN,
-        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), new_vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
+        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), new_vester_ta.owner.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump
     )]
     new_vest: Box<Account<'info, Vesting>>,
@@ -321,7 +321,7 @@ impl<'info> crate::contexts::TransferVesting<'info> {
         }
 
         self.new_vest.set_inner(Vesting {
-            vester_ta: self.new_vester_ta.key(),
+            vester: self.new_vester_ta.owner.key(),
             config: self.vest.config,
             amount: self
                 .new_vest

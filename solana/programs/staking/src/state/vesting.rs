@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Default, InitSpace)]
 pub struct Vesting {
-    pub vester_ta: Pubkey,
+    pub vester: Pubkey,
     pub config: Pubkey,
     pub amount: u64,
     pub maturation: i64,

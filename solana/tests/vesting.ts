@@ -248,7 +248,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         NOW.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -257,7 +257,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config2.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         NOW.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -266,7 +266,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         FEW_LATER_2.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -275,7 +275,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -284,7 +284,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         EVEN_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -293,7 +293,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -302,7 +302,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         EVEN_LATER_AGAIN.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -311,7 +311,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -320,7 +320,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vester2Ta.toBuffer(),
+        vester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -329,7 +329,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vester3Ta.toBuffer(),
+        vester3.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -338,7 +338,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         FEW_LATER_3.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -347,7 +347,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER_3.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2097,7 +2097,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2317,7 +2317,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2407,7 +2407,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2742,7 +2742,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2945,7 +2945,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVester2Ta.toBuffer(),
+        newVester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3008,7 +3008,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVester2Ta.toBuffer(),
+        newVester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3162,7 +3162,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVester2Ta.toBuffer(),
+        newVester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3260,7 +3260,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVester2Ta.toBuffer(),
+        newVester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3448,7 +3448,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3644,7 +3644,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3706,7 +3706,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVester3Ta.toBuffer(),
+        newVester3.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId

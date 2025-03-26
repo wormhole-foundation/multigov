@@ -42,9 +42,9 @@ pub struct ClaimVesting<'info> {
         mut,
         close = admin,
         constraint = Clock::get()?.unix_timestamp >= vest.maturation @ VestingError::NotFullyVested,
-        has_one = vester_ta, // This check is arbitrary, as ATA is baked into the PDA
+        constraint = vest.vester == vester_ta.owner @ VestingError::InvalidVester,
         has_one = config, // This check is arbitrary, as ATA is baked into the PDA
-        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
+        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump = vest.bump
     )]
     vest: Account<'info, Vesting>,

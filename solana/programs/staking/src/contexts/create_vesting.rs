@@ -34,7 +34,7 @@ pub struct CreateVesting<'info> {
         init,
         payer = admin,
         space = Vesting::LEN,
-        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), maturation.to_le_bytes().as_ref()],
+        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref(), maturation.to_le_bytes().as_ref()],
         bump
     )]
     vest: Account<'info, Vesting>,
@@ -70,7 +70,7 @@ impl<'info> CreateVesting<'info> {
             .ok_or(VestingError::Overflow)?;
 
         self.vest.set_inner(Vesting {
-            vester_ta: self.vester_ta.key(),
+            vester: self.vester_ta.owner.key(),
             config: self.config.key(),
             amount,
             maturation,
