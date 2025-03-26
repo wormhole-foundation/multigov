@@ -4,7 +4,6 @@ import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
-  SendTransactionError,
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
@@ -69,7 +68,6 @@ describe("vesting", () => {
   const FEW_LATER_2 = NOW.add(new BN(2));
   const FEW_LATER_3 = NOW.add(new BN(3));
   const LATER = NOW.add(new BN(1000));
-  const LATER2 = LATER.add(new BN(20));
   const EVEN_LATER = LATER.add(new BN(1000));
   const EVEN_LATER_AGAIN = EVEN_LATER.add(new BN(1000));
 
@@ -105,7 +103,6 @@ describe("vesting", () => {
     vestNow2,
     vestEvenLater,
     vestLater,
-    vestLaterForCancel,
     vestLaterForTransfer,
     vestEvenLaterAgain,
     vestNowForTransfer,
@@ -279,15 +276,6 @@ describe("vesting", () => {
         config.toBuffer(),
         vester.publicKey.toBuffer(),
         LATER.toBuffer("le", 8),
-      ],
-      stakeConnection.program.programId,
-    )[0];
-    vestLaterForCancel = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from(wasm.Constants.VEST_SEED()),
-        config.toBuffer(),
-        vester.publicKey.toBuffer(),
-        LATER2.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
     )[0];
@@ -1151,13 +1139,6 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(LATER2, new BN(1337e6))
-      .accounts({ ...accounts, vest: vestLaterForCancel })
-      .signers([whMintAuthority])
-      .rpc({ skipPreflight: true })
-      .then(confirm);
-
-    await stakeConnection.program.methods
       .createVesting(EVEN_LATER, new BN(1337e6))
       .accounts({
         ...accounts,
@@ -1196,102 +1177,11 @@ describe("vesting", () => {
 
   it("should successfully cancel a vest", async () => {
     await stakeConnection.program.methods
-      .cancelVesting()
+      .cancelVesting(vester.publicKey)
       .accounts({ ...accounts, vest: vestLater })
       .signers([whMintAuthority])
       .rpc({ skipPreflight: true })
       .then(confirm);
-  });
-
-  it("should successfully cancel a vest with changed token account owner", async () => {
-    // change vesterTa owner to newVester
-    let tx = new Transaction();
-    tx.add(
-      createSetAuthorityInstruction(
-        vesterTa,
-        vester.publicKey,
-        AuthorityType.AccountOwner,
-        newVester.publicKey,
-      ),
-    );
-    await stakeConnection.provider.sendAndConfirm(tx, [vester]);
-
-    try {
-      // attempt to cancel vesting with original vest account
-      await stakeConnection.program.methods
-        .cancelVesting()
-        .accounts({ ...accounts, vest: vestLaterForCancel })
-        .signers([whMintAuthority])
-        .rpc()
-        .then(confirm);
-
-      assert.fail("Expected error was not thrown");
-    } catch (e) {
-      // expect failure due to seeds mismatch after owner change
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ConstraintSeeds",
-      );
-    }
-
-    // create randomKeypairTa
-    const randomKeypair = Keypair.generate();
-    let randomKeypairTa = getAssociatedTokenAddressSync(
-      whMintAccount.publicKey,
-      randomKeypair.publicKey,
-      false,
-      TOKEN_PROGRAM_ID,
-    );
-    tx = new Transaction();
-    tx.add(
-      createAssociatedTokenAccountIdempotentInstruction(
-        whMintAuthority.publicKey,
-        randomKeypairTa,
-        randomKeypair.publicKey,
-        whMintAccount.publicKey,
-      ),
-    );
-    await stakeConnection.provider.sendAndConfirm(tx, [whMintAuthority]);
-
-    // change randomKeypairTa owner to vester
-    tx = new Transaction();
-    tx.add(
-      createSetAuthorityInstruction(
-        randomKeypairTa,
-        randomKeypair.publicKey,
-        AuthorityType.AccountOwner,
-        vester.publicKey,
-      )
-    );
-    await stakeConnection.provider.sendAndConfirm(tx, [randomKeypair]);
-
-    const randomKeypairTaAccount = await getAccount(stakeConnection.provider.connection, randomKeypairTa);
-    assert.equal(
-      randomKeypairTaAccount.owner.toBase58(),
-      vester.publicKey.toBase58(),
-      "The owner of randomKeypairTaAccount should be vester"
-    );
-
-    await stakeConnection.program.methods
-    .cancelVesting()
-    .accounts({
-      ...accounts,
-      vest: vestLaterForCancel,
-      vesterTa: randomKeypairTa,
-    })
-    .signers([whMintAuthority])
-    .rpc();
-
-    // restore original vesterTa owner for cleanup
-    tx = new Transaction();
-    tx.add(
-      createSetAuthorityInstruction(
-        vesterTa,
-        newVester.publicKey,
-        AuthorityType.AccountOwner,
-        vester.publicKey,
-      )
-    );
-    await stakeConnection.provider.sendAndConfirm(tx, [newVester]);
   });
 
   it("should fail to finalize vesting when vault token balance is less than vestingConfig.vested", async () => {
@@ -1416,7 +1306,7 @@ describe("vesting", () => {
   it("should fail to cancel a vest after finalization", async () => {
     try {
       await stakeConnection.program.methods
-        .cancelVesting()
+        .cancelVesting(vester.publicKey)
         .accounts({ ...accounts, vest: vestEvenLater })
         .signers([whMintAuthority])
         .rpc();

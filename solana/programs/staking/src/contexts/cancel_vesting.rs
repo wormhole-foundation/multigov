@@ -3,9 +3,10 @@ use crate::error::VestingError;
 use crate::state::global_config::GlobalConfig;
 use crate::state::{Vesting, VestingBalance, VestingConfig};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{Mint, Token};
 
 #[derive(Accounts)]
+#[instruction(vester: Pubkey)]
 pub struct CancelVesting<'info> {
     #[account(
         mut,
@@ -14,12 +15,6 @@ pub struct CancelVesting<'info> {
     )]
     admin: Signer<'info>,
     mint: Account<'info, Mint>,
-    #[account(
-        token::mint = mint,
-        token::authority = vester_ta.owner,
-        token::token_program = token_program
-    )]
-    vester_ta: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint = !config.finalized @ VestingError::VestingFinalized, // Vesting cannot be cancelled after vest is finalized
@@ -31,15 +26,15 @@ pub struct CancelVesting<'info> {
     #[account(
         mut,
         close = admin,
-        constraint = vest.vester == vester_ta.owner @ VestingError::InvalidVester,
+        constraint = vest.vester == vester @ VestingError::InvalidVester,
         has_one = config, // This check is arbitrary, as ATA is baked into the PDA
-        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref(), vest.maturation.to_le_bytes().as_ref()],
+        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester.as_ref(), vest.maturation.to_le_bytes().as_ref()],
         bump = vest.bump
     )]
     vest: Account<'info, Vesting>,
     #[account(
         mut,
-        seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref()],
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester.as_ref()],
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,

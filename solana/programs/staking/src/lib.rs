@@ -769,7 +769,7 @@ pub mod staking {
     }
 
     // Cancel and close a Vesting account for a non-finalized Config
-    pub fn cancel_vesting(ctx: Context<CancelVesting>) -> Result<()> {
+    pub fn cancel_vesting(ctx: Context<CancelVesting>, _vester: Pubkey) -> Result<()> {
         ctx.accounts.cancel_vesting()
     }
 
