@@ -709,10 +709,13 @@ pub mod staking {
         ctx.accounts.initialize(seed, ctx.bumps.config)
     }
 
-    // Create a vesting balance account
-    pub fn create_vesting_balance(ctx: Context<CreateVestingBalance>) -> Result<()> {
+    // Create a new vesting balance account
+    pub fn create_vesting_balance(
+        ctx: Context<CreateVestingBalance>,
+        vester: Pubkey
+    ) -> Result<()> {
         ctx.accounts
-            .create_vesting_balance(ctx.bumps.vesting_balance)
+            .create_vesting_balance(vester, ctx.bumps.vesting_balance)
     }
 
     // Closes a vesting balance account

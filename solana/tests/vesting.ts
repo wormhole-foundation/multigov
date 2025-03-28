@@ -743,7 +743,7 @@ describe("vesting", () => {
   it("should fail to create vesting balance with invalid admin", async () => {
     try {
       await stakeConnection.program.methods
-        .createVestingBalance()
+        .createVestingBalance(vester.publicKey)
         .accounts({
           ...accounts,
           vestingBalance: vestingBalance,
@@ -770,7 +770,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .createVestingBalance()
+        .createVestingBalance(vester.publicKey)
         .accounts({
           ...accounts,
           vestingBalance: vestingBalance,
@@ -791,7 +791,7 @@ describe("vesting", () => {
 
   it("Create vesting balance", async () => {
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester.publicKey)
       .accounts({ ...accounts, vestingBalance: vestingBalance })
       .signers([whMintAuthority])
       .rpc()
@@ -811,7 +811,7 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vestingBalance,
@@ -841,51 +841,47 @@ describe("vesting", () => {
 
   it("Create another vesting balance", async () => {
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting2Balance,
-        vesterTa: vester2Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester3.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting3Balance,
-        vesterTa: vester3Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(newVester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVestingBalance,
-        vesterTa: newVesterTa,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(newVester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVesting2Balance,
-        vesterTa: newVester2Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         config: config2,
@@ -958,51 +954,47 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting2Balance,
-        vesterTa: vester2Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester3.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting3Balance,
-        vesterTa: vester3Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(newVester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVestingBalance,
-        vesterTa: newVesterTa,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(newVester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVesting2Balance,
-        vesterTa: newVester2Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         config: config2,
