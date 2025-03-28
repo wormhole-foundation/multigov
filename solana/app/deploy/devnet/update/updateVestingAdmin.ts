@@ -2,10 +2,7 @@
 
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";
-import {
-  VESTING_ADMIN_KEYPAIR,
-  RPC_NODE,
-} from "../constants";
+import { VESTING_ADMIN_KEYPAIR, RPC_NODE } from "../constants";
 import { Staking } from "../../../../target/types/staking";
 import fs from "fs";
 

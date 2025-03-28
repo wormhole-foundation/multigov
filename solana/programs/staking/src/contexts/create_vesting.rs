@@ -3,11 +3,10 @@ use crate::error::VestingError;
 use crate::state::global_config::GlobalConfig;
 use crate::state::{Vesting, VestingBalance, VestingConfig};
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{Mint, Token};
 
 #[derive(Accounts)]
-#[instruction(maturation: i64)]
+#[instruction(vester: Pubkey, maturation: i64, _amount: u64)]
 pub struct CreateVesting<'info> {
     #[account(
         mut,
@@ -16,12 +15,6 @@ pub struct CreateVesting<'info> {
     )]
     admin: Signer<'info>,
     mint: Account<'info, Mint>,
-    #[account(
-        associated_token::mint = mint,
-        associated_token::authority = vester_ta.owner,
-        associated_token::token_program = token_program
-    )]
-    vester_ta: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint = !config.finalized @ VestingError::VestingFinalized, // A vest can only be created before a vest is finalized
@@ -34,13 +27,13 @@ pub struct CreateVesting<'info> {
         init,
         payer = admin,
         space = Vesting::LEN,
-        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester_ta.key().as_ref(), maturation.to_le_bytes().as_ref()],
+        seeds = [VEST_SEED.as_bytes(), config.key().as_ref(), vester.as_ref(), maturation.to_le_bytes().as_ref()],
         bump
     )]
     vest: Account<'info, Vesting>,
     #[account(
         mut,
-        seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester_ta.owner.key().as_ref()],
+        seeds = [VESTING_BALANCE_SEED.as_bytes(), config.key().as_ref(), vester.as_ref()],
         bump = vesting_balance.bump
     )]
     vesting_balance: Account<'info, VestingBalance>,
@@ -49,13 +42,18 @@ pub struct CreateVesting<'info> {
         bump = global_config.bump,
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
-    associated_token_program: Program<'info, AssociatedToken>,
     token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
 
 impl<'info> CreateVesting<'info> {
-    pub fn create_vesting(&mut self, maturation: i64, amount: u64, bump: u8) -> Result<()> {
+    pub fn create_vesting(
+        &mut self,
+        vester: Pubkey,
+        maturation: i64,
+        amount: u64,
+        bump: u8,
+    ) -> Result<()> {
         // Add to total vested amount
         self.config.vested = self
             .config
@@ -70,7 +68,7 @@ impl<'info> CreateVesting<'info> {
             .ok_or(VestingError::Overflow)?;
 
         self.vest.set_inner(Vesting {
-            vester_ta: self.vester_ta.key(),
+            vester,
             config: self.config.key(),
             amount,
             maturation,

@@ -20,11 +20,7 @@ async function delegateStake(
   delegateTo?: PublicKey,
 ) {
   const connection = new Connection(RPC_NODE);
-  const provider = new AnchorProvider(
-    connection,
-    new Wallet(userKeypair),
-    {},
-  );
+  const provider = new AnchorProvider(connection, new Wallet(userKeypair), {});
 
   const stakeConnection = await StakeConnection.createStakeConnection(
     connection,
@@ -34,7 +30,9 @@ async function delegateStake(
   await sleep(2000);
   await stakeConnection.delegate(delegateTo, WHTokenBalance.fromString(amount));
 
-  console.log(`Delegation successful for user: ${provider.wallet.publicKey.toBase58()}`);
+  console.log(
+    `Delegation successful for user: ${provider.wallet.publicKey.toBase58()}`,
+  );
   if (delegateTo) {
     console.log(`Delegated to: ${delegateTo.toBase58()}`);
   }
@@ -47,7 +45,11 @@ async function main() {
     // Second user delegates to himself
     await delegateStake(USER2_AUTHORITY_KEYPAIR, "10000000");
     // First user delegates to second user
-    await delegateStake(USER_AUTHORITY_KEYPAIR, "10000000", USER2_AUTHORITY_KEYPAIR.publicKey);
+    await delegateStake(
+      USER_AUTHORITY_KEYPAIR,
+      "10000000",
+      USER2_AUTHORITY_KEYPAIR.publicKey,
+    );
   } catch (err) {
     console.error("Error:", err);
   }

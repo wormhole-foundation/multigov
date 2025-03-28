@@ -8,6 +8,7 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
+  AuthorityType,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
   createAssociatedTokenAccountInstruction,
@@ -16,6 +17,7 @@ import {
   createMintToInstruction,
   createThawAccountInstruction,
   createTransferCheckedInstruction,
+  createSetAuthorityInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
   getMinimumBalanceForRentExemptMint,
@@ -118,7 +120,6 @@ describe("vesting", () => {
     vester3StakeConnection,
     newVestingBalance,
     newVesting2Balance,
-    newVesting3Balance,
     vestingBalanceWithoutAccount,
     newVesterStakeConnection,
     newVester2StakeConnection,
@@ -245,7 +246,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         NOW.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -254,7 +255,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config2.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         NOW.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -263,7 +264,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         FEW_LATER_2.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -272,7 +273,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -281,7 +282,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         EVEN_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -290,7 +291,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -299,7 +300,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         EVEN_LATER_AGAIN.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -308,7 +309,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -317,7 +318,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vester2Ta.toBuffer(),
+        vester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -326,7 +327,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vester3Ta.toBuffer(),
+        vester3.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -335,7 +336,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        vesterTa.toBuffer(),
+        vester.publicKey.toBuffer(),
         FEW_LATER_3.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -344,7 +345,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER_3.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -394,14 +395,6 @@ describe("vesting", () => {
         Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
         config.toBuffer(),
         newVester2.publicKey.toBuffer(),
-      ],
-      stakeConnection.program.programId,
-    )[0];
-    newVesting3Balance = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
-        config.toBuffer(),
-        newVester3.publicKey.toBuffer(),
       ],
       stakeConnection.program.programId,
     )[0];
@@ -483,8 +476,6 @@ describe("vesting", () => {
       config,
       vault,
       vester: vester.publicKey,
-      vesterTa,
-      newVesterTa,
       adminAta,
       recovery: adminAta,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -492,9 +483,8 @@ describe("vesting", () => {
       systemProgram: SystemProgram.programId,
       vestingBalance: vestingBalance,
     };
-  });
 
-  it("Airdrop", async () => {
+    // Airdrop
     let tx = new Transaction();
     tx.instructions = [
       ...[whMintAuthority, vester, vester2, vester3, fakeVestingAdmin].map(
@@ -694,15 +684,16 @@ describe("vesting", () => {
     const tx = new Transaction();
     tx.add(
       createAssociatedTokenAccountInstruction(
-        vester.publicKey,        // payer
-        vault3,                  // associatedToken
-        config3,                 // owner
+        vester.publicKey, // payer
+        vault3, // associatedToken
+        config3, // owner
         whMintAccount.publicKey, // mint
         TOKEN_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID,
       ),
     );
-    await vesterStakeConnection.provider.sendAndConfirm(tx, [vester])
+    await vesterStakeConnection.provider
+      .sendAndConfirm(tx, [vester])
       .then(confirm);
     await sleep(1500);
 
@@ -718,7 +709,7 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Initialize config", async () => {
+  it("should successfully initialize config", async () => {
     await stakeConnection.program.methods
       .initializeVestingConfig(seed)
       .accounts({ ...accounts })
@@ -741,7 +732,7 @@ describe("vesting", () => {
   it("should fail to create vesting balance with invalid admin", async () => {
     try {
       await stakeConnection.program.methods
-        .createVestingBalance()
+        .createVestingBalance(vester.publicKey)
         .accounts({
           ...accounts,
           vestingBalance: vestingBalance,
@@ -768,7 +759,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .createVestingBalance()
+        .createVestingBalance(vester.publicKey)
         .accounts({
           ...accounts,
           vestingBalance: vestingBalance,
@@ -787,18 +778,18 @@ describe("vesting", () => {
     }
   });
 
-  it("Create vesting balance", async () => {
+  it("should successfully create vesting balance account", async () => {
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester.publicKey)
       .accounts({ ...accounts, vestingBalance: vestingBalance })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
   });
 
-  it("Close and re-create vesting balance", async () => {
+  it("should successfully close and re-create vesting balance account", async () => {
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vestingBalance,
@@ -809,7 +800,7 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vestingBalance,
@@ -822,7 +813,7 @@ describe("vesting", () => {
   it("should fail to close vesting balance account with incorrect rent payer", async () => {
     try {
       await stakeConnection.program.methods
-        .closeVestingBalance()
+        .closeVestingBalance(vester.publicKey)
         .accounts({
           ...accounts,
           vestingBalance: vestingBalance,
@@ -837,53 +828,49 @@ describe("vesting", () => {
     }
   });
 
-  it("Create another vesting balance", async () => {
+  it("should successfully create another vesting balance accounts", async () => {
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting2Balance,
-        vesterTa: vester2Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester3.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting3Balance,
-        vesterTa: vester3Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(newVester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVestingBalance,
-        vesterTa: newVesterTa,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(newVester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVesting2Balance,
-        vesterTa: newVester2Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         config: config2,
@@ -894,13 +881,12 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Close and re-create another vesting balance", async () => {
+  it("should successfully close and re-create another vesting balance accounts", async () => {
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(vester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting2Balance,
-        vesterTa: vester2Ta,
         rentPayer: whMintAuthority.publicKey,
       })
       .signers([whMintAuthority])
@@ -908,11 +894,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(vester3.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting3Balance,
-        vesterTa: vester3Ta,
         rentPayer: whMintAuthority.publicKey,
       })
       .signers([whMintAuthority])
@@ -920,11 +905,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(newVester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVestingBalance,
-        vesterTa: newVesterTa,
         rentPayer: whMintAuthority.publicKey,
       })
       .signers([whMintAuthority])
@@ -932,11 +916,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(newVester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVesting2Balance,
-        vesterTa: newVester2Ta,
         rentPayer: whMintAuthority.publicKey,
       })
       .signers([whMintAuthority])
@@ -944,7 +927,7 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         config: config2,
@@ -956,51 +939,47 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting2Balance,
-        vesterTa: vester2Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester3.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting3Balance,
-        vesterTa: vester3Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(newVester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVestingBalance,
-        vesterTa: newVesterTa,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(newVester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVesting2Balance,
-        vesterTa: newVester2Ta,
       })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVestingBalance()
+      .createVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         config: config2,
@@ -1014,7 +993,7 @@ describe("vesting", () => {
   it("should fail to create vest with invalid admin", async () => {
     try {
       await stakeConnection.program.methods
-        .createVesting(NOW, new BN(1337e6))
+        .createVesting(vester.publicKey, NOW, new BN(1337e6))
         .accounts({
           ...accounts,
           vest: vestNow,
@@ -1032,9 +1011,9 @@ describe("vesting", () => {
     }
   });
 
-  it("Create a matured vest", async () => {
+  it("should successfully create a matured vest", async () => {
     await stakeConnection.program.methods
-      .createVesting(NOW, new BN(1237e6))
+      .createVesting(vester.publicKey, NOW, new BN(1237e6))
       .accounts({ ...accounts, vest: vestNow })
       .signers([whMintAuthority])
       .rpc({
@@ -1043,9 +1022,9 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Create another matured vests", async () => {
+  it("should successfully create another matured vests", async () => {
     await stakeConnection.program.methods
-      .createVesting(NOW, new BN(100e6))
+      .createVesting(vester.publicKey, NOW, new BN(100e6))
       .accounts({
         ...accounts,
         config: config2,
@@ -1059,18 +1038,17 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER, new BN(1016e6))
+      .createVesting(vester.publicKey, FEW_LATER, new BN(1016e6))
       .accounts({ ...accounts, vest: vestNowForTransfer })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER, new BN(1016e6))
+      .createVesting(vester2.publicKey, FEW_LATER, new BN(1016e6))
       .accounts({
         ...accounts,
         vest: vest2NowForTransfer,
-        vesterTa: vester2Ta,
         vestingBalance: vesting2Balance,
       })
       .signers([whMintAuthority])
@@ -1078,11 +1056,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER, new BN(1016e6))
+      .createVesting(vester3.publicKey, FEW_LATER, new BN(1016e6))
       .accounts({
         ...accounts,
         vest: vest3NowForTransfer,
-        vesterTa: vester3Ta,
         vestingBalance: vesting3Balance,
       })
       .signers([whMintAuthority])
@@ -1090,18 +1067,17 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER_3, new BN(321e6))
+      .createVesting(vester.publicKey, FEW_LATER_3, new BN(321e6))
       .accounts({ ...accounts, vest: vestNowForTransfer3 })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER_3, new BN(321e6))
+      .createVesting(newVester.publicKey, FEW_LATER_3, new BN(321e6))
       .accounts({
         ...accounts,
         vest: vestNowTransfered3,
-        vesterTa: newVesterTa,
         vestingBalance: newVestingBalance,
       })
       .signers([whMintAuthority])
@@ -1109,11 +1085,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(LATER, new BN(1016e6))
+      .createVesting(newVester.publicKey, LATER, new BN(1016e6))
       .accounts({
         ...accounts,
         vest: vestLaterForTransfer,
-        vesterTa: newVesterTa,
         vestingBalance: newVestingBalance,
       })
       .signers([whMintAuthority])
@@ -1121,25 +1096,23 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER_2, new BN(1337e6))
+      .createVesting(vester.publicKey, FEW_LATER_2, new BN(1337e6))
       .accounts({ ...accounts, vest: vestFewLater })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
   });
 
-  it("Create an unmatured vest", async () => {
+  it("should successfully сreate unmatured vests", async () => {
     await stakeConnection.program.methods
-      .createVesting(LATER, new BN(1337e6))
+      .createVesting(vester.publicKey, LATER, new BN(1337e6))
       .accounts({ ...accounts, vest: vestLater })
       .signers([whMintAuthority])
       .rpc({ skipPreflight: true })
       .then(confirm);
-  });
 
-  it("Create another unmatured vest", async () => {
     await stakeConnection.program.methods
-      .createVesting(EVEN_LATER, new BN(1337e6))
+      .createVesting(vester.publicKey, EVEN_LATER, new BN(1337e6))
       .accounts({
         ...accounts,
         vest: vestEvenLater,
@@ -1157,6 +1130,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints: null,
           delegateStakeAccountMetadata: null,
@@ -1175,9 +1149,9 @@ describe("vesting", () => {
     }
   });
 
-  it("Cancel a vest", async () => {
+  it("should successfully cancel a vest", async () => {
     await stakeConnection.program.methods
-      .cancelVesting()
+      .cancelVesting(vester.publicKey)
       .accounts({ ...accounts, vest: vestLater })
       .signers([whMintAuthority])
       .rpc({ skipPreflight: true })
@@ -1212,7 +1186,7 @@ describe("vesting", () => {
     }
   });
 
-  it("Deposits vesting tokens", async () => {
+  it("should successfully deposit vesting tokens", async () => {
     const tx = new Transaction();
     tx.add(
       createTransferCheckedInstruction(
@@ -1281,7 +1255,7 @@ describe("vesting", () => {
     }
   });
 
-  it("Withdraw surplus tokens", async () => {
+  it("should successfully withdraw surplus tokens", async () => {
     await stakeConnection.program.methods
       .withdrawSurplus()
       .accounts({ ...accounts })
@@ -1290,7 +1264,7 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Finalizes the vesting config2", async () => {
+  it("should successfully finalize the second vesting config", async () => {
     await stakeConnection.program.methods
       .finalizeVestingConfig()
       .accounts({
@@ -1306,7 +1280,7 @@ describe("vesting", () => {
   it("should fail to cancel a vest after finalization", async () => {
     try {
       await stakeConnection.program.methods
-        .cancelVesting()
+        .cancelVesting(vester.publicKey)
         .accounts({ ...accounts, vest: vestEvenLater })
         .signers([whMintAuthority])
         .rpc();
@@ -1320,7 +1294,7 @@ describe("vesting", () => {
   it("should fail to create a vest after finalize", async () => {
     try {
       await stakeConnection.program.methods
-        .createVesting(EVEN_LATER_AGAIN, new BN(1337e6))
+        .createVesting(vester.publicKey, EVEN_LATER_AGAIN, new BN(1337e6))
         .accounts({ ...accounts, vest: vestEvenLaterAgain })
         .signers([whMintAuthority])
         .rpc()
@@ -1338,6 +1312,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestEvenLater,
           delegateStakeAccountCheckpoints: null,
           delegateStakeAccountMetadata: null,
@@ -1675,6 +1650,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints: null,
           delegateStakeAccountMetadata: null,
@@ -1701,6 +1677,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints: null,
           delegateStakeAccountMetadata: stakeAccountMetadataAddress,
@@ -1734,6 +1711,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints:
             incorrectStakeAccountCheckpointsAddress,
@@ -1773,6 +1751,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints:
             incorrectStakeAccountCheckpointsAddress,
@@ -1862,6 +1841,7 @@ describe("vesting", () => {
       .claimVesting()
       .accounts({
         ...accounts,
+        vesterTa,
         vest: vestNow,
         delegateStakeAccountCheckpoints: delegateStakeAccountCheckpointsAddress,
         delegateStakeAccountMetadata: stakeAccountMetadataAddress,
@@ -1998,6 +1978,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestFewLater,
           delegateStakeAccountCheckpoints:
             delegateStakeAccountCheckpointsAddress,
@@ -2094,7 +2075,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2102,7 +2083,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2244,7 +2225,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2314,7 +2295,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2322,7 +2303,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2404,7 +2385,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2412,7 +2393,7 @@ describe("vesting", () => {
 
     try {
       await vesterStakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2468,6 +2449,7 @@ describe("vesting", () => {
       .claimVesting()
       .accounts({
         ...accounts,
+        vesterTa,
         vest: vestFewLater,
         delegateStakeAccountCheckpoints: delegateStakeAccountCheckpointsAddress,
         delegateStakeAccountMetadata: stakeAccountMetadataAddress,
@@ -2626,7 +2608,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2666,7 +2648,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2701,7 +2683,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(vester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2709,8 +2691,6 @@ describe("vesting", () => {
           delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
           newStakeAccountMetadata: stakeAccountMetadataAddress,
-          vesterTa: vesterTa,
-          newVesterTa: vesterTa,
           newVest: vestNowForTransfer,
           newVestingBalance: vestingBalance,
           globalConfig: stakeConnection.configAddress,
@@ -2739,7 +2719,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2841,7 +2821,7 @@ describe("vesting", () => {
         })
         .instruction(),
       await vesterStakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           payer: vester.publicKey,
@@ -2942,7 +2922,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVester2Ta.toBuffer(),
+        newVester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -2950,12 +2930,10 @@ describe("vesting", () => {
 
     try {
       await vester2StakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester2.publicKey)
         .accounts({
           ...accounts,
           vester: vester2.publicKey,
-          vesterTa: vester2Ta,
-          newVesterTa: newVester2Ta,
           vest: vest2NowForTransfer,
           vestingBalance: vesting2Balance,
           delegateStakeAccountCheckpoints:
@@ -3005,7 +2983,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVester2Ta.toBuffer(),
+        newVester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3043,12 +3021,10 @@ describe("vesting", () => {
 
     await sleep(1500);
     await vester2StakeConnection.program.methods
-      .transferVesting()
+      .transferVesting(newVester2.publicKey)
       .accounts({
         ...accounts,
         vester: vester2.publicKey,
-        vesterTa: vester2Ta,
-        newVesterTa: newVester2Ta,
         vest: vest2NowForTransfer,
         vestingBalance: vesting2Balance,
         delegateStakeAccountCheckpoints: null,
@@ -3159,7 +3135,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVester2Ta.toBuffer(),
+        newVester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3257,7 +3233,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVester2Ta.toBuffer(),
+        newVester2.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3372,7 +3348,7 @@ describe("vesting", () => {
         })
         .instruction(),
       await vesterStakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           payer: vester.publicKey,
@@ -3445,7 +3421,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3549,11 +3525,10 @@ describe("vesting", () => {
     await sleep(1500);
     // transfer vestLaterForTransfer from newVester to vesterWithoutAccount
     await stakeConnection.program.methods
-      .transferVesting()
+      .transferVesting(vesterWithoutAccount.publicKey)
       .accounts({
         ...accounts,
         vester: newVester.publicKey,
-        vesterTa: newVesterTa,
         vestingBalance: newVestingBalance,
         vest: vestLaterForTransfer,
         delegateStakeAccountCheckpoints:
@@ -3562,7 +3537,6 @@ describe("vesting", () => {
         stakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         newStakeAccountMetadata: null,
         newVestingBalance: vestingBalanceWithoutAccount,
-        newVesterTa: vesterTaWithoutAccount,
         globalConfig: stakeConnection.configAddress,
       })
       .signers([newVester])
@@ -3607,12 +3581,11 @@ describe("vesting", () => {
   it("should fail to close vesting balance account when balance is not 0", async () => {
     try {
       await stakeConnection.program.methods
-        .closeVestingBalance()
+        .closeVestingBalance(vesterWithoutAccount.publicKey)
         .accounts({
           ...accounts,
           rentPayer: newVester.publicKey,
           vestingBalance: vestingBalanceWithoutAccount,
-          vesterTa: vesterTaWithoutAccount,
         })
         .signers([newVester])
         .rpc()
@@ -3641,7 +3614,7 @@ describe("vesting", () => {
       [
         Buffer.from(wasm.Constants.VEST_SEED()),
         config.toBuffer(),
-        newVesterTa.toBuffer(),
+        newVester.publicKey.toBuffer(),
         FEW_LATER.toBuffer("le", 8),
       ],
       stakeConnection.program.programId,
@@ -3649,7 +3622,7 @@ describe("vesting", () => {
 
     try {
       await vester3StakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vester: vester3.publicKey,
@@ -3659,8 +3632,6 @@ describe("vesting", () => {
           delegateStakeAccountMetadata: null,
           stakeAccountMetadata: stakeAccountMetadataAddress,
           newStakeAccountMetadata: newVesterStakeAccountMetadataAddress,
-          vesterTa: vester3Ta,
-          newVesterTa: newVesterTa,
           newVest: vestNowTransfered,
           newVestingBalance: newVestingBalance,
           globalConfig: vester3StakeConnection.configAddress,
@@ -3677,76 +3648,43 @@ describe("vesting", () => {
     }
   });
 
-  it("should fail to transfer vest if vester_ta is frozen", async () => {
-    let freezeTx = new Transaction();
-    freezeTx.add(
-      createFreezeAccountInstruction(
+  it("should confirm that the owner of vester3Ta can be changed", async () => {
+    const vester3TaAccountInitial = await getAccount(
+      stakeConnection.provider.connection,
+      vester3Ta,
+    );
+    assert.equal(
+      vester3TaAccountInitial.owner.toBase58(),
+      vester3.publicKey.toBase58(),
+      "Initial owner of vester3Ta should be vester3",
+    );
+
+    const newOwner = newVester3.publicKey;
+    assert.notEqual(
+      vester3TaAccountInitial.owner.toBase58(),
+      newOwner.toBase58(),
+    );
+
+    const setAuthorityTx = new Transaction();
+    setAuthorityTx.add(
+      createSetAuthorityInstruction(
         vester3Ta,
-        whMintAccount.publicKey,
-        whMintAuthority.publicKey,
-      )
+        vester3.publicKey,
+        AuthorityType.AccountOwner,
+        newOwner,
+      ),
     );
-    await stakeConnection.provider.sendAndConfirm(freezeTx, [whMintAuthority]);
+    await stakeConnection.provider.sendAndConfirm(setAuthorityTx, [vester3]);
 
-    let vester3TaAccount = await getAccount(stakeConnection.provider.connection, vester3Ta);
-    assert.equal(vester3TaAccount.isFrozen, true, "vester3Ta should be frozen");
-
-    let stakeAccountMetadataAddress = await vester3StakeConnection.getStakeMetadataAddress(
-      vester3.publicKey
+    const vester3TaAccountAfter = await getAccount(
+      stakeConnection.provider.connection,
+      vester3Ta,
     );
-    let newVester3StakeAccountMetadataAddress =
-      await newVester3StakeConnection.getStakeMetadataAddress(
-        newVester3.publicKey,
-      );
-
-    let newVester3Vest = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from(wasm.Constants.VEST_SEED()),
-        config.toBuffer(),
-        newVester3Ta.toBuffer(),
-        FEW_LATER.toBuffer("le", 8),
-      ],
-      stakeConnection.program.programId
-    )[0];
-
-    try {
-      await vesterStakeConnection.program.methods
-        .transferVesting()
-        .accounts({
-          ...accounts,
-          vester: vester3.publicKey,
-          vest: vest3NowForTransfer,
-          vestingBalance: vesting3Balance,
-          delegateStakeAccountCheckpoints: null,
-          delegateStakeAccountMetadata: null,
-          stakeAccountMetadata: stakeAccountMetadataAddress,
-          newStakeAccountMetadata: newVester3StakeAccountMetadataAddress,
-          vesterTa: vester3Ta,
-          newVesterTa: newVester3Ta,
-          newVest: newVester3Vest,
-          newVestingBalance: newVesting3Balance,
-          globalConfig: vester3StakeConnection.configAddress,
-        })
-        .signers([vester3])
-        .rpc()
-        .then(confirm);
-
-      assert.fail("Expected error was not thrown");
-    } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "FrozenVesterAccount",
-      );
-    }
-
-    let thawTx = new Transaction();
-    thawTx.add(
-      createThawAccountInstruction(
-        vester3Ta,
-        whMintAccount.publicKey,
-        whMintAuthority.publicKey,
-      )
+    assert.equal(
+      vester3TaAccountAfter.owner.toBase58(),
+      newOwner.toBase58(),
+      "The owner of vester3Ta should change",
     );
-    await stakeConnection.provider.sendAndConfirm(thawTx, [whMintAuthority]);
   });
 
   it("should fail to transfer vest if the sender hasn't delegated, but the recipient has", async () => {});

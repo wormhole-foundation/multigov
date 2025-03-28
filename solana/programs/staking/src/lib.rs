@@ -709,14 +709,17 @@ pub mod staking {
         ctx.accounts.initialize(seed, ctx.bumps.config)
     }
 
-    // Create a vesting balance account
-    pub fn create_vesting_balance(ctx: Context<CreateVestingBalance>) -> Result<()> {
+    // Create a new vesting balance account
+    pub fn create_vesting_balance(
+        ctx: Context<CreateVestingBalance>,
+        vester: Pubkey,
+    ) -> Result<()> {
         ctx.accounts
-            .create_vesting_balance(ctx.bumps.vesting_balance)
+            .create_vesting_balance(vester, ctx.bumps.vesting_balance)
     }
 
     // Closes a vesting balance account
-    pub fn close_vesting_balance(ctx: Context<CloseVestingBalance>) -> Result<()> {
+    pub fn close_vesting_balance(ctx: Context<CloseVestingBalance>, _vester: Pubkey) -> Result<()> {
         ctx.accounts.close_vesting_balance()
     }
 
@@ -726,9 +729,14 @@ pub mod staking {
     }
 
     // Open a new Vesting account and deposit equivalent vested tokens to vault
-    pub fn create_vesting(ctx: Context<CreateVesting>, maturation: i64, amount: u64) -> Result<()> {
+    pub fn create_vesting(
+        ctx: Context<CreateVesting>,
+        vester: Pubkey,
+        maturation: i64,
+        amount: u64,
+    ) -> Result<()> {
         ctx.accounts
-            .create_vesting(maturation, amount, ctx.bumps.vest)
+            .create_vesting(vester, maturation, amount, ctx.bumps.vest)
     }
 
     // Claim from and close a Vesting account
@@ -743,11 +751,13 @@ pub mod staking {
         Ok(())
     }
 
-    // Transfer Vesting from and send to new Vester
-    pub fn transfer_vesting(ctx: Context<TransferVesting>) -> Result<()> {
-        let transfer_vesting_events = ctx
-            .accounts
-            .transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)?;
+    // Transfer vesting to a new vester
+    pub fn transfer_vesting(ctx: Context<TransferVesting>, new_vester: Pubkey) -> Result<()> {
+        let transfer_vesting_events = ctx.accounts.transfer_vesting(
+            new_vester,
+            ctx.bumps.new_vest,
+            ctx.bumps.new_vesting_balance,
+        )?;
 
         if let Some(stake_account_metadata) = transfer_vesting_events.stake_account_metadata {
             emit_cpi!(stake_account_metadata.recorded_vesting_balance_changed);
@@ -769,7 +779,7 @@ pub mod staking {
     }
 
     // Cancel and close a Vesting account for a non-finalized Config
-    pub fn cancel_vesting(ctx: Context<CancelVesting>) -> Result<()> {
+    pub fn cancel_vesting(ctx: Context<CancelVesting>, _vester: Pubkey) -> Result<()> {
         ctx.accounts.cancel_vesting()
     }
 

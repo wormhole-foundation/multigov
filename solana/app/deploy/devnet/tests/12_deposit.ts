@@ -18,11 +18,7 @@ import {
 
 async function performDeposit(userKeypair: anchor.web3.Keypair) {
   const connection = new Connection(RPC_NODE);
-  const provider = new AnchorProvider(
-    connection,
-    new Wallet(userKeypair),
-    {},
-  );
+  const provider = new AnchorProvider(connection, new Wallet(userKeypair), {});
   const user = provider.wallet.publicKey;
   const idl = (await Program.fetchIdl(STAKING_ADDRESS, provider))!;
   const program = new Program(idl, provider);
@@ -54,7 +50,9 @@ async function performDeposit(userKeypair: anchor.web3.Keypair) {
     skipPreflight: false,
   });
 
-  console.log(`Deposit transaction completed successfully for user: ${user.toBase58()}`);
+  console.log(
+    `Deposit transaction completed successfully for user: ${user.toBase58()}`,
+  );
   console.log("Transaction signature:", tx);
 }
 

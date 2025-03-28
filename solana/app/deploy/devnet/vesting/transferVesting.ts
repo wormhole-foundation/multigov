@@ -156,8 +156,6 @@ async function main() {
   let accounts = {
     vester: vester.publicKey,
     mint: WORMHOLE_TOKEN,
-    vesterTa,
-    newVesterTa,
     config,
     vest: vestEvenLater,
     newVest: newVestEvenLater,
@@ -194,7 +192,7 @@ async function main() {
       })
       .instruction(),
     await vesterStakeConnection.program.methods
-      .transferVesting()
+      .transferVesting(newVester.publicKey)
       .accountsPartial({ ...accounts })
       .instruction(),
     await vesterStakeConnection.program.methods
@@ -229,7 +227,7 @@ async function main() {
   //
   //   console.log("Starting transferVesting...");
   //     await vesterStakeConnection.program.methods
-  //       .transferVesting()
+  //       .transferVesting(newVester.publicKey)
   //       .accountsPartial({
   //         ...accounts
   //       })

@@ -8,7 +8,10 @@ async function main() {
   try {
     const programId = await input({ message: "Enter the program id:" });
     const programIdPublicKey = new PublicKey(programId);
-    console.log('Program ID:', "0x" + Buffer.from(programIdPublicKey.toBytes()).toString('hex'))
+    console.log(
+      "Program ID:",
+      "0x" + Buffer.from(programIdPublicKey.toBytes()).toString("hex"),
+    );
   } catch (err) {
     console.error("Error:", err);
   }

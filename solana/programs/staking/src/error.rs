@@ -107,6 +107,8 @@ pub enum VestingError {
     StakeAccountDelegationLoop,
     #[msg("Cannot transfer vesting from a frozen token account")]
     FrozenVesterAccount,
+    #[msg("The token account owner does not match the vesting account")]
+    InvalidVester,
 }
 
 #[error_code]
