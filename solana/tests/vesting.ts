@@ -789,7 +789,7 @@ describe("vesting", () => {
     }
   });
 
-  it("Create vesting balance", async () => {
+  it("should successfully create vesting balance account", async () => {
     await stakeConnection.program.methods
       .createVestingBalance(vester.publicKey)
       .accounts({ ...accounts, vestingBalance: vestingBalance })
@@ -798,9 +798,9 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Close and re-create vesting balance", async () => {
+  it("should successfully close and re-create vesting balance account", async () => {
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vestingBalance,
@@ -824,7 +824,7 @@ describe("vesting", () => {
   it("should fail to close vesting balance account with incorrect rent payer", async () => {
     try {
       await stakeConnection.program.methods
-        .closeVestingBalance()
+        .closeVestingBalance(vester.publicKey)
         .accounts({
           ...accounts,
           vestingBalance: vestingBalance,
@@ -839,7 +839,7 @@ describe("vesting", () => {
     }
   });
 
-  it("Create another vesting balance", async () => {
+  it("should successfully create another vesting balance accounts", async () => {
     await stakeConnection.program.methods
       .createVestingBalance(vester2.publicKey)
       .accounts({
@@ -892,13 +892,12 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Close and re-create another vesting balance", async () => {
+  it("should successfully close and re-create another vesting balance accounts", async () => {
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(vester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting2Balance,
-        vesterTa: vester2Ta,
         rentPayer: whMintAuthority.publicKey,
       })
       .signers([whMintAuthority])
@@ -906,11 +905,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(vester3.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: vesting3Balance,
-        vesterTa: vester3Ta,
         rentPayer: whMintAuthority.publicKey,
       })
       .signers([whMintAuthority])
@@ -918,11 +916,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(newVester.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVestingBalance,
-        vesterTa: newVesterTa,
         rentPayer: whMintAuthority.publicKey,
       })
       .signers([whMintAuthority])
@@ -930,11 +927,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(newVester2.publicKey)
       .accounts({
         ...accounts,
         vestingBalance: newVesting2Balance,
-        vesterTa: newVester2Ta,
         rentPayer: whMintAuthority.publicKey,
       })
       .signers([whMintAuthority])
@@ -942,7 +938,7 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .closeVestingBalance()
+      .closeVestingBalance(vester.publicKey)
       .accounts({
         ...accounts,
         config: config2,
@@ -3595,12 +3591,11 @@ describe("vesting", () => {
   it("should fail to close vesting balance account when balance is not 0", async () => {
     try {
       await stakeConnection.program.methods
-        .closeVestingBalance()
+        .closeVestingBalance(vesterWithoutAccount.publicKey)
         .accounts({
           ...accounts,
           rentPayer: newVester.publicKey,
           vestingBalance: vestingBalanceWithoutAccount,
-          vesterTa: vesterTaWithoutAccount,
         })
         .signers([newVester])
         .rpc()

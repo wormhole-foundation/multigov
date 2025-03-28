@@ -719,7 +719,10 @@ pub mod staking {
     }
 
     // Closes a vesting balance account
-    pub fn close_vesting_balance(ctx: Context<CloseVestingBalance>) -> Result<()> {
+    pub fn close_vesting_balance(
+        ctx: Context<CloseVestingBalance>,
+        _vester: Pubkey
+    ) -> Result<()> {
         ctx.accounts.close_vesting_balance()
     }
 
