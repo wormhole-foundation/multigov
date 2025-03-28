@@ -120,7 +120,6 @@ describe("vesting", () => {
     vester3StakeConnection,
     newVestingBalance,
     newVesting2Balance,
-    newVesting3Balance,
     vestingBalanceWithoutAccount,
     newVesterStakeConnection,
     newVester2StakeConnection,
@@ -399,14 +398,6 @@ describe("vesting", () => {
       ],
       stakeConnection.program.programId,
     )[0];
-    newVesting3Balance = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
-        config.toBuffer(),
-        newVester3.publicKey.toBuffer(),
-      ],
-      stakeConnection.program.programId,
-    )[0];
     vestingBalanceWithoutAccount = PublicKey.findProgramAddressSync(
       [
         Buffer.from(wasm.Constants.VESTING_BALANCE_SEED()),
@@ -485,8 +476,6 @@ describe("vesting", () => {
       config,
       vault,
       vester: vester.publicKey,
-      vesterTa,
-      newVesterTa,
       adminAta,
       recovery: adminAta,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -494,9 +483,8 @@ describe("vesting", () => {
       systemProgram: SystemProgram.programId,
       vestingBalance: vestingBalance,
     };
-  });
 
-  it("Airdrop", async () => {
+    // Airdrop
     let tx = new Transaction();
     tx.instructions = [
       ...[whMintAuthority, vester, vester2, vester3, fakeVestingAdmin].map(
@@ -720,7 +708,7 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Initialize config", async () => {
+  it("should successfully initialize config", async () => {
     await stakeConnection.program.methods
       .initializeVestingConfig(seed)
       .accounts({ ...accounts })
@@ -1141,6 +1129,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints: null,
           delegateStakeAccountMetadata: null,
@@ -1196,7 +1185,7 @@ describe("vesting", () => {
     }
   });
 
-  it("Deposits vesting tokens", async () => {
+  it("should successfully deposit vesting tokens", async () => {
     const tx = new Transaction();
     tx.add(
       createTransferCheckedInstruction(
@@ -1265,7 +1254,7 @@ describe("vesting", () => {
     }
   });
 
-  it("Withdraw surplus tokens", async () => {
+  it("should successfully withdraw surplus tokens", async () => {
     await stakeConnection.program.methods
       .withdrawSurplus()
       .accounts({ ...accounts })
@@ -1274,7 +1263,7 @@ describe("vesting", () => {
       .then(confirm);
   });
 
-  it("Finalizes the vesting config2", async () => {
+  it("should successfully finalize the second vesting config", async () => {
     await stakeConnection.program.methods
       .finalizeVestingConfig()
       .accounts({
@@ -1322,6 +1311,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestEvenLater,
           delegateStakeAccountCheckpoints: null,
           delegateStakeAccountMetadata: null,
@@ -1659,6 +1649,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints: null,
           delegateStakeAccountMetadata: null,
@@ -1685,6 +1676,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints: null,
           delegateStakeAccountMetadata: stakeAccountMetadataAddress,
@@ -1718,6 +1710,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints:
             incorrectStakeAccountCheckpointsAddress,
@@ -1757,6 +1750,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestNow,
           delegateStakeAccountCheckpoints:
             incorrectStakeAccountCheckpointsAddress,
@@ -1846,6 +1840,7 @@ describe("vesting", () => {
       .claimVesting()
       .accounts({
         ...accounts,
+        vesterTa,
         vest: vestNow,
         delegateStakeAccountCheckpoints: delegateStakeAccountCheckpointsAddress,
         delegateStakeAccountMetadata: stakeAccountMetadataAddress,
@@ -1982,6 +1977,7 @@ describe("vesting", () => {
         .claimVesting()
         .accounts({
           ...accounts,
+          vesterTa,
           vest: vestFewLater,
           delegateStakeAccountCheckpoints:
             delegateStakeAccountCheckpointsAddress,
@@ -2452,6 +2448,7 @@ describe("vesting", () => {
       .claimVesting()
       .accounts({
         ...accounts,
+        vesterTa,
         vest: vestFewLater,
         delegateStakeAccountCheckpoints: delegateStakeAccountCheckpointsAddress,
         delegateStakeAccountMetadata: stakeAccountMetadataAddress,
