@@ -684,15 +684,16 @@ describe("vesting", () => {
     const tx = new Transaction();
     tx.add(
       createAssociatedTokenAccountInstruction(
-        vester.publicKey,        // payer
-        vault3,                  // associatedToken
-        config3,                 // owner
+        vester.publicKey, // payer
+        vault3, // associatedToken
+        config3, // owner
         whMintAccount.publicKey, // mint
         TOKEN_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID,
       ),
     );
-    await vesterStakeConnection.provider.sendAndConfirm(tx, [vester])
+    await vesterStakeConnection.provider
+      .sendAndConfirm(tx, [vester])
       .then(confirm);
     await sleep(1500);
 
@@ -3648,17 +3649,20 @@ describe("vesting", () => {
   });
 
   it("should confirm that the owner of vester3Ta can be changed", async () => {
-    const vester3TaAccountInitial = await getAccount(stakeConnection.provider.connection, vester3Ta);
+    const vester3TaAccountInitial = await getAccount(
+      stakeConnection.provider.connection,
+      vester3Ta,
+    );
     assert.equal(
       vester3TaAccountInitial.owner.toBase58(),
       vester3.publicKey.toBase58(),
-      "Initial owner of vester3Ta should be vester3"
+      "Initial owner of vester3Ta should be vester3",
     );
 
     const newOwner = newVester3.publicKey;
     assert.notEqual(
       vester3TaAccountInitial.owner.toBase58(),
-      newOwner.toBase58()
+      newOwner.toBase58(),
     );
 
     const setAuthorityTx = new Transaction();
@@ -3668,15 +3672,18 @@ describe("vesting", () => {
         vester3.publicKey,
         AuthorityType.AccountOwner,
         newOwner,
-      )
+      ),
     );
     await stakeConnection.provider.sendAndConfirm(setAuthorityTx, [vester3]);
-  
-    const vester3TaAccountAfter = await getAccount(stakeConnection.provider.connection, vester3Ta);
+
+    const vester3TaAccountAfter = await getAccount(
+      stakeConnection.provider.connection,
+      vester3Ta,
+    );
     assert.equal(
       vester3TaAccountAfter.owner.toBase58(),
       newOwner.toBase58(),
-      "The owner of vester3Ta should change"
+      "The owner of vester3Ta should change",
     );
   });
 

@@ -165,10 +165,7 @@ describe("castVote", async () => {
   });
 
   it("should fail to castVote if proposal inactive", async () => {
-    await user6StakeConnection.delegate(
-      user6,
-      WHTokenBalance.fromString("50"),
-    );
+    await user6StakeConnection.delegate(user6, WHTokenBalance.fromString("50"));
 
     let proposalIdInput = await addTestProposal(
       user6StakeConnection,
@@ -176,9 +173,7 @@ describe("castVote", async () => {
     );
 
     let stakeAccountMetadataAddress =
-      await user6StakeConnection.getStakeMetadataAddress(
-        user6,
-      );
+      await user6StakeConnection.getStakeMetadataAddress(user6);
     let previousStakeAccountCheckpointsAddress =
       await user6StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         stakeAccountMetadataAddress,
@@ -206,9 +201,7 @@ describe("castVote", async () => {
 
       assert.fail("Expected an error but none was thrown");
     } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "ProposalInactive",
-      );
+      assert((e as AnchorError).error?.errorCode?.code === "ProposalInactive");
     }
   });
 
@@ -226,9 +219,7 @@ describe("castVote", async () => {
     await sleep(4000);
 
     let stakeAccountMetadataAddress =
-      await user6StakeConnection.getStakeMetadataAddress(
-        user6,
-      );
+      await user6StakeConnection.getStakeMetadataAddress(user6);
     let previousStakeAccountCheckpointsAddress =
       await user6StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         stakeAccountMetadataAddress,
@@ -356,10 +347,7 @@ describe("castVote", async () => {
 
   it("should fail to castVote if next voter checkpoints are invalid", async () => {
     await sleep(1000);
-    await user4StakeConnection.delegate(
-      user4,
-      WHTokenBalance.fromString("5"),
-    );
+    await user4StakeConnection.delegate(user4, WHTokenBalance.fromString("5"));
 
     let voteStart = Math.floor(Date.now() / 1000) + 25;
     let proposalIdInput = await addTestProposal(
@@ -384,10 +372,7 @@ describe("castVote", async () => {
     }
 
     let currentStakeAccountCheckpointsAddress =
-      await user4StakeConnection.getStakeAccountCheckpointsAddress(
-        user4,
-        0,
-      );
+      await user4StakeConnection.getStakeAccountCheckpointsAddress(user4, 0);
     let currentStakeAccountCheckpoints: CheckpointAccount =
       await user4StakeConnection.fetchCheckpointAccount(
         currentStakeAccountCheckpointsAddress,
@@ -398,8 +383,7 @@ describe("castVote", async () => {
       TEST_CHECKPOINTS_ACCOUNT_LIMIT,
     );
     assert(
-      currentStakeAccountCheckpoints.getLastCheckpoint().timestamp <
-        voteStart,
+      currentStakeAccountCheckpoints.getLastCheckpoint().timestamp < voteStart,
     );
 
     try {
@@ -429,10 +413,7 @@ describe("castVote", async () => {
 
   it("should fail to castVote if the wanted checkpoint is the last one in the filled account", async () => {
     let currentStakeAccountCheckpointsAddress =
-      await user4StakeConnection.getStakeAccountCheckpointsAddress(
-        user4,
-        0,
-      );
+      await user4StakeConnection.getStakeAccountCheckpointsAddress(user4, 0);
     let currentStakeAccountCheckpoints: CheckpointAccount =
       await user4StakeConnection.fetchCheckpointAccount(
         currentStakeAccountCheckpointsAddress,
@@ -488,9 +469,7 @@ describe("castVote", async () => {
     }
 
     let user5StakeAccountMetadataAddress =
-      await user5StakeConnection.getStakeMetadataAddress(
-        user5,
-      );
+      await user5StakeConnection.getStakeMetadataAddress(user5);
     let user5StakeAccountCheckpointsAddress =
       await user5StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         user5StakeAccountMetadataAddress,
@@ -559,28 +538,23 @@ describe("castVote", async () => {
     }
 
     let user8StakeAccountMetadataAddress =
-      await user8StakeConnection.getStakeMetadataAddress(
-        user8,
-      );
+      await user8StakeConnection.getStakeMetadataAddress(user8);
     let previousUser8StakeAccountCheckpointsAddress =
       await user8StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         user8StakeAccountMetadataAddress,
         false,
       );
-    let user8StakeAccountCheckpointsAddress =
-      PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-          user8.toBuffer(),
-          Buffer.from([1, 0]),
-        ],
-        user8StakeConnection.program.programId,
-      )[0];
+    let user8StakeAccountCheckpointsAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        user8.toBuffer(),
+        Buffer.from([1, 0]),
+      ],
+      user8StakeConnection.program.programId,
+    )[0];
 
     let user6StakeAccountMetadataAddress =
-      await user6StakeConnection.getStakeMetadataAddress(
-        user6,
-      );
+      await user6StakeConnection.getStakeMetadataAddress(user6);
     let user6StakeAccountCheckpointsAddress =
       await user6StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         user6StakeAccountMetadataAddress,
@@ -597,15 +571,11 @@ describe("castVote", async () => {
     );
     instructions.push(
       await user8StakeConnection.program.methods
-        .delegate(
-          user6,
-          user8,
-        )
+        .delegate(user6, user8)
         .accountsPartial({
           currentDelegateStakeAccountCheckpoints:
             previousUser8StakeAccountCheckpointsAddress,
-          delegateeStakeAccountCheckpoints:
-            user6StakeAccountCheckpointsAddress,
+          delegateeStakeAccountCheckpoints: user6StakeAccountCheckpointsAddress,
           vestingConfig: null,
           vestingBalance: null,
           mint: user8StakeConnection.config.votingTokenMint,
@@ -617,8 +587,7 @@ describe("castVote", async () => {
         .createCheckpoints()
         .accounts({
           payer: user8,
-          stakeAccountCheckpoints:
-            previousUser8StakeAccountCheckpointsAddress,
+          stakeAccountCheckpoints: previousUser8StakeAccountCheckpointsAddress,
           newStakeAccountCheckpoints: user8StakeAccountCheckpointsAddress,
           stakeAccountMetadata: user8StakeAccountMetadataAddress,
         })
@@ -626,15 +595,11 @@ describe("castVote", async () => {
     );
     instructions.push(
       await user8StakeConnection.program.methods
-        .delegate(
-          user8,
-          user6,
-        )
+        .delegate(user8, user6)
         .accountsPartial({
           currentDelegateStakeAccountCheckpoints:
             user6StakeAccountCheckpointsAddress,
-          delegateeStakeAccountCheckpoints:
-            user8StakeAccountCheckpointsAddress,
+          delegateeStakeAccountCheckpoints: user8StakeAccountCheckpointsAddress,
           vestingConfig: null,
           vestingBalance: null,
           mint: user8StakeConnection.config.votingTokenMint,
@@ -652,11 +617,13 @@ describe("castVote", async () => {
     );
 
     let previousUser8StakeAccountCheckpoints: CheckpointAccount =
-    await user8StakeConnection.fetchCheckpointAccount(
-      previousUser8StakeAccountCheckpointsAddress,
-    );
+      await user8StakeConnection.fetchCheckpointAccount(
+        previousUser8StakeAccountCheckpointsAddress,
+      );
     assert.equal(
-      previousUser8StakeAccountCheckpoints.checkpoints[TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1].value.toString(),
+      previousUser8StakeAccountCheckpoints.checkpoints[
+        TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1
+      ].value.toString(),
       "0",
     );
 
@@ -686,7 +653,7 @@ describe("castVote", async () => {
     );
 
     const { proposalId, againstVotes, forVotes, abstainVotes } =
-    await user8StakeConnection.proposalVotes(proposalIdInput);
+      await user8StakeConnection.proposalVotes(proposalIdInput);
 
     assert.equal(proposalId.toString("hex"), proposalIdInput.toString("hex"));
     assert.equal(againstVotes.toString(), "10");
@@ -705,28 +672,23 @@ describe("castVote", async () => {
     }
 
     let user9StakeAccountMetadataAddress =
-      await user9StakeConnection.getStakeMetadataAddress(
-        user9,
-      );
+      await user9StakeConnection.getStakeMetadataAddress(user9);
     let previousUser9StakeAccountCheckpointsAddress =
       await user9StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         user9StakeAccountMetadataAddress,
         false,
       );
-    let user9StakeAccountCheckpointsAddress =
-      PublicKey.findProgramAddressSync(
-        [
-          utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
-          user9.toBuffer(),
-          Buffer.from([1, 0]),
-        ],
-        user9StakeConnection.program.programId,
-      )[0];
+    let user9StakeAccountCheckpointsAddress = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode(wasm.Constants.CHECKPOINT_DATA_SEED()),
+        user9.toBuffer(),
+        Buffer.from([1, 0]),
+      ],
+      user9StakeConnection.program.programId,
+    )[0];
 
     let user6StakeAccountMetadataAddress =
-      await user6StakeConnection.getStakeMetadataAddress(
-        user6,
-      );
+      await user6StakeConnection.getStakeMetadataAddress(user6);
     let user6StakeAccountCheckpointsAddress =
       await user6StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         user6StakeAccountMetadataAddress,
@@ -743,10 +705,7 @@ describe("castVote", async () => {
     );
     instructions.push(
       await user9StakeConnection.program.methods
-        .delegate(
-          user9,
-          user9,
-        )
+        .delegate(user9, user9)
         .accountsPartial({
           currentDelegateStakeAccountCheckpoints:
             previousUser9StakeAccountCheckpointsAddress,
@@ -763,8 +722,7 @@ describe("castVote", async () => {
         .createCheckpoints()
         .accounts({
           payer: user9,
-          stakeAccountCheckpoints:
-            previousUser9StakeAccountCheckpointsAddress,
+          stakeAccountCheckpoints: previousUser9StakeAccountCheckpointsAddress,
           newStakeAccountCheckpoints: user9StakeAccountCheckpointsAddress,
           stakeAccountMetadata: user9StakeAccountMetadataAddress,
         })
@@ -772,15 +730,11 @@ describe("castVote", async () => {
     );
     instructions.push(
       await user9StakeConnection.program.methods
-        .delegate(
-          user6,
-          user9,
-        )
+        .delegate(user6, user9)
         .accountsPartial({
           currentDelegateStakeAccountCheckpoints:
             user9StakeAccountCheckpointsAddress,
-          delegateeStakeAccountCheckpoints:
-            user6StakeAccountCheckpointsAddress,
+          delegateeStakeAccountCheckpoints: user6StakeAccountCheckpointsAddress,
           vestingConfig: null,
           vestingBalance: null,
           mint: user9StakeConnection.config.votingTokenMint,
@@ -856,20 +810,11 @@ describe("castVote", async () => {
 
     try {
       await user2StakeConnection.program.methods
-        .castVote(
-          Array.from(proposalId),
-          new BN(10),
-          new BN(20),
-          new BN(12),
-          1,
-        )
+        .castVote(Array.from(proposalId), new BN(10), new BN(20), new BN(12), 1)
         .accountsPartial({
           proposal: proposalAccount,
           voterCheckpoints:
-            await stakeConnection.getStakeAccountCheckpointsAddress(
-              user4,
-              0,
-            ),
+            await stakeConnection.getStakeAccountCheckpointsAddress(user4, 0),
           voterCheckpointsNext: null,
         })
         .rpc();
@@ -885,9 +830,7 @@ describe("castVote", async () => {
     let proposalIdInput;
 
     let stakeAccountMetadataAddress =
-      await user2StakeConnection.getStakeMetadataAddress(
-        user2,
-      );
+      await user2StakeConnection.getStakeMetadataAddress(user2);
     let currentStakeAccountCheckpointsAddress =
       await user2StakeConnection.getStakeAccountCheckpointsAddressByMetadata(
         stakeAccountMetadataAddress,
@@ -899,17 +842,18 @@ describe("castVote", async () => {
       );
     let checkpointCount = currentStakeAccountCheckpoints.getCheckpointCount();
 
-    assert.equal(
-      checkpointCount,
-      1,
-    );
+    assert.equal(checkpointCount, 1);
 
     // fill checkpoint account to one less than the limit
-    for (let i = 0; i < TEST_CHECKPOINTS_ACCOUNT_LIMIT - checkpointCount - 1; i++) {
+    for (
+      let i = 0;
+      i < TEST_CHECKPOINTS_ACCOUNT_LIMIT - checkpointCount - 1;
+      i++
+    ) {
       await sleep(1000);
       await user2StakeConnection.delegate(
         user2,
-        WHTokenBalance.fromString("5")
+        WHTokenBalance.fromString("5"),
       );
 
       if (i == 9) {
@@ -922,9 +866,9 @@ describe("castVote", async () => {
     }
 
     let updatedCurrentStakeAccountCheckpoints: CheckpointAccount =
-    await user2StakeConnection.fetchCheckpointAccount(
-      currentStakeAccountCheckpointsAddress,
-    );
+      await user2StakeConnection.fetchCheckpointAccount(
+        currentStakeAccountCheckpointsAddress,
+      );
     assert.equal(
       updatedCurrentStakeAccountCheckpoints.getCheckpointCount(),
       TEST_CHECKPOINTS_ACCOUNT_LIMIT - 1,

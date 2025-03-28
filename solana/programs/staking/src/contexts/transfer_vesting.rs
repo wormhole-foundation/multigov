@@ -272,7 +272,10 @@ impl<'info> crate::contexts::TransferVesting<'info> {
             );
 
             let (expected_stake_account_metadata_pda, _) = Pubkey::find_program_address(
-                &[STAKE_ACCOUNT_METADATA_SEED.as_bytes(), self.vester.key().as_ref()],
+                &[
+                    STAKE_ACCOUNT_METADATA_SEED.as_bytes(),
+                    self.vester.key().as_ref(),
+                ],
                 &crate::ID,
             );
             require!(

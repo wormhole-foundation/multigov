@@ -47,7 +47,13 @@ pub struct CreateVesting<'info> {
 }
 
 impl<'info> CreateVesting<'info> {
-    pub fn create_vesting(&mut self, vester: Pubkey, maturation: i64, amount: u64, bump: u8) -> Result<()> {
+    pub fn create_vesting(
+        &mut self,
+        vester: Pubkey,
+        maturation: i64,
+        amount: u64,
+        bump: u8,
+    ) -> Result<()> {
         // Add to total vested amount
         self.config.vested = self
             .config
