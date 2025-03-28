@@ -32,9 +32,6 @@ use crate::error::{
 use crate::state::GuardianSignatures;
 use crate::state::{find_window_length_le, init_window_length, push_new_window_length};
 
-// automatically generate module using program idl found in ./idls
-declare_program!(wormhole_bridge_core);
-
 mod context;
 mod contexts;
 mod error;
