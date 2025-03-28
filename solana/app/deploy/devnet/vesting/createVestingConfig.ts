@@ -116,7 +116,6 @@ async function main() {
     config,
     vault,
     vester: vester.publicKey,
-    vesterTa,
     adminAta,
     recovery: adminAta,
     associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -137,7 +136,7 @@ async function main() {
 
   console.log("Creating vesting balance for vester...");
   await stakeConnection.program.methods
-    .createVestingBalance()
+    .createVestingBalance(vester.publicKey)
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
@@ -147,7 +146,7 @@ async function main() {
 
   console.log(`Creating vest for vester at NOW (${NOW.toString()})...`);
   await stakeConnection.program.methods
-    .createVesting(NOW, new BN(20e6))
+    .createVesting(vester.publicKey, NOW, new BN(20e6))
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
@@ -157,7 +156,7 @@ async function main() {
 
   console.log(`Creating vest for vester at LATER (${LATER.toString()})...`);
   await stakeConnection.program.methods
-    .createVesting(LATER, new BN(20e6))
+    .createVesting(vester.publicKey, LATER, new BN(20e6))
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
@@ -169,7 +168,7 @@ async function main() {
     `Creating vest for vester at EVEN_LATER (${EVEN_LATER.toString()})...`,
   );
   await stakeConnection.program.methods
-    .createVesting(EVEN_LATER, new BN(20e6))
+    .createVesting(vester.publicKey, EVEN_LATER, new BN(20e6))
     .accounts({ ...accounts })
     .signers([admin])
     .rpc()
@@ -191,7 +190,7 @@ async function main() {
 
   console.log(`Canceling vest for vester at LATER (${LATER.toString()})...`);
   await stakeConnection.program.methods
-    .cancelVesting()
+    .cancelVesting(vester.publicKey)
     .accountsPartial({ ...accounts, vest: vestLater })
     .signers([admin])
     .rpc()
