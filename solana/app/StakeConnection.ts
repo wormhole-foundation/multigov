@@ -1,6 +1,5 @@
 import {
   AnchorProvider,
-  Idl,
   IdlAccounts,
   Program,
   utils,
@@ -8,6 +7,7 @@ import {
 } from "@coral-xyz/anchor";
 import {
   Connection,
+  ComputeBudgetProgram,
   Keypair,
   PublicKey,
   SYSVAR_CLOCK_PUBKEY,
@@ -23,7 +23,6 @@ import {
 } from "@solana/spl-token";
 import BN from "bn.js";
 import { Staking } from "../target/types/staking";
-import IDL from "../target/idl/staking.json";
 import { WHTokenBalance } from "./whTokenBalance";
 import { contracts } from "@wormhole-foundation/sdk-base";
 import {
@@ -40,6 +39,12 @@ import {
 import { signaturesToSolanaArray } from "@wormhole-foundation/wormhole-query-sdk";
 import { deriveGuardianSetKey } from "./helpers/guardianSet";
 import crypto from "crypto";
+import {
+  STAKING_ADDRESS as mainnetStakingAddress,
+} from "./deploy/mainnet/constants";
+import {
+  STAKING_ADDRESS as devnetStakingAddress,
+} from "./deploy/devnet/constants";
 
 let wasm = importedWasm;
 export { wasm };
@@ -102,10 +107,12 @@ export class StakeConnection {
     priorityFeeConfig?: PriorityFeeConfig,
   ): Promise<StakeConnection> {
     const provider = new AnchorProvider(connection, wallet, {});
-    const program = new Program(
-      IDL as Idl,
-      provider,
-    ) as unknown as Program<Staking>;
+    const stakingAddress = connection.rpcEndpoint.includes("mainnet")
+      ? mainnetStakingAddress
+      : devnetStakingAddress;
+    const idl = (await Program.fetchIdl(stakingAddress, provider))!;
+    const program = new Program(idl, provider) as unknown as Program<Staking>;
+
     // Sometimes in the browser, the import returns a promise.
     // Don't fully understand, but this workaround is not terrible
     if (wasm.hasOwnProperty("default")) {
@@ -747,7 +754,8 @@ export class StakeConnection {
     guardianSignatures: PublicKey,
     guardianSetIndex: number,
     unoptimized?: boolean,
-  ): Promise<void> {
+    simulateOnly?: boolean,
+  ): Promise<void | SimulateResponse<any, any>> {
     const { proposalAccount } = await this.fetchProposalAccount(proposalId);
     const networkType = this.provider.connection.rpcEndpoint.includes("mainnet")
       ? "Mainnet"
@@ -767,13 +775,28 @@ export class StakeConnection {
         guardianSet: deriveGuardianSetKey(coreBridge, guardianSetIndex),
       });
 
-    if (unoptimized) {
+    if (simulateOnly) {
+      const { blockhash } = await this.provider.connection.getLatestBlockhash("finalized");
+      const computeBudgetInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 400000,
+      });
+
+      const simulationResult = await methodsBuilder
+        .preInstructions([computeBudgetInstruction])
+        .transaction()
+        .then((tx) => {
+          tx.recentBlockhash = blockhash;
+          return methodsBuilder.simulate({
+            commitment: "finalized",
+          });
+        });
+
+      return simulationResult;
+    } else if (unoptimized) {
       await methodsBuilder.rpc().then(this.confirm);
     } else {
       const instructions: TransactionInstruction[] = [];
-
       instructions.push(await methodsBuilder.instruction());
-
       await this.sendAndConfirmAsVersionedTransaction(instructions);
     }
   }
@@ -851,6 +874,16 @@ export class StakeConnection {
 export interface BalanceSummary {
   balance: WHTokenBalance;
 }
+
+export type SimulateResponse<E = any, Defined = any> = {
+  events: readonly Event<E, Defined>[];
+  raw: readonly string[];
+};
+
+export type Event<E, Defined> = {
+  name: string;
+  data: Defined;
+};
 
 export class StakeAccount {
   address: PublicKey;
