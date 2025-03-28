@@ -753,11 +753,14 @@ pub mod staking {
         Ok(())
     }
 
-    // Transfer Vesting from and send to new Vester
-    pub fn transfer_vesting(ctx: Context<TransferVesting>) -> Result<()> {
+    // Transfer vesting to a new vester
+    pub fn transfer_vesting(
+        ctx: Context<TransferVesting>,
+        new_vester: Pubkey
+    ) -> Result<()> {
         let transfer_vesting_events = ctx
             .accounts
-            .transfer_vesting(ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)?;
+            .transfer_vesting(new_vester, ctx.bumps.new_vest, ctx.bumps.new_vesting_balance)?;
 
         if let Some(stake_account_metadata) = transfer_vesting_events.stake_account_metadata {
             emit_cpi!(stake_account_metadata.recorded_vesting_balance_changed);

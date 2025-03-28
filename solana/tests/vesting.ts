@@ -2086,7 +2086,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2228,7 +2228,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2306,7 +2306,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2396,7 +2396,7 @@ describe("vesting", () => {
 
     try {
       await vesterStakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2610,7 +2610,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2650,7 +2650,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2685,7 +2685,7 @@ describe("vesting", () => {
 
     try {
       await stakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(vester.publicKey)
         .accounts({
           ...accounts,
           vest: vestNowForTransfer,
@@ -2693,8 +2693,6 @@ describe("vesting", () => {
           delegateStakeAccountMetadata: stakeAccountMetadataAddress,
           stakeAccountMetadata: stakeAccountMetadataAddress,
           newStakeAccountMetadata: stakeAccountMetadataAddress,
-          vesterTa: vesterTa,
-          newVesterTa: vesterTa,
           newVest: vestNowForTransfer,
           newVestingBalance: vestingBalance,
           globalConfig: stakeConnection.configAddress,
@@ -2825,7 +2823,7 @@ describe("vesting", () => {
         })
         .instruction(),
       await vesterStakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           payer: vester.publicKey,
@@ -2934,12 +2932,10 @@ describe("vesting", () => {
 
     try {
       await vester2StakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester2.publicKey)
         .accounts({
           ...accounts,
           vester: vester2.publicKey,
-          vesterTa: vester2Ta,
-          newVesterTa: newVester2Ta,
           vest: vest2NowForTransfer,
           vestingBalance: vesting2Balance,
           delegateStakeAccountCheckpoints:
@@ -3027,12 +3023,10 @@ describe("vesting", () => {
 
     await sleep(1500);
     await vester2StakeConnection.program.methods
-      .transferVesting()
+      .transferVesting(newVester2.publicKey)
       .accounts({
         ...accounts,
         vester: vester2.publicKey,
-        vesterTa: vester2Ta,
-        newVesterTa: newVester2Ta,
         vest: vest2NowForTransfer,
         vestingBalance: vesting2Balance,
         delegateStakeAccountCheckpoints: null,
@@ -3356,7 +3350,7 @@ describe("vesting", () => {
         })
         .instruction(),
       await vesterStakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           payer: vester.publicKey,
@@ -3533,11 +3527,10 @@ describe("vesting", () => {
     await sleep(1500);
     // transfer vestLaterForTransfer from newVester to vesterWithoutAccount
     await stakeConnection.program.methods
-      .transferVesting()
+      .transferVesting(vesterWithoutAccount.publicKey)
       .accounts({
         ...accounts,
         vester: newVester.publicKey,
-        vesterTa: newVesterTa,
         vestingBalance: newVestingBalance,
         vest: vestLaterForTransfer,
         delegateStakeAccountCheckpoints:
@@ -3546,7 +3539,6 @@ describe("vesting", () => {
         stakeAccountMetadata: newVesterStakeAccountMetadataAddress,
         newStakeAccountMetadata: null,
         newVestingBalance: vestingBalanceWithoutAccount,
-        newVesterTa: vesterTaWithoutAccount,
         globalConfig: stakeConnection.configAddress,
       })
       .signers([newVester])
@@ -3632,7 +3624,7 @@ describe("vesting", () => {
 
     try {
       await vester3StakeConnection.program.methods
-        .transferVesting()
+        .transferVesting(newVester.publicKey)
         .accounts({
           ...accounts,
           vester: vester3.publicKey,
@@ -3642,8 +3634,6 @@ describe("vesting", () => {
           delegateStakeAccountMetadata: null,
           stakeAccountMetadata: stakeAccountMetadataAddress,
           newStakeAccountMetadata: newVesterStakeAccountMetadataAddress,
-          vesterTa: vester3Ta,
-          newVesterTa: newVesterTa,
           newVest: vestNowTransfered,
           newVestingBalance: newVestingBalance,
           globalConfig: vester3StakeConnection.configAddress,
@@ -3658,78 +3648,6 @@ describe("vesting", () => {
         (e as AnchorError).error?.errorCode?.code === "ErrorOfAccountParsing",
       );
     }
-  });
-
-  it("should fail to transfer vest if vester_ta is frozen", async () => {
-    let freezeTx = new Transaction();
-    freezeTx.add(
-      createFreezeAccountInstruction(
-        vester3Ta,
-        whMintAccount.publicKey,
-        whMintAuthority.publicKey,
-      )
-    );
-    await stakeConnection.provider.sendAndConfirm(freezeTx, [whMintAuthority]);
-
-    let vester3TaAccount = await getAccount(stakeConnection.provider.connection, vester3Ta);
-    assert.equal(vester3TaAccount.isFrozen, true, "vester3Ta should be frozen");
-
-    let stakeAccountMetadataAddress = await vester3StakeConnection.getStakeMetadataAddress(
-      vester3.publicKey
-    );
-    let newVester3StakeAccountMetadataAddress =
-      await newVester3StakeConnection.getStakeMetadataAddress(
-        newVester3.publicKey,
-      );
-
-    let newVester3Vest = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from(wasm.Constants.VEST_SEED()),
-        config.toBuffer(),
-        newVester3.publicKey.toBuffer(),
-        FEW_LATER.toBuffer("le", 8),
-      ],
-      stakeConnection.program.programId
-    )[0];
-
-    try {
-      await vesterStakeConnection.program.methods
-        .transferVesting()
-        .accounts({
-          ...accounts,
-          vester: vester3.publicKey,
-          vest: vest3NowForTransfer,
-          vestingBalance: vesting3Balance,
-          delegateStakeAccountCheckpoints: null,
-          delegateStakeAccountMetadata: null,
-          stakeAccountMetadata: stakeAccountMetadataAddress,
-          newStakeAccountMetadata: newVester3StakeAccountMetadataAddress,
-          vesterTa: vester3Ta,
-          newVesterTa: newVester3Ta,
-          newVest: newVester3Vest,
-          newVestingBalance: newVesting3Balance,
-          globalConfig: vester3StakeConnection.configAddress,
-        })
-        .signers([vester3])
-        .rpc()
-        .then(confirm);
-
-      assert.fail("Expected error was not thrown");
-    } catch (e) {
-      assert(
-        (e as AnchorError).error?.errorCode?.code === "FrozenVesterAccount",
-      );
-    }
-
-    let thawTx = new Transaction();
-    thawTx.add(
-      createThawAccountInstruction(
-        vester3Ta,
-        whMintAccount.publicKey,
-        whMintAuthority.publicKey,
-      )
-    );
-    await stakeConnection.provider.sendAndConfirm(thawTx, [whMintAuthority]);
   });
 
   it("should confirm that the owner of vester3Ta can be changed", async () => {
