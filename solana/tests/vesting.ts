@@ -1016,7 +1016,7 @@ describe("vesting", () => {
   it("should fail to create vest with invalid admin", async () => {
     try {
       await stakeConnection.program.methods
-        .createVesting(NOW, new BN(1337e6))
+        .createVesting(vester.publicKey, NOW, new BN(1337e6))
         .accounts({
           ...accounts,
           vest: vestNow,
@@ -1036,7 +1036,7 @@ describe("vesting", () => {
 
   it("should successfully create a matured vest", async () => {
     await stakeConnection.program.methods
-      .createVesting(NOW, new BN(1237e6))
+      .createVesting(vester.publicKey, NOW, new BN(1237e6))
       .accounts({ ...accounts, vest: vestNow })
       .signers([whMintAuthority])
       .rpc({
@@ -1047,7 +1047,7 @@ describe("vesting", () => {
 
   it("should successfully create another matured vests", async () => {
     await stakeConnection.program.methods
-      .createVesting(NOW, new BN(100e6))
+      .createVesting(vester.publicKey, NOW, new BN(100e6))
       .accounts({
         ...accounts,
         config: config2,
@@ -1061,18 +1061,17 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER, new BN(1016e6))
+      .createVesting(vester.publicKey, FEW_LATER, new BN(1016e6))
       .accounts({ ...accounts, vest: vestNowForTransfer })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER, new BN(1016e6))
+      .createVesting(vester2.publicKey, FEW_LATER, new BN(1016e6))
       .accounts({
         ...accounts,
         vest: vest2NowForTransfer,
-        vesterTa: vester2Ta,
         vestingBalance: vesting2Balance,
       })
       .signers([whMintAuthority])
@@ -1080,11 +1079,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER, new BN(1016e6))
+      .createVesting(vester3.publicKey, FEW_LATER, new BN(1016e6))
       .accounts({
         ...accounts,
         vest: vest3NowForTransfer,
-        vesterTa: vester3Ta,
         vestingBalance: vesting3Balance,
       })
       .signers([whMintAuthority])
@@ -1092,18 +1090,17 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER_3, new BN(321e6))
+      .createVesting(vester.publicKey, FEW_LATER_3, new BN(321e6))
       .accounts({ ...accounts, vest: vestNowForTransfer3 })
       .signers([whMintAuthority])
       .rpc()
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER_3, new BN(321e6))
+      .createVesting(newVester.publicKey, FEW_LATER_3, new BN(321e6))
       .accounts({
         ...accounts,
         vest: vestNowTransfered3,
-        vesterTa: newVesterTa,
         vestingBalance: newVestingBalance,
       })
       .signers([whMintAuthority])
@@ -1111,11 +1108,10 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(LATER, new BN(1016e6))
+      .createVesting(newVester.publicKey, LATER, new BN(1016e6))
       .accounts({
         ...accounts,
         vest: vestLaterForTransfer,
-        vesterTa: newVesterTa,
         vestingBalance: newVestingBalance,
       })
       .signers([whMintAuthority])
@@ -1123,7 +1119,7 @@ describe("vesting", () => {
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(FEW_LATER_2, new BN(1337e6))
+      .createVesting(vester.publicKey, FEW_LATER_2, new BN(1337e6))
       .accounts({ ...accounts, vest: vestFewLater })
       .signers([whMintAuthority])
       .rpc()
@@ -1132,14 +1128,14 @@ describe("vesting", () => {
 
   it("should successfully сreate unmatured vests", async () => {
     await stakeConnection.program.methods
-      .createVesting(LATER, new BN(1337e6))
+      .createVesting(vester.publicKey, LATER, new BN(1337e6))
       .accounts({ ...accounts, vest: vestLater })
       .signers([whMintAuthority])
       .rpc({ skipPreflight: true })
       .then(confirm);
 
     await stakeConnection.program.methods
-      .createVesting(EVEN_LATER, new BN(1337e6))
+      .createVesting(vester.publicKey, EVEN_LATER, new BN(1337e6))
       .accounts({
         ...accounts,
         vest: vestEvenLater,
@@ -1320,7 +1316,7 @@ describe("vesting", () => {
   it("should fail to create a vest after finalize", async () => {
     try {
       await stakeConnection.program.methods
-        .createVesting(EVEN_LATER_AGAIN, new BN(1337e6))
+        .createVesting(vester.publicKey, EVEN_LATER_AGAIN, new BN(1337e6))
         .accounts({ ...accounts, vest: vestEvenLaterAgain })
         .signers([whMintAuthority])
         .rpc()
