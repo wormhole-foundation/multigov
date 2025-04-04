@@ -85,7 +85,7 @@ contract HubMainnetForkTest is Test {
   bytes32 public constant CANCELLER_ROLE = keccak256("CANCELLER_ROLE");
 
   // TODO: Replace with actual proposer address with enough voting power for production verification
-  address public constant PROPOSER_ADDRESS = actualDeployer;
+  address public PROPOSER_ADDRESS = actualDeployer;
 
   function setUp() public {
     // Create a fork of mainnet
