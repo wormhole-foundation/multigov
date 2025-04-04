@@ -43,6 +43,9 @@ contract HubMainnetForkTest is Test {
   address constant OPTIMISM_SPOKE_AGG_ADDR = 0x75F755950D59d2007A0C90457fDc190732567cC5;
   uint16 constant OPTIMISM_CHAIN_ID = 24;
 
+  // TODO: Replace with actual Wormhole Foundation address for production verification
+  address constant WORMHOLE_FOUNDATION_ADDR = address(0);
+
   // Expected Parameters (based on DeployHubContractsTestMainnet.sol configuration)
   uint256 constant EXPECTED_MIN_DELAY = 300;
   string constant EXPECTED_GOV_NAME = "Wormhole Governor";
@@ -69,7 +72,7 @@ contract HubMainnetForkTest is Test {
   HubEvmSpokeAggregateProposer internal hubEvmSpokeAggregateProposer;
   HubSolanaMessageDispatcher internal hubSolanaMessageDispatcher;
   HubSolanaSpokeVoteDecoder internal hubSolanaSpokeVoteDecoder;
-  ERC20Votes internal testWToken;
+  ERC20Votes internal wToken;
 
   // Test context
   address internal actualDeployer = 0x6dF497fa3bC0a44F384d099FbBE47304FEE4B55B; // Address that deployed the contracts
@@ -85,8 +88,6 @@ contract HubMainnetForkTest is Test {
     // Create a fork of mainnet
     ethereumForkId = vm.createSelectFork(ETHEREUM_RPC_URL);
 
-    console.log("Deployer Address:", actualDeployer);
-
     // Load contract instances from known addresses
     timelock = TimelockController(payable(TIMELOCK_ADDR));
     gov = HubGovernor(payable(GOV_ADDR));
@@ -97,25 +98,17 @@ contract HubMainnetForkTest is Test {
     hubEvmSpokeAggregateProposer = HubEvmSpokeAggregateProposer(HUB_EVM_AGG_PROPOSER_ADDR);
     hubSolanaMessageDispatcher = HubSolanaMessageDispatcher(HUB_SOLANA_DISPATCHER_ADDR);
     hubSolanaSpokeVoteDecoder = HubSolanaSpokeVoteDecoder(HUB_SOLANA_VOTE_DECODER_ADDR);
-    testWToken = ERC20Votes(TEST_WTOKEN_ADDR);
-
-    console.log("Hub Contracts Loaded on Mainnet Fork:");
-    console.log("Timelock:", address(timelock));
-    console.log("Governor:", address(gov));
-    console.log("Extender:", address(extender));
-    console.log("VotePool:", address(hubVotePool));
-    console.log("Test WToken:", address(testWToken));
+    // TODO: Replace with actual WToken address for production verification
+    wToken = ERC20Votes(TEST_WTOKEN_ADDR);
   }
 
   // --- Parameter Verification Tests ---
 
   function testVerifyTimelockParams() public view {
-    console.log("Verifying Timelock Parameters...");
     assertEq(timelock.getMinDelay(), EXPECTED_MIN_DELAY, "Timelock minDelay mismatch");
   }
 
   function testVerifyGovernorParams() public view {
-    console.log("Verifying Governor Parameters...");
     assertEq(gov.name(), EXPECTED_GOV_NAME, "Governor name mismatch");
     assertEq(address(gov.token()), TEST_WTOKEN_ADDR, "Governor token mismatch");
     assertEq(address(gov.timelock()), TIMELOCK_ADDR, "Governor timelock mismatch");
@@ -133,7 +126,6 @@ contract HubMainnetForkTest is Test {
   }
 
   function testVerifyExtenderParams() public view {
-    console.log("Verifying Extender Parameters...");
     // Admin check is in Roles test
     assertEq(extender.extensionDuration(), EXPECTED_VOTE_TIME_EXTENSION, "Extender extensionDuration mismatch");
     assertEq(
@@ -142,19 +134,16 @@ contract HubMainnetForkTest is Test {
   }
 
   function testVerifyVotePoolParams() public view {
-    console.log("Verifying VotePool Parameters...");
     assertEq(address(hubVotePool.wormhole()), EXPECTED_WORMHOLE_CORE, "VotePool wormholeCore mismatch");
     assertEq(address(hubVotePool.hubGovernor()), GOV_ADDR, "VotePool governor mismatch");
     // Owner check is in Roles test
   }
 
   function testVerifyMetadataParams() public view {
-    console.log("Verifying Metadata Parameters...");
     assertEq(address(hubProposalMetadata.GOVERNOR()), GOV_ADDR, "Metadata governor mismatch");
   }
 
   function testVerifyEvmDispatcherParams() public view {
-    console.log("Verifying EvmDispatcher Parameters...");
     assertEq(
       address(hubMessageDispatcher.wormholeCore()), EXPECTED_WORMHOLE_CORE, "EvmDispatcher wormholeCore mismatch"
     );
@@ -165,7 +154,6 @@ contract HubMainnetForkTest is Test {
   }
 
   function testVerifySolanaDispatcherParams() public view {
-    console.log("Verifying SolanaDispatcher Parameters...");
     assertEq(
       address(hubSolanaMessageDispatcher.wormholeCore()),
       EXPECTED_WORMHOLE_CORE,
@@ -180,7 +168,6 @@ contract HubMainnetForkTest is Test {
   }
 
   function testVerifyEvmProposerParams() public view {
-    console.log("Verifying EvmAggProposer Parameters...");
     assertEq(
       address(hubEvmSpokeAggregateProposer.wormhole()), EXPECTED_WORMHOLE_CORE, "EvmAggProposer wormholeCore mismatch"
     );
@@ -194,7 +181,6 @@ contract HubMainnetForkTest is Test {
   }
 
   function testVerifySolanaDecoderParams() public view {
-    console.log("Verifying SolanaDecoder Parameters...");
     assertEq(
       address(hubSolanaSpokeVoteDecoder.wormhole()), EXPECTED_WORMHOLE_CORE, "SolanaDecoder wormholeCore mismatch"
     );
@@ -211,33 +197,35 @@ contract HubMainnetForkTest is Test {
   // --- Role / Ownership Verification Tests ---
 
   function testVerifyTimelockRoles() public view {
-    console.log("Verifying Timelock Roles...");
     assertTrue(timelock.hasRole(PROPOSER_ROLE, GOV_ADDR), "Governor lacks PROPOSER_ROLE");
     assertTrue(timelock.hasRole(EXECUTOR_ROLE, GOV_ADDR), "Governor lacks EXECUTOR_ROLE");
     assertTrue(timelock.hasRole(CANCELLER_ROLE, GOV_ADDR), "Governor lacks CANCELLER_ROLE");
+    // Check Foundation canceller role (using placeholder address)
+    assertTrue(timelock.hasRole(CANCELLER_ROLE, WORMHOLE_FOUNDATION_ADDR), "Foundation lacks CANCELLER_ROLE"); // Will
+      // fail until placeholder updated & role granted
+    // Check admin role transfers
     assertFalse(timelock.hasRole(TIMELOCK_ADMIN_ROLE, actualDeployer), "Deployer still has TIMELOCK_ADMIN_ROLE");
     assertTrue(timelock.hasRole(TIMELOCK_ADMIN_ROLE, TIMELOCK_ADDR), "Timelock lacks TIMELOCK_ADMIN_ROLE");
   }
 
   function testVerifyExtenderRoles() public view {
-    console.log("Verifying Extender Roles/Ownership...");
-    // Verify against the *actual* deployer address for voteExtenderAdmin in this test config
-    // NOTE: For production verification, this should check against the Foundation Multisig address.
-    assertEq(extender.voteExtenderAdmin(), actualDeployer, "Extender admin mismatch");
+    // Verify against the *intended final* admin address (Wormhole Foundation)
+    // NOTE: This will FAIL against current testnet deploy where admin is actualDeployer
+    assertEq(extender.voteExtenderAdmin(), WORMHOLE_FOUNDATION_ADDR, "Extender admin mismatch (Expected Foundation)");
     // Extender owner (Set to Timelock during Hub deployment)
     assertEq(extender.owner(), TIMELOCK_ADDR, "Extender owner mismatch");
   }
 
   function testVerifyWhitelistedProposer() public view {
-    console.log("Verifying Whitelisted Proposer...");
-    // Cannot simulate setting proposer here as it requires governance action.
-    // Verify against the current deployed state instead.
-    assertEq(gov.whitelistedProposer(), address(0), "WhitelistedProposer mismatch"); // Check current deployed state
-      // (address(0))
+    // Verify against the *intended final* state (HUB_EVM_AGG_PROPOSER_ADDR)
+    // NOTE: This will FAIL against current testnet deploy where proposer is address(0)
+    // The proposer must be set via a governance action after deployment.
+    assertEq(
+      gov.whitelistedProposer(), HUB_EVM_AGG_PROPOSER_ADDR, "WhitelistedProposer mismatch (Expected Agg Proposer)"
+    );
   }
 
   function testVerifySpokeRegistrations() public view {
-    console.log("Verifying Spoke Registrations...");
     bytes32 expectedArbBytes = bytes32(uint256(uint160(ARBITRUM_SPOKE_AGG_ADDR)));
     bytes32 expectedBaseBytes = bytes32(uint256(uint160(BASE_SPOKE_AGG_ADDR)));
     bytes32 expectedOpBytes = bytes32(uint256(uint160(OPTIMISM_SPOKE_AGG_ADDR)));
@@ -258,17 +246,13 @@ contract HubMainnetForkTest is Test {
   }
 
   function testVerifyContractOwnership() public view {
-    console.log("Verifying Contract Ownership (where applicable)...");
-    // VotePool owner
+    // VotePool owner (Deployer retains ownership per DeployHubContractsBaseImpl.s.sol)
+    // TODO should this be the Timelock?
     assertEq(hubVotePool.owner(), actualDeployer, "VotePool owner mismatch");
-    // EVM Dispatcher owner
-    assertEq(hubMessageDispatcher.owner(), TIMELOCK_ADDR, "EvmDispatcher owner mismatch"); // Owner should be Timelock
-    // Solana Dispatcher owner
-    assertEq(hubSolanaMessageDispatcher.owner(), TIMELOCK_ADDR, "SolanaDispatcher owner mismatch"); // Owner should be
-      // Timelock
-    // EVM Proposer owner
-    assertEq(hubEvmSpokeAggregateProposer.owner(), GOV_ADDR, "EvmAggProposer owner mismatch"); // Owner should be
-      // Governor
+
+    assertEq(hubMessageDispatcher.owner(), TIMELOCK_ADDR, "EvmDispatcher owner mismatch");
+    assertEq(hubSolanaMessageDispatcher.owner(), TIMELOCK_ADDR, "SolanaDispatcher owner mismatch");
+    assertEq(hubEvmSpokeAggregateProposer.owner(), GOV_ADDR, "EvmAggProposer owner mismatch");
   }
 
   // --- Functionality Tests ---
@@ -279,19 +263,18 @@ contract HubMainnetForkTest is Test {
     uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
 
     // 1. Ensure proposer has enough tokens and delegates
-    uint256 currentBalance = testWToken.balanceOf(proposer);
-    console.log("Proposer WToken Balance:", currentBalance);
+    uint256 currentBalance = wToken.balanceOf(proposer);
     require(currentBalance >= proposalThreshold, "FAIL: Proposer lacks sufficient balance on fork");
 
     vm.prank(proposer);
-    testWToken.delegate(proposer);
+    wToken.delegate(proposer);
 
     // Ensure delegation is registered (votes are available at next block)
     vm.roll(block.number + 1);
-    assertGe(testWToken.getVotes(proposer), proposalThreshold, "Proposer votes below threshold after delegation");
+    assertGe(wToken.getVotes(proposer), proposalThreshold, "Proposer votes below threshold after delegation");
 
     address[] memory targets = new address[](1);
-    targets[0] = address(testWToken); // Example: Target the token contract
+    targets[0] = address(wToken); // Example: Target the token contract
     uint256[] memory values = new uint256[](1);
     values[0] = 0; // No ETH value
     bytes[] memory calldatas = new bytes[](1);
