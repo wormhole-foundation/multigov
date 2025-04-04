@@ -84,6 +84,9 @@ contract HubMainnetForkTest is Test {
   bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
   bytes32 public constant CANCELLER_ROLE = keccak256("CANCELLER_ROLE");
 
+  // TODO: Replace with actual proposer address with enough voting power for production verification
+  address public constant PROPOSER_ADDRESS = actualDeployer;
+
   function setUp() public {
     // Create a fork of mainnet
     ethereumForkId = vm.createSelectFork(ETHEREUM_RPC_URL);
@@ -258,8 +261,7 @@ contract HubMainnetForkTest is Test {
   // --- Functionality Tests ---
 
   function testCanProposeOnHub() public {
-    // Use the deployer address as the proposer for this test
-    address proposer = actualDeployer;
+    address proposer = PROPOSER_ADDRESS;
     uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
 
     // 1. Ensure proposer has enough tokens and delegates
