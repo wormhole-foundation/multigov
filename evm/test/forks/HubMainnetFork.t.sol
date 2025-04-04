@@ -361,7 +361,6 @@ contract HubMainnetForkTest is Test {
     vm.prank(extenderAdmin);
     extender.extendProposal(proposalId);
 
-    // 7. Verify new deadline
     uint256 newDeadline = gov.proposalDeadline(proposalId);
     uint256 expectedNewDeadline = initialDeadline + EXPECTED_VOTE_TIME_EXTENSION;
     assertEq(newDeadline, expectedNewDeadline, "Proposal deadline did not extend correctly");
