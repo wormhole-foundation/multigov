@@ -58,9 +58,7 @@ abstract contract SpokeForkTestBase is Test {
 
   function setUp() public virtual {
     string memory rpcUrlEnvVar = _getRpcUrlEnvVarName();
-    console.log("rpcUrlEnvVar: %s", rpcUrlEnvVar);
     string memory rpcUrl = vm.envString(rpcUrlEnvVar);
-    console.log("rpcUrl: %s", rpcUrl);
 
     forkId = vm.createSelectFork(rpcUrl);
 
