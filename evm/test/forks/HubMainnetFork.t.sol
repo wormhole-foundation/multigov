@@ -55,7 +55,6 @@ contract HubMainnetForkTest is Test {
   uint208 constant EXPECTED_QUORUM = 1_000_000e18;
   address constant EXPECTED_WORMHOLE_CORE = 0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B;
   uint48 constant EXPECTED_VOTE_WEIGHT_WINDOW = 10 minutes;
-  // address constant EXPECTED_EXTENDER_ADMIN = <<NEEDS ACTUAL DEPLOYER ADDRESS>>; // Use deployer for now
   uint48 constant EXPECTED_VOTE_TIME_EXTENSION = 5 minutes;
   uint48 constant EXPECTED_MIN_EXTENSION_TIME = 1 minutes;
   uint8 constant EXPECTED_CONSISTENCY_LEVEL = 0;
@@ -86,6 +85,9 @@ contract HubMainnetForkTest is Test {
 
   // TODO: Replace with actual proposer address with enough voting power for production verification
   address public PROPOSER_ADDRESS = actualDeployer;
+  // TODO: Replace with actual Wormhole Foundation address for production verification
+  // address constant EXPECTED_EXTENDER_ADMIN = WORMHOLE_FOUNDATION_ADDR;
+  address public EXPECTED_EXTENDER_ADMIN = actualDeployer;
 
   function setUp() public {
     // Create a fork of mainnet
@@ -264,23 +266,21 @@ contract HubMainnetForkTest is Test {
     address proposer = PROPOSER_ADDRESS;
     uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
 
-    // 1. Ensure proposer has enough tokens and delegates
     uint256 currentBalance = wToken.balanceOf(proposer);
     require(currentBalance >= proposalThreshold, "FAIL: Proposer lacks sufficient balance on fork");
 
     vm.prank(proposer);
     wToken.delegate(proposer);
 
-    // Ensure delegation is registered (votes are available at next block)
     vm.roll(block.number + 1);
     assertGe(wToken.getVotes(proposer), proposalThreshold, "Proposer votes below threshold after delegation");
 
     address[] memory targets = new address[](1);
-    targets[0] = address(wToken); // Example: Target the token contract
+    targets[0] = address(wToken);
     uint256[] memory values = new uint256[](1);
-    values[0] = 0; // No ETH value
+    values[0] = 0;
     bytes[] memory calldatas = new bytes[](1);
-    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0); // Example: Approve gov for 0
+    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0);
     string memory description = "Test Proposal: Verify Hub Proposal Creation";
 
     vm.prank(proposer);
@@ -293,6 +293,78 @@ contract HubMainnetForkTest is Test {
     assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Active), "Proposal not Active");
   }
 
-  // TODO: testProposerCanCancel
-  // TODO: testCanExtendProposal
+  function testProposerCanCancel() public {
+    console.log("Testing Proposer Cancellation...");
+
+    address proposer = actualDeployer;
+    uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
+
+    vm.prank(proposer);
+    wToken.delegate(proposer);
+    vm.roll(block.number + 1);
+    assertGe(wToken.getVotes(proposer), proposalThreshold, "Proposer votes below threshold after delegation");
+
+    address[] memory targets = new address[](1);
+    targets[0] = address(wToken);
+    uint256[] memory values = new uint256[](1);
+    values[0] = 0;
+    bytes[] memory calldatas = new bytes[](1);
+    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0);
+    string memory description = "Test Proposal: Verify Proposer Cancellation";
+    bytes32 descriptionHash = keccak256(bytes(description));
+
+    vm.prank(proposer);
+    uint256 proposalId = gov.propose(targets, values, calldatas, description);
+    assertTrue(proposalId != 0, "Proposal ID is zero for cancellation test");
+
+    assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Pending), "Proposal not Pending initially");
+
+    vm.prank(proposer);
+    gov.cancel(targets, values, calldatas, descriptionHash);
+
+    assertEq(
+      uint8(gov.state(proposalId)),
+      uint8(IGovernor.ProposalState.Canceled),
+      "Proposal not Canceled after proposer cancel"
+    );
+  }
+
+  function testCanExtendProposal() public {
+    address proposer = PROPOSER_ADDRESS;
+    uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
+
+    vm.prank(proposer);
+    wToken.delegate(proposer);
+    vm.roll(block.number + 1);
+    assertGe(wToken.getVotes(proposer), proposalThreshold, "Proposer votes below threshold");
+
+    address[] memory targets = new address[](1);
+    targets[0] = address(wToken);
+    uint256[] memory values = new uint256[](1);
+    values[0] = 0;
+    bytes[] memory calldatas = new bytes[](1);
+    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0);
+    string memory description = "Test Proposal: Verify Extension";
+
+    vm.prank(proposer);
+    uint256 proposalId = gov.propose(targets, values, calldatas, description);
+    assertTrue(proposalId != 0, "Proposal ID is zero for extension test");
+
+    vm.warp(block.timestamp + EXPECTED_VOTING_DELAY + 1);
+    assertEq(
+      uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Active), "Proposal not Active before extension"
+    );
+
+    uint256 initialDeadline = gov.proposalDeadline(proposalId);
+
+    address extenderAdmin = EXPECTED_EXTENDER_ADMIN;
+    vm.prank(extenderAdmin);
+    extender.extendProposal(proposalId);
+
+    // 7. Verify new deadline
+    uint256 newDeadline = gov.proposalDeadline(proposalId);
+    uint256 expectedNewDeadline = initialDeadline + EXPECTED_VOTE_TIME_EXTENSION;
+    assertEq(newDeadline, expectedNewDeadline, "Proposal deadline did not extend correctly");
+    assertTrue(newDeadline > initialDeadline, "New deadline not after initial deadline");
+  }
 }
