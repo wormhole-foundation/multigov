@@ -3,19 +3,18 @@ pragma solidity ^0.8.23;
 
 import {SpokeForkTestBase} from "./SpokeForkTestBase.sol";
 
-contract OptimismForkTest is SpokeForkTestBase {
-  // --- Chain-Specific Constants (Optimism) ---
-  address constant WORMHOLE_CORE = 0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722;
-  address constant SPOKE_EXECUTOR_ADDR = 0xDaEfB7A94027c9c1414c27e84B9667a8f4bEC365;
-  address constant SPOKE_COLLECTOR_ADDR = 0x423Da2a1D7e14f22B60cd9A5bd83d714f3AFe2De;
-  address constant SPOKE_AGGREGATOR_ADDR = 0x75F755950D59d2007A0C90457fDc190732567cC5;
-  address constant SPOKE_AIRLOCK_ADDR = 0x6753c396D52744ac82AEd0f62F9E3420ea7589da;
-  uint16 constant OPTIMISM_CHAIN_ID = 24; // Wormhole Chain ID for Optimism Mainnet
+contract ArbitrumForkTest is SpokeForkTestBase {
+  // --- Chain-Specific Constants (Arbitrum) ---
+  address constant SPOKE_EXECUTOR_ADDR = 0x907E7f4Ec3aD1D51C62D085eC1ED336100957773;
+  address constant SPOKE_COLLECTOR_ADDR = 0xBd9B592b82CF10cC8C21b64B322BC6f9397B07B7;
+  address constant SPOKE_AGGREGATOR_ADDR = 0x6dEfA659A9726925307a45B30Ffe2Da45ED90811;
+  address constant SPOKE_AIRLOCK_ADDR = 0x1D57040e3Fb498C05735ec4BCa68366c84Ed22A3;
+  uint16 constant ARBITRUM_CHAIN_ID = 23; // Wormhole Chain ID for Arbitrum Mainnet
 
   // --- Implementation of Abstract Getters ---
 
   function _getRpcUrlEnvVarName() internal pure override returns (string memory) {
-    return "OPTIMISM_RPC_URL";
+    return "ARBITRUM_RPC_URL";
   }
 
   function _getSpokeExecutorAddress() internal pure override returns (address) {
@@ -35,13 +34,12 @@ contract OptimismForkTest is SpokeForkTestBase {
   }
 
   function _getSelfChainId() internal pure override returns (uint16) {
-    // This isn't explicitly checked in the current tests, but required by base
-    return OPTIMISM_CHAIN_ID;
+    return ARBITRUM_CHAIN_ID;
   }
 
   function _getExpectedWormholeCore() internal pure override returns (address) {
-    // Optimism Wormhole Core
-    return WORMHOLE_CORE;
+    // Arbitrum Mainnet Wormhole Core
+    return 0xa5f208e072434bC67592E4C49C1B991BA79BCA46;
   }
 
   // All test logic is inherited from SpokeForkTestBase

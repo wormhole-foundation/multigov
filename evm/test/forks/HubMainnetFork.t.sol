@@ -34,6 +34,8 @@ contract HubMainnetForkTest is Test {
   address constant HUB_SOLANA_DISPATCHER_ADDR = 0xadB8de6dfB41a1Fce6635460E77bEaDc73148BE4;
   address constant HUB_EVM_AGG_PROPOSER_ADDR = 0xb2490491FBb846B314D3ce65D77f9f27Ef964b4F;
   address constant TEST_WTOKEN_ADDR = 0x691d45404441c4a297ecCc8dE29C033afCeaac3e;
+  // TODO: Replace with actual WToken address for production verification (delete the above)
+  address constant W_TOKEN_ADDR = 0xB0fFa8000886e57F86dd5264b9582b2Ad87b2b91;
 
   // Testnet Spoke Addresses & Chain IDs (from mainnet-test-deploy-contracts.md & scripts)
   address constant ARBITRUM_SPOKE_AGG_ADDR = 0x6dEfA659A9726925307a45B30Ffe2Da45ED90811;
