@@ -1,0 +1,375 @@
+// SPDX-License-Identifier: Apache 2
+pragma solidity ^0.8.23;
+
+import {Test, console} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
+
+// Hub Contracts
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {HubGovernor} from "src/HubGovernor.sol";
+import {HubProposalExtender} from "src/HubProposalExtender.sol";
+import {HubVotePool} from "src/HubVotePool.sol";
+import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
+import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
+import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
+import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
+import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+
+contract HubMainnetForkTest is Test {
+  string ETHEREUM_RPC_URL = vm.envString("ETHEREUM_RPC_URL");
+  uint256 ethereumForkId;
+
+  // Deployed Contract Addresses (from mainnet-test-deploy-contracts.md)
+  address constant TIMELOCK_ADDR = 0x0fAA8fc7A60809B3557d5Dbe463B64F94de5ac06;
+  address constant EXTENDER_ADDR = 0xB85D4a7D0661Afa0EFEFF9E3B6Fc82bf427e6C69;
+  address constant HUB_VOTE_POOL_ADDR = 0x6D87469dC04aec896dB03Df9B1b9Ba29535CC206;
+  address constant GOV_ADDR = 0x50b97697DbDa7a38f249966E02CCE6064657c54B;
+  address constant HUB_EVM_VOTE_DECODER_ADDR = 0xa891e332E50E2d3105a5F9b85cFBbFc1D8E05541;
+  address constant HUB_SOLANA_VOTE_DECODER_ADDR = 0xc70cc0f137fA23b5A42EE48a9A48E52c345E8dA4;
+  address constant HUB_METADATA_ADDR = 0xe1485b53e6E94aD4B82b19E48DA1911d2E19bFaE;
+  address constant HUB_MSG_DISPATCHER_ADDR = 0xb2F162945eF0631F62FE4421dc6Ec5eCDf92EF59;
+  address constant HUB_SOLANA_DISPATCHER_ADDR = 0xadB8de6dfB41a1Fce6635460E77bEaDc73148BE4;
+  address constant HUB_EVM_AGG_PROPOSER_ADDR = 0xb2490491FBb846B314D3ce65D77f9f27Ef964b4F;
+  address constant TEST_WTOKEN_ADDR = 0x691d45404441c4a297ecCc8dE29C033afCeaac3e;
+  // TODO: Replace with actual WToken address for production verification (delete the above)
+  address constant W_TOKEN_ADDR = 0xB0fFa8000886e57F86dd5264b9582b2Ad87b2b91;
+
+  // Testnet Spoke Addresses & Chain IDs (from mainnet-test-deploy-contracts.md & scripts)
+  address constant ARBITRUM_SPOKE_AGG_ADDR = 0x6dEfA659A9726925307a45B30Ffe2Da45ED90811;
+  uint16 constant ARBITRUM_CHAIN_ID = 23;
+  address constant BASE_SPOKE_AGG_ADDR = 0x31eD7EAa0CCA7e95a93339843a1C257b87e31E3d;
+  uint16 constant BASE_CHAIN_ID = 30;
+  address constant OPTIMISM_SPOKE_AGG_ADDR = 0x75F755950D59d2007A0C90457fDc190732567cC5;
+  uint16 constant OPTIMISM_CHAIN_ID = 24;
+
+  // TODO: Replace with actual Wormhole Foundation address for production verification
+  address constant WORMHOLE_FOUNDATION_ADDR = address(0);
+
+  // Expected Parameters (based on DeployHubContractsTestMainnet.sol configuration)
+  uint256 constant EXPECTED_MIN_DELAY = 300;
+  string constant EXPECTED_GOV_NAME = "Wormhole Governor";
+  uint48 constant EXPECTED_VOTING_DELAY = 1800;
+  uint32 constant EXPECTED_VOTING_PERIOD = 2 hours;
+  uint256 constant EXPECTED_PROPOSAL_THRESHOLD = 500_000e18;
+  uint208 constant EXPECTED_QUORUM = 1_000_000e18;
+  address constant EXPECTED_WORMHOLE_CORE = 0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B;
+  uint48 constant EXPECTED_VOTE_WEIGHT_WINDOW = 10 minutes;
+  uint48 constant EXPECTED_VOTE_TIME_EXTENSION = 5 minutes;
+  uint48 constant EXPECTED_MIN_EXTENSION_TIME = 1 minutes;
+  uint8 constant EXPECTED_CONSISTENCY_LEVEL = 0;
+  uint48 constant EXPECTED_MAX_QUERY_OFFSET = 10 minutes;
+  uint8 constant EXPECTED_SOLANA_DECIMALS = 6;
+
+  // Loaded Contract Instances
+  TimelockController internal timelock;
+  HubGovernor internal gov;
+  HubProposalExtender internal extender;
+  HubVotePool internal hubVotePool;
+  HubProposalMetadata internal hubProposalMetadata;
+  HubMessageDispatcher internal hubMessageDispatcher;
+  HubEvmSpokeAggregateProposer internal hubEvmSpokeAggregateProposer;
+  HubSolanaMessageDispatcher internal hubSolanaMessageDispatcher;
+  HubSolanaSpokeVoteDecoder internal hubSolanaSpokeVoteDecoder;
+  ERC20Votes internal wToken;
+
+  // Test context
+  address internal actualDeployer = 0x6dF497fa3bC0a44F384d099FbBE47304FEE4B55B; // Address that deployed the contracts
+    // to mainnet test; TODO: Replace with actual deployer address for prod mainnet deploy
+
+  // Roles
+  bytes32 public constant TIMELOCK_ADMIN_ROLE = 0x00; // bytes32(0)
+  bytes32 public constant PROPOSER_ROLE = keccak256("PROPOSER_ROLE");
+  bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
+  bytes32 public constant CANCELLER_ROLE = keccak256("CANCELLER_ROLE");
+
+  // TODO: Replace with actual proposer address with enough voting power for production verification
+  address public PROPOSER_ADDRESS = actualDeployer;
+  // TODO: Replace with actual Wormhole Foundation address for production verification
+  // address constant EXPECTED_EXTENDER_ADMIN = WORMHOLE_FOUNDATION_ADDR;
+  address public EXPECTED_EXTENDER_ADMIN = actualDeployer;
+
+  // --- Helper Functions ---
+
+  // Sets up the proposer address with delegated votes.
+  function _setupProposerAndDelegate(address _proposer) internal {
+    uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
+    vm.prank(_proposer);
+    wToken.delegate(_proposer);
+    vm.roll(block.number + 1);
+    assertGe(wToken.getVotes(_proposer), proposalThreshold, "Proposer votes below threshold after delegation");
+  }
+
+  // Prepares data for a simple wToken.approve(gov, 0) proposal.
+  function _prepareSimpleProposalData(string memory _description)
+    internal
+    view
+    returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+  {
+    targets = new address[](1);
+    targets[0] = address(wToken);
+    values = new uint256[](1);
+    values[0] = 0;
+    calldatas = new bytes[](1);
+    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0);
+    descriptionHash = keccak256(bytes(_description));
+  }
+
+  // Executes gov.propose with the given parameters after pranking as _proposer.
+  function _proposeFrom(
+    address _proposer,
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
+    string memory _description
+  ) internal returns (uint256 proposalId) {
+    vm.prank(_proposer);
+    proposalId = gov.propose(_targets, _values, _calldatas, _description);
+    assertTrue(proposalId != 0, "Proposal ID is zero");
+  }
+
+  // --- Setup ---
+
+  function setUp() public {
+    // Create a fork of mainnet
+    ethereumForkId = vm.createSelectFork(ETHEREUM_RPC_URL);
+
+    // Load contract instances from known addresses
+    timelock = TimelockController(payable(TIMELOCK_ADDR));
+    gov = HubGovernor(payable(GOV_ADDR));
+    extender = HubProposalExtender(EXTENDER_ADDR);
+    hubVotePool = HubVotePool(HUB_VOTE_POOL_ADDR);
+    hubProposalMetadata = HubProposalMetadata(HUB_METADATA_ADDR);
+    hubMessageDispatcher = HubMessageDispatcher(HUB_MSG_DISPATCHER_ADDR);
+    hubEvmSpokeAggregateProposer = HubEvmSpokeAggregateProposer(HUB_EVM_AGG_PROPOSER_ADDR);
+    hubSolanaMessageDispatcher = HubSolanaMessageDispatcher(HUB_SOLANA_DISPATCHER_ADDR);
+    hubSolanaSpokeVoteDecoder = HubSolanaSpokeVoteDecoder(HUB_SOLANA_VOTE_DECODER_ADDR);
+    // TODO: Replace with actual WToken address for production verification
+    wToken = ERC20Votes(TEST_WTOKEN_ADDR);
+  }
+
+  // --- Parameter Verification Tests ---
+
+  function testVerifyTimelockParams() public view {
+    assertEq(timelock.getMinDelay(), EXPECTED_MIN_DELAY, "Timelock minDelay mismatch");
+  }
+
+  function testVerifyGovernorParams() public view {
+    assertEq(gov.name(), EXPECTED_GOV_NAME, "Governor name mismatch");
+    assertEq(address(gov.token()), TEST_WTOKEN_ADDR, "Governor token mismatch");
+    assertEq(address(gov.timelock()), TIMELOCK_ADDR, "Governor timelock mismatch");
+    assertEq(gov.votingDelay(), EXPECTED_VOTING_DELAY, "Governor votingDelay mismatch");
+    assertEq(gov.votingPeriod(), EXPECTED_VOTING_PERIOD, "Governor votingPeriod mismatch");
+    assertEq(gov.proposalThreshold(), EXPECTED_PROPOSAL_THRESHOLD, "Governor proposalThreshold mismatch");
+    assertEq(gov.quorum(block.timestamp), EXPECTED_QUORUM, "Governor initialQuorum mismatch");
+    assertEq(address(gov.hubVotePool(uint96(block.timestamp))), HUB_VOTE_POOL_ADDR, "Governor hubVotePool mismatch");
+    assertEq(address(gov.HUB_PROPOSAL_EXTENDER()), EXTENDER_ADDR, "Governor governorProposalExtender mismatch");
+    assertEq(
+      gov.getVoteWeightWindowLength(uint96(block.timestamp)),
+      EXPECTED_VOTE_WEIGHT_WINDOW,
+      "Governor voteWeightWindow mismatch"
+    );
+  }
+
+  function testVerifyExtenderParams() public view {
+    // Admin check is in Roles test
+    assertEq(extender.extensionDuration(), EXPECTED_VOTE_TIME_EXTENSION, "Extender extensionDuration mismatch");
+    assertEq(
+      extender.MINIMUM_EXTENSION_DURATION(), EXPECTED_MIN_EXTENSION_TIME, "Extender minExtensionDuration mismatch"
+    );
+  }
+
+  function testVerifyVotePoolParams() public view {
+    assertEq(address(hubVotePool.wormhole()), EXPECTED_WORMHOLE_CORE, "VotePool wormholeCore mismatch");
+    assertEq(address(hubVotePool.hubGovernor()), GOV_ADDR, "VotePool governor mismatch");
+    // Owner check is in Roles test
+  }
+
+  function testVerifyMetadataParams() public view {
+    assertEq(address(hubProposalMetadata.GOVERNOR()), GOV_ADDR, "Metadata governor mismatch");
+  }
+
+  function testVerifyEvmDispatcherParams() public view {
+    assertEq(
+      address(hubMessageDispatcher.wormholeCore()), EXPECTED_WORMHOLE_CORE, "EvmDispatcher wormholeCore mismatch"
+    );
+    assertEq(
+      hubMessageDispatcher.consistencyLevel(), EXPECTED_CONSISTENCY_LEVEL, "EvmDispatcher consistencyLevel mismatch"
+    );
+    // Owner check is in Roles test
+  }
+
+  function testVerifySolanaDispatcherParams() public view {
+    assertEq(
+      address(hubSolanaMessageDispatcher.wormholeCore()),
+      EXPECTED_WORMHOLE_CORE,
+      "SolanaDispatcher wormholeCore mismatch"
+    );
+    assertEq(
+      hubSolanaMessageDispatcher.consistencyLevel(),
+      EXPECTED_CONSISTENCY_LEVEL,
+      "SolanaDispatcher consistencyLevel mismatch"
+    );
+    // Owner check is in Roles test
+  }
+
+  function testVerifyEvmProposerParams() public view {
+    assertEq(
+      address(hubEvmSpokeAggregateProposer.wormhole()), EXPECTED_WORMHOLE_CORE, "EvmAggProposer wormholeCore mismatch"
+    );
+    assertEq(address(hubEvmSpokeAggregateProposer.HUB_GOVERNOR()), GOV_ADDR, "EvmAggProposer governor mismatch");
+    assertEq(
+      hubEvmSpokeAggregateProposer.maxQueryTimestampOffset(),
+      EXPECTED_MAX_QUERY_OFFSET,
+      "EvmAggProposer maxQueryTimestampOffset mismatch"
+    );
+    // Owner check is in Roles test
+  }
+
+  function testVerifySolanaDecoderParams() public view {
+    assertEq(
+      address(hubSolanaSpokeVoteDecoder.wormhole()), EXPECTED_WORMHOLE_CORE, "SolanaDecoder wormholeCore mismatch"
+    );
+    assertEq(address(hubSolanaSpokeVoteDecoder.HUB_VOTE_POOL()), HUB_VOTE_POOL_ADDR, "SolanaDecoder target mismatch");
+    assertEq(
+      hubSolanaSpokeVoteDecoder.SOLANA_TOKEN_DECIMALS(),
+      EXPECTED_SOLANA_DECIMALS,
+      "SolanaDecoder tokenDecimals mismatch"
+    );
+    assertEq(address(hubVotePool.voteTypeDecoder(5)), HUB_SOLANA_VOTE_DECODER_ADDR, "SolanaDecoder query type mismatch");
+  }
+
+  // --- Role / Ownership Verification Tests ---
+
+  function testVerifyTimelockRoles() public view {
+    assertTrue(timelock.hasRole(PROPOSER_ROLE, GOV_ADDR), "Governor lacks PROPOSER_ROLE");
+    assertTrue(timelock.hasRole(EXECUTOR_ROLE, GOV_ADDR), "Governor lacks EXECUTOR_ROLE");
+    assertTrue(timelock.hasRole(CANCELLER_ROLE, GOV_ADDR), "Governor lacks CANCELLER_ROLE");
+    // Check Foundation canceller role (using placeholder address)
+    assertTrue(timelock.hasRole(CANCELLER_ROLE, WORMHOLE_FOUNDATION_ADDR), "Foundation lacks CANCELLER_ROLE"); // Will
+      // fail until placeholder updated & role granted
+    // Check admin role transfers
+    assertFalse(timelock.hasRole(TIMELOCK_ADMIN_ROLE, actualDeployer), "Deployer still has TIMELOCK_ADMIN_ROLE");
+    assertTrue(timelock.hasRole(TIMELOCK_ADMIN_ROLE, TIMELOCK_ADDR), "Timelock lacks TIMELOCK_ADMIN_ROLE");
+  }
+
+  function testVerifyExtenderRoles() public view {
+    // Verify against the *intended final* admin address (Wormhole Foundation)
+    // NOTE: This will FAIL against current testnet deploy where admin is actualDeployer
+    assertEq(extender.voteExtenderAdmin(), WORMHOLE_FOUNDATION_ADDR, "Extender admin mismatch (Expected Foundation)");
+    // Extender owner (Set to Timelock during Hub deployment)
+    assertEq(extender.owner(), TIMELOCK_ADDR, "Extender owner mismatch");
+  }
+
+  function testVerifyWhitelistedProposer() public view {
+    // Verify against the *intended final* state (HUB_EVM_AGG_PROPOSER_ADDR)
+    // NOTE: This will FAIL against current testnet deploy where proposer is address(0)
+    // The proposer must be set via a governance action after deployment.
+    assertEq(
+      gov.whitelistedProposer(), HUB_EVM_AGG_PROPOSER_ADDR, "WhitelistedProposer mismatch (Expected Agg Proposer)"
+    );
+  }
+
+  function testVerifySpokeRegistrations() public view {
+    bytes32 expectedArbBytes = bytes32(uint256(uint160(ARBITRUM_SPOKE_AGG_ADDR)));
+    bytes32 expectedBaseBytes = bytes32(uint256(uint160(BASE_SPOKE_AGG_ADDR)));
+    bytes32 expectedOpBytes = bytes32(uint256(uint160(OPTIMISM_SPOKE_AGG_ADDR)));
+
+    assertEq(
+      hubVotePool.getSpoke(ARBITRUM_CHAIN_ID, block.timestamp),
+      expectedArbBytes,
+      "Arbitrum spoke not registered correctly"
+    );
+    assertEq(
+      hubVotePool.getSpoke(BASE_CHAIN_ID, block.timestamp), expectedBaseBytes, "Base spoke not registered correctly"
+    );
+    assertEq(
+      hubVotePool.getSpoke(OPTIMISM_CHAIN_ID, block.timestamp),
+      expectedOpBytes,
+      "Optimism spoke not registered correctly"
+    );
+  }
+
+  function testVerifyContractOwnership() public view {
+    // VotePool owner (Deployer retains ownership per DeployHubContractsBaseImpl.s.sol)
+    // TODO should this be the Timelock?
+    assertEq(hubVotePool.owner(), actualDeployer, "VotePool owner mismatch");
+    // EVM Dispatcher owner
+    assertEq(hubMessageDispatcher.owner(), TIMELOCK_ADDR, "EvmDispatcher owner mismatch");
+    // Solana Dispatcher owner
+    assertEq(hubSolanaMessageDispatcher.owner(), TIMELOCK_ADDR, "SolanaDispatcher owner mismatch");
+    // EVM Proposer owner
+    assertEq(hubEvmSpokeAggregateProposer.owner(), GOV_ADDR, "EvmAggProposer owner mismatch");
+  }
+
+  // --- Functionality Tests ---
+
+  function testCanProposeOnHub() public {
+    address proposer = PROPOSER_ADDRESS;
+    string memory description = "Test Proposal: Verify Hub Proposal Creation";
+
+    _setupProposerAndDelegate(proposer);
+    (address[] memory targets, uint256[] memory values, bytes[] memory calldatas,) =
+      _prepareSimpleProposalData(description);
+
+    uint256 proposalId = _proposeFrom(proposer, targets, values, calldatas, description);
+
+    uint48 votingDelay = EXPECTED_VOTING_DELAY;
+    vm.warp(block.timestamp + votingDelay + 1);
+
+    assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Active), "Proposal not Active");
+
+    // Optional deadline check remains commented out
+  }
+
+  function testProposerCanCancel() public {
+    address proposer = PROPOSER_ADDRESS;
+    string memory description = "Test Proposal: Verify Proposer Cancellation";
+
+    _setupProposerAndDelegate(proposer);
+    (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
+      _prepareSimpleProposalData(description);
+
+    uint256 proposalId = _proposeFrom(proposer, targets, values, calldatas, description);
+
+    assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Pending), "Proposal not Pending initially");
+
+    vm.prank(proposer);
+    gov.cancel(targets, values, calldatas, descriptionHash);
+
+    assertEq(
+      uint8(gov.state(proposalId)),
+      uint8(IGovernor.ProposalState.Canceled),
+      "Proposal not Canceled after proposer cancel"
+    );
+  }
+
+  function testCanExtendProposal() public {
+    address proposer = PROPOSER_ADDRESS;
+    address extenderAdmin = EXPECTED_EXTENDER_ADMIN;
+    string memory description = "Test Proposal: Verify Extension";
+
+    _setupProposerAndDelegate(proposer);
+    (address[] memory targets, uint256[] memory values, bytes[] memory calldatas,) =
+      _prepareSimpleProposalData(description);
+
+    uint256 proposalId = _proposeFrom(proposer, targets, values, calldatas, description);
+
+    vm.warp(block.timestamp + EXPECTED_VOTING_DELAY + 1);
+    assertEq(
+      uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Active), "Proposal not Active before extension"
+    );
+
+    uint256 initialDeadline = gov.proposalDeadline(proposalId);
+
+    vm.prank(extenderAdmin);
+    extender.extendProposal(proposalId);
+
+    uint256 newDeadline = gov.proposalDeadline(proposalId);
+    uint256 expectedNewDeadline = initialDeadline + EXPECTED_VOTE_TIME_EXTENSION;
+    assertEq(newDeadline, expectedNewDeadline, "Proposal deadline did not extend correctly");
+    assertTrue(newDeadline > initialDeadline, "New deadline not after initial deadline");
+  }
+}

@@ -12,7 +12,7 @@ import {SpokeMessageExecutor} from "src/SpokeMessageExecutor.sol";
 import {SpokeAirlock} from "src/SpokeAirlock.sol";
 
 abstract contract DeploySpokeContractsBaseImpl is Script {
-  string constant DEFAULT_DEPLOY_VERSION = "v1";
+  string constant DEFAULT_DEPLOY_VERSION = "v3.1";
 
   struct DeploymentConfiguration {
     address wormholeCore;
