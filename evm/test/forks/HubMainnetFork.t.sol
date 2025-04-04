@@ -89,6 +89,47 @@ contract HubMainnetForkTest is Test {
   // address constant EXPECTED_EXTENDER_ADMIN = WORMHOLE_FOUNDATION_ADDR;
   address public EXPECTED_EXTENDER_ADMIN = actualDeployer;
 
+  // --- Helper Functions ---
+
+  // Sets up the proposer address with delegated votes.
+  function _setupProposerAndDelegate(address _proposer) internal {
+    uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
+    vm.prank(_proposer);
+    wToken.delegate(_proposer);
+    vm.roll(block.number + 1);
+    assertGe(wToken.getVotes(_proposer), proposalThreshold, "Proposer votes below threshold after delegation");
+  }
+
+  // Prepares data for a simple wToken.approve(gov, 0) proposal.
+  function _prepareSimpleProposalData(string memory _description)
+    internal
+    view
+    returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+  {
+    targets = new address[](1);
+    targets[0] = address(wToken);
+    values = new uint256[](1);
+    values[0] = 0;
+    calldatas = new bytes[](1);
+    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0);
+    descriptionHash = keccak256(bytes(_description));
+  }
+
+  // Executes gov.propose with the given parameters after pranking as _proposer.
+  function _proposeFrom(
+    address _proposer,
+    address[] memory _targets,
+    uint256[] memory _values,
+    bytes[] memory _calldatas,
+    string memory _description
+  ) internal returns (uint256 proposalId) {
+    vm.prank(_proposer);
+    proposalId = gov.propose(_targets, _values, _calldatas, _description);
+    assertTrue(proposalId != 0, "Proposal ID is zero");
+  }
+
+  // --- Setup ---
+
   function setUp() public {
     // Create a fork of mainnet
     ethereumForkId = vm.createSelectFork(ETHEREUM_RPC_URL);
@@ -195,7 +236,6 @@ contract HubMainnetForkTest is Test {
       EXPECTED_SOLANA_DECIMALS,
       "SolanaDecoder tokenDecimals mismatch"
     );
-    // Check Solana query type registration
     assertEq(address(hubVotePool.voteTypeDecoder(5)), HUB_SOLANA_VOTE_DECODER_ADDR, "SolanaDecoder query type mismatch");
   }
 
@@ -254,9 +294,11 @@ contract HubMainnetForkTest is Test {
     // VotePool owner (Deployer retains ownership per DeployHubContractsBaseImpl.s.sol)
     // TODO should this be the Timelock?
     assertEq(hubVotePool.owner(), actualDeployer, "VotePool owner mismatch");
-
+    // EVM Dispatcher owner
     assertEq(hubMessageDispatcher.owner(), TIMELOCK_ADDR, "EvmDispatcher owner mismatch");
+    // Solana Dispatcher owner
     assertEq(hubSolanaMessageDispatcher.owner(), TIMELOCK_ADDR, "SolanaDispatcher owner mismatch");
+    // EVM Proposer owner
     assertEq(hubEvmSpokeAggregateProposer.owner(), GOV_ADDR, "EvmAggProposer owner mismatch");
   }
 
@@ -264,58 +306,31 @@ contract HubMainnetForkTest is Test {
 
   function testCanProposeOnHub() public {
     address proposer = PROPOSER_ADDRESS;
-    uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
-
-    uint256 currentBalance = wToken.balanceOf(proposer);
-    require(currentBalance >= proposalThreshold, "FAIL: Proposer lacks sufficient balance on fork");
-
-    vm.prank(proposer);
-    wToken.delegate(proposer);
-
-    vm.roll(block.number + 1);
-    assertGe(wToken.getVotes(proposer), proposalThreshold, "Proposer votes below threshold after delegation");
-
-    address[] memory targets = new address[](1);
-    targets[0] = address(wToken);
-    uint256[] memory values = new uint256[](1);
-    values[0] = 0;
-    bytes[] memory calldatas = new bytes[](1);
-    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0);
     string memory description = "Test Proposal: Verify Hub Proposal Creation";
 
-    vm.prank(proposer);
-    uint256 proposalId = gov.propose(targets, values, calldatas, description);
+    _setupProposerAndDelegate(proposer);
+    (address[] memory targets, uint256[] memory values, bytes[] memory calldatas,) =
+      _prepareSimpleProposalData(description);
+
+    uint256 proposalId = _proposeFrom(proposer, targets, values, calldatas, description);
 
     uint48 votingDelay = EXPECTED_VOTING_DELAY;
     vm.warp(block.timestamp + votingDelay + 1);
 
-    assertTrue(proposalId != 0, "Proposal ID is zero");
     assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Active), "Proposal not Active");
+
+    // Optional deadline check remains commented out
   }
 
   function testProposerCanCancel() public {
-    console.log("Testing Proposer Cancellation...");
-
-    address proposer = actualDeployer;
-    uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
-
-    vm.prank(proposer);
-    wToken.delegate(proposer);
-    vm.roll(block.number + 1);
-    assertGe(wToken.getVotes(proposer), proposalThreshold, "Proposer votes below threshold after delegation");
-
-    address[] memory targets = new address[](1);
-    targets[0] = address(wToken);
-    uint256[] memory values = new uint256[](1);
-    values[0] = 0;
-    bytes[] memory calldatas = new bytes[](1);
-    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0);
+    address proposer = PROPOSER_ADDRESS;
     string memory description = "Test Proposal: Verify Proposer Cancellation";
-    bytes32 descriptionHash = keccak256(bytes(description));
 
-    vm.prank(proposer);
-    uint256 proposalId = gov.propose(targets, values, calldatas, description);
-    assertTrue(proposalId != 0, "Proposal ID is zero for cancellation test");
+    _setupProposerAndDelegate(proposer);
+    (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
+      _prepareSimpleProposalData(description);
+
+    uint256 proposalId = _proposeFrom(proposer, targets, values, calldatas, description);
 
     assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Pending), "Proposal not Pending initially");
 
@@ -331,24 +346,14 @@ contract HubMainnetForkTest is Test {
 
   function testCanExtendProposal() public {
     address proposer = PROPOSER_ADDRESS;
-    uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
-
-    vm.prank(proposer);
-    wToken.delegate(proposer);
-    vm.roll(block.number + 1);
-    assertGe(wToken.getVotes(proposer), proposalThreshold, "Proposer votes below threshold");
-
-    address[] memory targets = new address[](1);
-    targets[0] = address(wToken);
-    uint256[] memory values = new uint256[](1);
-    values[0] = 0;
-    bytes[] memory calldatas = new bytes[](1);
-    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0);
+    address extenderAdmin = EXPECTED_EXTENDER_ADMIN;
     string memory description = "Test Proposal: Verify Extension";
 
-    vm.prank(proposer);
-    uint256 proposalId = gov.propose(targets, values, calldatas, description);
-    assertTrue(proposalId != 0, "Proposal ID is zero for extension test");
+    _setupProposerAndDelegate(proposer);
+    (address[] memory targets, uint256[] memory values, bytes[] memory calldatas,) =
+      _prepareSimpleProposalData(description);
+
+    uint256 proposalId = _proposeFrom(proposer, targets, values, calldatas, description);
 
     vm.warp(block.timestamp + EXPECTED_VOTING_DELAY + 1);
     assertEq(
@@ -357,7 +362,6 @@ contract HubMainnetForkTest is Test {
 
     uint256 initialDeadline = gov.proposalDeadline(proposalId);
 
-    address extenderAdmin = EXPECTED_EXTENDER_ADMIN;
     vm.prank(extenderAdmin);
     extender.extendProposal(proposalId);
 
