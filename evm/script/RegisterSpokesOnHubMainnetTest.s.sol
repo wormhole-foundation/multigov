@@ -11,7 +11,7 @@ contract RegisterSpokesOnHubMainnetTest is Script {
   address BASE_VOTE_AGGREGATOR = 0x31eD7EAa0CCA7e95a93339843a1C257b87e31E3d; // TODO: Replace with a real
   address ARBITRUM_VOTE_AGGREGATOR = 0x6dEfA659A9726925307a45B30Ffe2Da45ED90811; // TODO: Replace with a real
 
-    // address
+  // address
   bytes32 SOLANA_SPOKE = bytes32(0xee7066afc36b670f4b52088b82a96da0ba563335db5ac099786d9f8800ff429e);
   address TIMELOCK = 0x0fAA8fc7A60809B3557d5Dbe463B64F94de5ac06; // TODO Timelock address
 

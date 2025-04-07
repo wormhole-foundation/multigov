@@ -25,7 +25,7 @@ abstract contract SpokeForkTestBase is Test {
 
   // W Token Address (Consistent across forks)
   // TODO: Replace with actual WToken address for production verification (delete the above)
-  address contstant W_TOKEN_ADDR = 0x99169F25429fdC6E5358A1b317Df4b95f4EAF858
+  address constant W_TOKEN_ADDR = 0x99169F25429fdC6E5358A1b317Df4b95f4EAF858;
   // TODO this is the actual WToken address
   // address constant W_TOKEN_ADDR = 0xB0fFa8000886e57F86dd5264b9582b2Ad87b2b91;
 
