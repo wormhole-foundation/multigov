@@ -78,7 +78,7 @@ abstract contract SpokeForkTestBase is Test {
 
   // --- Parameter Verification Tests ---
 
-  function testVerifyExecutorParams() public view {
+  function test_VerifyExecutorParams() public view {
     assertEq(address(executor.wormholeCore()), _getExpectedWormholeCore(), "Executor: wormholeCore mismatch");
     assertEq(address(executor.airlock()), _getSpokeAirlockAddress(), "Executor: airlock mismatch");
     assertEq(executor.hubChainId(), EXPECTED_HUB_CHAIN_ID, "Executor: hubChainId mismatch");
@@ -86,11 +86,11 @@ abstract contract SpokeForkTestBase is Test {
     assertEq(executor.hubDispatcher(), expectedHubDispatcherBytes, "Executor: hubDispatcher mismatch");
   }
 
-  function testVerifyAirlockParams() public view {
+  function test_VerifyAirlockParams() public view {
     assertEq(airlock.MESSAGE_EXECUTOR(), _getSpokeExecutorAddress(), "Airlock: executor mismatch");
   }
 
-  function testVerifyAggregatorParams() public view {
+  function test_VerifyAggregatorParams() public view {
     assertEq(address(aggregator.VOTING_TOKEN()), W_TOKEN_ADDR, "Aggregator: wToken mismatch");
     assertEq(
       address(aggregator.spokeMetadataCollector()), _getSpokeCollectorAddress(), "Aggregator: collector mismatch"
@@ -102,14 +102,14 @@ abstract contract SpokeForkTestBase is Test {
     );
   }
 
-  function testVerifyCollectorParams() public view {
+  function test_VerifyCollectorParams() public view {
     assertEq(collector.HUB_CHAIN_ID(), EXPECTED_HUB_CHAIN_ID, "Collector: hubChainId mismatch");
     assertEq(collector.HUB_PROPOSAL_METADATA(), HUB_METADATA_ADDR, "Collector: hubMetadata mismatch");
   }
 
   // --- Role / Ownership Verification Tests ---
 
-  function testVerifySpokeContractOwnership() public view {
+  function test_VerifySpokeContractOwnership() public view {
     assertEq(aggregator.owner(), _getSpokeAirlockAddress(), "Aggregator owner mismatch (Expected Airlock)");
   }
 
