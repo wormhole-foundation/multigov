@@ -11,6 +11,8 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
 abstract contract SpokeForkTestBase is Test {
   uint256 forkId;
@@ -109,5 +111,52 @@ abstract contract SpokeForkTestBase is Test {
 
   function testVerifySpokeContractOwnership() public view {
     assertEq(aggregator.owner(), _getSpokeAirlockAddress(), "Aggregator owner mismatch (Expected Airlock)");
+  }
+
+  // --- Functionality Tests ---
+
+  function testFuzz_CastVote(uint256 _proposalId, uint8 _support) public {
+    uint8 support = uint8(bound(_support, 0, 2));
+    address voter = actualDeployer;
+
+    // 1. Setup voter with tokens and delegation
+    deal(address(wToken), voter, 1_000_000e18);
+    vm.prank(voter);
+    wToken.delegate(voter);
+    vm.roll(block.number + 1); // Ensure delegation registers
+
+    // 2. Calculate vote start time and set up proposal
+    uint256 voteStartTimestamp = block.timestamp + aggregator.getVoteWeightWindowLength(uint96(block.timestamp)) + 1;
+    vm.store(
+      address(collector), keccak256(abi.encode(bytes32(_proposalId), bytes32(uint256(0)))), bytes32(voteStartTimestamp)
+    );
+
+    // 3. Warp to voting time
+    vm.warp(voteStartTimestamp + 1);
+
+    // 4. Cast vote and verify
+    vm.prank(voter);
+    uint256 weight = aggregator.castVote(_proposalId, support);
+    assertTrue(weight > 0, "Vote weight should be non-zero");
+
+    // Verify vote counts
+    (, uint256 against, uint256 forVotes, uint256 abstain) = aggregator.proposalVotes(_proposalId);
+
+    if (support == 0) {
+      // Against
+      assertEq(against, weight);
+      assertEq(forVotes, 0);
+      assertEq(abstain, 0);
+    } else if (support == 1) {
+      // For
+      assertEq(against, 0);
+      assertEq(forVotes, weight);
+      assertEq(abstain, 0);
+    } else {
+      // Abstain
+      assertEq(against, 0);
+      assertEq(forVotes, 0);
+      assertEq(abstain, weight);
+    }
   }
 }
