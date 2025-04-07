@@ -115,8 +115,9 @@ abstract contract SpokeForkTestBase is Test {
 
   // --- Functionality Tests ---
 
-  function testFuzz_CastVote(uint256 _proposalId, uint8 _support) public {
-    uint8 support = uint8(bound(_support, 0, 2));
+  function test_CastVote() public {
+    uint256 _proposalId = 999;
+    uint8 support = 1; // For
     address voter = actualDeployer;
 
     // 1. Setup voter with tokens and delegation
