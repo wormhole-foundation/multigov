@@ -121,6 +121,8 @@ abstract contract DeployHubContractsBaseImpl is Script {
     timelock.grantRole(timelock.PROPOSER_ROLE(), address(gov));
     timelock.grantRole(timelock.EXECUTOR_ROLE(), address(gov));
     timelock.grantRole(timelock.CANCELLER_ROLE(), address(gov));
+	// Veto role held by the same address as the extender
+    timelock.grantRole(timelock.CANCELLER_ROLE(), address(config.voteExtenderAdmin));
     timelock.grantRole(timelock.DEFAULT_ADMIN_ROLE(), address(timelock));
     timelock.renounceRole(timelock.DEFAULT_ADMIN_ROLE(), wallet.addr);
 
