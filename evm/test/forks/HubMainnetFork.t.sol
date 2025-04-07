@@ -152,11 +152,11 @@ contract HubMainnetForkTest is Test {
 
   // --- Parameter Verification Tests ---
 
-  function testVerifyTimelockParams() public view {
+  function test_VerifyTimelockParams() public view {
     assertEq(timelock.getMinDelay(), EXPECTED_MIN_DELAY, "Timelock minDelay mismatch");
   }
 
-  function testVerifyGovernorParams() public view {
+  function test_VerifyGovernorParams() public view {
     assertEq(gov.name(), EXPECTED_GOV_NAME, "Governor name mismatch");
     assertEq(address(gov.token()), TEST_WTOKEN_ADDR, "Governor token mismatch");
     assertEq(address(gov.timelock()), TIMELOCK_ADDR, "Governor timelock mismatch");
@@ -173,7 +173,7 @@ contract HubMainnetForkTest is Test {
     );
   }
 
-  function testVerifyExtenderParams() public view {
+  function test_VerifyExtenderParams() public view {
     // Admin check is in Roles test
     assertEq(extender.extensionDuration(), EXPECTED_VOTE_TIME_EXTENSION, "Extender extensionDuration mismatch");
     assertEq(
@@ -181,17 +181,17 @@ contract HubMainnetForkTest is Test {
     );
   }
 
-  function testVerifyVotePoolParams() public view {
+  function test_VerifyVotePoolParams() public view {
     assertEq(address(hubVotePool.wormhole()), EXPECTED_WORMHOLE_CORE, "VotePool wormholeCore mismatch");
     assertEq(address(hubVotePool.hubGovernor()), GOV_ADDR, "VotePool governor mismatch");
     // Owner check is in Roles test
   }
 
-  function testVerifyMetadataParams() public view {
+  function test_VerifyMetadataParams() public view {
     assertEq(address(hubProposalMetadata.GOVERNOR()), GOV_ADDR, "Metadata governor mismatch");
   }
 
-  function testVerifyEvmDispatcherParams() public view {
+  function test_VerifyEvmDispatcherParams() public view {
     assertEq(
       address(hubMessageDispatcher.wormholeCore()), EXPECTED_WORMHOLE_CORE, "EvmDispatcher wormholeCore mismatch"
     );
@@ -201,7 +201,7 @@ contract HubMainnetForkTest is Test {
     // Owner check is in Roles test
   }
 
-  function testVerifySolanaDispatcherParams() public view {
+  function test_VerifySolanaDispatcherParams() public view {
     assertEq(
       address(hubSolanaMessageDispatcher.wormholeCore()),
       EXPECTED_WORMHOLE_CORE,
@@ -215,7 +215,7 @@ contract HubMainnetForkTest is Test {
     // Owner check is in Roles test
   }
 
-  function testVerifyEvmProposerParams() public view {
+  function test_VerifyEvmProposerParams() public view {
     assertEq(
       address(hubEvmSpokeAggregateProposer.wormhole()), EXPECTED_WORMHOLE_CORE, "EvmAggProposer wormholeCore mismatch"
     );
@@ -228,7 +228,7 @@ contract HubMainnetForkTest is Test {
     // Owner check is in Roles test
   }
 
-  function testVerifySolanaDecoderParams() public view {
+  function test_VerifySolanaDecoderParams() public view {
     assertEq(
       address(hubSolanaSpokeVoteDecoder.wormhole()), EXPECTED_WORMHOLE_CORE, "SolanaDecoder wormholeCore mismatch"
     );
@@ -243,7 +243,7 @@ contract HubMainnetForkTest is Test {
 
   // --- Role / Ownership Verification Tests ---
 
-  function testVerifyTimelockRoles() public view {
+  function test_VerifyTimelockRoles() public view {
     assertTrue(timelock.hasRole(PROPOSER_ROLE, GOV_ADDR), "Governor lacks PROPOSER_ROLE");
     assertTrue(timelock.hasRole(EXECUTOR_ROLE, GOV_ADDR), "Governor lacks EXECUTOR_ROLE");
     assertTrue(timelock.hasRole(CANCELLER_ROLE, GOV_ADDR), "Governor lacks CANCELLER_ROLE");
@@ -255,7 +255,7 @@ contract HubMainnetForkTest is Test {
     assertTrue(timelock.hasRole(TIMELOCK_ADMIN_ROLE, TIMELOCK_ADDR), "Timelock lacks TIMELOCK_ADMIN_ROLE");
   }
 
-  function testVerifyExtenderRoles() public view {
+  function test_VerifyExtenderRoles() public view {
     // Verify against the *intended final* admin address (Wormhole Foundation)
     // NOTE: This will FAIL against current testnet deploy where admin is actualDeployer
     assertEq(extender.voteExtenderAdmin(), WORMHOLE_FOUNDATION_ADDR, "Extender admin mismatch (Expected Foundation)");
@@ -263,14 +263,14 @@ contract HubMainnetForkTest is Test {
     assertEq(extender.owner(), TIMELOCK_ADDR, "Extender owner mismatch");
   }
 
-  function testVerifyWhitelistedProposer() public view {
+  function test_VerifyWhitelistedProposer() public view {
     // Verify against the *intended final* state (HUB_EVM_AGG_PROPOSER_ADDR)
     // NOTE: This will FAIL against current testnet deploy where proposer is address(0)
     // The proposer must be set via a governance action after deployment.
     assertEq(gov.whitelistedProposer(), address(0), "WhitelistedProposer is set");
   }
 
-  function testVerifySpokeRegistrations() public view {
+  function test_VerifySpokeRegistrations() public view {
     bytes32 expectedArbBytes = bytes32(uint256(uint160(ARBITRUM_SPOKE_AGG_ADDR)));
     bytes32 expectedBaseBytes = bytes32(uint256(uint160(BASE_SPOKE_AGG_ADDR)));
     bytes32 expectedOpBytes = bytes32(uint256(uint160(OPTIMISM_SPOKE_AGG_ADDR)));
@@ -290,7 +290,7 @@ contract HubMainnetForkTest is Test {
     );
   }
 
-  function testVerifyContractOwnership() public view {
+  function test_VerifyContractOwnership() public view {
     // VotePool owner (Deployer retains ownership per DeployHubContractsBaseImpl.s.sol)
     // TODO should this be the Timelock?
     assertEq(hubVotePool.owner(), actualDeployer, "VotePool owner mismatch");
@@ -304,7 +304,7 @@ contract HubMainnetForkTest is Test {
 
   // --- Functionality Tests ---
 
-  function testCanProposeOnHub() public {
+  function test_CanProposeOnHub() public {
     address proposer = PROPOSER_ADDRESS;
     string memory description = "Test Proposal: Verify Hub Proposal Creation";
 
@@ -322,7 +322,7 @@ contract HubMainnetForkTest is Test {
     // Optional deadline check remains commented out
   }
 
-  function testProposerCanCancel() public {
+  function test_ProposerCanCancel() public {
     address proposer = PROPOSER_ADDRESS;
     string memory description = "Test Proposal: Verify Proposer Cancellation";
 
@@ -344,7 +344,7 @@ contract HubMainnetForkTest is Test {
     );
   }
 
-  function testCanExtendProposal() public {
+  function test_CanExtendProposal() public {
     address proposer = PROPOSER_ADDRESS;
     address extenderAdmin = EXPECTED_EXTENDER_ADMIN;
     string memory description = "Test Proposal: Verify Extension";
