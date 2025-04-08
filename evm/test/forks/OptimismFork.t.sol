@@ -10,7 +10,6 @@ contract OptimismForkTest is SpokeForkTestBase {
   address constant SPOKE_COLLECTOR_ADDR = 0x423Da2a1D7e14f22B60cd9A5bd83d714f3AFe2De;
   address constant SPOKE_AGGREGATOR_ADDR = 0x75F755950D59d2007A0C90457fDc190732567cC5;
   address constant SPOKE_AIRLOCK_ADDR = 0x6753c396D52744ac82AEd0f62F9E3420ea7589da;
-  uint16 constant OPTIMISM_CHAIN_ID = 24; // Wormhole Chain ID for Optimism Mainnet
 
   function _getRpcUrlEnvVarName() internal pure override returns (string memory) {
     return "OPTIMISM_RPC_URL";
