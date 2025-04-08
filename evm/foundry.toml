@@ -1,7 +1,7 @@
 [profile.default]
   evm_version = "paris"
   optimizer = true
-  optimizer_runs = 10_000_000
+  optimizer_runs = 17_750
   remappings = [
     "lib/wormhole/ethereum:@openzeppelin/contracts=lib/openzeppelin-contracts-4/contracts",
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts",
