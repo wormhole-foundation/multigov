@@ -12,8 +12,6 @@ contract OptimismForkTest is SpokeForkTestBase {
   address constant SPOKE_AIRLOCK_ADDR = 0x6753c396D52744ac82AEd0f62F9E3420ea7589da;
   uint16 constant OPTIMISM_CHAIN_ID = 24; // Wormhole Chain ID for Optimism Mainnet
 
-  // --- Implementation of Abstract Getters ---
-
   function _getRpcUrlEnvVarName() internal pure override returns (string memory) {
     return "OPTIMISM_RPC_URL";
   }
@@ -34,15 +32,7 @@ contract OptimismForkTest is SpokeForkTestBase {
     return SPOKE_COLLECTOR_ADDR;
   }
 
-  function _getSelfChainId() internal pure override returns (uint16) {
-    // This isn't explicitly checked in the current tests, but required by base
-    return OPTIMISM_CHAIN_ID;
-  }
-
   function _getExpectedWormholeCore() internal pure override returns (address) {
-    // Optimism Wormhole Core
     return WORMHOLE_CORE;
   }
-
-  // All test logic is inherited from SpokeForkTestBase
 }

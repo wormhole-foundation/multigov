@@ -33,14 +33,8 @@ contract ArbitrumForkTest is SpokeForkTestBase {
     return SPOKE_COLLECTOR_ADDR;
   }
 
-  function _getSelfChainId() internal pure override returns (uint16) {
-    return ARBITRUM_CHAIN_ID;
-  }
-
   function _getExpectedWormholeCore() internal pure override returns (address) {
     // Arbitrum Mainnet Wormhole Core
     return 0xa5f208e072434bC67592E4C49C1B991BA79BCA46;
   }
-
-  // All test logic is inherited from SpokeForkTestBase
 }

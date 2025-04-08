@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {SpokeMessageExecutor} from "src/SpokeMessageExecutor.sol";
 import {SpokeAirlock} from "src/SpokeAirlock.sol";
 import {SpokeVoteAggregator} from "src/SpokeVoteAggregator.sol";
@@ -53,8 +54,11 @@ abstract contract SpokeForkTestBase is Test {
   function _getSpokeAirlockAddress() internal pure virtual returns (address);
   function _getSpokeAggregatorAddress() internal pure virtual returns (address);
   function _getSpokeCollectorAddress() internal pure virtual returns (address);
-  function _getSelfChainId() internal pure virtual returns (uint16);
   function _getExpectedWormholeCore() internal pure virtual returns (address);
+
+  function _getSelfChainId() internal view returns (uint16) {
+    return IWormhole(_getExpectedWormholeCore()).chainId();
+  }
 
   // --- Setup ---
 

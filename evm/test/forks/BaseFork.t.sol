@@ -33,14 +33,8 @@ contract BaseForkTest is SpokeForkTestBase {
     return SPOKE_COLLECTOR_ADDR;
   }
 
-  function _getSelfChainId() internal pure override returns (uint16) {
-    return BASE_CHAIN_ID;
-  }
-
   function _getExpectedWormholeCore() internal pure override returns (address) {
     // Base Mainnet Wormhole Core
     return 0xbebdb6C8ddC678FfA9f8748f85C815C556Dd8ac6;
   }
-
-  // All test logic is inherited from SpokeForkTestBase
 }
