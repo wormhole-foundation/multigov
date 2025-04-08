@@ -23,6 +23,12 @@ contract HubMainnetForkTest is Test, HubTestConstants {
   string ETHEREUM_RPC_URL = vm.envString("ETHEREUM_RPC_URL");
   uint256 ethereumForkId;
 
+  address internal actualDeployer = 0x6dF497fa3bC0a44F384d099FbBE47304FEE4B55B; // Address that deployed the contracts
+    // to mainnet test; TODO: Replace with actual deployer address for prod mainnet deploy
+
+  address public PROPOSER_ADDRESS = actualDeployer;
+  address public EXPECTED_EXTENDER_ADMIN = actualDeployer;
+
   // Loaded Contract Instances
   TimelockController internal timelock;
   HubGovernor internal gov;
@@ -34,14 +40,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
   HubSolanaMessageDispatcher internal hubSolanaMessageDispatcher;
   HubSolanaSpokeVoteDecoder internal hubSolanaSpokeVoteDecoder;
   ERC20Votes internal wToken;
-
-  // Test context
-  address internal actualDeployer = 0x6dF497fa3bC0a44F384d099FbBE47304FEE4B55B; // Address that deployed the contracts
-    // to mainnet test; TODO: Replace with actual deployer address for prod mainnet deploy
-
-  // Re-add state variables that were incorrectly removed
-  address public PROPOSER_ADDRESS = actualDeployer;
-  address public EXPECTED_EXTENDER_ADMIN = actualDeployer;
 
   // --- Helper Functions ---
 
