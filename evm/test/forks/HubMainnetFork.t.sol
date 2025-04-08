@@ -1,102 +1,12 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {Test, console} from "forge-std/Test.sol";
-import {Vm} from "forge-std/Vm.sol";
-
-// Hub Contracts
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
-import {HubGovernor} from "src/HubGovernor.sol";
-import {HubProposalExtender} from "src/HubProposalExtender.sol";
-import {HubVotePool} from "src/HubVotePool.sol";
-import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
-import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
-import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
-import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
-import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {HubTestConstants} from "./HubTestConstants.sol";
+// REMOVE ALL IMPORTS EXCEPT BASE
+import {HubForkTestBase} from "./HubForkTestBase.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol"; // Keep this one
 
 // This contract tests the state IMMEDIATELY after initial deployment.
-contract HubMainnetForkTest is Test, HubTestConstants {
-  string ETHEREUM_RPC_URL = vm.envString("ETHEREUM_RPC_URL");
-  uint256 ethereumForkId;
-
-  // TODO: Replace with actual deployer address for prod mainnet deploy
-  address internal actualDeployer = 0x6dF497fa3bC0a44F384d099FbBE47304FEE4B55B; // Address that deployed the contracts
-    // to mainnet test;
-
-  address public PROPOSER_ADDRESS = actualDeployer;
-  address public EXPECTED_EXTENDER_ADMIN = actualDeployer;
-
-  // Loaded Contract Instances
-  TimelockController internal timelock;
-  HubGovernor internal gov;
-  HubProposalExtender internal extender;
-  HubVotePool internal hubVotePool;
-  HubProposalMetadata internal hubProposalMetadata;
-  HubMessageDispatcher internal hubMessageDispatcher;
-  HubEvmSpokeAggregateProposer internal hubEvmSpokeAggregateProposer;
-  HubSolanaMessageDispatcher internal hubSolanaMessageDispatcher;
-  HubSolanaSpokeVoteDecoder internal hubSolanaSpokeVoteDecoder;
-  ERC20Votes internal wToken;
-
-  // --- Helper Functions ---
-
-  // Sets up the proposer address with delegated votes.
-  function _setupProposerAndDelegate(address _proposer) internal {
-    uint256 proposalThreshold = EXPECTED_PROPOSAL_THRESHOLD;
-    vm.prank(_proposer);
-    wToken.delegate(_proposer);
-    vm.roll(block.number + 1);
-    assertGe(wToken.getVotes(_proposer), proposalThreshold, "Proposer votes below threshold after delegation");
-  }
-
-  // Prepares data for a simple wToken.approve(gov, 0) proposal.
-  function _prepareSimpleProposalData(string memory _description)
-    internal
-    view
-    returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
-  {
-    targets = new address[](1);
-    targets[0] = address(wToken);
-    values = new uint256[](1);
-    values[0] = 0;
-    calldatas = new bytes[](1);
-    calldatas[0] = abi.encodeWithSignature("approve(address,uint256)", address(gov), 0);
-    descriptionHash = keccak256(bytes(_description));
-  }
-
-  // Executes gov.propose with the given parameters after pranking as _proposer.
-  function _proposeFrom(
-    address _proposer,
-    address[] memory _targets,
-    uint256[] memory _values,
-    bytes[] memory _calldatas,
-    string memory _description
-  ) internal returns (uint256 proposalId) {
-    vm.prank(_proposer);
-    proposalId = gov.propose(_targets, _values, _calldatas, _description);
-    assertTrue(proposalId != 0, "Proposal ID is zero");
-  }
-
-  function setUp() public {
-    ethereumForkId = vm.createSelectFork(ETHEREUM_RPC_URL);
-
-    timelock = TimelockController(payable(TIMELOCK_ADDR));
-    gov = HubGovernor(payable(GOV_ADDR));
-    extender = HubProposalExtender(EXTENDER_ADDR);
-    hubVotePool = HubVotePool(HUB_VOTE_POOL_ADDR);
-    hubProposalMetadata = HubProposalMetadata(HUB_METADATA_ADDR);
-    hubMessageDispatcher = HubMessageDispatcher(HUB_MSG_DISPATCHER_ADDR);
-    hubEvmSpokeAggregateProposer = HubEvmSpokeAggregateProposer(HUB_EVM_AGG_PROPOSER_ADDR);
-    hubSolanaMessageDispatcher = HubSolanaMessageDispatcher(HUB_SOLANA_DISPATCHER_ADDR);
-    hubSolanaSpokeVoteDecoder = HubSolanaSpokeVoteDecoder(HUB_SOLANA_VOTE_DECODER_ADDR);
-    wToken = ERC20Votes(W_TOKEN_ADDR);
-  }
-
+contract HubMainnetForkTest is HubForkTestBase {
   // --- Parameter Verification Tests ---
 
   function test_VerifyTimelockParams() public view {
@@ -134,7 +44,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
   function test_VerifyVotePoolParams() public view {
     assertEq(address(hubVotePool.wormhole()), EXPECTED_WORMHOLE_CORE, "VotePool wormholeCore mismatch");
     assertEq(address(hubVotePool.hubGovernor()), GOV_ADDR, "VotePool governor mismatch");
-    // Owner check is moved to test_VerifyContractOwnership
   }
 
   function test_VerifyMetadataParams() public view {
@@ -148,7 +57,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
     assertEq(
       hubMessageDispatcher.consistencyLevel(), EXPECTED_CONSISTENCY_LEVEL, "EvmDispatcher consistencyLevel mismatch"
     );
-    // Owner check is moved to test_VerifyContractOwnership
   }
 
   function test_VerifySolanaDispatcherParams() public view {
@@ -162,7 +70,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
       EXPECTED_CONSISTENCY_LEVEL,
       "SolanaDispatcher consistencyLevel mismatch"
     );
-    // Owner check is moved to test_VerifyContractOwnership
   }
 
   function test_VerifyEvmProposerParams() public view {
@@ -175,7 +82,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
       EXPECTED_MAX_QUERY_OFFSET,
       "EvmAggProposer maxQueryTimestampOffset mismatch"
     );
-    // Owner check is moved to test_VerifyContractOwnership
   }
 
   function test_VerifySolanaDecoderParams() public view {

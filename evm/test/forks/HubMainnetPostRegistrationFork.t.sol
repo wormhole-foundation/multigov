@@ -1,60 +1,11 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.23;
 
-import {Test, console} from "forge-std/Test.sol";
-import {Vm} from "forge-std/Vm.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
-import {HubGovernor} from "src/HubGovernor.sol";
-import {HubProposalExtender} from "src/HubProposalExtender.sol";
-import {HubVotePool} from "src/HubVotePool.sol";
-import {HubProposalMetadata} from "src/HubProposalMetadata.sol";
-import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
-import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol";
-import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
-import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
+import {HubForkTestBase} from "./HubForkTestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {HubTestConstants} from "./HubTestConstants.sol";
 
 // This contract tests the state AFTER the registration script has run.
-contract HubMainnetPostRegistrationForkTest is Test, HubTestConstants {
-  string ETHEREUM_RPC_URL = vm.envString("ETHEREUM_RPC_URL");
-  uint256 ethereumForkId;
-
-  address internal actualDeployer = 0x6dF497fa3bC0a44F384d099FbBE47304FEE4B55B;
-  address public PROPOSER_ADDRESS = actualDeployer;
-  address public EXPECTED_EXTENDER_ADMIN = actualDeployer; // Keep as deployer for test setup, but test checks
-    // Foundation
-
-  TimelockController internal timelock;
-  HubGovernor internal gov;
-  HubProposalExtender internal extender;
-  HubVotePool internal hubVotePool;
-  HubProposalMetadata internal hubProposalMetadata;
-  HubMessageDispatcher internal hubMessageDispatcher;
-  HubEvmSpokeAggregateProposer internal hubEvmSpokeAggregateProposer;
-  HubSolanaMessageDispatcher internal hubSolanaMessageDispatcher;
-  HubSolanaSpokeVoteDecoder internal hubSolanaSpokeVoteDecoder;
-  ERC20Votes internal wToken;
-
-  function setUp() public {
-    ethereumForkId = vm.createSelectFork(ETHEREUM_RPC_URL);
-
-    timelock = TimelockController(payable(TIMELOCK_ADDR));
-    gov = HubGovernor(payable(GOV_ADDR));
-    extender = HubProposalExtender(EXTENDER_ADDR);
-    hubVotePool = HubVotePool(HUB_VOTE_POOL_ADDR);
-    hubProposalMetadata = HubProposalMetadata(HUB_METADATA_ADDR);
-    hubMessageDispatcher = HubMessageDispatcher(HUB_MSG_DISPATCHER_ADDR);
-    hubEvmSpokeAggregateProposer = HubEvmSpokeAggregateProposer(HUB_EVM_AGG_PROPOSER_ADDR);
-    hubSolanaMessageDispatcher = HubSolanaMessageDispatcher(HUB_SOLANA_DISPATCHER_ADDR);
-    hubSolanaSpokeVoteDecoder = HubSolanaSpokeVoteDecoder(HUB_SOLANA_VOTE_DECODER_ADDR);
-    wToken = ERC20Votes(W_TOKEN_ADDR);
-  }
-
-  // --- Tests for Post-Registration State ---
-
+contract HubMainnetPostRegistrationForkTest is HubForkTestBase {
   function test_VerifySpokeRegistrations() public view {
     bytes32 expectedArbBytes = bytes32(uint256(uint160(ARBITRUM_SPOKE_AGG_ADDR)));
     bytes32 expectedBaseBytes = bytes32(uint256(uint160(BASE_SPOKE_AGG_ADDR)));
