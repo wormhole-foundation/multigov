@@ -83,10 +83,8 @@ contract HubMainnetForkTest is Test, HubTestConstants {
   // --- Setup ---
 
   function setUp() public {
-    // Create a fork of mainnet
     ethereumForkId = vm.createSelectFork(ETHEREUM_RPC_URL);
 
-    // Load contract instances from known addresses
     timelock = TimelockController(payable(TIMELOCK_ADDR));
     gov = HubGovernor(payable(GOV_ADDR));
     extender = HubProposalExtender(EXTENDER_ADDR);
@@ -123,7 +121,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
   }
 
   function test_VerifyExtenderParams() public view {
-    // Admin check is in Roles test
     assertEq(extender.extensionDuration(), EXPECTED_VOTE_TIME_EXTENSION, "Extender extensionDuration mismatch");
     assertEq(
       extender.MINIMUM_EXTENSION_DURATION(), EXPECTED_MIN_EXTENSION_TIME, "Extender minExtensionDuration mismatch"
@@ -133,7 +130,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
   function test_VerifyVotePoolParams() public view {
     assertEq(address(hubVotePool.wormhole()), EXPECTED_WORMHOLE_CORE, "VotePool wormholeCore mismatch");
     assertEq(address(hubVotePool.hubGovernor()), GOV_ADDR, "VotePool governor mismatch");
-    // Owner check is in Roles test
   }
 
   function test_VerifyMetadataParams() public view {
@@ -147,7 +143,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
     assertEq(
       hubMessageDispatcher.consistencyLevel(), EXPECTED_CONSISTENCY_LEVEL, "EvmDispatcher consistencyLevel mismatch"
     );
-    // Owner check is in Roles test
   }
 
   function test_VerifySolanaDispatcherParams() public view {
@@ -161,7 +156,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
       EXPECTED_CONSISTENCY_LEVEL,
       "SolanaDispatcher consistencyLevel mismatch"
     );
-    // Owner check is in Roles test
   }
 
   function test_VerifyEvmProposerParams() public view {
@@ -174,7 +168,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
       EXPECTED_MAX_QUERY_OFFSET,
       "EvmAggProposer maxQueryTimestampOffset mismatch"
     );
-    // Owner check is in Roles test
   }
 
   function test_VerifySolanaDecoderParams() public view {
@@ -199,7 +192,6 @@ contract HubMainnetForkTest is Test, HubTestConstants {
     // Check Foundation canceller role (using placeholder address)
     assertTrue(timelock.hasRole(CANCELLER_ROLE, WORMHOLE_FOUNDATION_ADDR), "Foundation lacks CANCELLER_ROLE"); // Will
       // fail until placeholder updated & role granted
-    // Check admin role transfers
     assertFalse(timelock.hasRole(TIMELOCK_ADMIN_ROLE, actualDeployer), "Deployer still has TIMELOCK_ADMIN_ROLE");
     assertTrue(timelock.hasRole(TIMELOCK_ADMIN_ROLE, TIMELOCK_ADDR), "Timelock lacks TIMELOCK_ADMIN_ROLE");
   }
@@ -243,11 +235,8 @@ contract HubMainnetForkTest is Test, HubTestConstants {
     // VotePool owner (Deployer retains ownership per DeployHubContractsBaseImpl.s.sol)
     // TODO should this be the Timelock?
     assertEq(hubVotePool.owner(), actualDeployer, "VotePool owner mismatch");
-    // EVM Dispatcher owner
     assertEq(hubMessageDispatcher.owner(), TIMELOCK_ADDR, "EvmDispatcher owner mismatch");
-    // Solana Dispatcher owner
     assertEq(hubSolanaMessageDispatcher.owner(), TIMELOCK_ADDR, "SolanaDispatcher owner mismatch");
-    // EVM Proposer owner
     assertEq(hubEvmSpokeAggregateProposer.owner(), GOV_ADDR, "EvmAggProposer owner mismatch");
   }
 
