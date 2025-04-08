@@ -33,9 +33,8 @@ contract HubMainnetForkTest is Test {
   address constant HUB_MSG_DISPATCHER_ADDR = 0xb2F162945eF0631F62FE4421dc6Ec5eCDf92EF59;
   address constant HUB_SOLANA_DISPATCHER_ADDR = 0xadB8de6dfB41a1Fce6635460E77bEaDc73148BE4;
   address constant HUB_EVM_AGG_PROPOSER_ADDR = 0xb2490491FBb846B314D3ce65D77f9f27Ef964b4F;
-  address constant TEST_WTOKEN_ADDR = 0x691d45404441c4a297ecCc8dE29C033afCeaac3e;
-  // TODO: Replace with actual WToken address for production verification (delete the above)
-  address constant W_TOKEN_ADDR = 0xB0fFa8000886e57F86dd5264b9582b2Ad87b2b91;
+  // TODO: Replace with actual WToken address for production verification
+  address constant W_TOKEN_ADDR = 0x691d45404441c4a297ecCc8dE29C033afCeaac3e;
 
   // Testnet Spoke Addresses & Chain IDs (from mainnet-test-deploy-contracts.md & scripts)
   address constant ARBITRUM_SPOKE_AGG_ADDR = 0x6dEfA659A9726925307a45B30Ffe2Da45ED90811;
@@ -146,8 +145,7 @@ contract HubMainnetForkTest is Test {
     hubEvmSpokeAggregateProposer = HubEvmSpokeAggregateProposer(HUB_EVM_AGG_PROPOSER_ADDR);
     hubSolanaMessageDispatcher = HubSolanaMessageDispatcher(HUB_SOLANA_DISPATCHER_ADDR);
     hubSolanaSpokeVoteDecoder = HubSolanaSpokeVoteDecoder(HUB_SOLANA_VOTE_DECODER_ADDR);
-    // TODO: Replace with actual WToken address for production verification
-    wToken = ERC20Votes(TEST_WTOKEN_ADDR);
+    wToken = ERC20Votes(W_TOKEN_ADDR);
   }
 
   // --- Parameter Verification Tests ---
@@ -158,7 +156,7 @@ contract HubMainnetForkTest is Test {
 
   function test_VerifyGovernorParams() public view {
     assertEq(gov.name(), EXPECTED_GOV_NAME, "Governor name mismatch");
-    assertEq(address(gov.token()), TEST_WTOKEN_ADDR, "Governor token mismatch");
+    assertEq(address(gov.token()), W_TOKEN_ADDR, "Governor token mismatch");
     assertEq(address(gov.timelock()), TIMELOCK_ADDR, "Governor timelock mismatch");
     assertEq(gov.votingDelay(), EXPECTED_VOTING_DELAY, "Governor votingDelay mismatch");
     assertEq(gov.votingPeriod(), EXPECTED_VOTING_PERIOD, "Governor votingPeriod mismatch");
@@ -318,8 +316,6 @@ contract HubMainnetForkTest is Test {
     vm.warp(block.timestamp + votingDelay + 1);
 
     assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Active), "Proposal not Active");
-
-    // Optional deadline check remains commented out
   }
 
   function test_ProposerCanCancel() public {
