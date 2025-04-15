@@ -23,10 +23,10 @@ abstract contract HubForkTestBase is Test, HubTestConstants {
   uint256 internal ethereumForkId;
 
   // TODO: Replace with actual deployer address for prod mainnet deploy
-  address internal actualDeployer = 0x6dF497fa3bC0a44F384d099FbBE47304FEE4B55B;
+  address internal actualDeployer = 0x4135270D8bcF6b654e1169efEFc317aFA8778A83;
   // to mainnet test;
 
-  address public PROPOSER_ADDRESS = actualDeployer;
+  address public PROPOSER_ADDRESS = 0x71CB1dc5AE0389F1828a5dFefB8476bd3BEA2AF2; // Dan Reecer
   address public EXPECTED_EXTENDER_ADMIN = actualDeployer;
 
   // Loaded Contract Instances

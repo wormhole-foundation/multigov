@@ -14,31 +14,19 @@ import {HubMessageDispatcher} from "src/HubMessageDispatcher.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {SpokeCountingFractional} from "src/lib/SpokeCountingFractional.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {HubTestConstants} from "./HubTestConstants.sol";
 
-abstract contract SpokeForkTestBase is Test {
+abstract contract SpokeForkTestBase is Test, HubTestConstants {
   uint256 forkId;
 
   // --- Common Constants ---
 
-  // Hub Addresses (Consistent across forks)
-  address constant HUB_TIMELOCK_ADDR = 0x0fAA8fc7A60809B3557d5Dbe463B64F94de5ac06;
-  address constant HUB_GOVERNOR_ADDR = 0x50b97697DbDa7a38f249966E02CCE6064657c54B;
-  address constant HUB_MSG_DISPATCHER_ADDR = 0xb2F162945eF0631F62FE4421dc6Ec5eCDf92EF59;
-  address constant HUB_METADATA_ADDR = 0xe1485b53e6E94aD4B82b19E48DA1911d2E19bFaE;
-
-  // W Token Address (Consistent across forks)
-  // TODO: Replace with actual WToken address for production verification (delete the above)
-  address constant W_TOKEN_ADDR = 0x99169F25429fdC6E5358A1b317Df4b95f4EAF858;
-  // TODO this is the actual WToken address
-  // address constant W_TOKEN_ADDR = 0xB0fFa8000886e57F86dd5264b9582b2Ad87b2b91;
-
   // Expected Parameters (Common across test spokes)
   uint16 constant EXPECTED_HUB_CHAIN_ID = 2; // Wormhole Chain ID for Ethereum Mainnet
-  uint48 constant EXPECTED_AGGREGATOR_VOTE_WEIGHT_WINDOW = 10 minutes;
+  uint48 constant EXPECTED_AGGREGATOR_VOTE_WEIGHT_WINDOW = 5 minutes;
 
   // Test context
-  // TODO: Remove this once we have a way to get the actual deployer
-  address internal actualDeployer = 0x6dF497fa3bC0a44F384d099FbBE47304FEE4B55B; // Address that deployed Hub
+  address internal actualDeployer = 0x4135270D8bcF6b654e1169efEFc317aFA8778A83; // Address that deployed Hub
     // mainnet-test contracts
 
   // --- Loaded Contract Instances ---

@@ -5,6 +5,10 @@ import {HubForkTestBase} from "./HubForkTestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
+interface IMintable {
+  function mint(address _account, uint256 _amount) external;
+}
+
 // This contract tests the state AFTER the registration script has run.
 contract HubMainnetPostRegistrationForkTest is HubForkTestBase {
   function test_VerifySpokeRegistrations() public view {
@@ -29,9 +33,7 @@ contract HubMainnetPostRegistrationForkTest is HubForkTestBase {
 
   function test_VerifyWhitelistedProposer() public view {
     assertEq(
-      gov.whitelistedProposer(),
-      HUB_EVM_AGG_PROPOSER_ADDR,
-      "WhitelistedProposer mismatch post-registration (Expected EvmAggProposer)"
+      gov.whitelistedProposer(), address(0), "WhitelistedProposer mismatch post-registration (Expected EvmAggProposer)"
     );
   }
 
@@ -55,8 +57,10 @@ contract HubMainnetPostRegistrationForkTest is HubForkTestBase {
 
   function test_TimelockCanCancelScheduledOperation() public {
     address proposer = PROPOSER_ADDRESS;
-    address canceller = GOV_ADDR;
+    address canceller = WORMHOLE_FOUNDATION_ADDR;
     string memory description = "Test Proposal: Verify Timelock Cancellation of Scheduled Op";
+    vm.prank(0xc072B1AEf336eDde59A049699Ef4e8Fa9D594A48);
+    IMintable(address(wToken)).mint(proposer, EXPECTED_QUORUM);
 
     (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
       _prepareSimpleProposalData(description);
@@ -68,8 +72,10 @@ contract HubMainnetPostRegistrationForkTest is HubForkTestBase {
     // 2. Simulate Voting Period
     vm.warp(block.timestamp + EXPECTED_VOTING_DELAY + 1); // Warp past voting delay
     assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Active), "Proposal not Active after delay");
+
     vm.prank(proposer); // Use the proposer who has votes from setUp
     gov.castVote(proposalId, 1); // Vote For
+
     vm.warp(block.timestamp + EXPECTED_VOTING_PERIOD + 1); // Warp past voting period
     assertEq(
       uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Succeeded), "Proposal not Succeeded after vote"
@@ -101,6 +107,58 @@ contract HubMainnetPostRegistrationForkTest is HubForkTestBase {
       uint8(gov.state(proposalId)),
       uint8(IGovernor.ProposalState.Canceled),
       "Governor state should become Canceled after Timelock cancel"
+    );
+  }
+
+  function test_TimelockCanExecuteScheduledOperation() public {
+    address proposer = PROPOSER_ADDRESS;
+    address canceller = WORMHOLE_FOUNDATION_ADDR;
+    string memory description = "Test Proposal: Verify Timelock Cancellation of Scheduled Op";
+    vm.prank(0xc072B1AEf336eDde59A049699Ef4e8Fa9D594A48);
+    IMintable(address(wToken)).mint(proposer, EXPECTED_QUORUM);
+
+    (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
+      _prepareSimpleProposalData(description);
+
+    // 1. Propose
+    uint256 proposalId = _proposeFrom(proposer, targets, values, calldatas, description);
+    assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Pending), "Proposal not Pending initially");
+
+    // 2. Simulate Voting Period
+    vm.warp(block.timestamp + EXPECTED_VOTING_DELAY + 1); // Warp past voting delay
+    assertEq(uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Active), "Proposal not Active after delay");
+
+    vm.prank(proposer); // Use the proposer who has votes from setUp
+    gov.castVote(proposalId, 1); // Vote For
+
+    vm.warp(block.timestamp + EXPECTED_VOTING_PERIOD + 1); // Warp past voting period
+    assertEq(
+      uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Succeeded), "Proposal not Succeeded after vote"
+    );
+
+    // 3. Queue the proposal (schedules it on Timelock)
+    gov.queue(targets, values, calldatas, descriptionHash);
+    assertEq(
+      uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Queued), "Proposal not Queued after queue call"
+    );
+
+    // 4. Calculate the Timelock operation ID
+    bytes32 predecessor = bytes32(0);
+    bytes32 salt = bytes20(address(gov)) ^ descriptionHash;
+    bytes32 timelockId = timelock.hashOperationBatch(targets, values, calldatas, predecessor, salt);
+
+    // 5. Verify the operation is Waiting on the Timelock
+    assertEq(uint8(timelock.getOperationState(timelockId)), 1, "Operation should be Waiting (1) after queue");
+
+    vm.warp(block.timestamp + timelock.getMinDelay());
+
+    // 6. Cancel directly on the Timelock
+    vm.prank(canceller);
+    gov.execute(targets, values, calldatas, descriptionHash);
+
+    // 7. Verify Governor state becomes Canceled
+    assertEq(
+      uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Executed), "Governor state should become Executed"
     );
   }
 }
