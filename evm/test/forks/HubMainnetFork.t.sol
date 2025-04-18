@@ -103,7 +103,8 @@ contract HubMainnetForkTest is HubForkTestBase {
     assertEq(gov.whitelistedProposer(), address(0), "Initial WhitelistedProposer should be address(0)");
   }
 
-  function test_VerifyContractOwnershipInitial() public view {
+  function test_VerifyContractOwnershipInitial() public {
+    vm.createSelectFork(ETHEREUM_RPC_URL, 22296816); // Before registration
     assertEq(hubVotePool.owner(), actualDeployer, "VotePool initial owner mismatch");
     assertEq(hubMessageDispatcher.owner(), TIMELOCK_ADDR, "EvmDispatcher owner mismatch");
     assertEq(hubSolanaMessageDispatcher.owner(), TIMELOCK_ADDR, "SolanaDispatcher owner mismatch");

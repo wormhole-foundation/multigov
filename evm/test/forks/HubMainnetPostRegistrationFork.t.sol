@@ -161,4 +161,27 @@ contract HubMainnetPostRegistrationForkTest is HubForkTestBase {
       uint8(gov.state(proposalId)), uint8(IGovernor.ProposalState.Executed), "Governor state should become Executed"
     );
   }
+
+  function testForkFuzz_TimelockCanRegisterSpokeAfterTransfer(address _spokeAddress) public {
+    vm.createSelectFork(ETHEREUM_RPC_URL, 22296816);
+    vm.prank(0x4135270D8bcF6b654e1169efEFc317aFA8778A83);
+	hubVotePool.transferOwnership(0xfBc580c0289121673EfB7375fF111bD2A4db4654);
+
+	bytes32 _expectedSpokeAddress = bytes32(uint256(uint160(_spokeAddress)));
+	vm.prank(TIMELOCK_ADDR);
+    hubVotePool.registerSpoke(23, _expectedSpokeAddress);
+
+	bytes32 _registeredSpoke = hubVotePool.getSpoke(23, block.timestamp);
+	assertEq(_registeredSpoke, _expectedSpokeAddress);
+  }
+
+  function testForkFuzz_TimelockCanRegisterSpoke(address _spokeAddress) public {
+	bytes32 _expectedSpokeAddress = bytes32(uint256(uint160(_spokeAddress)));
+	vm.prank(TIMELOCK_ADDR);
+    hubVotePool.registerSpoke(23, _expectedSpokeAddress);
+
+	bytes32 _registeredSpoke = hubVotePool.getSpoke(23, block.timestamp);
+	assertEq(_registeredSpoke, _expectedSpokeAddress);
+  }
+
 }
