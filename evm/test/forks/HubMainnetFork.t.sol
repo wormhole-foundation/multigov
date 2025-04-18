@@ -104,7 +104,7 @@ contract HubMainnetForkTest is HubForkTestBase {
   }
 
   function test_VerifyContractOwnershipInitial() public {
-    vm.createSelectFork(ETHEREUM_RPC_URL, 22296816); // Before registration
+    vm.createSelectFork(ETHEREUM_RPC_URL, 22_296_816); // Before registration
     assertEq(hubVotePool.owner(), actualDeployer, "VotePool initial owner mismatch");
     assertEq(hubMessageDispatcher.owner(), TIMELOCK_ADDR, "EvmDispatcher owner mismatch");
     assertEq(hubSolanaMessageDispatcher.owner(), TIMELOCK_ADDR, "SolanaDispatcher owner mismatch");
