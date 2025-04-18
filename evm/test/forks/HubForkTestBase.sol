@@ -37,7 +37,7 @@ abstract contract HubForkTestBase is Test, HubTestConstants {
 
   // --- Setup --- (Common setup logic)
   function setUp() public virtual {
-    ethereumForkId = vm.createSelectFork(ETHEREUM_RPC_URL);
+    ethereumForkId = vm.createSelectFork(ETHEREUM_RPC_URL, 22_297_427);
 
     timelock = TimelockController(payable(TIMELOCK_ADDR));
     gov = HubGovernor(payable(GOV_ADDR));
