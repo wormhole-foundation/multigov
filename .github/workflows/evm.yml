@@ -12,6 +12,9 @@ env:
   ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
   SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
   OPTIMISM_SEPOLIA_RPC_URL: ${{ secrets.OPTIMISM_SEPOLIA_RPC_URL }}
+  OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
+  ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
+  BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
 
 jobs:
   build:
