@@ -2,7 +2,6 @@
 pragma solidity ^0.8.23;
 
 import {Test, console} from "forge-std/Test.sol";
-import {Vm} from "forge-std/Vm.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {HubGovernor} from "src/HubGovernor.sol";
 import {HubProposalExtender} from "src/HubProposalExtender.sol";
@@ -13,18 +12,13 @@ import {HubEvmSpokeAggregateProposer} from "src/HubEvmSpokeAggregateProposer.sol
 import {HubSolanaMessageDispatcher} from "src/HubSolanaMessageDispatcher.sol";
 import {HubSolanaSpokeVoteDecoder} from "src/HubSolanaSpokeVoteDecoder.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {HubTestConstants} from "./HubTestConstants.sol";
 
 // Base contract for Hub fork tests containing shared setup and helpers
 abstract contract HubForkTestBase is Test, HubTestConstants {
   string internal ETHEREUM_RPC_URL = vm.envString("ETHEREUM_RPC_URL");
   uint256 internal ethereumForkId;
-
-  // TODO: Replace with actual deployer address for prod mainnet deploy
   address internal actualDeployer = 0x4135270D8bcF6b654e1169efEFc317aFA8778A83;
-  // to mainnet test;
 
   address public PROPOSER_ADDRESS = 0x71CB1dc5AE0389F1828a5dFefB8476bd3BEA2AF2; // Dan Reecer
   address public EXPECTED_EXTENDER_ADMIN = actualDeployer;

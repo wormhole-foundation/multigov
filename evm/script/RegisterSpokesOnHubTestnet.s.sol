@@ -31,7 +31,7 @@ contract RegisterSpokesOnHubTestnet is Script {
     hubVotePool.registerSpoke(1, SOLANA_SPOKE);
     hubVotePool.registerSpoke(10_005, bytes32(uint256(uint160(OPTIMISM_SEPOLIA_VOTE_AGGREGATOR))));
     // transfer owner
-    //hubVotePool.transferOwnership(TIMELOCK);
+    hubVotePool.transferOwnership(TIMELOCK);
     vm.stopBroadcast();
   }
 }

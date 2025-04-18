@@ -3,7 +3,6 @@ pragma solidity ^0.8.23;
 
 import {HubForkTestBase} from "./HubForkTestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
 interface IMintable {
   function mint(address _account, uint256 _amount) external;

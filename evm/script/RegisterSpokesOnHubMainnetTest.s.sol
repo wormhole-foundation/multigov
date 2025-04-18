@@ -36,7 +36,7 @@ contract RegisterSpokesOnHubMainnetTest is Script {
     hubVotePool.registerSpoke(23, bytes32(uint256(uint160(ARBITRUM_VOTE_AGGREGATOR))));
     hubVotePool.registerSpoke(30, bytes32(uint256(uint160(BASE_VOTE_AGGREGATOR))));
     // transfer owner
-    //hubVotePool.transferOwnership(TIMELOCK);
+    hubVotePool.transferOwnership(TIMELOCK);
     vm.stopBroadcast();
   }
 }
