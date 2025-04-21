@@ -112,7 +112,8 @@ export const passProposal = async ({
 
   const voteStart = await getVoteStart({ proposalId, isHub: true });
 
-  await mineToTimestamp({ client: ethClient, timestamp: voteStart });
+  // Advance time slightly past the vote start to ensure the proposal becomes active
+  await mineToTimestamp({ client: ethClient, timestamp: voteStart + 1n });
   await voteOnProposal({ proposalId, isHub: true, voteType: VoteType.FOR });
 
   const voteEnd = await getVoteEnd({ proposalId });
