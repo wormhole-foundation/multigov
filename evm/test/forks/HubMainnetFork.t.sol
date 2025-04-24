@@ -165,7 +165,6 @@ contract HubMainnetForkTest is HubForkTestBase {
 
     uint256 initialDeadline = gov.proposalDeadline(proposalId);
 
-    // Use deployer as extender admin for initial test, matching state variable
     vm.prank(WORMHOLE_FOUNDATION_ADDR);
     extender.extendProposal(proposalId);
 
