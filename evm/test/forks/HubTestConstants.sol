@@ -5,7 +5,6 @@ import {HubGovernor} from "src/HubGovernor.sol";
 import {HubVotePool} from "src/HubVotePool.sol";
 
 contract HubTestConstants {
-  // Deployed Contract Addresses (from mainnet-test-deploy-contracts.md)
   address payable constant GOV_ADDR = payable(0x239B1F17E6Efa75662cB87781025538babF1Cf6b);
   address immutable TIMELOCK_ADDR = 0xfBc580c0289121673EfB7375fF111bD2A4db4654;
   address immutable EXTENDER_ADDR = 0x3dDeaA121C33eDBF802984096aB450a6051E0e73;
@@ -16,7 +15,6 @@ contract HubTestConstants {
   address constant HUB_MSG_DISPATCHER_ADDR = 0x9B3679B7e3E51d4f1E0eeF3977B400011365CbCE;
   address constant HUB_SOLANA_DISPATCHER_ADDR = 0x6b608339E64662F49425b02e0c82ea904492BFab;
   address constant HUB_EVM_AGG_PROPOSER_ADDR = 0xC7D279Fcd5b122BDEc63112F31967b2eAB080Af6;
-  // // Testnet WToken address (replace with actual for prod verification)
   address constant W_TOKEN_ADDR = 0xB0fFa8000886e57F86dd5264b9582b2Ad87b2b91;
 
   // Testnet Spoke Addresses & Chain IDs

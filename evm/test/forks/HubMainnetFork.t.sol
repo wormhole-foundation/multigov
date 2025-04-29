@@ -33,7 +33,11 @@ contract HubMainnetForkTest is HubForkTestBase {
       extender.MINIMUM_EXTENSION_DURATION(), EXPECTED_MIN_EXTENSION_TIME, "Extender minExtensionDuration mismatch"
     );
     // Initial admin check (should be deployer before registration script/governance action)
-    assertEq(extender.voteExtenderAdmin(), WORMHOLE_FOUNDATION_ADDR, "Extender initial admin should be deployer");
+    assertEq(
+      extender.voteExtenderAdmin(),
+      WORMHOLE_FOUNDATION_ADDR,
+      "Extender initial admin should be WORMHOLE_FOUNDATION_ADDR"
+    );
     // Owner check (should be Timelock as set during deployment)
     assertEq(extender.owner(), TIMELOCK_ADDR, "Extender owner mismatch");
   }
