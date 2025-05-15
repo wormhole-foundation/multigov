@@ -76,7 +76,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
     bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
     bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
 
-    dispatcher.dispatch(payload);
+    dispatcher.dispatch{value: wormholeCoreMock.messageFee()}(payload);
 
     assertEq(wormholeCoreMock.ghostPublishMessagePayload(), emittedPayload);
   }
@@ -101,7 +101,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
     bytes memory payload = abi.encode(CHAIN_ID_SOLANA, instructions);
     bytes memory emittedPayload = abi.encode(nextMessageId, CHAIN_ID_SOLANA, instructions);
 
-    dispatcher.dispatch(payload);
+    dispatcher.dispatch{value: wormholeCoreMock.messageFee()}(payload);
 
     assertEq(wormholeCoreMock.ghostPublishMessagePayload(), emittedPayload);
   }
@@ -125,7 +125,7 @@ contract Dispatch is HubSolanaMessageDispatcherTest {
 
     vm.expectEmit();
     emit IMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);
-    dispatcher.dispatch(payload);
+    dispatcher.dispatch{value: wormholeCoreMock.messageFee()}(payload);
   }
 
   function test_RevertIf_EmptyInstructionSet() public {

@@ -9,9 +9,11 @@ contract WormholeCoreMock is WormholeMock {
   bytes public ghostPublishMessagePayload;
   uint8 public ghostPublishMessageConsistencyLevel;
   uint16 public override chainId;
+  uint256 public override messageFee;
 
   constructor(uint16 _chainId) {
     chainId = _chainId;
+    messageFee = 1;
   }
 
   function publishMessage(uint32 _nonce, bytes memory _payload, uint8 _consistencyLevel)
@@ -20,6 +22,7 @@ contract WormholeCoreMock is WormholeMock {
     override
     returns (uint64)
   {
+    require(msg.value == messageFee, "WormholeCoreMock: Invalid message fee");
     ghostPublishMessageNonce = _nonce;
     ghostPublishMessagePayload = _payload;
     ghostPublishMessageConsistencyLevel = _consistencyLevel;

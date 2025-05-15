@@ -56,7 +56,7 @@ contract Dispatch is HubMessageDispatcherTest {
     bytes memory payload = abi.encode(
       _wormholeChainId, builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes(_description))
     );
-    dispatcher.dispatch(payload);
+    dispatcher.dispatch{value: wormholeCoreMock.messageFee()}(payload);
     assertEq(
       wormholeCoreMock.ghostPublishMessagePayload(),
       abi.encode(nextMessageId, _wormholeChainId, builder.targets(), builder.values(), builder.calldatas())
@@ -74,7 +74,7 @@ contract Dispatch is HubMessageDispatcherTest {
     bytes memory payload = abi.encode(
       _wormholeChainId, builder.targets(), builder.values(), builder.calldatas(), keccak256(bytes(_description))
     );
-    dispatcher.dispatch(payload);
+    dispatcher.dispatch{value: wormholeCoreMock.messageFee()}(payload);
     assertEq(
       wormholeCoreMock.ghostPublishMessagePayload(),
       abi.encode(nextMessageId, _wormholeChainId, builder.targets(), builder.values(), builder.calldatas())
@@ -96,7 +96,7 @@ contract Dispatch is HubMessageDispatcherTest {
 
     vm.expectEmit();
     emit IMessageDispatcher.MessageDispatched(nextMessageId, emittedPayload);
-    dispatcher.dispatch(payload);
+    dispatcher.dispatch{value: wormholeCoreMock.messageFee()}(payload);
   }
 
   function testFuzz_RevertIf_ProposalDataIsDifferentLengths(
