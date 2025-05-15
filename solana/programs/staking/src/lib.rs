@@ -72,7 +72,7 @@ pub struct ProposalCreated {
     pub vote_start: u64,
 }
 
-declare_id!("AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap");
+declare_id!("MGoV9M6YUsdhJzjzH9JMCW2tRe1LLxF1CjwqKC7DR1B");
 #[program]
 pub mod staking {
     /// Creates a global config for the program
