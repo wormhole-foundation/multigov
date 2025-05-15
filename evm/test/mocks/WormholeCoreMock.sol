@@ -9,7 +9,7 @@ contract WormholeCoreMock is WormholeMock {
   bytes public ghostPublishMessagePayload;
   uint8 public ghostPublishMessageConsistencyLevel;
   uint16 public override chainId;
-  uint256 public immutable override messageFee;
+  uint256 public override messageFee;
 
   constructor(uint16 _chainId) {
     chainId = _chainId;
