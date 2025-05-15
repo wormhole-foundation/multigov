@@ -69,4 +69,4 @@ filename = "tests/accounts/guardian_set_1.json"
 ### Some external program for executor tests
 [external_program]
 address = "675LNkgUdRCq4EtSmNHJhdUYWPWR34K2zyj6jkhUh6YL"
-program = "target/deploy/external_program.so"
+program = "tests/artifacts/external_program.so"
