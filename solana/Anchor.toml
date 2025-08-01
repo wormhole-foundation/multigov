@@ -10,11 +10,11 @@ members = [
 ]
 
 [programs.localnet]
-staking = "AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap"
+staking = "MGoV9M6YUsdhJzjzH9JMCW2tRe1LLxF1CjwqKC7DR1B"
 
 [programs.devnet]
-staking = "AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap"
-external_program = "eLUV8cwhgUC2Bcu4UA16uhuMwK8zPkx3XSzt4hd3JJ3"
+external_program = "675LNkgUdRCq4EtSmNHJhdUYWPWR34K2zyj6jkhUh6YL"
+staking = "MGoV9M6YUsdhJzjzH9JMCW2tRe1LLxF1CjwqKC7DR1B"
 
 [registry]
 url = "https://anchor.projectserum.com"
@@ -68,5 +68,5 @@ filename = "tests/accounts/guardian_set_1.json"
 
 ### Some external program for executor tests
 [external_program]
-address = "3Pe7YqWdD9Pj8ejb7ex2j7nuKpPhtGR8yktxQGZ8SgQa"
+address = "675LNkgUdRCq4EtSmNHJhdUYWPWR34K2zyj6jkhUh6YL"
 program = "tests/artifacts/external_program.so"

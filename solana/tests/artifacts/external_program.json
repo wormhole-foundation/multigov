@@ -1,5 +1,5 @@
 {
-  "address": "3Pe7YqWdD9Pj8ejb7ex2j7nuKpPhtGR8yktxQGZ8SgQa",
+  "address": "675LNkgUdRCq4EtSmNHJhdUYWPWR34K2zyj6jkhUh6YL",
   "metadata": {
     "name": "external_program",
     "version": "0.1.0",
@@ -42,7 +42,9 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  86,
+                  50
                 ]
               }
             ]
@@ -54,6 +56,55 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "append_payload",
+      "discriminator": [
+        254,
+        65,
+        54,
+        181,
+        187,
+        35,
+        12,
+        83
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "buffer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "remaining_payload",
+          "type": "bytes"
+        }
+      ]
     },
     {
       "name": "initialize",
@@ -86,7 +137,9 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  86,
+                  50
                 ]
               }
             ]
@@ -99,7 +152,193 @@
       ],
       "args": [
         {
+          "name": "super_admin",
+          "type": "pubkey"
+        },
+        {
           "name": "admin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "populate_buffer",
+      "discriminator": [
+        131,
+        31,
+        126,
+        77,
+        118,
+        217,
+        5,
+        227
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "buffer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "_payload_len",
+          "type": "u64"
+        },
+        {
+          "name": "data",
+          "type": {
+            "defined": {
+              "name": "VAAData"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "post_vaa",
+      "discriminator": [
+        8,
+        15,
+        198,
+        170,
+        97,
+        124,
+        250,
+        101
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "buffer",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "wormhole_program",
+          "docs": [
+            "These accounts will be verified by Core bridge on CPI"
+          ]
+        },
+        {
+          "name": "guardian_set"
+        },
+        {
+          "name": "bridge"
+        },
+        {
+          "name": "signature_set"
+        },
+        {
+          "name": "vaa",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_admin",
+      "discriminator": [
+        161,
+        176,
+        40,
+        213,
+        60,
+        184,
+        179,
+        228
+      ],
+      "accounts": [
+        {
+          "name": "super_admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103,
+                  86,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_admin",
           "type": "pubkey"
         }
       ]
@@ -118,6 +357,19 @@
         204,
         130
       ]
+    },
+    {
+      "name": "VAAData",
+      "discriminator": [
+        109,
+        131,
+        182,
+        50,
+        252,
+        3,
+        49,
+        51
+      ]
     }
   ],
   "events": [
@@ -132,6 +384,19 @@
         226,
         42,
         155
+      ]
+    },
+    {
+      "name": "UpdateAdminEvent",
+      "discriminator": [
+        225,
+        152,
+        171,
+        87,
+        246,
+        63,
+        66,
+        234
       ]
     }
   ],
@@ -165,12 +430,81 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "super_admin",
+            "type": "pubkey"
+          },
+          {
             "name": "admin",
             "type": "pubkey"
           },
           {
             "name": "counter",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateAdminEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previous_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_admin",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VAAData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
+          {
+            "name": "guardian_set_index",
+            "type": "u32"
+          },
+          {
+            "name": "timestamp",
+            "type": "u32"
+          },
+          {
+            "name": "nonce",
+            "type": "u32"
+          },
+          {
+            "name": "emitter_chain",
+            "type": "u16"
+          },
+          {
+            "name": "emitter_address",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "consistency_level",
+            "type": "u8"
+          },
+          {
+            "name": "payload",
+            "type": "bytes"
           }
         ]
       }

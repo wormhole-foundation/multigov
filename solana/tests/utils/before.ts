@@ -174,7 +174,6 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
   --account ${config.guardian_set_5.address} ${config.guardian_set_5.filename} \
   --mint ${user.publicKey}  \
   --reset \
-  --bpf-program ${programAddress.toBase58()} ${binaryPath} \
   --bpf-program ${config.core_bridge_program.address} ${config.core_bridge_program.program} \
    --bpf-program ${config.external_program.address} ${config.external_program.program} \
   -ud
@@ -185,6 +184,9 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
     otherArgs,
   );
 
+  const deployCommand = `solana program deploy ${binaryPath} --program-id ./target/deploy/staking-keypair.json -k ${config.provider.wallet} -u ${connection.rpcEndpoint}`;
+  executeCommandWithRetry(deployCommand);
+
   const provider = new AnchorProvider(connection, new Wallet(user), {});
 
   const program = new Program(
@@ -192,6 +194,7 @@ export async function startValidator(portNumber: number, config: AnchorConfig) {
     provider,
   );
 
+  await sleep(5000);
   const command = `anchor idl init -f ${idlPath} ${programAddress.toBase58()} --provider.cluster ${connection.rpcEndpoint}`;
   executeCommandWithRetry(command);
 

@@ -244,7 +244,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0bb0e0911ad4a70cab880cdd6287fe1e880a1a9d8e4e6defa8e9044b9796a6c"
 dependencies = [
  "anchor-syn 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "borsh-derive-internal 0.9.3",
+ "borsh-derive-internal 0.10.4",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -302,7 +302,7 @@ dependencies = [
  "arrayref",
  "base64 0.21.7",
  "bincode",
- "borsh 0.9.3",
+ "borsh 0.10.4",
  "bytemuck",
  "getrandom 0.2.15",
  "solana-program",
@@ -378,6 +378,22 @@ source = "git+https://github.com/coral-xyz/anchor/?rev=06527e57c3e59683c36eb0a5c
 dependencies = [
  "anyhow",
  "serde",
+]
+
+[[package]]
+name = "anchor-spl"
+version = "0.30.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04bd077c34449319a1e4e0bc21cea572960c9ae0d0fefda0dd7c52fcc3c647a3"
+dependencies = [
+ "anchor-lang 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mpl-token-metadata",
+ "spl-associated-token-account",
+ "spl-pod",
+ "spl-token",
+ "spl-token-2022",
+ "spl-token-group-interface",
+ "spl-token-metadata-interface",
 ]
 
 [[package]]
@@ -1214,6 +1230,7 @@ name = "external_program"
 version = "0.1.0"
 dependencies = [
  "anchor-lang 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wormhole-anchor-sdk 0.30.1-alpha.3",
 ]
 
 [[package]]
@@ -3111,7 +3128,19 @@ version = "0.30.1-alpha.1"
 source = "git+https://github.com/wormholelabs-xyz/wormhole-scaffolding?branch=anchor-sdk-update#12994ceb2c5f69d7a530e7550e57de0ba7a0c5bb"
 dependencies = [
  "anchor-lang 0.30.1 (git+https://github.com/coral-xyz/anchor/?rev=06527e57c3e59683c36eb0a5c69ee669100b42e5)",
- "anchor-spl",
+ "anchor-spl 0.30.1 (git+https://github.com/coral-xyz/anchor/?rev=06527e57c3e59683c36eb0a5c69ee669100b42e5)",
+ "cfg-if",
+ "wormhole-io",
+]
+
+[[package]]
+name = "wormhole-anchor-sdk"
+version = "0.30.1-alpha.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99f519ac46a3e5ae1883eb4bb1036421e12e2d21ea917d24aac8df59e82334ee"
+dependencies = [
+ "anchor-lang 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "anchor-spl 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if",
  "wormhole-io",
 ]
@@ -3152,7 +3181,7 @@ version = "1.5.0"
 dependencies = [
  "anchor-attribute-error 0.30.1 (git+https://github.com/coral-xyz/anchor/?rev=06527e57c3e59683c36eb0a5c69ee669100b42e5)",
  "anchor-lang 0.30.1 (git+https://github.com/coral-xyz/anchor/?rev=06527e57c3e59683c36eb0a5c69ee669100b42e5)",
- "anchor-spl",
+ "anchor-spl 0.30.1 (git+https://github.com/coral-xyz/anchor/?rev=06527e57c3e59683c36eb0a5c69ee669100b42e5)",
  "bincode",
  "bytemuck",
  "ethabi",
@@ -3164,7 +3193,7 @@ dependencies = [
  "solana-zk-token-sdk",
  "spl-token",
  "wasm-bindgen",
- "wormhole-anchor-sdk",
+ "wormhole-anchor-sdk 0.30.1-alpha.1",
  "wormhole-query-sdk",
  "wormhole-raw-vaas",
  "wormhole-solana-consts",
