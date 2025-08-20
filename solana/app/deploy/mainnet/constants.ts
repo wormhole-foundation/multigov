@@ -7,21 +7,21 @@ export const RPC_NODE = "https://api.mainnet-beta.solana.com";
 
 /// Wormhole Token (W) (mainnet solana address)
 export const WORMHOLE_TOKEN = new PublicKey(
-  "85VBFQZC9TZkfaptBWjvUw7YbZjy52A6mjtPGjstQAmQ",
+  "3bgLkkFyNRejfYXZMsbAodnskvaF9jXaScvK1KtTv8W4",
 );
 
 export const STAKING_ADDRESS = new PublicKey(
-  "AFuHPdrQGsW8rNQ4oEFF35sm5fg36gwrxyqjkjKvi6ap",
+  "H3mSXnmYN3fChvRU6rhkLf9nGkytpEenSGm5DrgjFgHK",
 );
 
 export const CORE_BRIDGE_PID = new PublicKey(
   contracts.coreBridge.get("Mainnet", "Solana")!, // worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth
 );
-console.log(CORE_BRIDGE_PID);
+// console.log("CORE_BRIDGE_PID:", CORE_BRIDGE_PID);
 
 /// Wormhole Hub Proposal Metadata Contract (mainnet ethereum address)
 export const HUB_PROPOSAL_METADATA_ADDRESS =
-  "0x1a3e5624769c3dc9106347a239523e4a08d85c38"; // TODO: needs to be updated after a deployment to ethereum mainnet
+  "0xe1485b53e6E94aD4B82b19E48DA1911d2E19bFaE"; // TODO: needs to be updated after a deployment to ethereum mainnet
 export const hubProposalMetadataUint8Array = new Uint8Array(
   HUB_PROPOSAL_METADATA_ADDRESS.slice(2)
     .toLowerCase()
@@ -37,7 +37,7 @@ export const CHECKPOINTS_ACCOUNT_LIMIT = 654998;
 
 /// Wormhole hubSolanaMessageDispatcher Contract (mainnet ethereum address)
 export const HUB_SOLANA_MESSAGE_DISPATCHER_ADDRESS =
-  "0xaeb78fb7ddedbbcab908e91e94f1fb04a23fbce5"; // TODO: needs to be updated after a deployment to ethereum mainnet
+  "0xadB8de6dfB41a1Fce6635460E77bEaDc73148BE4"; // TODO: needs to be updated after a deployment to ethereum mainnet
 const hubSolanaMessageDispatcherHex20 =
   HUB_SOLANA_MESSAGE_DISPATCHER_ADDRESS.slice(2);
 const hubSolanaMessageDispatcherHex32 =
